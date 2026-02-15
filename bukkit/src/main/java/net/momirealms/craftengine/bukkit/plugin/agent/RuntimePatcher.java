@@ -1,38 +1,54 @@
 package net.momirealms.craftengine.bukkit.plugin.agent;
 
+import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
-import net.bytebuddy.agent.builder.AgentBuilder;
-import net.bytebuddy.asm.Advice;
-import net.bytebuddy.matcher.ElementMatchers;
+import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
+import net.bytebuddy.dynamic.scaffold.InstrumentedType;
+import net.bytebuddy.implementation.Implementation;
+import net.bytebuddy.implementation.bytecode.ByteCodeAppender;
+import net.bytebuddy.jar.asm.Opcodes;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
-import net.momirealms.craftengine.proxy.PluginHolder;
+import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
 
-public final class RuntimePatcher {
-    private RuntimePatcher() {}
+import java.lang.instrument.Instrumentation;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
-    public static void patch(BukkitCraftEngine plugin) {
-        PluginHolder.injectRegistries = plugin::injectRegistries;
-        new AgentBuilder.Default()
-                .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-                .with(AgentBuilder.RedefinitionStrategy.REDEFINITION)
-                .type(ElementMatchers.named("net.minecraft.server.Bootstrap")
-                        .or(ElementMatchers.named("net.minecraft.server.DispenserRegistry")))
-                .transform((builder, typeDescription, classLoader, module, protectionDomain) ->
-                        builder.visit(Advice.to(BlocksAdvice.class)
-                                .on(ElementMatchers.named("validate")
-                                        .or(ElementMatchers.named("c")))))
-                .installOn(ByteBuddyAgent.install());
-    }
+public class RuntimePatcher {
 
-    public static final class BlocksAdvice {
+    public static void patch(BukkitCraftEngine plugin) throws ReflectiveOperationException {
+        Class<?> holderClass = new ByteBuddy()
+                .subclass(Object.class)
+                .name("net.momirealms.craftengine.bukkit.plugin.agent.PluginHolder")
+                .defineField("plugin", Object.class, Modifier.PUBLIC | Modifier.STATIC)
+                .defineMethod("setPlugin", void.class, Modifier.PUBLIC | Modifier.STATIC)
+                .withParameters(Object.class)
+                .intercept(new Implementation() {
+                    @Override
+                    public @NotNull InstrumentedType prepare(@NotNull InstrumentedType instrumentedType) {
+                        return instrumentedType;
+                    }
 
-        @Advice.OnMethodExit
-        public static void onExit() {
-            try {
-                PluginHolder.injectRegistries.run();
-            } catch (Exception e) {
-                e.printStackTrace(System.err);
-            }
-        }
+                    @Override
+                    public @NotNull ByteCodeAppender appender(@NotNull Target implementationTarget) {
+                        return (methodVisitor, implementationContext, instrumentedMethod) -> {
+                            methodVisitor.visitVarInsn(Opcodes.ALOAD, 0);
+                            methodVisitor.visitFieldInsn(Opcodes.PUTSTATIC,
+                                    "net/momirealms/craftengine/bukkit/plugin/agent/PluginHolder",
+                                    "plugin",
+                                    "Ljava/lang/Object;");
+                            methodVisitor.visitInsn(Opcodes.RETURN);
+                            return new ByteCodeAppender.Size(1, 1);
+                        };
+                    }
+                })
+                .make()
+                .load(Bukkit.class.getClassLoader(), ClassLoadingStrategy.Default.INJECTION)
+                .getLoaded();
+        Method setPlugin = holderClass.getMethod("setPlugin", Object.class);
+        setPlugin.invoke(null, plugin);
+        Instrumentation inst = ByteBuddyAgent.install();
+        BlocksAgent.agentmain(null, inst);
     }
 }
