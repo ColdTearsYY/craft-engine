@@ -6,12 +6,14 @@ import net.momirealms.craftengine.core.block.DelegatingBlock;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.MaterialProxy;
-import net.momirealms.sparrow.reflection.SReflection;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
+import net.momirealms.sparrow.reflection.field.SField;
+import net.momirealms.sparrow.reflection.field.SIntField;
+import net.momirealms.sparrow.reflection.field.matcher.FieldMatcher;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 
-import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -19,21 +21,10 @@ import java.util.Objects;
 
 public final class MaterialInjector {
     private static final Map<DelegatingBlock, Material> BY_BLOCK = new HashMap<>();
-    private static final MethodHandle Enum$name;
-    private static final MethodHandle Enum$ordinal;
-    private static final MethodHandle Class$enumConstantDirectory;
-    private static final MethodHandle Class$enumConstants;
-
-    static {
-        try {
-            Enum$name = SReflection.unreflectSetter(Enum.class.getDeclaredField("name"));
-            Enum$ordinal = SReflection.unreflectSetter(Enum.class.getDeclaredField("ordinal"));
-            Class$enumConstantDirectory = SReflection.unreflectSetter(Class.class.getDeclaredField("enumConstantDirectory"));
-            Class$enumConstants = SReflection.unreflectSetter(Class.class.getDeclaredField("enumConstants"));
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    private static final SField Enum$name = SparrowClass.of(Enum.class).getDeclaredSparrowField(FieldMatcher.named("name")).asm();
+    private static final SIntField Enum$ordinal = SparrowClass.of(Enum.class).getDeclaredSparrowField(FieldMatcher.named("ordinal")).asm$int();
+    private static final SField Class$enumConstantDirectory = SparrowClass.of(Class.class).getDeclaredSparrowField(FieldMatcher.named("enumConstantDirectory")).asm();
+    private static final SField Class$enumConstants = SparrowClass.of(Class.class).getDeclaredSparrowField(FieldMatcher.named("enumConstants")).asm();
 
     private MaterialInjector() {}
 
@@ -53,8 +44,8 @@ public final class MaterialInjector {
         MaterialProxy.INSTANCE.setMaxStack(material, 64);
         MaterialProxy.INSTANCE.setDurability(material, (short) 0);
         try {
-            Enum$name.invoke(material, (id.namespace() + "_" + id.value()).toUpperCase(Locale.ROOT));
-            Enum$ordinal.invoke(material, ordinal);
+            Enum$name.set(material, (id.namespace() + "_" + id.value()).toUpperCase(Locale.ROOT));
+            Enum$ordinal.set(material, ordinal);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
@@ -69,8 +60,8 @@ public final class MaterialInjector {
             MaterialProxy.BY_NAME.put(material.name(), material);
         }
         try {
-            Class$enumConstantDirectory.invoke(Material.class, null);
-            Class$enumConstants.invoke(Material.class, null);
+            Class$enumConstantDirectory.set(Material.class, null);
+            Class$enumConstants.set(Material.class, null);
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

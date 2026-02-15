@@ -29,37 +29,37 @@ public interface MaterialProxy {
     Map<String, Material> getByName();
 
     @FieldSetter(name = "id")
-    void setId(Object material, int id);
+    void setId(Material material, int id);
 
     @FieldSetter(name = "ctor")
-    void setCtor(Object material, Constructor<?> ctor);
+    void setCtor(Material material, Constructor<?> ctor);
 
     @FieldSetter(name = "data")
-    void setData(Object material, Class<?> data);
+    void setData(Material material, Class<?> data);
 
     @FieldSetter(name = "legacy")
-    void setLegacy(Object material, boolean legacy);
+    void setLegacy(Material material, boolean legacy);
 
     @FieldSetter(name = "key")
-    void setKey(Object material, NamespacedKey key);
+    void setKey(Material material, NamespacedKey key);
 
     @FieldSetter(name = "itemType", activeIf = "min_version=1.21")
-    default void setItemType(Object material, Supplier<?> itemType) {
+    default void setItemType(Material material, Supplier<?> itemType) {
     }
 
     @FieldSetter(name = "blockType", activeIf = "min_version=1.21")
-    default void setBlockType(Object material, Supplier<?> blockType) {
+    default void setBlockType(Material material, Supplier<?> blockType) {
     }
 
     @FieldSetter(name = "isBlock", activeIf = "max_version=1.20.4")
-    default void setIsBlock(Object material, boolean isBlock) {
+    default void setIsBlock(Material material, boolean isBlock) {
     }
 
     @FieldSetter(name = "maxStack", activeIf = "max_version=1.21.10")
-    default void setMaxStack(Object material, int maxStack) {
+    default void setMaxStack(Material material, int maxStack) {
     }
 
     @FieldSetter(name = "durability", activeIf = "max_version=1.21.4")
-    default void setDurability(Object material, short durability) {
+    default void setDurability(Material material, short durability) {
     }
 }

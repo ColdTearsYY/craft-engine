@@ -155,6 +155,8 @@ public final class Config {
     private int block$predict_breaking_interval;
     private double block$extended_interaction_range;
     private boolean block$chunk_relighter;
+    private Key block$deceive_bukkit_material$default;
+    private Map<Integer, Key> block$deceive_bukkit_material$overrides;
     private int block$serverside_blocks = -1;
     private boolean block$inject_bukkit_material;
 
@@ -532,9 +534,27 @@ public final class Config {
         block$extended_interaction_range = Math.max(config.getDouble("block.predict-breaking.extended-interaction-range", 0.5), 0.0);
         block$chunk_relighter = config.getBoolean("block.chunk-relighter", true);
         if (firstTime) {
+            block$deceive_bukkit_material$default = Key.of(config.getString("block.deceive-bukkit-material.default", "bricks"));
+            block$deceive_bukkit_material$overrides = new HashMap<>();
+            Section overridesSection = config.getSection("block.deceive-bukkit-material.overrides");
+            if (overridesSection != null) {
+                for (Map.Entry<String, Object> entry : overridesSection.getStringRouteMappedValues(false).entrySet()) {
+                    String key = entry.getKey();
+                    Key value = Key.of(String.valueOf(entry.getValue()));
+                    if (key.contains("~")) {
+                        int min = Integer.parseInt(key.split("~")[0]);
+                        int max = Integer.parseInt(key.split("~")[1]);
+                        for (int i = min; i <= max; i++) {
+                            block$deceive_bukkit_material$overrides.put(i, value);
+                        }
+                    } else {
+                        block$deceive_bukkit_material$overrides.put(Integer.valueOf(key), value);
+                    }
+                }
+            }
+            block$inject_bukkit_material = config.getBoolean("block.inject-bukkit-material", false);
             block$serverside_blocks = Math.min(config.getInt("block.serverside-blocks", 2000), 10_0000);
             if (block$serverside_blocks < 0) block$serverside_blocks = 0;
-            block$inject_bukkit_material = config.getBoolean("block.inject-bukkit-material", true);
         }
 
         // recipe
@@ -951,6 +971,10 @@ public final class Config {
 
     public static List<String> bypassEquipments() {
         return instance.resource_pack$protection$obfuscation$bypass_equipments;
+    }
+
+    public static Key deceiveBukkitMaterial(int id) {
+        return instance.block$deceive_bukkit_material$overrides.getOrDefault(id, instance.block$deceive_bukkit_material$default);
     }
 
     public static boolean generateModAssets() {

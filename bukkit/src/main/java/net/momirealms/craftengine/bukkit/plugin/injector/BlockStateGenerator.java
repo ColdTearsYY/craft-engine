@@ -41,15 +41,15 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.proper
 import net.momirealms.craftengine.proxy.minecraft.world.level.storage.loot.LootParamsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.storage.loot.parameters.LootContextParamsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
+import net.momirealms.sparrow.reflection.constructor.SConstructor3;
+import net.momirealms.sparrow.reflection.constructor.matcher.ConstructorMatcher;
 import org.bukkit.inventory.ItemStack;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.List;
 
 public final class BlockStateGenerator {
-    private static MethodHandle constructor$CraftEngineBlockState;
+    private static SConstructor3 constructor$CraftEngineBlockState;
     public static Object instance$StateDefinition$Factory;
 
     public static void init() throws ReflectiveOperationException {
@@ -75,14 +75,10 @@ public final class BlockStateGenerator {
                 .intercept(MethodDelegation.to(SetPropertyValueInterceptor.INSTANCE))
                 .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$is))
                 .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE));
-        Class<?> clazz$CraftEngineBlock = stateBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded();
-        constructor$CraftEngineBlockState = VersionHelper.isOrAbove1_20_5() ?
-                MethodHandles.publicLookup().in(clazz$CraftEngineBlock)
-                        .findConstructor(clazz$CraftEngineBlock, MethodType.methodType(void.class, BlockProxy.CLASS, Reference2ObjectArrayMap.class, MapCodec.class))
-                        .asType(MethodType.methodType(BlockStateProxy.CLASS, BlockProxy.CLASS, Reference2ObjectArrayMap.class, MapCodec.class)) :
-                MethodHandles.publicLookup().in(clazz$CraftEngineBlock)
-                        .findConstructor(clazz$CraftEngineBlock, MethodType.methodType(void.class, BlockProxy.CLASS, ImmutableMap.class, MapCodec.class))
-                        .asType(MethodType.methodType(BlockStateProxy.CLASS, BlockProxy.CLASS, ImmutableMap.class, MapCodec.class));
+        SparrowClass<?> clazz$CraftEngineBlock = SparrowClass.of(stateBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded());
+        constructor$CraftEngineBlockState = clazz$CraftEngineBlock.getSparrowConstructor(
+                ConstructorMatcher.takeArguments(BlockProxy.CLASS, VersionHelper.isOrAbove1_20_5() ? Reference2ObjectArrayMap.class : ImmutableMap.class, MapCodec.class)
+        ).asm$3();
 
         String generatedFactoryClassName = packageWithName.substring(0, packageWithName.lastIndexOf('.')) + ".CraftEngineStateFactory";
         DynamicType.Builder<?> factoryBuilder = byteBuddy
@@ -215,8 +211,8 @@ public final class BlockStateGenerator {
         public static final CreateStateInterceptor INSTANCE = new CreateStateInterceptor();
 
         @RuntimeType
-        public Object intercept(@AllArguments Object[] args) throws Throwable {
-            return constructor$CraftEngineBlockState.invoke(args[0], args[1], args[2]);
+        public Object intercept(@AllArguments Object[] args) {
+            return constructor$CraftEngineBlockState.newInstance(args[0], args[1], args[2]);
         }
     }
 }

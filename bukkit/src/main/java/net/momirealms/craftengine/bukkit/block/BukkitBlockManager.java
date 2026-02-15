@@ -18,7 +18,6 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviors;
 import net.momirealms.craftengine.core.block.behavior.EmptyBlockBehavior;
 import net.momirealms.craftengine.core.block.parser.BlockStateParser;
 import net.momirealms.craftengine.core.loot.LootTable;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
@@ -361,12 +360,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             for (int i = 0; i < count; i++) {
                 Key customBlockId = BlockManager.createCustomBlockKey(i);
                 DelegatingBlock customBlock;
-                try {
-                    customBlock = BlockGenerator.generateBlock(customBlockId);
-                } catch (Throwable t) {
-                    CraftEngine.instance().logger().warn("Failed to generate custom block " + customBlockId, t);
-                    break;
-                }
+                customBlock = BlockGenerator.generateBlock(customBlockId);
                 this.customBlocks[i] = customBlock;
                 Object identifier = KeyUtils.toIdentifier(customBlockId);
                 Object blockHolder = RegistryProxy.INSTANCE.registerForHolder$1(BuiltInRegistriesProxy.BLOCK, identifier, customBlock);
@@ -460,8 +454,32 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     }
 
     private void deceiveBukkitRegistry() {
-        for (DelegatingBlock customBlock : this.customBlocks) {
-            CraftMagicNumbersProxy.BLOCK_MATERIAL.put(customBlock, Config.injectBukkitMaterial() ? MaterialInjector.getByBlock(customBlock) : Material.STONE);
+        if (Config.injectBukkitMaterial()) {
+            for (DelegatingBlock customBlock : this.customBlocks) {
+                CraftMagicNumbersProxy.BLOCK_MATERIAL.put(customBlock, MaterialInjector.getByBlock(customBlock));
+            }
+        } else {
+            Set<String> invalid = new HashSet<>();
+            for (int i = 0; i < this.customBlocks.length; i++) {
+                DelegatingBlock customBlock = this.customBlocks[i];
+                String value = Config.deceiveBukkitMaterial(i).value();
+                Material material;
+                try {
+                    material = Material.valueOf(value.toUpperCase(Locale.ROOT));
+                } catch (IllegalArgumentException e) {
+                    if (invalid.add(value)) {
+                        this.plugin.logger().warn("Cannot load 'deceive-bukkit-material'. '" + value + "' is an invalid bukkit material", e);
+                    }
+                    material = Material.BRICKS;
+                }
+                if (!material.isBlock()) {
+                    if (invalid.add(value)) {
+                        this.plugin.logger().warn("Cannot load 'deceive-bukkit-material'. '" + value + "' is an invalid bukkit block material");
+                    }
+                    material = Material.BRICKS;
+                }
+                CraftMagicNumbersProxy.BLOCK_MATERIAL.put(customBlock, material);
+            }
         }
     }
 

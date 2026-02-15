@@ -35,21 +35,23 @@ import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.*;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.StateDefinitionProxy;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
+import net.momirealms.sparrow.reflection.constructor.SConstructor1;
+import net.momirealms.sparrow.reflection.constructor.matcher.ConstructorMatcher;
+import net.momirealms.sparrow.reflection.field.SBooleanField;
+import net.momirealms.sparrow.reflection.field.SField;
+import net.momirealms.sparrow.reflection.field.matcher.FieldMatcher;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.reflect.Field;
 import java.util.concurrent.Callable;
 
 public final class BlockGenerator {
     private static final BukkitBlockShape STONE_SHAPE =
             new BukkitBlockShape(BlocksProxy.STONE$defaultState, BlocksProxy.STONE$defaultState);
-    private static MethodHandle constructor$CraftEngineBlock;
-    private static Field field$CraftEngineBlock$behavior;
-    private static Field field$CraftEngineBlock$shape;
-    private static Field field$CraftEngineBlock$isNoteBlock;
-    private static Field field$CraftEngineBlock$isTripwire;
+    private static SConstructor1 constructor$CraftEngineBlock;
+    private static SField field$CraftEngineBlock$behavior;
+    private static SField field$CraftEngineBlock$shape;
+    private static SBooleanField field$CraftEngineBlock$isNoteBlock;
+    private static SBooleanField field$CraftEngineBlock$isTripwire;
 
     public static void init() throws ReflectiveOperationException {
         ByteBuddy byteBuddy = new ByteBuddy(ClassFileVersion.JAVA_V17);
@@ -190,28 +192,26 @@ public final class BlockGenerator {
             builder = builder.method(ElementMatchers.is(BlockReflections.method$BlockBehaviour$onExplosionHit))
                     .intercept(MethodDelegation.to(OnExplosionHitInterceptor.INSTANCE));
         }
-        Class<?> clazz$CraftEngineBlock = builder.make().load(BlockGenerator.class.getClassLoader()).getLoaded();
-        constructor$CraftEngineBlock = MethodHandles.publicLookup().in(clazz$CraftEngineBlock)
-                .findConstructor(clazz$CraftEngineBlock, MethodType.methodType(void.class, BlockBehaviourProxy.PropertiesProxy.CLASS))
-                .asType(MethodType.methodType(BlockProxy.CLASS, BlockBehaviourProxy.PropertiesProxy.CLASS));
-        field$CraftEngineBlock$behavior = clazz$CraftEngineBlock.getField("behaviorHolder");
-        field$CraftEngineBlock$shape = clazz$CraftEngineBlock.getField("shapeHolder");
-        field$CraftEngineBlock$isNoteBlock = clazz$CraftEngineBlock.getField("isClientSideNoteBlock");
-        field$CraftEngineBlock$isTripwire = clazz$CraftEngineBlock.getField("isClientSideTripwire");
+        SparrowClass<?> clazz$CraftEngineBlock = SparrowClass.of(builder.make().load(BlockGenerator.class.getClassLoader()).getLoaded());
+        constructor$CraftEngineBlock = clazz$CraftEngineBlock.getSparrowConstructor(ConstructorMatcher.takeArguments(BlockBehaviourProxy.PropertiesProxy.CLASS)).asm$1();
+        field$CraftEngineBlock$behavior = clazz$CraftEngineBlock.getSparrowField(FieldMatcher.named("behaviorHolder")).asm();
+        field$CraftEngineBlock$shape = clazz$CraftEngineBlock.getSparrowField(FieldMatcher.named("shapeHolder")).asm();
+        field$CraftEngineBlock$isNoteBlock = clazz$CraftEngineBlock.getSparrowField(FieldMatcher.named("isClientSideNoteBlock")).asm$boolean();
+        field$CraftEngineBlock$isTripwire = clazz$CraftEngineBlock.getSparrowField(FieldMatcher.named("isClientSideTripwire")).asm$boolean();
     }
 
-    public static Field field$CraftEngineBlock$isNoteBlock() {
+    public static SBooleanField field$CraftEngineBlock$isNoteBlock() {
         return field$CraftEngineBlock$isNoteBlock;
     }
 
-    public static Field field$CraftEngineBlock$isTripwire() {
+    public static SBooleanField field$CraftEngineBlock$isTripwire() {
         return field$CraftEngineBlock$isTripwire;
     }
 
-    public static DelegatingBlock generateBlock(Key blockId) throws Throwable {
+    public static DelegatingBlock generateBlock(Key blockId) {
         ObjectHolder<BlockBehavior> behaviorHolder = new ObjectHolder<>(EmptyBlockBehavior.INSTANCE);
         ObjectHolder<BlockShape> shapeHolder = new ObjectHolder<>(STONE_SHAPE);
-        Object newBlockInstance = constructor$CraftEngineBlock.invoke(createEmptyBlockProperties(blockId));
+        Object newBlockInstance = constructor$CraftEngineBlock.newInstance(createEmptyBlockProperties(blockId));
         field$CraftEngineBlock$behavior.set(newBlockInstance, behaviorHolder);
         field$CraftEngineBlock$shape.set(newBlockInstance, shapeHolder);
         Object stateDefinitionBuilder = StateDefinitionProxy.BuilderProxy.INSTANCE.newInstance(newBlockInstance);
