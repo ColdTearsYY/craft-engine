@@ -30,19 +30,18 @@ import org.bukkit.event.block.LeavesDecayEvent;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class LeavesBlockBehavior extends BukkitBlockBehavior {
+public final class LeavesBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<LeavesBlockBehavior> FACTORY = new Factory();
-    private static final Object LOG_TAG = BlockTags.getOrCreate(Key.of("minecraft", "logs"));
-    private final int maxDistance;
-    private final Property<Integer> distanceProperty;
-    private final Property<Boolean> persistentProperty;
+    public static final Object LOG_TAG = BlockTags.getOrCreate(Key.of("minecraft", "logs"));
+    public final int maxDistance;
+    public final Property<Integer> distanceProperty;
+    public final Property<Boolean> persistentProperty;
 
-    public LeavesBlockBehavior(CustomBlock block,
-                               int maxDistance,
-                               Property<Integer> distanceProperty,
-                               Property<Boolean> persistentProperty) {
+    private LeavesBlockBehavior(CustomBlock block,
+                                Property<Integer> distanceProperty,
+                                Property<Boolean> persistentProperty) {
         super(block);
-        this.maxDistance = maxDistance;
+        this.maxDistance = distanceProperty.possibleValues().getLast();
         this.distanceProperty = distanceProperty;
         this.persistentProperty = persistentProperty;
     }
@@ -165,15 +164,15 @@ public class LeavesBlockBehavior extends BukkitBlockBehavior {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<LeavesBlockBehavior> {
 
         @Override
         public LeavesBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Property<Boolean> persistent = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("persistent"), "warning.config.block.behavior.leaves.missing_persistent");
-            Property<Integer> distance = (Property<Integer>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("distance"), "warning.config.block.behavior.leaves.missing_distance");
-            int actual = distance.possibleValues().getLast();
-            return new LeavesBlockBehavior(block, actual, distance, persistent);
+            return new LeavesBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "distance", Integer.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "persistent", Boolean.class)
+            );
         }
     }
 }

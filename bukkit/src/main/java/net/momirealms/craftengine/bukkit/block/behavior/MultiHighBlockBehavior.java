@@ -36,11 +36,11 @@ import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
-public class MultiHighBlockBehavior extends BukkitBlockBehavior {
+public final class MultiHighBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<MultiHighBlockBehavior> FACTORY = new Factory();
     public final IntegerProperty property;
 
-    public MultiHighBlockBehavior(CustomBlock customBlock, IntegerProperty property) {
+    private MultiHighBlockBehavior(CustomBlock customBlock, IntegerProperty property) {
         super(customBlock);
         this.property = property;
     }
@@ -253,11 +253,10 @@ public class MultiHighBlockBehavior extends BukkitBlockBehavior {
 
         @Override
         public MultiHighBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String propertyName = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("property"), "warning.config.block.behavior.multi_high.missing_property_name");
-            IntegerProperty property = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty(propertyName), () -> {
-                throw new LocalizedResourceConfigException("warning.config.block.behavior.multi_high.missing_property", propertyName);
-            });
-            return new MultiHighBlockBehavior(block, property);
+            return new MultiHighBlockBehavior(
+                    block,
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, section.getNonNullString("property"), Integer.class)
+            );
         }
     }
 }

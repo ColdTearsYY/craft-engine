@@ -226,8 +226,8 @@ public final class ButtonBlockBehavior extends BukkitBlockBehavior {
             SoundData buttonClickOnSound = null;
             SoundData buttonClickOffSound = null;
             if (soundSection != null) {
-                buttonClickOnSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "on");
-                buttonClickOffSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "off");
+                buttonClickOnSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "on");
+                buttonClickOffSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "off");
             }
             return new ButtonBlockBehavior(
                     block,

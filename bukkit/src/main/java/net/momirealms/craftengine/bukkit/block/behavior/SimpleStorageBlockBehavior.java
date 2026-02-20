@@ -39,27 +39,27 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class SimpleStorageBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class SimpleStorageBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<SimpleStorageBlockBehavior> FACTORY = new Factory();
-    private final String containerTitle;
-    private final int rows;
-    private final SoundData openSound;
-    private final SoundData closeSound;
-    private final boolean hasAnalogOutputSignal;
-    private final boolean canPlaceItem;
-    private final boolean canTakeItem;
+    public final String containerTitle;
+    public final int rows;
+    public final SoundData openSound;
+    public final SoundData closeSound;
+    public final boolean hasAnalogOutputSignal;
+    public final boolean canPlaceItem;
+    public final boolean canTakeItem;
     @Nullable
-    private final Property<Boolean> openProperty;
+    public final Property<Boolean> openProperty;
 
-    public SimpleStorageBlockBehavior(CustomBlock customBlock,
-                                      String containerTitle,
-                                      int rows,
-                                      SoundData openSound,
-                                      SoundData closeSound,
-                                      boolean hasAnalogOutputSignal,
-                                      boolean canPlaceItem,
-                                      boolean canTakeItem,
-                                      @Nullable Property<Boolean> openProperty) {
+    private SimpleStorageBlockBehavior(CustomBlock customBlock,
+                                       String containerTitle,
+                                       int rows,
+                                       SoundData openSound,
+                                       SoundData closeSound,
+                                       boolean hasAnalogOutputSignal,
+                                       boolean canPlaceItem,
+                                       boolean canTakeItem,
+                                       @Nullable Property<Boolean> openProperty) {
         super(customBlock);
         this.containerTitle = containerTitle;
         this.rows = rows;
@@ -126,37 +126,6 @@ public class SimpleStorageBlockBehavior extends BukkitBlockBehavior implements E
         return new SimpleStorageBlockEntity(pos, state);
     }
 
-    @NotNull
-    public String containerTitle() {
-        return this.containerTitle;
-    }
-
-    @Nullable
-    public SoundData closeSound() {
-        return this.closeSound;
-    }
-
-    @Nullable
-    public SoundData openSound() {
-        return this.openSound;
-    }
-
-    public int rows() {
-        return this.rows;
-    }
-
-    public boolean canPlaceItem() {
-        return this.canPlaceItem;
-    }
-
-    public boolean canTakeItem() {
-        return this.canTakeItem;
-    }
-
-    public @Nullable Property<Boolean> openProperty() {
-        return openProperty;
-    }
-
     @Override
     public int getAnalogOutputSignal(Object thisBlock, Object[] args) {
         if (!this.hasAnalogOutputSignal) return 0;
@@ -201,23 +170,26 @@ public class SimpleStorageBlockBehavior extends BukkitBlockBehavior implements E
 
     private static class Factory implements BlockBehaviorFactory<SimpleStorageBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public SimpleStorageBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String title = section.getOrDefault("title", "").toString();
-            int rows = MiscUtils.clamp(ResourceConfigUtils.getAsInt(section.getOrDefault("rows", 1), "rows"), 1, 6);
-            Map<String, Object> sounds = (Map<String, Object>) section.get("sounds");
-            boolean hasAnalogOutputSignal = ResourceConfigUtils.getAsBoolean(section.getOrDefault("has-signal", true), "has-signal");
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData openSound = null;
             SoundData closeSound = null;
-            if (sounds != null) {
-                openSound = Optional.ofNullable(sounds.get("open")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                closeSound = Optional.ofNullable(sounds.get("close")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                openSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1), "open");
+                closeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1), "close");
             }
-            boolean canPlaceItem = ResourceConfigUtils.getAsBoolean(section.getOrDefault("allow-input", true), "allow-input");
-            boolean canTakeItem = ResourceConfigUtils.getAsBoolean(section.getOrDefault("allow-output", true), "allow-output");
-            Property<Boolean> property = (Property<Boolean>) block.getProperty("open");
-            return new SimpleStorageBlockBehavior(block, title, rows, openSound, closeSound, hasAnalogOutputSignal, canPlaceItem, canTakeItem, property);
+            return new SimpleStorageBlockBehavior(
+                    block,
+                    section.getDefaultedString("<lang:container.chest>", "title"),
+                    section.getInt(1, "rows"),
+                    openSound,
+                    closeSound,
+                    section.getBoolean(true, "has_signal", "has-signal"),
+                    section.getBoolean(true, "allow_input", "allow-input"),
+                    section.getBoolean(true, "allow_output", "allow-output"),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class)
+            );
         }
     }
 }

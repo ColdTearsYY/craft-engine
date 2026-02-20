@@ -23,12 +23,14 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsPro
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class SofaBlockBehavior extends BukkitBlockBehavior {
+public final class SofaBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<SofaBlockBehavior> FACTORY = new Factory();
-    private final Property<HorizontalDirection> facingProperty;
-    private final Property<SofaShape> shapeProperty;
+    public final Property<HorizontalDirection> facingProperty;
+    public final Property<SofaShape> shapeProperty;
 
-    public SofaBlockBehavior(CustomBlock block, Property<HorizontalDirection> facing, Property<SofaShape> shape) {
+    private SofaBlockBehavior(CustomBlock block,
+                              Property<HorizontalDirection> facing,
+                              Property<SofaShape> shape) {
         super(block);
         this.facingProperty = facing;
         this.shapeProperty = shape;
@@ -103,11 +105,12 @@ public class SofaBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<SofaBlockBehavior> {
 
         @Override
-        @SuppressWarnings("unchecked")
         public SofaBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Property<HorizontalDirection> facing = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.sofa.missing_facing");
-            Property<SofaShape> shape = (Property<SofaShape>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("shape"), "warning.config.block.behavior.sofa.missing_shape");
-            return new SofaBlockBehavior(block, facing, shape);
+            return new SofaBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "shape", SofaShape.class)
+            );
         }
     }
 }

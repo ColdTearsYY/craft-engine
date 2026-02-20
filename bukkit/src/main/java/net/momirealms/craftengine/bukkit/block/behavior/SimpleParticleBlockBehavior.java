@@ -17,23 +17,17 @@ import net.momirealms.craftengine.core.world.particle.ParticleConfig;
 
 import java.util.List;
 
-public class SimpleParticleBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class SimpleParticleBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<SimpleParticleBlockBehavior> FACTORY = new Factory();
     public final ParticleConfig[] particles;
     public final int tickInterval;
 
-    public SimpleParticleBlockBehavior(CustomBlock customBlock, ParticleConfig[] particles, int tickInterval) {
+    private SimpleParticleBlockBehavior(CustomBlock customBlock,
+                                        ParticleConfig[] particles,
+                                        int tickInterval) {
         super(customBlock);
         this.particles = particles;
         this.tickInterval = tickInterval;
-    }
-
-    public ParticleConfig[] particles() {
-        return this.particles;
-    }
-
-    public int tickInterval() {
-        return tickInterval;
     }
 
     @Override
@@ -56,9 +50,11 @@ public class SimpleParticleBlockBehavior extends BukkitBlockBehavior implements 
 
         @Override
         public SimpleParticleBlockBehavior create(CustomBlock block, ConfigSection section) {
-            List<ParticleConfig> particles = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(section, "particles", "particle"), ParticleConfig::fromMap$blockEntity);
-            int tickInterval = ResourceConfigUtils.getAsInt(section.getOrDefault("tick-interval", 10), "tick-interval");
-            return new SimpleParticleBlockBehavior(block, particles.toArray(new ParticleConfig[0]), tickInterval);
+            return new SimpleParticleBlockBehavior(
+                    block,
+                    section.parseSectionList(ParticleConfig::fromConfig$blockEntity, "particles", "particle").toArray(new ParticleConfig[0]),
+                    section.getInt(10, "tick_interval", "tick-interval")
+            );
         }
     }
 }

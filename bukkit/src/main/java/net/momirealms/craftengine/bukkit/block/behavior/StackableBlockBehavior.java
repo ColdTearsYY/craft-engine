@@ -10,6 +10,7 @@ import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.ItemUtils;
 import net.momirealms.craftengine.core.util.Key;
@@ -20,13 +21,16 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 
 import java.util.List;
 
-public class StackableBlockBehavior extends BukkitBlockBehavior implements CanBeReplacedBlockBehavior {
+public final class StackableBlockBehavior extends BukkitBlockBehavior implements CanBeReplacedBlockBehavior {
     public static final BlockBehaviorFactory<StackableBlockBehavior> FACTORY = new Factory();
-    private final IntegerProperty amountProperty;
-    private final List<Key> items;
-    private final String propertyName;
+    public final IntegerProperty amountProperty;
+    public final List<Key> items;
+    public final String propertyName;
 
-    public StackableBlockBehavior(CustomBlock block, IntegerProperty amountProperty, List<Key> items, String propertyName) {
+    private StackableBlockBehavior(CustomBlock block,
+                                   IntegerProperty amountProperty,
+                                   List<Key> items,
+                                   String propertyName) {
         super(block);
         this.amountProperty = amountProperty;
         this.items = items;
@@ -74,13 +78,13 @@ public class StackableBlockBehavior extends BukkitBlockBehavior implements CanBe
 
         @Override
         public StackableBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String propertyName = String.valueOf(section.getOrDefault("property", "amount"));
-            IntegerProperty amount = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty(propertyName), () -> {
-                throw new LocalizedResourceConfigException("warning.config.block.behavior.stackable.missing_property", propertyName);
-            });
-            Object itemsObj = ResourceConfigUtils.requireNonNullOrThrow(section.get("items"), "warning.config.block.behavior.stackable.missing_items");
-            List<Key> items = MiscUtils.getAsStringList(itemsObj).stream().map(Key::of).toList();
-            return new StackableBlockBehavior(block, amount, items, propertyName);
+            String propertyName = section.getDefaultedString("amount", "property");
+            return new StackableBlockBehavior(
+                    block,
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, propertyName, Integer.class),
+                    section.parseList(ConfigValue::getAsIdentifier, "items", "item"),
+                    propertyName
+            );
         }
     }
 }

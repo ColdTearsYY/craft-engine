@@ -45,7 +45,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         super(BukkitBlockEntityTypes.SIMPLE_STORAGE, pos, blockState);
         this.behavior = super.blockState.behavior().getAs(SimpleStorageBlockBehavior.class).orElseThrow();
         BlockEntityHolder holder = new BlockEntityHolder(this);
-        this.inventory = FastNMS.INSTANCE.createSimpleStorageContainer(holder, this.behavior.rows() * 9, this.behavior.canPlaceItem(), this.behavior.canTakeItem());
+        this.inventory = FastNMS.INSTANCE.createSimpleStorageContainer(holder, this.behavior.rows * 9, this.behavior.canPlaceItem, this.behavior.canTakeItem);
         holder.setInventory(this.inventory);
         StorageContainer container = (StorageContainer) CraftInventoryProxy.INSTANCE.getInventory(this.inventory);
         container.onContentsChanged($ -> {
@@ -76,7 +76,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
     public void loadCustomData(CompoundTag tag) {
         ListTag itemsTag = Optional.ofNullable(tag.getList("items")).orElseGet(ListTag::new);
         int dataVersion = tag.getInt("data_version", Config.itemDataFixerUpperFallbackVersion());
-        ItemStack[] storageContents = new ItemStack[this.behavior.rows() * 9];
+        ItemStack[] storageContents = new ItemStack[this.behavior.rows * 9];
         for (int i = 0; i < itemsTag.size(); i++) {
             CompoundTag itemTag = itemsTag.getCompound(i);
             int slot = itemTag.getInt("slot");
@@ -128,7 +128,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
             bukkitWorld.sendGameEvent(null, GameEvent.CONTAINER_OPEN, new Vector(this.pos.x(), this.pos.y(), this.pos.z()));
         }
         this.openState = true;
-        SoundData soundData = this.behavior.openSound();
+        SoundData soundData = this.behavior.openSound;
         if (soundData != null) {
             super.world.world().playBlockSound(Vec3d.atCenterOf(this.pos), soundData);
         }
@@ -143,7 +143,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
             bukkitWorld.sendGameEvent(null, GameEvent.CONTAINER_CLOSE, new Vector(this.pos.x(), this.pos.y(), this.pos.z()));
         }
         this.openState = false;
-        SoundData soundData = this.behavior.closeSound();
+        SoundData soundData = this.behavior.closeSound;
         if (soundData != null) {
             super.world.world().playBlockSound(Vec3d.atCenterOf(this.pos), soundData);
         }
@@ -167,7 +167,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         if (state == null) return;
         SimpleStorageBlockBehavior behavior = state.behavior().getAs(SimpleStorageBlockBehavior.class).orElse(null);
         if (behavior == null) return;
-        Property<Boolean> property = behavior.openProperty();
+        Property<Boolean> property = behavior.openProperty;
         if (property == null) return;
         super.world.world().setBlockState(this.pos.x(), this.pos.y(), this.pos.z(), state.with(property, open), UpdateFlags.UPDATE_ALL);
     }

@@ -51,26 +51,26 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @SuppressWarnings("DuplicatedCode")
-public class TrapDoorBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+public final class TrapDoorBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<TrapDoorBlockBehavior> FACTORY = new Factory();
-    private final Property<SingleBlockHalf> halfProperty;
-    private final Property<HorizontalDirection> facingProperty;
-    private final Property<Boolean> poweredProperty;
-    private final Property<Boolean> openProperty;
-    private final boolean canOpenWithHand;
-    private final boolean canOpenByWindCharge;
-    private final SoundData openSound;
-    private final SoundData closeSound;
+    public final Property<SingleBlockHalf> halfProperty;
+    public final Property<HorizontalDirection> facingProperty;
+    public final Property<Boolean> poweredProperty;
+    public final Property<Boolean> openProperty;
+    public final boolean canOpenWithHand;
+    public final boolean canOpenByWindCharge;
+    public final SoundData openSound;
+    public final SoundData closeSound;
 
-    public TrapDoorBlockBehavior(CustomBlock block,
-                                 Property<SingleBlockHalf> halfProperty,
-                                 Property<HorizontalDirection> facingProperty,
-                                 Property<Boolean> poweredProperty,
-                                 Property<Boolean> openProperty,
-                                 boolean canOpenWithHand,
-                                 boolean canOpenByWindCharge,
-                                 SoundData openSound,
-                                 SoundData closeSound) {
+    private TrapDoorBlockBehavior(CustomBlock block,
+                                  Property<SingleBlockHalf> halfProperty,
+                                  Property<HorizontalDirection> facingProperty,
+                                  Property<Boolean> poweredProperty,
+                                  Property<Boolean> openProperty,
+                                  boolean canOpenWithHand,
+                                  boolean canOpenByWindCharge,
+                                  SoundData openSound,
+                                  SoundData closeSound) {
         super(block);
         this.halfProperty = halfProperty;
         this.facingProperty = facingProperty;
@@ -243,25 +243,28 @@ public class TrapDoorBlockBehavior extends BukkitBlockBehavior implements IsPath
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<TrapDoorBlockBehavior> {
 
         @Override
         public TrapDoorBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Property<SingleBlockHalf> half = (Property<SingleBlockHalf>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("half"), "warning.config.block.behavior.trapdoor.missing_half");
-            Property<HorizontalDirection> facing = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.trapdoor.missing_facing");
-            Property<Boolean> open = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("open"), "warning.config.block.behavior.trapdoor.missing_open");
-            Property<Boolean> powered = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.trapdoor.missing_powered");
-            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-open-with-hand", true), "can-open-with-hand");
-            boolean canOpenByWindCharge = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-open-by-wind-charge", true), "can-open-by-wind-charge");
-            Map<String, Object> sounds = MiscUtils.castToMap(section.get("sounds"), true);
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData openSound = null;
             SoundData closeSound = null;
-            if (sounds != null) {
-                openSound = Optional.ofNullable(sounds.get("open")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                closeSound = Optional.ofNullable(sounds.get("close")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                openSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "open");
+                closeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "close");
             }
-            return new TrapDoorBlockBehavior(block, half, facing, powered, open, canOpenWithHand, canOpenByWindCharge, openSound, closeSound);
+            return new TrapDoorBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "half", SingleBlockHalf.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class),
+                    section.getBoolean(true, "can_open_with_hand", "can-open-with-hand"),
+                    section.getBoolean(true, "can_open_by_wind_charge", "can-open-by-wind-charge"),
+                    openSound,
+                    closeSound
+            );
         }
     }
 }

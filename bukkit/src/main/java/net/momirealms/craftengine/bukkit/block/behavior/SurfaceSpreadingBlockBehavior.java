@@ -28,13 +28,13 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
-public class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
+public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<SurfaceSpreadingBlockBehavior> FACTORY = new Factory();
-    private final int requiredLight;
-    private final LazyReference<Object> baseBlock;
-    private final Property<Boolean> snowyProperty;
+    public final int requiredLight;
+    public final LazyReference<Object> baseBlock;
+    public final Property<Boolean> snowyProperty;
 
-    public SurfaceSpreadingBlockBehavior(CustomBlock customBlock, int requiredLight, String baseBlock, @Nullable Property<Boolean> snowyProperty) {
+    private SurfaceSpreadingBlockBehavior(CustomBlock customBlock, int requiredLight, String baseBlock, @Nullable Property<Boolean> snowyProperty) {
         super(customBlock);
         this.requiredLight = requiredLight;
         this.snowyProperty = snowyProperty;
@@ -108,12 +108,14 @@ public class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
 
     private static class Factory implements BlockBehaviorFactory<SurfaceSpreadingBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public SurfaceSpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
-            int requiredLight = ResourceConfigUtils.getAsInt(section.getOrDefault("required-light", 9), "required-light");
-            String baseBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.getOrDefault("base-block", "minecraft:dirt"), "warning.config.block.behavior.surface_spreading.missing_base_block");
-            return new SurfaceSpreadingBlockBehavior(block, requiredLight, baseBlock, (Property<Boolean>) block.getProperty("snowy"));
+            return new SurfaceSpreadingBlockBehavior(
+                    block,
+                    section.getInt(0, "required_light", "required-light"),
+                    section.getDefaultedString("minecraft:dirt", "base_block", "base-block"),
+                    BlockBehaviorFactory.getOptionalProperty(block, "snowy", Boolean.class)
+            );
         }
     }
 }

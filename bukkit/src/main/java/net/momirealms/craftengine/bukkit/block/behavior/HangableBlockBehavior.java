@@ -8,6 +8,7 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
 import net.momirealms.craftengine.core.block.properties.BooleanProperty;
+import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -23,11 +24,11 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsPro
 
 import java.util.concurrent.Callable;
 
-public class HangableBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+public final class HangableBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<HangableBlockBehavior> FACTORY = new Factory();
-    private final BooleanProperty hangingProperty;
+    public final Property<Boolean> hangingProperty;
 
-    public HangableBlockBehavior(CustomBlock customBlock, BooleanProperty hangingProperty) {
+    private HangableBlockBehavior(CustomBlock customBlock, Property<Boolean> hangingProperty) {
         super(customBlock);
         this.hangingProperty = hangingProperty;
     }
@@ -83,8 +84,10 @@ public class HangableBlockBehavior extends BukkitBlockBehavior implements IsPath
 
         @Override
         public HangableBlockBehavior create(CustomBlock block, ConfigSection section) {
-            BooleanProperty hanging = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("hanging"), "warning.config.block.behavior.hangable.missing_hanging");
-            return new HangableBlockBehavior(block, hanging);
+            return new HangableBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "hanging", Boolean.class)
+            );
         }
     }
 }

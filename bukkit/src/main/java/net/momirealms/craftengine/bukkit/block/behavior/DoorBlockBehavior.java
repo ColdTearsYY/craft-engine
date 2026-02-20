@@ -373,8 +373,8 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             SoundData openSound = null;
             SoundData closeSound = null;
             if (soundSection != null) {
-                openSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "open");
-                closeSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "close");
+                openSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "open");
+                closeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "close");
             }
             return new DoorBlockBehavior(
                     block,

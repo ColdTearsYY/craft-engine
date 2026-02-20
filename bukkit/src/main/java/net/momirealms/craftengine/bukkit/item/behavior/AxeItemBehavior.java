@@ -75,7 +75,7 @@ public final class AxeItemBehavior extends ItemBehavior {
 
         BlockStateWrapper newState = behaviorOptional.get().strippedState();
         if (newState == null) {
-            CraftEngine.instance().logger().warn("stripped block " + behaviorOptional.get().stripped() + " does not exist");
+            CraftEngine.instance().logger().warn("stripped block " + behaviorOptional.get().stripped + " does not exist");
             return InteractionResult.FAIL;
         }
 

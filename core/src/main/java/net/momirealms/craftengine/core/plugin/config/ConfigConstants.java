@@ -40,6 +40,7 @@ public final class ConfigConstants {
     public static final String ARGUMENT_SNBT = "resource.argument.type.snbt";
     public static final String ARGUMENT_LIST = "resource.argument.type.list";
     public static final String ARGUMENT_NUMBER = "resource.argument.type.number";
+    public static final String ARGUMENT_COLOR = "resource.argument.type.color";
 
     private ConfigConstants() {}
 

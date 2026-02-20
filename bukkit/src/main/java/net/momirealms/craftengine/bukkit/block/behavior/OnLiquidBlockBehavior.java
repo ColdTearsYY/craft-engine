@@ -19,34 +19,30 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsPro
 import java.util.List;
 import java.util.Optional;
 
-public class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
+public final class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
     public static final BlockBehaviorFactory<OnLiquidBlockBehavior> FACTORY = new Factory();
-    private final boolean onWater;
-    private final boolean onLava;
-    private final boolean stackable;
+    public final boolean onWater;
+    public final boolean onLava;
+    public final boolean stackable;
 
-    public OnLiquidBlockBehavior(CustomBlock block, int delay, boolean stackable, boolean onWater, boolean onLava) {
+    private OnLiquidBlockBehavior(CustomBlock block, int delay, boolean stackable, boolean onWater, boolean onLava) {
         super(block, delay);
         this.onWater = onWater;
         this.onLava = onLava;
         this.stackable = stackable;
     }
 
-    public boolean onWater() {
-        return this.onWater;
-    }
-
-    public boolean onLava() {
-        return this.onLava;
-    }
-
     private static class Factory implements BlockBehaviorFactory<OnLiquidBlockBehavior> {
         @Override
         public OnLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
-            List<String> liquidTypes = MiscUtils.getAsStringList(section.getOrDefault("liquid-type", List.of("water")));
-            boolean stackable = ResourceConfigUtils.getAsBoolean(section.getOrDefault("stackable", false), "stackable");
-            int delay = ResourceConfigUtils.getAsInt(section.getOrDefault("delay", 0), "delay");
-            return new OnLiquidBlockBehavior(block, delay, stackable, liquidTypes.contains("water"), liquidTypes.contains("lava"));
+            List<String> liquidTypes = section.getStringList(List.of("water"), "liquid_type", "liquid-type");
+            return new OnLiquidBlockBehavior(
+                    block,
+                    section.getInt("delay"),
+                    section.getBoolean("stackable"),
+                    liquidTypes.contains("water"),
+                    liquidTypes.contains("lava")
+            );
         }
     }
 
@@ -61,7 +57,7 @@ public class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
         return mayPlaceOn(belowState, world, belowPos);
     }
 
-    protected boolean mayPlaceOn(Object belowState, Object world, Object belowPos) {
+    private boolean mayPlaceOn(Object belowState, Object world, Object belowPos) {
         if (this.stackable) {
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(belowState);
             if (optionalCustomState.isPresent() && optionalCustomState.get().owner().value() == super.customBlock) {

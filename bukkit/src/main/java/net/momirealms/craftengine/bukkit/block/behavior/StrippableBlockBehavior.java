@@ -12,21 +12,19 @@ import net.momirealms.sparrow.nbt.CompoundTag;
 
 import java.util.List;
 
-public class StrippableBlockBehavior extends BukkitBlockBehavior {
+public final class StrippableBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<StrippableBlockBehavior> FACTORY = new Factory();
-    private final String stripped;
-    private final LazyReference<BlockStateWrapper> lazyState;
-    private final List<String> excludedProperties;
+    public final String stripped;
+    public final LazyReference<BlockStateWrapper> lazyState;
+    public final List<String> excludedProperties;
 
-    public StrippableBlockBehavior(CustomBlock block, String stripped, List<String> excludedProperties) {
+    private StrippableBlockBehavior(CustomBlock block,
+                                    String stripped,
+                                    List<String> excludedProperties) {
         super(block);
         this.stripped = stripped;
         this.lazyState = LazyReference.lazyReference(() -> CraftEngine.instance().blockManager().createBlockState(this.stripped));
         this.excludedProperties = excludedProperties;
-    }
-
-    public String stripped() {
-        return this.stripped;
     }
 
     public BlockStateWrapper strippedState() {
@@ -44,9 +42,11 @@ public class StrippableBlockBehavior extends BukkitBlockBehavior {
 
         @Override
         public StrippableBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String stripped = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("stripped"), "warning.config.block.behavior.strippable.missing_stripped");
-            List<String> excludedProperties = MiscUtils.getAsStringList(section.get("excluded-properties"));
-            return new StrippableBlockBehavior(block, stripped, excludedProperties);
+            return new StrippableBlockBehavior(
+                    block,
+                    section.getNonNullString("stripped"),
+                    section.getStringList("excluded_properties", "excluded-properties")
+            );
         }
     }
 }

@@ -131,8 +131,8 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
             SoundData landSound = null;
             SoundData destroySound = null;
             if (soundSection != null) {
-                landSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "land");
-                destroySound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "destroy");
+                landSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "land");
+                destroySound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "destroy");
             }
             return new FallingBlockBehavior(
                     block,

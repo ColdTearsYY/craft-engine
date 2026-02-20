@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.BooleanProperty;
+import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -16,11 +17,12 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 
 import java.util.concurrent.Callable;
 
-public class SnowyBlockBehavior extends BukkitBlockBehavior {
+public final class SnowyBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<SnowyBlockBehavior> FACTORY = new Factory();
-    private final BooleanProperty snowyProperty;
+    public final Property<Boolean> snowyProperty;
 
-    public SnowyBlockBehavior(CustomBlock customBlock, BooleanProperty snowyProperty) {
+    private SnowyBlockBehavior(CustomBlock customBlock,
+                               Property<Boolean> snowyProperty) {
         super(customBlock);
         this.snowyProperty = snowyProperty;
     }
@@ -48,8 +50,10 @@ public class SnowyBlockBehavior extends BukkitBlockBehavior {
 
         @Override
         public SnowyBlockBehavior create(CustomBlock block, ConfigSection section) {
-            BooleanProperty snowyProperty = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("snowy"), "warning.config.block.behavior.snowy.missing_snowy");
-            return new SnowyBlockBehavior(block, snowyProperty);
+            return new SnowyBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "snowy", Boolean.class)
+            );
         }
     }
 }

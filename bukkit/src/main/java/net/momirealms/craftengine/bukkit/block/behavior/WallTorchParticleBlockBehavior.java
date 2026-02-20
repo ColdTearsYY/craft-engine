@@ -20,29 +20,20 @@ import net.momirealms.craftengine.core.world.particle.ParticleConfig;
 
 import java.util.List;
 
-public class WallTorchParticleBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class WallTorchParticleBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<WallTorchParticleBlockBehavior> FACTORY = new Factory();
     public final ParticleConfig[] particles;
     public final int tickInterval;
     public final Property<HorizontalDirection> facingProperty;
 
-    public WallTorchParticleBlockBehavior(CustomBlock customBlock, ParticleConfig[] particles, int tickInterval, Property<HorizontalDirection> facingProperty) {
+    private WallTorchParticleBlockBehavior(CustomBlock customBlock,
+                                           ParticleConfig[] particles,
+                                           int tickInterval,
+                                           Property<HorizontalDirection> facingProperty) {
         super(customBlock);
         this.particles = particles;
         this.tickInterval = tickInterval;
         this.facingProperty = facingProperty;
-    }
-
-    public ParticleConfig[] particles() {
-        return this.particles;
-    }
-
-    public int tickInterval() {
-        return tickInterval;
-    }
-
-    public Property<HorizontalDirection> facingProperty() {
-        return facingProperty;
     }
 
     @Override
@@ -63,16 +54,14 @@ public class WallTorchParticleBlockBehavior extends BukkitBlockBehavior implemen
 
     private static class Factory implements BlockBehaviorFactory<WallTorchParticleBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public WallTorchParticleBlockBehavior create(CustomBlock block, ConfigSection section) {
-            List<ParticleConfig> particles = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(section, "particles", "particle"), ParticleConfig::fromMap$blockEntity);
-            int tickInterval = ResourceConfigUtils.getAsInt(section.getOrDefault("tick-interval", 10), "tick-interval");
-            Property<HorizontalDirection> directionProperty = (Property<HorizontalDirection>) block.getProperty("facing");
-            if (directionProperty == null) {
-                throw new LocalizedResourceConfigException("warning.config.block.behavior.wall_torch_particle.missing_facing");
-            }
-            return new WallTorchParticleBlockBehavior(block, particles.toArray(new ParticleConfig[0]), tickInterval, directionProperty);
+            return new WallTorchParticleBlockBehavior(
+                    block,
+                    section.parseSectionList(ParticleConfig::fromConfig$blockEntity, "particles", "particle").toArray(new ParticleConfig[0]),
+                    section.getInt(10, "tick_interval", "tick-interval"),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class)
+            );
         }
     }
 }

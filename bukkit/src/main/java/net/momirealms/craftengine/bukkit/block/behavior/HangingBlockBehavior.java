@@ -11,10 +11,16 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import java.util.List;
 import java.util.Set;
 
-public class HangingBlockBehavior extends BushBlockBehavior {
+public final class HangingBlockBehavior extends BushBlockBehavior {
     public static final BlockBehaviorFactory<HangingBlockBehavior> FACTORY = new Factory();
 
-    public HangingBlockBehavior(CustomBlock block, int delay, boolean blacklist, boolean stackable, List<Object> tagsCanSurviveOn, Set<Object> blocksCansSurviveOn, Set<String> customBlocksCansSurviveOn) {
+    private HangingBlockBehavior(CustomBlock block,
+                                 int delay,
+                                 boolean blacklist,
+                                 boolean stackable,
+                                 List<Object> tagsCanSurviveOn,
+                                 Set<Object> blocksCansSurviveOn,
+                                 Set<String> customBlocksCansSurviveOn) {
         super(block, delay, blacklist, stackable, -1, tagsCanSurviveOn, blocksCansSurviveOn, customBlocksCansSurviveOn);
     }
 
@@ -30,10 +36,15 @@ public class HangingBlockBehavior extends BushBlockBehavior {
         @Override
         public HangingBlockBehavior create(CustomBlock block, ConfigSection section) {
             Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(section, true);
-            boolean stackable = ResourceConfigUtils.getAsBoolean(section.getOrDefault("stackable", false), "stackable");
-            int delay = ResourceConfigUtils.getAsInt(section.getOrDefault("delay", 0), "delay");
-            boolean blacklistMode = ResourceConfigUtils.getAsBoolean(section.getOrDefault("blacklist", false), "blacklist");
-            return new HangingBlockBehavior(block, delay, blacklistMode, stackable, tuple.left(), tuple.mid(), tuple.right());
+            return new HangingBlockBehavior(
+                    block,
+                    section.getInt(0, "delay"),
+                    section.getBoolean("blacklist"),
+                    section.getBoolean("stackable"),
+                    tuple.left(),
+                    tuple.mid(),
+                    tuple.right()
+            );
         }
     }
 }

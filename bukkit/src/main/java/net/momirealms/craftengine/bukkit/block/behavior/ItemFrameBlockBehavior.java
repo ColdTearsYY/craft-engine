@@ -20,6 +20,7 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
@@ -38,7 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<ItemFrameBlockBehavior> FACTORY = new Factory();
     public final Vector3f position;
     public final boolean glow;
@@ -49,7 +50,7 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
     public final SoundData rotateSound;
     public final Property<Direction> directionProperty;
 
-    public ItemFrameBlockBehavior(
+    private ItemFrameBlockBehavior(
             CustomBlock customBlock,
             Vector3f position,
             boolean glow,
@@ -182,22 +183,26 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
 
         @Override
         public ItemFrameBlockBehavior create(CustomBlock block, ConfigSection section) {
-            @SuppressWarnings("unchecked")
-            Property<Direction> directionProperty = (Property<Direction>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.item_frame.missing_facing");
-            Vector3f position = ResourceConfigUtils.getAsVector3f(section.getOrDefault("position", 0), "position");
-            boolean glow = ResourceConfigUtils.getAsBoolean(section.getOrDefault("glow", false), "glow");
-            boolean invisible = ResourceConfigUtils.getAsBoolean(section.getOrDefault("invisible", false), "invisible");
-            boolean renderMapItem = ResourceConfigUtils.getAsBoolean(section.getOrDefault("render-map-item", true), "render-map-item"); // 地图渲染有少量开销可选启用
-            Map<String, Object> sounds = ResourceConfigUtils.getAsMapOrNull(section.get("sounds"), "sounds");
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData putSound = null;
             SoundData takeSound = null;
             SoundData rotateSound = null;
-            if (sounds != null) {
-                putSound = Optional.ofNullable(sounds.get("put")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                takeSound = Optional.ofNullable(sounds.get("take")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                rotateSound = Optional.ofNullable(sounds.get("rotate")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                putSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "put");
+                takeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "take");
+                rotateSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "rotate");
             }
-            return new ItemFrameBlockBehavior(block, position, glow, invisible, renderMapItem, putSound, takeSound, rotateSound, directionProperty);
+            return new ItemFrameBlockBehavior(
+                    block,
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
+                    section.getBoolean("glow"),
+                    section.getBoolean("invisible"),
+                    section.getBoolean(true, "render_map_item", "render-map-item"),
+                    putSound,
+                    takeSound,
+                    rotateSound,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", Direction.class)
+            );
         }
     }
 }

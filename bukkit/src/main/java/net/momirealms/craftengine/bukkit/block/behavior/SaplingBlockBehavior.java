@@ -45,14 +45,18 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @SuppressWarnings("DuplicatedCode")
-public class SaplingBlockBehavior extends BukkitBlockBehavior {
+public final class SaplingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<SaplingBlockBehavior> FACTORY = new Factory();
-    private final Key feature;
-    private final IntegerProperty stageProperty;
-    private final double boneMealSuccessChance;
-    private final float growSpeed;
+    public final Key feature;
+    public final IntegerProperty stageProperty;
+    public final double boneMealSuccessChance;
+    public final float growSpeed;
 
-    public SaplingBlockBehavior(CustomBlock block, Key feature, IntegerProperty stageProperty, double boneMealSuccessChance, float growSpeed) {
+    private SaplingBlockBehavior(CustomBlock block,
+                                 Key feature,
+                                 IntegerProperty stageProperty,
+                                 double boneMealSuccessChance,
+                                 float growSpeed) {
         super(block);
         this.feature = feature;
         this.stageProperty = stageProperty;
@@ -209,14 +213,15 @@ public class SaplingBlockBehavior extends BukkitBlockBehavior {
 
     private static class Factory implements BlockBehaviorFactory<SaplingBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public SaplingBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(section, "feature", "configured-feature"), "warning.config.block.behavior.sapling.missing_feature");
-            Property<Integer> stageProperty = (Property<Integer>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("stage"), "warning.config.block.behavior.sapling.missing_stage");
-            double boneMealSuccessChance = ResourceConfigUtils.getAsDouble(section.getOrDefault("bone-meal-success-chance", 0.45), "bone-meal-success-chance");
-            return new SaplingBlockBehavior(block, Key.of(feature), (IntegerProperty) stageProperty, boneMealSuccessChance,
-                    ResourceConfigUtils.getAsFloat(section.getOrDefault("grow-speed", 1.0 / 7.0), "grow-speed"));
+            return new SaplingBlockBehavior(
+                    block,
+                    section.getNonNullIdentifier("feature", "configured_feature", "configured-feature"),
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "stage", Integer.class),
+                    section.getDouble(0.45d, "bone_meal_success_chance", "bone-meal-success-chance"),
+                    section.getFloat(1.0f / 7.0f, "grow_speed", "grow-speed")
+            );
         }
     }
 }

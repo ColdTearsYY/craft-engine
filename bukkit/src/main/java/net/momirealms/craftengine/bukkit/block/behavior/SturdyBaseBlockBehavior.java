@@ -20,15 +20,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-public class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavior {
+public final class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavior {
     public static final BlockBehaviorFactory<SturdyBaseBlockBehavior> FACTORY = new Factory();
-    private final Direction direction;
-    private final boolean stackable;
-    private final boolean checkFull;
-    private final boolean checkRigid;
-    private final boolean checkCenter;
+    public final Direction direction;
+    public final boolean stackable;
+    public final boolean checkFull;
+    public final boolean checkRigid;
+    public final boolean checkCenter;
 
-    public SturdyBaseBlockBehavior(CustomBlock block, int delay, Direction direction, boolean stackable, boolean checkFull, boolean checkRigid, boolean checkCenter) {
+    private SturdyBaseBlockBehavior(CustomBlock block,
+                                    int delay,
+                                    Direction direction,
+                                    boolean stackable,
+                                    boolean checkFull,
+                                    boolean checkRigid,
+                                    boolean checkCenter) {
         super(block, delay);
         this.direction = direction;
         this.stackable = stackable;
@@ -67,11 +73,16 @@ public class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavior {
 
         @Override
         public SturdyBaseBlockBehavior create(CustomBlock block, ConfigSection section) {
-            int delay = ResourceConfigUtils.getAsInt(section.getOrDefault("delay", 0), "delay");
-            Direction direction = Direction.valueOf(section.getOrDefault("direction", "down").toString().toUpperCase(Locale.ENGLISH));
-            boolean stackable = ResourceConfigUtils.getAsBoolean(section.getOrDefault("stackable", false), "stackable");
-            List<String> supportTypes = MiscUtils.getAsStringList(section.getOrDefault("support-types", List.of("full")));
-            return new SturdyBaseBlockBehavior(block, delay, direction, stackable, supportTypes.contains("full"), supportTypes.contains("rigid"), supportTypes.contains("center"));
+            List<String> supportTypes = section.getStringList(List.of("full"), "support_types", "support-types");
+            return new SturdyBaseBlockBehavior(
+                    block,
+                    section.getInt(0, "delay"),
+                    section.getEnum(Direction.DOWN, Direction.class, "direction"),
+                    section.getBoolean("stackable"),
+                    supportTypes.contains("full"),
+                    supportTypes.contains("rigid"),
+                    supportTypes.contains("center")
+            );
         }
     }
 }

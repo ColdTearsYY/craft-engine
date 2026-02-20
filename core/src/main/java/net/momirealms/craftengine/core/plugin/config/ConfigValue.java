@@ -1,11 +1,15 @@
 package net.momirealms.craftengine.core.plugin.config;
 
+import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.plugin.context.number.*;
 import net.momirealms.craftengine.core.sound.SoundData;
+import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.plaf.PanelUI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -118,6 +122,27 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
+    public SeatConfig getAsSeat() {
+        return SeatConfig.fromString(this.path, getAsString());
+    }
+
+    public SeatConfig[] getAsSeats() {
+        List<String> seatsStr = getAsStringList();
+        List<SeatConfig> seats = new ArrayList<>();
+        for (String seatStr : seatsStr) {
+            seats.add(SeatConfig.fromString(seatStr, getAsString()));
+        }
+        return seats.toArray(new SeatConfig[0]);
+    }
+
+    public Color getAsColor() {
+        if (this.value instanceof Number number) {
+            return Color.fromDecimal(number.intValue());
+        } else {
+            return Color.fromStrings(getAsString().split(",", 4));
+        }
+    }
+
     public Key getAsIdentifier() {
         String stringFormat = this.value.toString();
         if (Identifier.isValid(stringFormat)) {
@@ -162,5 +187,17 @@ public record ConfigValue(String path, @NotNull Object value) {
             return (List<Object>) list;
         }
         throw new KnownResourceException(ConfigConstants.PARSE_LIST_FAILED, this.path, this.value.getClass().getSimpleName());
+    }
+
+    public List<String> getAsStringList() {
+        if (this.value instanceof List<?> list) {
+            List<String> listStr = new ArrayList<>();
+            for (Object o : list) {
+                listStr.add(o.toString());
+            }
+            return listStr;
+        } else {
+            return List.of(this.value.toString());
+        }
     }
 }

@@ -37,17 +37,17 @@ import org.bukkit.block.Block;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
-public class GrassBlockBehavior extends BukkitBlockBehavior {
+public final class GrassBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<GrassBlockBehavior> FACTORY = new Factory();
-    private final Key feature;
+    public final Key feature;
 
-    public GrassBlockBehavior(CustomBlock block, Key feature) {
+    private GrassBlockBehavior(CustomBlock block, Key feature) {
         super(block);
         this.feature = feature;
     }
 
     public Key boneMealFeature() {
-        return feature;
+        return this.feature;
     }
 
     @Override
@@ -181,10 +181,13 @@ public class GrassBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<GrassBlockBehavior> {
+
         @Override
         public GrassBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(section, "feature", "placed-feature"), "warning.config.block.behavior.grass.missing_feature");
-            return new GrassBlockBehavior(block, Key.of(feature));
+            return new GrassBlockBehavior(
+                    block,
+                    section.getNonNullIdentifier("feature", "placed_feature", "placed-feature")
+            );
         }
     }
 }

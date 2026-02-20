@@ -13,17 +13,20 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.CEWorld;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 
-public class SeatBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class SeatBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<SeatBlockBehavior> FACTORY = new Factory();
-    private final Property<HorizontalDirection> directionProperty;
-    private final SeatConfig[] seats;
+    public final Property<HorizontalDirection> directionProperty;
+    public final SeatConfig[] seats;
 
-    public SeatBlockBehavior(CustomBlock customBlock, Property<HorizontalDirection> directionProperty, SeatConfig[] seats) {
+    private SeatBlockBehavior(CustomBlock customBlock,
+                              Property<HorizontalDirection> directionProperty,
+                              SeatConfig[] seats) {
         super(customBlock);
         this.seats = seats;
         this.directionProperty = directionProperty;
@@ -65,15 +68,13 @@ public class SeatBlockBehavior extends BukkitBlockBehavior implements EntityBloc
 
     private static class Factory implements BlockBehaviorFactory<SeatBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public SeatBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Property<HorizontalDirection> directionProperty = null;
-            Property<?> facing = block.getProperty("facing");
-            if (facing != null && facing.valueClass() == HorizontalDirection.class) {
-                directionProperty = (Property<HorizontalDirection>) facing;
-            }
-            return new SeatBlockBehavior(block, directionProperty, SeatConfig.fromObj(section.get("seats")));
+            return new SeatBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getOptionalProperty(block, "facing", HorizontalDirection.class),
+                    section.getValueOrDefault(ConfigValue::getAsSeats, new SeatConfig[0], "seats")
+            );
         }
     }
 }

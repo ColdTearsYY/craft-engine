@@ -16,11 +16,12 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
-public class SpreadingBlockBehavior extends BukkitBlockBehavior {
+public final class SpreadingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<SpreadingBlockBehavior> FACTORY = new Factory();
-    private final LazyReference<Object> targetBlock;
+    public final LazyReference<Object> targetBlock;
 
-    public SpreadingBlockBehavior(CustomBlock customBlock, String targetBlock) {
+    private SpreadingBlockBehavior(CustomBlock customBlock,
+                                   String targetBlock) {
         super(customBlock);
         this.targetBlock = LazyReference.lazyReference(() -> Objects.requireNonNull(BukkitBlockManager.instance().createBlockState(targetBlock)).literalObject());
     }
@@ -39,8 +40,10 @@ public class SpreadingBlockBehavior extends BukkitBlockBehavior {
 
         @Override
         public SpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String targetBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("target-block"), "warning.config.block.behavior.spreading.missing_target_block");
-            return new SpreadingBlockBehavior(block, targetBlock);
+            return new SpreadingBlockBehavior(
+                    block,
+                    section.getNonNullString("target_block", "target-block")
+            );
         }
     }
 }

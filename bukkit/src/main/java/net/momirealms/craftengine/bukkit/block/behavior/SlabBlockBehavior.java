@@ -27,11 +27,12 @@ import org.bukkit.inventory.ItemStack;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior, CanBeReplacedBlockBehavior {
+public final class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior, CanBeReplacedBlockBehavior {
     public static final BlockBehaviorFactory<SlabBlockBehavior> FACTORY = new Factory();
-    private final Property<SlabType> typeProperty;
+    public final Property<SlabType> typeProperty;
 
-    public SlabBlockBehavior(CustomBlock block, Property<SlabType> typeProperty) {
+    private SlabBlockBehavior(CustomBlock block,
+                              Property<SlabType> typeProperty) {
         super(block);
         this.typeProperty = typeProperty;
     }
@@ -117,11 +118,12 @@ public class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFind
 
     private static class Factory implements BlockBehaviorFactory<SlabBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public SlabBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Property<SlabType> type = (Property<SlabType>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("type"), "warning.config.block.behavior.slab.missing_type");
-            return new SlabBlockBehavior(block, type);
+            return new SlabBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "type", SlabType.class)
+            );
         }
     }
 }

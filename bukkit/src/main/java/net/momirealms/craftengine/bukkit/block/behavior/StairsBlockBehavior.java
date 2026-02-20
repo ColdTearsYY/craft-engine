@@ -25,13 +25,16 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @SuppressWarnings("DuplicatedCode")
-public class StairsBlockBehavior extends BukkitBlockBehavior {
+public final class StairsBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<StairsBlockBehavior> FACTORY = new Factory();
-    private final Property<HorizontalDirection> facingProperty;
-    private final Property<SingleBlockHalf> halfProperty;
-    private final Property<StairsShape> shapeProperty;
+    public final Property<HorizontalDirection> facingProperty;
+    public final Property<SingleBlockHalf> halfProperty;
+    public final Property<StairsShape> shapeProperty;
 
-    public StairsBlockBehavior(CustomBlock block, Property<HorizontalDirection> facing, Property<SingleBlockHalf> half, Property<StairsShape> shape) {
+    private StairsBlockBehavior(CustomBlock block,
+                                Property<HorizontalDirection> facing,
+                                Property<SingleBlockHalf> half,
+                                Property<StairsShape> shape) {
         super(block);
         this.facingProperty = facing;
         this.halfProperty = half;
@@ -129,12 +132,13 @@ public class StairsBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<StairsBlockBehavior> {
 
         @Override
-        @SuppressWarnings("unchecked")
-        public StairsBlockBehavior  create(CustomBlock block, ConfigSection section) {
-            Property<HorizontalDirection> facing = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.stairs.missing_facing");
-            Property<SingleBlockHalf> half = (Property<SingleBlockHalf>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("half"), "warning.config.block.behavior.stairs.missing_half");
-            Property<StairsShape> shape = (Property<StairsShape>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("shape"), "warning.config.block.behavior.stairs.missing_shape");
-            return new StairsBlockBehavior(block, facing, half, shape);
+        public StairsBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new StairsBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "half", SingleBlockHalf.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "shape", StairsShape.class)
+            );
         }
     }
 }

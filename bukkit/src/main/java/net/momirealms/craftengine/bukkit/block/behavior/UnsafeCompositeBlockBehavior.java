@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class UnsafeCompositeBlockBehavior extends BukkitBlockBehavior
+public final class UnsafeCompositeBlockBehavior extends BukkitBlockBehavior
         implements FallOnBlockBehavior, PlaceLiquidBlockBehavior, IsPathFindableBlockBehavior, CanBeReplacedBlockBehavior {
     private final BlockBehavior[] behaviors;
 

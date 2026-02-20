@@ -24,13 +24,16 @@ import org.bukkit.Location;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
+public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<ToggleableLampBlockBehavior> FACTORY = new Factory();
-    private final Property<Boolean> litProperty;
-    private final Property<Boolean> poweredProperty;
-    private final boolean canOpenWithHand;
+    public final Property<Boolean> litProperty;
+    public final Property<Boolean> poweredProperty;
+    public final boolean canOpenWithHand;
 
-    public ToggleableLampBlockBehavior(CustomBlock block, Property<Boolean> litProperty, Property<Boolean> poweredProperty, boolean canOpenWithHand) {
+    private ToggleableLampBlockBehavior(CustomBlock block,
+                                        Property<Boolean> litProperty,
+                                        Property<Boolean> poweredProperty,
+                                        boolean canOpenWithHand) {
         super(block);
         this.litProperty = litProperty;
         this.poweredProperty = poweredProperty;
@@ -102,15 +105,17 @@ public class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<ToggleableLampBlockBehavior> {
 
         @Override
         public ToggleableLampBlockBehavior create(CustomBlock block, ConfigSection section) {
-            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(ResourceConfigUtils.get(section, "can-open-with-hand", "can-toggle-with-hand"), "can-toggle-with-hand");
-            Property<Boolean> lit = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("lit"), "warning.config.block.behavior.toggleable_lamp.missing_lit");
-            Property<Boolean> powered = (Property<Boolean>) (canOpenWithHand ? block.getProperty("powered") : ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.toggleable_lamp.missing_powered"));
-            return new ToggleableLampBlockBehavior(block, lit, powered, canOpenWithHand);
+            boolean canOpenWithHand = section.getBoolean("can_open_with_hand", "can_toggle_with_hand", "can-open-with-hand", "can-toggle-with-hand");
+            return new ToggleableLampBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "lit", Boolean.class),
+                    canOpenWithHand ? BlockBehaviorFactory.getOptionalProperty(block, "powered", Boolean.class) : BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
+                    canOpenWithHand
+            );
         }
     }
 }

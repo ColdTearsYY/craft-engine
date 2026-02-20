@@ -9,7 +9,8 @@ import net.momirealms.craftengine.core.util.Key;
 import java.util.Map;
 import java.util.Optional;
 
-public class ParticleConfig {
+@SuppressWarnings("DuplicatedCode")
+public final class ParticleConfig {
     public final ParticleType particleType;
     public final NumberProvider x;
     public final NumberProvider y;
@@ -21,7 +22,16 @@ public class ParticleConfig {
     public final NumberProvider speed;
     public final ParticleData particleData;
 
-    public ParticleConfig(ParticleType particleType, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider count, NumberProvider xOffset, NumberProvider yOffset, NumberProvider zOffset, NumberProvider speed, ParticleData particleData) {
+    public ParticleConfig(ParticleType particleType,
+                          NumberProvider x,
+                          NumberProvider y,
+                          NumberProvider z,
+                          NumberProvider count,
+                          NumberProvider xOffset,
+                          NumberProvider yOffset,
+                          NumberProvider zOffset,
+                          NumberProvider speed,
+                          ParticleData particleData) {
         this.particleType = particleType;
         this.x = x;
         this.y = y;
@@ -44,20 +54,20 @@ public class ParticleConfig {
         NumberProvider yOffset = NumberProviders.fromObject(section.getOrDefault(0, "offset-y"));
         NumberProvider zOffset = NumberProviders.fromObject(section.getOrDefault(0, "offset-z"));
         NumberProvider speed = NumberProviders.fromObject(section.getOrDefault(0, "speed"));
-        return new ParticleConfig(CraftEngine.instance().platform().getParticleType(particleType), x, y, z, count, xOffset, yOffset, zOffset, speed, Optional.ofNullable(ParticleDataTypes.TYPES.get(particleType)).map(it -> it.apply(arguments)).orElse(null));
+        return new ParticleConfig(CraftEngine.instance().platform().getParticleType(particleType), x, y, z, count, xOffset, yOffset, zOffset, speed, Optional.ofNullable(ParticleDataTypes.TYPES.get(particleType)).map(it -> it.apply(section)).orElse(null));
     }
 
-    public static ParticleConfig fromMap$blockEntity(Map<String, Object> arguments) {
-        Key particleType = Key.of(arguments.getOrDefault("particle", "flame").toString());
-        NumberProvider x = NumberProviders.fromObject(arguments.getOrDefault("x", 0));
-        NumberProvider y = NumberProviders.fromObject(arguments.getOrDefault("y", 0));
-        NumberProvider z = NumberProviders.fromObject(arguments.getOrDefault("z", 0));
-        NumberProvider count = NumberProviders.fromObject(arguments.getOrDefault("count", 1));
-        NumberProvider xOffset = NumberProviders.fromObject(arguments.getOrDefault("offset-x", 0));
-        NumberProvider yOffset = NumberProviders.fromObject(arguments.getOrDefault("offset-y", 0));
-        NumberProvider zOffset = NumberProviders.fromObject(arguments.getOrDefault("offset-z", 0));
-        NumberProvider speed = NumberProviders.fromObject(arguments.getOrDefault("speed", 0));
-        return new ParticleConfig(CraftEngine.instance().platform().getParticleType(particleType), x, y, z, count, xOffset, yOffset, zOffset, speed, Optional.ofNullable(ParticleDataTypes.TYPES.get(particleType)).map(it -> it.apply(arguments)).orElse(null));
+    public static ParticleConfig fromConfig$blockEntity(ConfigSection section) {
+        Key particleType = section.getNonNullIdentifier("particle");
+        NumberProvider x = NumberProviders.fromObject(section.getOrDefault(0, "x"));
+        NumberProvider y = NumberProviders.fromObject(section.getOrDefault(0, "y"));
+        NumberProvider z = NumberProviders.fromObject(section.getOrDefault(0, "z"));
+        NumberProvider count = NumberProviders.fromObject(section.getOrDefault(1, "count"));
+        NumberProvider xOffset = NumberProviders.fromObject(section.getOrDefault(0, "offset-x"));
+        NumberProvider yOffset = NumberProviders.fromObject(section.getOrDefault(0, "offset-y"));
+        NumberProvider zOffset = NumberProviders.fromObject(section.getOrDefault(0, "offset-z"));
+        NumberProvider speed = NumberProviders.fromObject(section.getOrDefault(0, "speed"));
+        return new ParticleConfig(CraftEngine.instance().platform().getParticleType(particleType), x, y, z, count, xOffset, yOffset, zOffset, speed, Optional.ofNullable(ParticleDataTypes.TYPES.get(particleType)).map(it -> it.apply(section)).orElse(null));
     }
 
     public ParticleType particleType() {

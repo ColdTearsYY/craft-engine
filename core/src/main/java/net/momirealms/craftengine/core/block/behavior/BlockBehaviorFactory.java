@@ -4,7 +4,6 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.util.HorizontalDirection;
 import org.jetbrains.annotations.Nullable;
 
 public interface BlockBehaviorFactory<T extends BlockBehavior> {
@@ -25,13 +24,13 @@ public interface BlockBehaviorFactory<T extends BlockBehavior> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    static <A extends Comparable<A>> Property<A> getOptionalProperty(String path, CustomBlock block, String name, Class<A> valueClass) {
+    static <A extends Comparable<A>> Property<A> getOptionalProperty(CustomBlock block, String name, Class<A> valueClass) {
         Property<?> property = block.getProperty(name);
         if (property == null) {
             return null;
         }
         if (property.valueClass() != valueClass) {
-            throw new KnownResourceException("resource.block.behavior.property_type_mismatch", path, valueClass.getSimpleName(), property.valueClass().getSimpleName());
+            return null;
         }
         return (Property<A>) property;
     }

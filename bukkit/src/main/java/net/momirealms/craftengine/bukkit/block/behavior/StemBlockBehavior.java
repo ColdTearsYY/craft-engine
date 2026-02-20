@@ -1,10 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
-import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
-import net.momirealms.craftengine.bukkit.util.DirectionUtils;
-import net.momirealms.craftengine.bukkit.util.KeyUtils;
-import net.momirealms.craftengine.bukkit.util.RegistryUtils;
+import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
@@ -34,16 +31,18 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.pathfinder.PathCom
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+// todo 重构，有设计问题
+public final class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<StemBlockBehavior> FACTORY = new Factory();
-    private final IntegerProperty ageProperty;
-    private final Key fruit;
-    private final Key attachedStem;
-    private final int minGrowLight;
-    private final Object tagMayPlaceFruit;
-    private final Object blockMayPlaceFruit;
+    private static final Object MAY_PLACE_FRUIT = BlockTags.getOrCreate(Key.of("minecraft:dirt"));
+    public final IntegerProperty ageProperty;
+    public final Key fruit;
+    public final Key attachedStem;
+    public final int minGrowLight;
+    public final Object tagMayPlaceFruit;
+    public final Object blockMayPlaceFruit;
 
-    public StemBlockBehavior(CustomBlock customBlock,
+    private StemBlockBehavior(CustomBlock customBlock,
                              IntegerProperty ageProperty,
                              Key fruit,
                              Key attachedStem,
@@ -55,7 +54,7 @@ public class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFind
         this.fruit = fruit;
         this.attachedStem = attachedStem;
         this.minGrowLight = minGrowLight;
-        this.tagMayPlaceFruit = tagMayPlaceFruit;
+        this.tagMayPlaceFruit = Optional.ofNullable(tagMayPlaceFruit).orElse(MAY_PLACE_FRUIT);
         this.blockMayPlaceFruit = blockMayPlaceFruit;
     }
 
@@ -140,13 +139,15 @@ public class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFind
 
         @Override
         public StemBlockBehavior create(CustomBlock block, ConfigSection section) {
-            IntegerProperty ageProperty = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("age"), "warning.config.block.behavior.stem.missing_age");
-            Key fruit = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("fruit"), "warning.config.block.behavior.stem.missing_fruit"));
-            Key attachedStem = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("attached-stem"), "warning.config.block.behavior.stem.missing_attached_stem"));
-            int minGrowLight = ResourceConfigUtils.getAsInt(section.getOrDefault("light-requirement", 9), "light-requirement");
-            Object tagMayPlaceFruit = TagKeyProxy.INSTANCE.create(RegistriesProxy.BLOCK, KeyUtils.toIdentifier(Key.of(section.getOrDefault("may-place-fruit", "minecraft:dirt").toString())));
-            Object blockMayPlaceFruit = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.BLOCK, KeyUtils.toIdentifier(Key.of(section.getOrDefault("may-place-fruit", "minecraft:farmland").toString())));
-            return new StemBlockBehavior(block, ageProperty, fruit, attachedStem, minGrowLight, tagMayPlaceFruit, blockMayPlaceFruit);
+            return new StemBlockBehavior(
+                    block,
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
+                    section.getNonNullIdentifier("fruit"),
+                    section.getNonNullIdentifier("attached_stem", "attached-stem"),
+                    section.getInt(0, "light_requirement", "light-requirement"),
+                    null,
+                    null
+            );
         }
     }
 }

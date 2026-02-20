@@ -14,10 +14,10 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsPro
 
 import java.util.concurrent.Callable;
 
-public class LiquidFlowableBlockBehavior extends BukkitBlockBehavior implements PlaceLiquidBlockBehavior {
+public final class LiquidFlowableBlockBehavior extends BukkitBlockBehavior implements PlaceLiquidBlockBehavior {
     public static final BlockBehaviorFactory<LiquidFlowableBlockBehavior> FACTORY = new Factory();
 
-    public LiquidFlowableBlockBehavior(CustomBlock customBlock) {
+    private LiquidFlowableBlockBehavior(CustomBlock customBlock) {
         super(customBlock);
     }
 
