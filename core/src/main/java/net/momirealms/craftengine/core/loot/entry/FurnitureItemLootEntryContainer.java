@@ -43,7 +43,7 @@ public final class FurnitureItemLootEntryContainer<T> extends SingleItemLootEntr
             Key item = Optional.ofNullable(arguments.get("item")).map(String::valueOf).map(Key::of).orElse(null);
             int weight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("weight", 1), "weight");
             int quality = ResourceConfigUtils.getAsInt(arguments.getOrDefault("quality", 0), "quality");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             List<LootFunction<A>> functions = ResourceConfigUtils.parseConfigAsList(arguments.get("functions"), LootFunctions::fromMap);
             return new FurnitureItemLootEntryContainer<>(item, conditions, functions, weight, quality);
         }

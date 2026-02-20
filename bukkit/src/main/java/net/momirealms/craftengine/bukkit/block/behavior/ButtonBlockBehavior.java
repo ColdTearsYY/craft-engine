@@ -7,12 +7,14 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.properties.BooleanProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.Direction;
+import net.momirealms.craftengine.core.util.HorizontalDirection;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
@@ -32,24 +34,23 @@ import org.bukkit.Location;
 import org.bukkit.World;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class ButtonBlockBehavior extends BukkitBlockBehavior {
+public final class ButtonBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<ButtonBlockBehavior> FACTORY = new Factory();
-    private final BooleanProperty poweredProperty;
-    private final int ticksToStayPressed;
-    private final boolean canButtonBeActivatedByArrows;
-    private final SoundData buttonClickOnSound;
-    private final SoundData buttonClickOffSound;
+    public final Property<Boolean> poweredProperty;
+    public final int ticksToStayPressed;
+    public final boolean canButtonBeActivatedByArrows;
+    public final SoundData buttonClickOnSound;
+    public final SoundData buttonClickOffSound;
 
-    public ButtonBlockBehavior(CustomBlock customBlock,
-                               BooleanProperty powered,
-                               int ticksToStayPressed,
-                               boolean canButtonBeActivatedByArrows,
-                               SoundData buttonClickOnSound,
-                               SoundData buttonClickOffSound) {
+    private ButtonBlockBehavior(CustomBlock customBlock,
+                                Property<Boolean> powered,
+                                int ticksToStayPressed,
+                                boolean canButtonBeActivatedByArrows,
+                                SoundData buttonClickOnSound,
+                                SoundData buttonClickOffSound) {
         super(customBlock);
         this.poweredProperty = powered;
         this.ticksToStayPressed = ticksToStayPressed;
@@ -220,18 +221,22 @@ public class ButtonBlockBehavior extends BukkitBlockBehavior {
 
         @SuppressWarnings("DuplicatedCode")
         @Override
-        public ButtonBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            BooleanProperty powered = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.button.missing_powered");
-            int ticksToStayPressed = ResourceConfigUtils.getAsInt(arguments.getOrDefault("ticks-to-stay-pressed", 30), "ticks-to-stay-pressed");
-            boolean canButtonBeActivatedByArrows = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-be-activated-by-arrows", true), "can-be-activated-by-arrows");
-            Map<String, Object> sounds = MiscUtils.castToMap(arguments.get("sounds"), true);
+        public ButtonBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData buttonClickOnSound = null;
             SoundData buttonClickOffSound = null;
-            if (sounds != null) {
-                buttonClickOnSound = Optional.ofNullable(sounds.get("on")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                buttonClickOffSound = Optional.ofNullable(sounds.get("off")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                buttonClickOnSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "on");
+                buttonClickOffSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "off");
             }
-            return new ButtonBlockBehavior(block, powered, ticksToStayPressed, canButtonBeActivatedByArrows, buttonClickOnSound, buttonClickOffSound);
+            return new ButtonBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
+                    section.getInt(30, "ticks_to_stay_pressed", "ticks-to-stay-pressed"),
+                    section.getBoolean(true, "can_be_activated_by_arrows", "can-be-activated-by-arrows"),
+                    buttonClickOnSound,
+                    buttonClickOffSound
+            );
         }
     }
 }

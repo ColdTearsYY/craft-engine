@@ -10,15 +10,15 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
-import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.World;
@@ -28,17 +28,17 @@ import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 
-public class DropExperienceBlockBehavior extends BukkitBlockBehavior {
+public final class DropExperienceBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<DropExperienceBlockBehavior> FACTORY = new Factory();
-    private final NumberProvider amount;
-    private final Predicate<Context> condition;
+    public final NumberProvider amount;
+    public final Predicate<Context> condition;
 
-    public DropExperienceBlockBehavior(CustomBlock customBlock, NumberProvider amount, Predicate<Context> condition) {
+    private DropExperienceBlockBehavior(CustomBlock customBlock,
+                                        NumberProvider amount,
+                                        Predicate<Context> condition) {
         super(customBlock);
         this.amount = amount;
         this.condition = condition;
@@ -91,10 +91,12 @@ public class DropExperienceBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<DropExperienceBlockBehavior> {
 
         @Override
-        public DropExperienceBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            NumberProvider amount = NumberProviders.fromObject(ResourceConfigUtils.get(arguments, "amount", "count"));
-            List<Condition<Context>> conditionList = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(arguments, "conditions", "condition"), CommonConditions::fromMap);
-            return new DropExperienceBlockBehavior(block, amount, MiscUtils.allOf(conditionList));
+        public DropExperienceBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new DropExperienceBlockBehavior(
+                    block,
+                    section.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ZERO, "amount", "count"),
+                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition"))
+            );
         }
     }
 }

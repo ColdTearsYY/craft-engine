@@ -10,6 +10,7 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
@@ -20,7 +21,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.SignalGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import org.bukkit.Location;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -106,8 +106,8 @@ public class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<ToggleableLampBlockBehavior> {
 
         @Override
-        public ToggleableLampBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(ResourceConfigUtils.get(arguments, "can-open-with-hand", "can-toggle-with-hand"), "can-toggle-with-hand");
+        public ToggleableLampBlockBehavior create(CustomBlock block, ConfigSection section) {
+            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(ResourceConfigUtils.get(section, "can-open-with-hand", "can-toggle-with-hand"), "can-toggle-with-hand");
             Property<Boolean> lit = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("lit"), "warning.config.block.behavior.toggleable_lamp.missing_lit");
             Property<Boolean> powered = (Property<Boolean>) (canOpenWithHand ? block.getProperty("powered") : ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.toggleable_lamp.missing_powered"));
             return new ToggleableLampBlockBehavior(block, lit, powered, canOpenWithHand);

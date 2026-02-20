@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
 
-public class MiniMessageTranslationRegistryImpl implements Examinable, MiniMessageTranslationRegistry {
+public final class MiniMessageTranslationRegistryImpl implements Examinable, MiniMessageTranslationRegistry {
     private final Key name;
     private final Map<String, Translation> translations = new ConcurrentHashMap<>();
     private Locale defaultLocale = Locale.US;
@@ -127,6 +127,7 @@ public class MiniMessageTranslationRegistryImpl implements Examinable, MiniMessa
         return Objects.hash(this.name, this.translations, this.defaultLocale);
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public String toString() {
         return Internals.toString(this);
@@ -179,6 +180,7 @@ public class MiniMessageTranslationRegistryImpl implements Examinable, MiniMessa
             return Objects.hash(this.key, this.formats);
         }
 
+        @SuppressWarnings("UnstableApiUsage")
         @Override
         public String toString() {
             return Internals.toString(this);

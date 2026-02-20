@@ -11,8 +11,8 @@ import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
@@ -24,18 +24,21 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelReaderProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.FallingBlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.dimension.DimensionTypeProxy;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class FallingBlockBehavior extends BukkitBlockBehavior {
+public final class FallingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<FallingBlockBehavior> FACTORY = new Factory();
-    private final float hurtAmount;
-    private final int maxHurt;
-    private final SoundData landSound;
-    private final SoundData destroySound;
+    public final float hurtAmount;
+    public final int maxHurt;
+    public final SoundData landSound;
+    public final SoundData destroySound;
 
-    public FallingBlockBehavior(CustomBlock block, float hurtAmount, int maxHurt, SoundData landSound, SoundData destroySound) {
+    public FallingBlockBehavior(CustomBlock block,
+                                float hurtAmount,
+                                int maxHurt,
+                                SoundData landSound,
+                                SoundData destroySound) {
         super(block);
         this.hurtAmount = hurtAmount;
         this.maxHurt = maxHurt;
@@ -122,19 +125,22 @@ public class FallingBlockBehavior extends BukkitBlockBehavior {
 
     private static class Factory implements BlockBehaviorFactory<FallingBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
-        public FallingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            float hurtAmount = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("hurt-amount", -1f), "hurt-amount");
-            int hurtMax = ResourceConfigUtils.getAsInt(arguments.getOrDefault("max-hurt", -1), "max-hurt");
-            Map<String, Object> sounds = (Map<String, Object>) arguments.get("sounds");
-            SoundData fallSound = null;
+        public FallingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
+            SoundData landSound = null;
             SoundData destroySound = null;
-            if (sounds != null) {
-                fallSound = Optional.ofNullable(sounds.get("land")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                destroySound = Optional.ofNullable(sounds.get("destroy")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                landSound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "land");
+                destroySound = section.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "destroy");
             }
-            return new FallingBlockBehavior(block, hurtAmount, hurtMax, fallSound, destroySound);
+            return new FallingBlockBehavior(
+                    block,
+                    section.getFloat(-1f, "hurt_amount", "hurt-amount"),
+                    section.getInt(-1, "max_hurt", "max-hurt"),
+                    landSound,
+                    destroySound
+            );
         }
     }
 }

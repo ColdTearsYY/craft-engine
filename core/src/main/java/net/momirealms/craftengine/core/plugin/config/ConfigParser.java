@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface ConfigParser {
 
@@ -26,6 +27,8 @@ public interface ConfigParser {
     void loadAll();
 
     void clearConfigs();
+
+    void setErrorHandler(Consumer<ResourceException> errorHandler);
 
     default int count() {
         return -1;

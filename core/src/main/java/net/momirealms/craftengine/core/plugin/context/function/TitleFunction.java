@@ -1,19 +1,18 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
-import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelectors;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
-public class TitleFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
+public final class TitleFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final PlayerSelector<CTX> selector;
     private final String main;
     private final String sub;
@@ -21,7 +20,7 @@ public class TitleFunction<CTX extends Context> extends AbstractConditionalFunct
     private final NumberProvider stay;
     private final NumberProvider fadeOut;
 
-    public TitleFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector,
+    private TitleFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector,
                          String main, String sub, NumberProvider fadeIn, NumberProvider stay, NumberProvider fadeOut) {
         super(predicates);
         this.selector = selector;
@@ -52,24 +51,27 @@ public class TitleFunction<CTX extends Context> extends AbstractConditionalFunct
         }
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, TitleFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, TitleFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, TitleFunction<CTX>> {
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public TitleFunction<CTX> create(Map<String, Object> arguments) {
-            String title = AdventureHelper.legacyToMiniMessage(arguments.getOrDefault("title", "").toString());
-            String subtitle = AdventureHelper.legacyToMiniMessage(arguments.getOrDefault("subtitle", "").toString());
-            NumberProvider fadeIn = NumberProviders.fromObject(arguments.getOrDefault("fade-in", 10));
-            NumberProvider stay = NumberProviders.fromObject(arguments.getOrDefault("stay", 20));
-            NumberProvider fadeOut = NumberProviders.fromObject(arguments.getOrDefault("fade-out", 5));
-            return new TitleFunction<>(getPredicates(arguments), PlayerSelectors.fromObject(arguments.get("target"), conditionFactory()), title, subtitle, fadeIn, stay, fadeOut);
+        public TitleFunction<CTX> create(ConfigSection section) {
+            return new TitleFunction<>(
+                    getPredicates(section),
+                    getPlayerSelector(section),
+                    section.getDefaultedString("", "title"),
+                    section.getDefaultedString("", "subtitle"),
+                    NumberProviders.fromObject(section.getOrDefault(10, "fade_in", "fade-in")),
+                    NumberProviders.fromObject(section.getOrDefault(20, "stay")),
+                    NumberProviders.fromObject(section.getOrDefault(5, "fade_out", "fade-out"))
+            );
         }
     }
 }

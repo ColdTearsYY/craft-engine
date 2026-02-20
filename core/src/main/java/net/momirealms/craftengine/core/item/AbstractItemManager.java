@@ -25,6 +25,7 @@ import net.momirealms.craftengine.core.pack.model.simplified.SimplifiedModelRead
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
@@ -308,7 +309,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
 
     protected abstract void registerArmorTrimPattern(Collection<Key> equipments);
 
-    public class EquipmentParser extends IdSectionConfigParser {
+    private final class EquipmentParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"equipments", "equipment"};
 
         @Override
@@ -317,11 +318,8 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
-            if (AbstractItemManager.this.equipments.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.equipment.duplicate");
-            }
-            Equipment equipment = Equipments.fromMap(id, section);
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+            Equipment equipment = Equipments.fromConfig(id, section);
             AbstractItemManager.this.equipments.put(id, equipment);
         }
 
@@ -437,7 +435,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             if (AbstractItemManager.this.customItemsById.containsKey(id)) {
                 throw new LocalizedResourceConfigException("warning.config.item.duplicate");
             }
@@ -447,7 +445,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
             boolean isVanillaItem = isVanillaItem(id);
 
             // 读取服务端侧材质
-            Key material = isVanillaItem ? id : Key.from(ResourceConfigUtils.requireNonEmptyStringOrThrow(section.getOrDefault("material", Config.defaultMaterial()), "warning.config.item.missing_material").toLowerCase(Locale.ROOT));
+            Key material = isVanillaItem ? id : Key.from(ResourceConfigUtils.requireNonEmptyStringOrThrow(section.getOrDefault(Config.defaultMaterial(), "material"), "warning.config.item.missing_material").toLowerCase(Locale.ROOT));
             // 读取客户端侧材质
             Key clientBoundMaterial = VersionHelper.PREMIUM && section.containsKey("client-bound-material") ? Key.from(section.get("client-bound-material").toString().toLowerCase(Locale.ROOT)) : material;
 
@@ -621,7 +619,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 // 事件
                 Map<EventTrigger, List<net.momirealms.craftengine.core.plugin.context.function.Function<Context>>> eventTriggerListMap;
                 try {
-                    eventTriggerListMap = CommonFunctions.parseEvents(ResourceConfigUtils.get(section, "event", "events"));
+                    eventTriggerListMap = CommonFunctions.parseEvents(section);
                 } catch (LocalizedResourceConfigException e) {
                     collector.add(e);
                     eventTriggerListMap = Map.of();
@@ -764,9 +762,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                             TreeMap<Integer, ModernItemModel> map = AbstractItemManager.this.modernOverrides.computeIfAbsent(finalBaseModel, k -> new TreeMap<>());
                             map.put(customModelData, new ModernItemModel(
                                     modernModel,
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("oversized-in-gui", true), "oversized-in-gui"),
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("hand-animation-on-swap", true), "hand-animation-on-swap"),
-                                    ResourceConfigUtils.getAsFloat(section.getOrDefault("swap-animation-scale", 1f), "swap-animation-scale")
+                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault(true, "oversized-in-gui"), "oversized-in-gui"),
+                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault(true, "hand-animation-on-swap"), "hand-animation-on-swap"),
+                                    ResourceConfigUtils.getAsFloat(section.getOrDefault(1f, "swap-animation-scale"), "swap-animation-scale")
                             ));
                         }
                         // 添加旧版 overrides
@@ -783,9 +781,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         if (isModernFormatRequired() && hasModernModel) {
                             AbstractItemManager.this.modernItemModels1_21_4.put(itemModel, new ModernItemModel(
                                     modernModel,
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("oversized-in-gui", true), "oversized-in-gui"),
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("hand-animation-on-swap", true), "hand-animation-on-swap"),
-                                    ResourceConfigUtils.getAsFloat(section.getOrDefault("swap-animation-scale", 1f), "swap-animation-scale")
+                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault(true, "oversized-in-gui"), "oversized-in-gui"),
+                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault(true, "hand-animation-on-swap"), "hand-animation-on-swap"),
+                                    ResourceConfigUtils.getAsFloat(section.getOrDefault(1f, "swap-animation-scale"), "swap-animation-scale")
                             ));
                         }
                         if (needsItemModelCompatibility() && needsLegacyCompatibility() && hasLegacyModel) {
@@ -798,9 +796,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                     if (isModernFormatRequired()) {
                         AbstractItemManager.this.modernItemModels1_21_4.put(id, new ModernItemModel(
                                 modernModel,
-                                ResourceConfigUtils.getAsBoolean(section.getOrDefault("oversized-in-gui", true), "oversized-in-gui"),
-                                ResourceConfigUtils.getAsBoolean(section.getOrDefault("hand-animation-on-swap", true), "hand-animation-on-swap"),
-                                ResourceConfigUtils.getAsFloat(section.getOrDefault("swap-animation-scale", 1f), "swap-animation-scale")
+                                ResourceConfigUtils.getAsBoolean(section.getOrDefault(true, "oversized-in-gui"), "oversized-in-gui"),
+                                ResourceConfigUtils.getAsBoolean(section.getOrDefault(true, "hand-animation-on-swap"), "hand-animation-on-swap"),
+                                ResourceConfigUtils.getAsFloat(section.getOrDefault(1f, "swap-animation-scale"), "swap-animation-scale")
                         ));
                     }
                 }

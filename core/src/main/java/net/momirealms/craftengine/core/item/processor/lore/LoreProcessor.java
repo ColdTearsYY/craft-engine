@@ -67,7 +67,7 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
                 LoreModification.Operation operation = ResourceConfigUtils.getAsEnum(Optional.ofNullable(complexLore.get("operation")).map(String::valueOf).orElse(null), LoreModification.Operation.class, LoreModification.Operation.APPEND);
                 lastPriority = Optional.ofNullable(complexLore.get("priority")).map(it -> ResourceConfigUtils.getAsInt(it, "priority")).orElse(lastPriority);
                 boolean split = ResourceConfigUtils.getAsBoolean(complexLore.get("split-lines"), "split-lines");
-                List<Condition<ItemBuildContext>> conditions = ResourceConfigUtils.parseConfigAsList(complexLore.get("conditions"), CommonConditions::fromMap);
+                List<Condition<ItemBuildContext>> conditions = ResourceConfigUtils.parseConfigAsList(complexLore.get("conditions"), CommonConditions::fromConfig);
                 modifications.add(new LoreModificationHolder(new LoreModification(operation, split,
                         Arrays.stream(content).map(AdventureHelper::legacyToMiniMessage).map(line -> Config.addNonItalicTag() && !line.startsWith("<!i>") ? FormattedLine.create("<!i>" + line) : FormattedLine.create(line))
                         .toArray(FormattedLine[]::new), MiscUtils.allOf(conditions)), lastPriority));

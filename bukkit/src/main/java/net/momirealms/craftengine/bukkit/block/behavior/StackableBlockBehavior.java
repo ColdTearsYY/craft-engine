@@ -9,6 +9,7 @@ import net.momirealms.craftengine.core.block.behavior.CanBeReplacedBlockBehavior
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.ItemUtils;
 import net.momirealms.craftengine.core.util.Key;
@@ -18,7 +19,6 @@ import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 
 import java.util.List;
-import java.util.Map;
 
 public class StackableBlockBehavior extends BukkitBlockBehavior implements CanBeReplacedBlockBehavior {
     public static final BlockBehaviorFactory<StackableBlockBehavior> FACTORY = new Factory();
@@ -73,12 +73,12 @@ public class StackableBlockBehavior extends BukkitBlockBehavior implements CanBe
     private static class Factory implements BlockBehaviorFactory<StackableBlockBehavior> {
 
         @Override
-        public StackableBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String propertyName = String.valueOf(arguments.getOrDefault("property", "amount"));
+        public StackableBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String propertyName = String.valueOf(section.getOrDefault("property", "amount"));
             IntegerProperty amount = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty(propertyName), () -> {
                 throw new LocalizedResourceConfigException("warning.config.block.behavior.stackable.missing_property", propertyName);
             });
-            Object itemsObj = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("items"), "warning.config.block.behavior.stackable.missing_items");
+            Object itemsObj = ResourceConfigUtils.requireNonNullOrThrow(section.get("items"), "warning.config.block.behavior.stackable.missing_items");
             List<Key> items = MiscUtils.getAsStringList(itemsObj).stream().map(Key::of).toList();
             return new StackableBlockBehavior(block, amount, items, propertyName);
         }

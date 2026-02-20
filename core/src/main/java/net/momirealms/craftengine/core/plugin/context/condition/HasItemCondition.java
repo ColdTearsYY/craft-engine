@@ -1,17 +1,18 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.ItemUtils;
 
-import java.util.Map;
 import java.util.Optional;
 
 public final class HasItemCondition<CTX extends Context> implements Condition<CTX> {
+    public static final HasItemCondition<Context> INSTANCE = new HasItemCondition<>();
 
-    public HasItemCondition() {
+    private HasItemCondition() {
     }
 
     @Override
@@ -28,9 +29,10 @@ public final class HasItemCondition<CTX extends Context> implements Condition<CT
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, HasItemCondition<CTX>> {
 
+        @SuppressWarnings("unchecked")
         @Override
-        public HasItemCondition<CTX> create(Map<String, Object> arguments) {
-            return new HasItemCondition<>();
+        public HasItemCondition<CTX> create(ConfigSection arguments) {
+            return (HasItemCondition<CTX>) INSTANCE;
         }
     }
 }

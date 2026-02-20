@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.entity.furniture.Furniture;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.AbstractFurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigFactory;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -20,7 +21,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public final class CustomFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<CustomFurnitureHitbox> {
@@ -87,10 +87,10 @@ public final class CustomFurnitureHitboxConfig extends AbstractFurnitureHitBoxCo
     public static class Factory implements FurnitureHitBoxConfigFactory<CustomFurnitureHitbox> {
 
         @Override
-        public CustomFurnitureHitboxConfig create(Map<String, Object> arguments) {
-            Vector3f position = ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", "0"), "position");
-            float scale = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("scale", 1), "scale");
-            String type = (String) arguments.getOrDefault("entity-type", "slime");
+        public CustomFurnitureHitboxConfig create(ConfigSection section) {
+            Vector3f position = ResourceConfigUtils.getAsVector3f(section.getOrDefault("position", "0"), "position");
+            float scale = ResourceConfigUtils.getAsFloat(section.getOrDefault("scale", 1), "scale");
+            String type = (String) section.getOrDefault("entity-type", "slime");
             Object nmsEntityType = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ENTITY_TYPE, KeyUtils.toIdentifier(Key.of(type)));
             if (nmsEntityType == null) {
                 throw new LocalizedResourceConfigException("warning.config.furniture.hitbox.custom.invalid_entity", new IllegalArgumentException("EntityType not found: " + type), type);
@@ -99,10 +99,10 @@ public final class CustomFurnitureHitboxConfig extends AbstractFurnitureHitBoxCo
             float width = EntityDimensionsProxy.INSTANCE.getWidth(dimensions);
             float height = EntityDimensionsProxy.INSTANCE.getHeight(dimensions);
             boolean fixed = EntityDimensionsProxy.INSTANCE.isFixed(dimensions);
-            boolean canUseItemOn = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-use-item-on", false), "can-use-item-on");
-            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-be-hit-by-projectile", false), "can-be-hit-by-projectile");
-            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("blocks-building", true), "blocks-building");
-            return new CustomFurnitureHitboxConfig(SeatConfig.fromObj(arguments.get("seats")), position, canUseItemOn, blocksBuilding, canBeHitByProjectile, width, height, fixed, scale, nmsEntityType);
+            boolean canUseItemOn = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-use-item-on", false), "can-use-item-on");
+            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-be-hit-by-projectile", false), "can-be-hit-by-projectile");
+            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(section.getOrDefault("blocks-building", true), "blocks-building");
+            return new CustomFurnitureHitboxConfig(SeatConfig.fromObj(section.get("seats")), position, canUseItemOn, blocksBuilding, canBeHitByProjectile, width, height, fixed, scale, nmsEntityType);
         }
     }
 }

@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
@@ -27,26 +29,6 @@ public record LogNormalNumberProvider(
 
     public static final NumberProviderFactory<LogNormalNumberProvider> FACTORY = new Factory();
     private static final double EPSILON = 1e-6; // 防止 log(0) 的极小值
-
-    public LogNormalNumberProvider {
-        validateParameters(min, max, scale, maxAttempts);
-    }
-
-    private static void validateParameters(double min, double max, double scale, int maxAttempts) {
-        if (min >= max) {
-            throw new IllegalArgumentException("min must be less than max");
-        }
-        if (scale <= 0) {
-            throw new IllegalArgumentException("scale must be greater than 0");
-        }
-        if (maxAttempts <= 0) {
-            throw new IllegalArgumentException("max-attempts must be greater than 0");
-        }
-        // 对数正态分布定义域为 (0, +∞)，min 必须大于 0
-        if (min <= 0) {
-            throw new IllegalArgumentException("min must be greater than 0 for log-normal distribution. If you need 0, consider shifting or clamping.");
-        }
-    }
 
     @Override
     public int getInt(RandomSource random) {
@@ -121,14 +103,9 @@ public record LogNormalNumberProvider(
     private static class Factory implements NumberProviderFactory<LogNormalNumberProvider> {
 
         @Override
-        public LogNormalNumberProvider create(Map<String, Object> arguments) {
-            double rawMin = ResourceConfigUtils.getAsDouble(
-                    ResourceConfigUtils.requireNonNullOrThrow(arguments.get("min"),
-                            "warning.config.number.log_normal.missing_min"), "min");
-
-            double max = ResourceConfigUtils.getAsDouble(
-                    ResourceConfigUtils.requireNonNullOrThrow(arguments.get("max"),
-                            "warning.config.number.log_normal.missing_max"), "max");
+        public LogNormalNumberProvider create(ConfigSection section) {
+            double rawMin = section.getNonNullDouble("min");
+            double max = section.getNonNullDouble("max");
 
             // 自动修正 min <= 0 的情况，防止 Log(0) 崩溃
             // 如果用户配置 min=0，我们将其修正为一个极小的正数
@@ -139,9 +116,9 @@ public record LogNormalNumberProvider(
 
             // 优先检查用户是否直接配置了 mean (真实均值) 和 std-dev (真实标准差)
             // 这对用户来说比配置 location/scale 直观得多
-            if (arguments.containsKey("mean") && arguments.containsKey("std-dev")) {
-                double realMean = ResourceConfigUtils.getAsDouble(arguments.get("mean"), "mean");
-                double realStdDev = ResourceConfigUtils.getAsDouble(arguments.get("std-dev"), "std-dev");
+            if (section.containsKey("mean") && section.containsKey("std_dev", "std-dev")) {
+                double realMean = section.getNonNullDouble("mean");
+                double realStdDev = section.getNonNullDouble("std_dev", "std-dev");
 
                 // 将真实均值/方差转换为对数正态分布参数 μ 和 σ
                 // μ = ln(mean^2 / sqrt(mean^2 + var))
@@ -163,24 +140,29 @@ public record LogNormalNumberProvider(
                 double defaultLocation = (logMin + logMax) / 2.0;
                 double defaultScale = (logMax - logMin) / 6.0;
 
-                location = ResourceConfigUtils.getAsDouble(
-                        arguments.getOrDefault("location", defaultLocation), "location");
-                scale = ResourceConfigUtils.getAsDouble(
-                        arguments.getOrDefault("scale", defaultScale), "scale");
+                location = section.getDouble(defaultLocation, "location");
+                scale = section.getDouble(defaultScale, "scale");
             }
 
-            int maxAttempts = ResourceConfigUtils.getAsInt(
-                    arguments.getOrDefault("max-attempts", 128), "max-attempts");
-
+            int maxAttempts = section.getInt(64, "max_attempts", "max-attempts");
+            this.validateParameters(section.path(), min, max, scale, maxAttempts);
             return new LogNormalNumberProvider(min, max, location, scale, maxAttempts);
         }
-    }
 
-    @Override
-    public @NotNull String toString() {
-        return String.format(
-                "LogNormalNumberProvider{range=[%.2f, %.2f], location(μ)=%.2f, scale(σ)=%.2f, realMean≈%.2f, realStdDev≈%.2f}",
-                this.min, this.max, this.location, this.scale, getRealMean(), getRealStdDev()
-        );
+        private void validateParameters(String path, double min, double max, double scale, int maxAttempts) {
+            if (min >= max) {
+                throw new KnownResourceException("number.less_than", path, "min", "max");
+            }
+            if (scale <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "scale", "0");
+            }
+            if (maxAttempts <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "max_attempts", "0");
+            }
+            // 对数正态分布定义域为 (0, +∞)，min 必须大于 0
+            if (min <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "min", "0");
+            }
+        }
     }
 }

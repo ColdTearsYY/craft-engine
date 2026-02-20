@@ -12,6 +12,7 @@ import net.momirealms.craftengine.core.item.recipe.*;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
@@ -25,7 +26,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("DuplicatedCode")
-public class ItemBrowserManagerImpl implements ItemBrowserManager {
+public final class ItemBrowserManagerImpl implements ItemBrowserManager {
     private static final String SHIFT_LEFT = "SHIFT_LEFT";
     private static final String SHIFT_RIGHT = "SHIFT_RIGHT";
     private static final Set<String> MOVE_TO_OTHER_INV = Set.of("SHIFT_LEFT", "SHIFT_RIGHT");
@@ -37,7 +38,7 @@ public class ItemBrowserManagerImpl implements ItemBrowserManager {
     private final Map<Key, Category> byId;
     private final TreeSet<Category> categoryOnMainPage;
     private final Map<Key, List<Key>> externalMembers;
-    private final CategoryParser categoryParser;
+    private final ConfigParser categoryParser;
 
     public ItemBrowserManagerImpl(CraftEngine plugin) {
         this.plugin = plugin;
@@ -98,7 +99,7 @@ public class ItemBrowserManagerImpl implements ItemBrowserManager {
         return Optional.ofNullable(this.byId.get(key));
     }
 
-    public class CategoryParser extends IdSectionConfigParser {
+    private final class CategoryParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"categories", "category"};
 
         @Override
@@ -122,26 +123,22 @@ public class ItemBrowserManagerImpl implements ItemBrowserManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
-            String name = section.getOrDefault("name", id).toString();
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+            String name = section.getDefaultedString(id.asString(), "name");
             List<String> members;
-            if (ResourceConfigUtils.getAsBoolean(section.get("all-items"), "all-items")) {
+            if (section.getBoolean("all_items", "all-items")) {
                 ItemManager<?> itemManager = ItemBrowserManagerImpl.this.plugin.itemManager();
                 members = itemManager.loadedItems().keySet().stream().filter(it -> !itemManager.isVanillaItem(it)).map(Key::asString).collect(Collectors.toList());
             } else {
-                members = MiscUtils.getAsStringList(section.getOrDefault("list", List.of()));
+                members = section.getStringList("list");
             }
-            Key icon = Key.of(section.getOrDefault("icon", ItemKeys.STONE).toString());
-            int priority = ResourceConfigUtils.getAsInt(section.getOrDefault("priority", 0), "priority");
-            List<String> lore = MiscUtils.getAsStringList(section.getOrDefault("lore", List.of()));
-            boolean hidden = ResourceConfigUtils.getAsBoolean(section.getOrDefault("hidden", false), "hidden");
-            List<Condition<Context>> conditionList = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(section, "conditions", "condition"), CommonConditions::fromMap);
+            Key icon = Optional.ofNullable(section.getIdentifier("icon")).orElse(ItemKeys.STONE);
+            int priority = section.getInt("priority");
+            List<String> lore = section.getStringList("lore");
+            boolean hidden = section.getBoolean("hidden");
+            List<Condition<Context>> conditionList = section.parseSectionList(s -> CommonConditions.fromConfig(s.values()), "conditions", "condition");
             Category category = new Category(id, name, lore, icon, new ArrayList<>(members), priority, hidden, MiscUtils.allOf(conditionList));
-            if (ItemBrowserManagerImpl.this.byId.containsKey(id)) {
-                ItemBrowserManagerImpl.this.byId.get(id).merge(category);
-            } else {
-                ItemBrowserManagerImpl.this.byId.put(id, category);
-            }
+            ItemBrowserManagerImpl.this.byId.put(id, category);
         }
     }
 

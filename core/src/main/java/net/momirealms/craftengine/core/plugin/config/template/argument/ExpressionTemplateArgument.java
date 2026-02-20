@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.plugin.config.template.argument;
 
 import com.ezylang.evalex.Expression;
 import com.ezylang.evalex.data.EvaluationValue;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.template.ArgumentString;
 
 import java.util.Locale;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+// TODO 存在设计缺陷
 public final class ExpressionTemplateArgument implements TemplateArgument {
     public static final TemplateArgumentFactory<ExpressionTemplateArgument> FACTORY = new Factory();
     private final ArgumentString expression;
@@ -53,10 +55,10 @@ public final class ExpressionTemplateArgument implements TemplateArgument {
     private static class Factory implements TemplateArgumentFactory<ExpressionTemplateArgument> {
 
         @Override
-        public ExpressionTemplateArgument create(Map<String, Object> arguments) {
+        public ExpressionTemplateArgument create(ConfigSection section) {
             return new ExpressionTemplateArgument(
-                    arguments.getOrDefault("expression", "").toString(),
-                    ValueType.valueOf(arguments.getOrDefault("value-type", "double").toString().toUpperCase(Locale.ROOT))
+                    section.getDefaultedString("", "expression"),
+                    section.getEnum(ValueType.DOUBLE, ValueType.class, "value_type", "value-type")
             );
         }
     }

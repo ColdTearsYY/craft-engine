@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
@@ -36,10 +37,11 @@ public record BinomialNumberProvider(NumberProvider trials, NumberProvider succe
     private static class Factory implements NumberProviderFactory<BinomialNumberProvider> {
 
         @Override
-        public BinomialNumberProvider create(Map<String, Object> arguments) {
-            Object trials = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("extra"), "warning.config.number.binomial.missing_extra");
-            Object successProbability = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("probability"), "warning.config.number.binomial.missing_probability");
-            return new BinomialNumberProvider(NumberProviders.fromObject(trials), NumberProviders.fromObject(successProbability));
+        public BinomialNumberProvider create(ConfigSection section) {
+            return new BinomialNumberProvider(
+                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "extra"),
+                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "probability")
+            );
         }
     }
 }

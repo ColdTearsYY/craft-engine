@@ -9,9 +9,11 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
 import net.momirealms.craftengine.core.block.properties.BooleanProperty;
+import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.registry.Holder;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -35,27 +37,27 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsPro
 import org.bukkit.Location;
 
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class FenceBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+public final class FenceBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<FenceBlockBehavior> FACTORY = new Factory();
     public static final Object InteractionResult$SUCCESS_SERVER = VersionHelper.isOrAbove1_21_2() ? InteractionResultProxy.INSTANCE.getSuccessServer() : InteractionResultProxy.INSTANCE.getSuccess();
-    private final BooleanProperty northProperty;
-    private final BooleanProperty eastProperty;
-    private final BooleanProperty southProperty;
-    private final BooleanProperty westProperty;
-    private final Object connectableBlockTag;
-    private final boolean canLeash;
+    private static final Key DEFAULT_CONNECTABLE = Key.of("minecraft:wooden_fences");
+    public final Property<Boolean> northProperty;
+    public final Property<Boolean> eastProperty;
+    public final Property<Boolean> southProperty;
+    public final Property<Boolean> westProperty;
+    public final Object connectableBlockTag;
+    public final boolean canLeash;
 
-    public FenceBlockBehavior(CustomBlock customBlock,
-                              BooleanProperty northProperty,
-                              BooleanProperty eastProperty,
-                              BooleanProperty southProperty,
-                              BooleanProperty westProperty,
-                              Object connectableBlockTag,
-                              boolean canLeash) {
+    private FenceBlockBehavior(CustomBlock customBlock,
+                               Property<Boolean> northProperty,
+                               Property<Boolean> eastProperty,
+                               Property<Boolean> southProperty,
+                               Property<Boolean> westProperty,
+                               Object connectableBlockTag,
+                               boolean canLeash) {
         super(customBlock);
         this.northProperty = northProperty;
         this.eastProperty = eastProperty;
@@ -167,15 +169,16 @@ public class FenceBlockBehavior extends BukkitBlockBehavior implements IsPathFin
     private static class Factory implements BlockBehaviorFactory<FenceBlockBehavior> {
 
         @Override
-        public FenceBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            BooleanProperty north = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("north"), "warning.config.block.behavior.fence.missing_north");
-            BooleanProperty east = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("east"), "warning.config.block.behavior.fence.missing_east");
-            BooleanProperty south = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("south"), "warning.config.block.behavior.fence.missing_south");
-            BooleanProperty west = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("west"), "warning.config.block.behavior.fence.missing_west");
-            Object connectableBlockTag = TagKeyProxy.INSTANCE.create(RegistriesProxy.BLOCK, KeyUtils.toIdentifier(Key.of(arguments.getOrDefault("connectable-block-tag", "minecraft:wooden_fences").toString())));
-            connectableBlockTag = connectableBlockTag != null ? connectableBlockTag : BlockTagsProxy.WOODEN_FENCES;
-            boolean canLeash = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-leash", false), "can-leash");
-            return new FenceBlockBehavior(block, north, east, south, west, connectableBlockTag, canLeash);
+        public FenceBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new FenceBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "north", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "east", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "south", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "west", Boolean.class),
+                    BlockTags.getOrCreate(section.getIdentifier(DEFAULT_CONNECTABLE, "connectable_block_tag", "connectable-block-tag")),
+                    section.getBoolean("can_leash", "can-leash")
+            );
         }
     }
 }

@@ -68,7 +68,7 @@ public final class LobFileHost implements ResourcePackHost {
             if (uuidString != null && !uuidString.isEmpty()) {
                 this.uuid = UUID.fromString(uuidString);
             }
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.host.cache.load", "LobFile"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.host.cache.load", "LobFile"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn(
                     "[LobFile] Failed to read cache file: " + e.getMessage());

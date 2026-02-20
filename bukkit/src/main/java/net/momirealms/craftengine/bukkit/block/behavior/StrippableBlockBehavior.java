@@ -4,13 +4,13 @@ import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.sparrow.nbt.CompoundTag;
 
 import java.util.List;
-import java.util.Map;
 
 public class StrippableBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<StrippableBlockBehavior> FACTORY = new Factory();
@@ -43,9 +43,9 @@ public class StrippableBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<StrippableBlockBehavior> {
 
         @Override
-        public StrippableBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String stripped = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("stripped"), "warning.config.block.behavior.strippable.missing_stripped");
-            List<String> excludedProperties = MiscUtils.getAsStringList(arguments.get("excluded-properties"));
+        public StrippableBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String stripped = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("stripped"), "warning.config.block.behavior.strippable.missing_stripped");
+            List<String> excludedProperties = MiscUtils.getAsStringList(section.get("excluded-properties"));
             return new StrippableBlockBehavior(block, stripped, excludedProperties);
         }
     }

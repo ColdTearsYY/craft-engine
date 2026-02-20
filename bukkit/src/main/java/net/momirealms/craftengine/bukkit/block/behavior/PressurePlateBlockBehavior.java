@@ -9,6 +9,7 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.World;
@@ -239,11 +240,11 @@ public class PressurePlateBlockBehavior extends BukkitBlockBehavior {
 
         @SuppressWarnings({"unchecked", "DuplicatedCode"})
         @Override
-        public PressurePlateBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public PressurePlateBlockBehavior create(CustomBlock block, ConfigSection section) {
             Property<Boolean> powered = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.pressure_plate.missing_powered");
-            PressurePlateSensitivity pressurePlateSensitivity = PressurePlateSensitivity.byName(arguments.getOrDefault("sensitivity", "everything").toString());
-            int pressedTime = ResourceConfigUtils.getAsInt(arguments.getOrDefault("pressed-time", 20), "pressed-time");
-            Map<String, Object> sounds = MiscUtils.castToMap(arguments.get("sounds"), true);
+            PressurePlateSensitivity pressurePlateSensitivity = PressurePlateSensitivity.byName(section.getOrDefault("sensitivity", "everything").toString());
+            int pressedTime = ResourceConfigUtils.getAsInt(section.getOrDefault("pressed-time", 20), "pressed-time");
+            Map<String, Object> sounds = MiscUtils.castToMap(section.get("sounds"), true);
             SoundData onSound = null;
             SoundData offSound = null;
             if (sounds != null) {

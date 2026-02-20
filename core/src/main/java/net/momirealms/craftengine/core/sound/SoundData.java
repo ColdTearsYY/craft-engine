@@ -12,20 +12,6 @@ import java.util.function.Supplier;
 public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
     public static final SoundData EMPTY = new SoundData(Key.of("minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_1);
 
-    public static SoundData create(Object obj, SoundValue volume, SoundValue pitch) {
-        if (obj instanceof String key) {
-            return new SoundData(Key.of(key), volume, pitch);
-        } else if (obj instanceof Map<?,?> map) {
-            Map<String, Object> data = MiscUtils.castToMap(map, false);
-            Key id = Key.of((String) data.get("id"));
-            SoundValue volumeValue = Optional.ofNullable(SoundValue.of(map.get("volume"))).orElse(volume);
-            SoundValue pitchValue = Optional.ofNullable(SoundValue.of(map.get("pitch"))).orElse(volume);
-            return new SoundData(id, volumeValue, pitchValue);
-        } else {
-            throw new IllegalArgumentException("Illegal object type for sound data: " + obj.getClass());
-        }
-    }
-
     public static SoundData of(Key id, SoundValue volume, SoundValue pitch) {
         return new SoundData(id, volume, pitch);
     }
@@ -37,20 +23,7 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
         SoundValue FIXED_0_75 = new Fixed(0.75f);
         SoundValue FIXED_0_15 = new Fixed(0.15f);
         SoundValue FIXED_0_5 = new Fixed(0.5f);
-        SoundValue FIXED_0_3 = new Fixed(0.3f);
-
-        static SoundValue of(Object obj) {
-            if (obj instanceof Number number) {
-                return SoundValue.fixed(number.floatValue());
-            } else {
-                String volumeString = obj.toString();
-                if (volumeString.contains("~")) {
-                    String[] split = volumeString.split("~");
-                    return SoundValue.ranged(Float.parseFloat(split[0]), Float.parseFloat(split[1]));
-                }
-            }
-            return null;
-        }
+        SoundValue RANGED_0_9_1 = new Ranged(0.9f, 1f);
 
         static SoundValue fixed(float value) {
             return FIXED.computeIfAbsent(value, v -> new Fixed(value));

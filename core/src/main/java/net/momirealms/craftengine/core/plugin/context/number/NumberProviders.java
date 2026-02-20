@@ -1,18 +1,19 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
 import java.util.Map;
 
 public final class NumberProviders {
-    public static final NumberProviderType<FixedNumberProvider> FIXED = register(Key.ce("fixed"), FixedNumberProvider.FACTORY);
-    public static final NumberProviderType<FixedNumberProvider> CONSTANT = register(Key.ce("constant"), FixedNumberProvider.FACTORY);
+    public static final NumberProviderType<ConstantNumberProvider> FIXED = register(Key.ce("fixed"), ConstantNumberProvider.FACTORY);
+    public static final NumberProviderType<ConstantNumberProvider> CONSTANT = register(Key.ce("constant"), ConstantNumberProvider.FACTORY);
     public static final NumberProviderType<UniformNumberProvider> UNIFORM = register(Key.ce("uniform"), UniformNumberProvider.FACTORY);
     public static final NumberProviderType<ExpressionNumberProvider> EXPRESSION = register(Key.ce("expression"), ExpressionNumberProvider.FACTORY);
     public static final NumberProviderType<GaussianNumberProvider> NORMAL = register(Key.ce("normal"), GaussianNumberProvider.FACTORY);
@@ -35,17 +36,17 @@ public final class NumberProviders {
     }
 
     public static NumberProvider direct(double value) {
-        return new FixedNumberProvider(value);
+        return new ConstantNumberProvider(value);
     }
 
-    public static NumberProvider fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.number.missing_type");
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static NumberProvider fromConfig(ConfigSection section) {
+        String type = section.getNonNullString("type");
+        Key key = Key.ce(type);
         NumberProviderType<? extends NumberProvider> providerType = BuiltInRegistries.NUMBER_PROVIDER_TYPE.getValue(key);
         if (providerType == null) {
-            throw new LocalizedResourceConfigException("warning.config.number.invalid_type", type);
+            throw new KnownResourceException("number.unknown_type", section.assemblePath("type"), type);
         }
-        return providerType.factory().create(map);
+        return providerType.factory().create(section);
     }
 
     @SuppressWarnings("unchecked")
@@ -53,13 +54,13 @@ public final class NumberProviders {
         switch (object) {
             case null -> throw new LocalizedResourceConfigException("warning.config.number.missing_argument");
             case Number number -> {
-                return new FixedNumberProvider(number.floatValue());
+                return new ConstantNumberProvider(number.floatValue());
             }
             case Boolean bool -> {
-                return new FixedNumberProvider(bool ? 1 : 0);
+                return new ConstantNumberProvider(bool ? 1 : 0);
             }
             case Map<?, ?> map -> {
-                return fromMap((Map<String, Object>) map);
+                return fromConfig((Map<String, Object>) map);
             }
             default -> {
                 String string = object.toString();
@@ -77,7 +78,7 @@ public final class NumberProviders {
                     return new ExpressionNumberProvider(string);
                 } else {
                     try {
-                        return new FixedNumberProvider(Float.parseFloat(string));
+                        return new ConstantNumberProvider(Float.parseFloat(string));
                     } catch (NumberFormatException e) {
                         throw new LocalizedResourceConfigException("warning.config.number.invalid_format", e, string);
                     }

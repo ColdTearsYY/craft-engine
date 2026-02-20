@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
@@ -11,12 +12,11 @@ import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
 import java.util.List;
-import java.util.Map;
 
-public class DamageItemFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
+public final class DamageItemFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final NumberProvider amount;
 
-    public DamageItemFunction(List<Condition<CTX>> predicates, NumberProvider amount) {
+    private DamageItemFunction(List<Condition<CTX>> predicates, NumberProvider amount) {
         super(predicates);
         this.amount = amount;
     }
@@ -36,20 +36,22 @@ public class DamageItemFunction<CTX extends Context> extends AbstractConditional
         item.hurtAndBreak(amount.getInt(ctx), player, slot);
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, DamageItemFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, DamageItemFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, DamageItemFunction<CTX>> {
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public DamageItemFunction<CTX> create(Map<String, Object> arguments) {
-            NumberProvider amount = NumberProviders.fromObject(arguments.getOrDefault("amount", 1));
-            return new DamageItemFunction<>(getPredicates(arguments), amount);
+        public DamageItemFunction<CTX> create(ConfigSection arguments) {
+            return new DamageItemFunction<>(
+                    getPredicates(arguments),
+                    NumberProviders.fromObject(arguments.getOrDefault(1, "amount", "damage"))
+            );
         }
     }
 }

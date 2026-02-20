@@ -95,7 +95,7 @@ public class BukkitPackManager extends AbstractPackManager implements Listener {
                 return;
             }
             if (!Config.sendPackOnUpload()) return;
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.resource_pack.upload"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.resource_pack.upload"));
             for (BukkitServerPlayer player : this.plugin.networkManager().onlineUsers()) {
                 sendResourcePack(player);
             }

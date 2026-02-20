@@ -5,6 +5,7 @@ import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
@@ -16,7 +17,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
@@ -42,10 +42,10 @@ public class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
 
     private static class Factory implements BlockBehaviorFactory<OnLiquidBlockBehavior> {
         @Override
-        public OnLiquidBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            List<String> liquidTypes = MiscUtils.getAsStringList(arguments.getOrDefault("liquid-type", List.of("water")));
-            boolean stackable = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("stackable", false), "stackable");
-            int delay = ResourceConfigUtils.getAsInt(arguments.getOrDefault("delay", 0), "delay");
+        public OnLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
+            List<String> liquidTypes = MiscUtils.getAsStringList(section.getOrDefault("liquid-type", List.of("water")));
+            boolean stackable = ResourceConfigUtils.getAsBoolean(section.getOrDefault("stackable", false), "stackable");
+            int delay = ResourceConfigUtils.getAsInt(section.getOrDefault("delay", 0), "delay");
             return new OnLiquidBlockBehavior(block, delay, stackable, liquidTypes.contains("water"), liquidTypes.contains("lava"));
         }
     }

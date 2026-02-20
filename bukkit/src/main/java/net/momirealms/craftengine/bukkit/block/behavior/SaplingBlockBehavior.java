@@ -16,6 +16,7 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ItemUtils;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -40,7 +41,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -211,12 +211,12 @@ public class SaplingBlockBehavior extends BukkitBlockBehavior {
 
         @SuppressWarnings("unchecked")
         @Override
-        public SaplingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(arguments, "feature", "configured-feature"), "warning.config.block.behavior.sapling.missing_feature");
+        public SaplingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(section, "feature", "configured-feature"), "warning.config.block.behavior.sapling.missing_feature");
             Property<Integer> stageProperty = (Property<Integer>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("stage"), "warning.config.block.behavior.sapling.missing_stage");
-            double boneMealSuccessChance = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("bone-meal-success-chance", 0.45), "bone-meal-success-chance");
+            double boneMealSuccessChance = ResourceConfigUtils.getAsDouble(section.getOrDefault("bone-meal-success-chance", 0.45), "bone-meal-success-chance");
             return new SaplingBlockBehavior(block, Key.of(feature), (IntegerProperty) stageProperty, boneMealSuccessChance,
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("grow-speed", 1.0 / 7.0), "grow-speed"));
+                    ResourceConfigUtils.getAsFloat(section.getOrDefault("grow-speed", 1.0 / 7.0), "grow-speed"));
         }
     }
 }

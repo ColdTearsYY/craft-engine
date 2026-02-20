@@ -16,6 +16,7 @@ import net.momirealms.craftengine.core.block.entity.BlockEntity;
 import net.momirealms.craftengine.core.block.entity.BlockEntityType;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.AdventureHelper;
@@ -202,19 +203,19 @@ public class SimpleStorageBlockBehavior extends BukkitBlockBehavior implements E
 
         @SuppressWarnings("unchecked")
         @Override
-        public SimpleStorageBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String title = arguments.getOrDefault("title", "").toString();
-            int rows = MiscUtils.clamp(ResourceConfigUtils.getAsInt(arguments.getOrDefault("rows", 1), "rows"), 1, 6);
-            Map<String, Object> sounds = (Map<String, Object>) arguments.get("sounds");
-            boolean hasAnalogOutputSignal = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("has-signal", true), "has-signal");
+        public SimpleStorageBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String title = section.getOrDefault("title", "").toString();
+            int rows = MiscUtils.clamp(ResourceConfigUtils.getAsInt(section.getOrDefault("rows", 1), "rows"), 1, 6);
+            Map<String, Object> sounds = (Map<String, Object>) section.get("sounds");
+            boolean hasAnalogOutputSignal = ResourceConfigUtils.getAsBoolean(section.getOrDefault("has-signal", true), "has-signal");
             SoundData openSound = null;
             SoundData closeSound = null;
             if (sounds != null) {
                 openSound = Optional.ofNullable(sounds.get("open")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
                 closeSound = Optional.ofNullable(sounds.get("close")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
             }
-            boolean canPlaceItem = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("allow-input", true), "allow-input");
-            boolean canTakeItem = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("allow-output", true), "allow-output");
+            boolean canPlaceItem = ResourceConfigUtils.getAsBoolean(section.getOrDefault("allow-input", true), "allow-input");
+            boolean canTakeItem = ResourceConfigUtils.getAsBoolean(section.getOrDefault("allow-output", true), "allow-output");
             Property<Boolean> property = (Property<Boolean>) block.getProperty("open");
             return new SimpleStorageBlockBehavior(block, title, rows, openSound, closeSound, hasAnalogOutputSignal, canPlaceItem, canTakeItem, property);
         }

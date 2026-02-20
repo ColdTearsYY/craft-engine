@@ -12,12 +12,11 @@ import net.momirealms.craftengine.core.block.entity.BlockEntityType;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.CEWorld;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
-
-import java.util.Map;
 
 public class SeatBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<SeatBlockBehavior> FACTORY = new Factory();
@@ -68,13 +67,13 @@ public class SeatBlockBehavior extends BukkitBlockBehavior implements EntityBloc
 
         @SuppressWarnings("unchecked")
         @Override
-        public SeatBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public SeatBlockBehavior create(CustomBlock block, ConfigSection section) {
             Property<HorizontalDirection> directionProperty = null;
             Property<?> facing = block.getProperty("facing");
             if (facing != null && facing.valueClass() == HorizontalDirection.class) {
                 directionProperty = (Property<HorizontalDirection>) facing;
             }
-            return new SeatBlockBehavior(block, directionProperty, SeatConfig.fromObj(arguments.get("seats")));
+            return new SeatBlockBehavior(block, directionProperty, SeatConfig.fromObj(section.get("seats")));
         }
     }
 }

@@ -14,6 +14,7 @@ import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.behavior.BlockBoundItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -23,7 +24,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsPro
 import net.momirealms.craftengine.proxy.minecraft.world.level.pathfinder.PathComputationTypeProxy;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -119,7 +119,7 @@ public class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFind
 
         @SuppressWarnings("unchecked")
         @Override
-        public SlabBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public SlabBlockBehavior create(CustomBlock block, ConfigSection section) {
             Property<SlabType> type = (Property<SlabType>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("type"), "warning.config.block.behavior.slab.missing_type");
             return new SlabBlockBehavior(block, type);
         }

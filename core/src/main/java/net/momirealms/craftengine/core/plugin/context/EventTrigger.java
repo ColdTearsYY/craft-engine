@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+// todo 未来或许可设计为可注册的？
 public enum EventTrigger {
     LEFT_CLICK("attack", "left_click", "hit"),
     RIGHT_CLICK("right_click", "use_on", "use", "use_item_on"),

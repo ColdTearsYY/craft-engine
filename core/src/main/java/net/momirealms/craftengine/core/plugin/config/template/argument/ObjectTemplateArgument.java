@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.config.template.argument;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+
 import java.util.Map;
 
 public final class ObjectTemplateArgument implements TemplateArgument {
@@ -21,8 +23,8 @@ public final class ObjectTemplateArgument implements TemplateArgument {
 
     private static class Factory implements TemplateArgumentFactory<ObjectTemplateArgument> {
         @Override
-        public ObjectTemplateArgument create(Map<String, Object> arguments) {
-            return new ObjectTemplateArgument(arguments.get("value"));
+        public ObjectTemplateArgument create(ConfigSection section) {
+            return new ObjectTemplateArgument(section.get("value"));
         }
     }
 }

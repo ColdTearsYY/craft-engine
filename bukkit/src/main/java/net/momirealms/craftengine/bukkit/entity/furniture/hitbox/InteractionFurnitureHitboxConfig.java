@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.entity.furniture.Furniture;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.AbstractFurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigFactory;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -14,7 +15,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<InteractionFurnitureHitbox> {
@@ -85,25 +85,25 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
     public static class Factory implements FurnitureHitBoxConfigFactory<InteractionFurnitureHitbox> {
 
         @Override
-        public InteractionFurnitureHitboxConfig create(Map<String, Object> arguments) {
-            Vector3f position = ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0), "position");
+        public InteractionFurnitureHitboxConfig create(ConfigSection section) {
+            Vector3f position = ResourceConfigUtils.getAsVector3f(section.getOrDefault("position", 0), "position");
             float width;
             float height;
-            if (arguments.containsKey("scale")) {
-                String[] split = arguments.get("scale").toString().split(",");
+            if (section.containsKey("scale")) {
+                String[] split = section.get("scale").toString().split(",");
                 width = Float.parseFloat(split[0]);
                 height = Float.parseFloat(split[1]);
             } else {
-                width = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("width", 1), "width");
-                height = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("height", 1), "height");
+                width = ResourceConfigUtils.getAsFloat(section.getOrDefault("width", 1), "width");
+                height = ResourceConfigUtils.getAsFloat(section.getOrDefault("height", 1), "height");
             }
-            boolean canUseOn = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-use-item-on", false), "can-use-item-on");
-            boolean interactive = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("interactive", true), "interactive");
-            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-be-hit-by-projectile", false), "can-be-hit-by-projectile");
-            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("blocks-building", true), "blocks-building");
-            boolean invisible = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("invisible", false), "invisible");
+            boolean canUseOn = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-use-item-on", false), "can-use-item-on");
+            boolean interactive = ResourceConfigUtils.getAsBoolean(section.getOrDefault("interactive", true), "interactive");
+            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-be-hit-by-projectile", false), "can-be-hit-by-projectile");
+            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(section.getOrDefault("blocks-building", true), "blocks-building");
+            boolean invisible = ResourceConfigUtils.getAsBoolean(section.getOrDefault("invisible", false), "invisible");
             return new InteractionFurnitureHitboxConfig(
-                    SeatConfig.fromObj(arguments.get("seats")),
+                    SeatConfig.fromObj(section.get("seats")),
                     position, canUseOn, blocksBuilding, canBeHitByProjectile, invisible,
                     new Vector3f(width, height, width),
                     interactive

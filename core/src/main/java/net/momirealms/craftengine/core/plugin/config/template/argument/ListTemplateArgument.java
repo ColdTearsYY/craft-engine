@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.plugin.config.template.argument;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 
 import java.util.List;
@@ -26,17 +27,8 @@ public final class ListTemplateArgument implements TemplateArgument {
     private static class Factory implements TemplateArgumentFactory<ListTemplateArgument> {
 
         @Override
-        public ListTemplateArgument create(Map<String, Object> arguments) {
-            Object list = arguments.getOrDefault("list", List.of());
-            return new ListTemplateArgument(castToListOrThrow(list, () -> new LocalizedResourceConfigException("warning.config.template.argument.list.invalid_type", list.getClass().getSimpleName())));
-        }
-
-        @SuppressWarnings("unchecked")
-        private static List<Object> castToListOrThrow(Object obj, Supplier<LocalizedResourceConfigException> throwableSupplier) {
-            if (obj instanceof List<?> list) {
-                return (List<Object>) list;
-            }
-            throw throwableSupplier.get();
+        public ListTemplateArgument create(ConfigSection section) {
+            return new ListTemplateArgument(section.getNonNullList("list", "value"));
         }
     }
 }

@@ -3,12 +3,13 @@ package net.momirealms.craftengine.core.plugin.config.template;
 import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.IdObjectConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.IdValueConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.config.template.argument.*;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -17,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.file.Path;
 import java.util.*;
 
-@SuppressWarnings("DuplicatedCode")
 public final class TemplateManagerImpl implements TemplateManager {
     private static final ArgumentString TEMPLATE = ArgumentString.Literal.literal("template");
     private static final ArgumentString TEMPLATES = ArgumentString.Literal.literal("templates");
@@ -26,7 +26,7 @@ public final class TemplateManagerImpl implements TemplateManager {
     private static final ArgumentString MERGES = ArgumentString.Literal.literal("merges");
     private final static Set<ArgumentString> NON_TEMPLATE_ARGUMENTS = new HashSet<>(Set.of(TEMPLATE, TEMPLATES, ARGUMENTS, OVERRIDES, MERGES));
 
-    private final Map<Key, Object> templates = new HashMap<>();
+    private final Map<Key, Object> templates = new HashMap<>(256, 0.5f);
     private final TemplateParser templateParser;
 
     TemplateManagerImpl() {
@@ -43,7 +43,7 @@ public final class TemplateManagerImpl implements TemplateManager {
         return this.templateParser;
     }
 
-    public final class TemplateParser extends IdObjectConfigParser {
+    public final class TemplateParser extends IdValueConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"templates", "template"};
 
         @Override
@@ -62,26 +62,28 @@ public final class TemplateManagerImpl implements TemplateManager {
         }
 
         @Override
-        public void parseObject(Pack pack, Path path, String node, Key id, Object obj) {
-            if (TemplateManagerImpl.this.templates.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.template.duplicate");
-            }
-            // 预处理会将 string类型的键或值解析为ArgumentString，以加速模板应用。所以处理后不可能存在String类型。
-            TemplateManagerImpl.this.templates.put(id, preprocessUnknownValue(obj));
+        public void parseValue(Pack pack, Path filePath, Key id, ConfigValue value) {
+            TemplateManagerImpl.this.templates.put(id, preprocessUnknownValue(value.value()));
         }
 
         // 覆写父类逻辑，禁止应用模板
         @Override
         protected void parseSection(CachedConfigSection cached) {
-            for (Map.Entry<String, Object> configEntry : cached.config().entrySet()) {
-                String key = configEntry.getKey();
+            ConfigSection config = cached.config();
+            Path path = cached.filePath();
+            for (Map.Entry<String, Object> entry : config.values().entrySet()) {
+                String key = entry.getKey();
                 Key id = Key.withDefaultNamespace(key, cached.pack().namespace());
-                String node = cached.prefix() + "." + key;
+                String currentNode = config.assemblePath(key);
+                Path filePath = cached.filePath();
+                if (this.checkDuplicated() && isDuplicate(id, filePath, currentNode)) {
+                    return;
+                }
                 ResourceConfigUtils.runCatching(
-                        cached.filePath(),
-                        node,
-                        () -> parseObject(cached.pack(), cached.filePath(), node, id, configEntry.getValue()),
-                        () -> GsonHelper.get().toJson(configEntry.getValue())
+                        path,
+                        currentNode,
+                        () -> parseValue(cached.pack(), filePath, id, new ConfigValue(key, currentNode, entry.getValue())),
+                        super.errorHandler
                 );
             }
         }
@@ -105,7 +107,7 @@ public final class TemplateManagerImpl implements TemplateManager {
     public Object preprocessUnknownValue(Object value) {
         switch (value) {
             case Map<?, ?> map -> {
-                Map<String, Object> in = MiscUtils.castToMap(map, false);
+                Map<String, Object> in = MiscUtils.castToMap(map);
                 Map<ArgumentString, Object> out = new LinkedHashMap<>(map.size());
                 for (Map.Entry<String, Object> entry : in.entrySet()) {
                     out.put(ArgumentString.preParse(entry.getKey()), preprocessUnknownValue(entry.getValue()));
@@ -329,7 +331,7 @@ public final class TemplateManagerImpl implements TemplateManager {
     // 合并参数
     @SuppressWarnings("unchecked")
     private Map<String, TemplateArgument> mergeArguments(@NotNull Map<ArgumentString, Object> childArguments,
-                                                                @NotNull Map<String, TemplateArgument> parentArguments) {
+                                                        @NotNull Map<String, TemplateArgument> parentArguments) {
         Map<String, TemplateArgument> result = new LinkedHashMap<>(parentArguments);
         for (Map.Entry<ArgumentString, Object> argumentEntry : childArguments.entrySet()) {
             Object placeholderObj = argumentEntry.getKey().get(result);
@@ -339,7 +341,7 @@ public final class TemplateManagerImpl implements TemplateManager {
             if (result.containsKey(placeholder)) continue;
             Object processedPlaceholderValue = processUnknownValue(argumentEntry.getValue(), result);
             switch (processedPlaceholderValue) {
-                case Map<?, ?> map -> result.put(placeholder, TemplateArguments.fromMap(MiscUtils.castToMap(map, false)));
+                case Map<?, ?> map -> result.put(placeholder, TemplateArguments.fromConfig(MiscUtils.castToMap(map)));
                 case List<?> listArgument -> result.put(placeholder, ListTemplateArgument.list((List<Object>) listArgument));
                 case null -> result.put(placeholder, NullTemplateArgument.INSTANCE);
                 default -> result.put(placeholder, ObjectTemplateArgument.object(processedPlaceholderValue));

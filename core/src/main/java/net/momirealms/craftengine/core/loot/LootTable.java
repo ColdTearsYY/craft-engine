@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.loot.entry.LootEntryContainer;
 import net.momirealms.craftengine.core.loot.entry.LootEntryContainers;
 import net.momirealms.craftengine.core.loot.function.LootFunction;
 import net.momirealms.craftengine.core.loot.function.LootFunctions;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
@@ -37,7 +38,7 @@ public final class LootTable<T> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    public static <T> LootTable<T> fromMap(Map<String, Object> map) {
+    public static <T> LootTable<T> fromMap(ConfigSection map) {
         if (map == null || map.isEmpty()) return null;
         Object pools = ResourceConfigUtils.requireNonNullOrThrow(map.get("pools"), "warning.config.loot_table.missing_pools");
         if (!(pools instanceof List<?> list) || list.isEmpty()) {
@@ -50,7 +51,7 @@ public final class LootTable<T> {
                 Map<String, Object> pool = MiscUtils.castToMap(rawPoolMap, false);
                 NumberProvider rolls = NumberProviders.fromObject(pool.getOrDefault("rolls", 1));
                 NumberProvider bonus_rolls = NumberProviders.fromObject(pool.getOrDefault("bonus_rolls", 0));
-                List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(pool.get("conditions"), CommonConditions::fromMap);
+                List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(pool.get("conditions"), CommonConditions::fromConfig);
                 List<LootEntryContainer<T>> containers = ResourceConfigUtils.parseConfigAsList(pool.get("entries"), LootEntryContainers::fromMap);
                 List<LootFunction<T>> functions = ResourceConfigUtils.parseConfigAsList(pool.get("functions"), LootFunctions::fromMap);
                 lootPools.add(new LootPool<>(containers, conditions, functions, rolls, bonus_rolls));

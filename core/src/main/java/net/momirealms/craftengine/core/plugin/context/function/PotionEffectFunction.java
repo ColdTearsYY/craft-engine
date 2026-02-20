@@ -1,19 +1,17 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
-import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelectors;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
-public class PotionEffectFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
+public final class PotionEffectFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final PlayerSelector<CTX> selector;
     private final Key potionEffectType;
     private final NumberProvider duration;
@@ -21,7 +19,7 @@ public class PotionEffectFunction<CTX extends Context> extends AbstractCondition
     private final boolean ambient;
     private final boolean particles;
 
-    public PotionEffectFunction(List<Condition<CTX>> predicates, NumberProvider duration, NumberProvider amplifier, boolean ambient, boolean particles, PlayerSelector<CTX> selector, Key potionEffectType) {
+    private PotionEffectFunction(List<Condition<CTX>> predicates, NumberProvider duration, NumberProvider amplifier, boolean ambient, boolean particles, PlayerSelector<CTX> selector, Key potionEffectType) {
         super(predicates);
         this.potionEffectType = potionEffectType;
         this.duration = duration;
@@ -45,24 +43,27 @@ public class PotionEffectFunction<CTX extends Context> extends AbstractCondition
         }
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, PotionEffectFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, PotionEffectFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, PotionEffectFunction<CTX>> {
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public PotionEffectFunction<CTX> create(Map<String, Object> arguments) {
-            Key effectType = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("potion-effect"), "warning.config.function.potion_effect.missing_potion_effect"));
-            NumberProvider duration = NumberProviders.fromObject(arguments.getOrDefault("duration", 20));
-            NumberProvider amplifier = NumberProviders.fromObject(arguments.getOrDefault("amplifier", 0));
-            boolean ambient = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("ambient", false), "ambient");
-            boolean particles = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("particles", true), "particles");
-            return new PotionEffectFunction<>(getPredicates(arguments), duration, amplifier, ambient, particles, PlayerSelectors.fromObject(arguments.get("target"), conditionFactory()), effectType);
+        public PotionEffectFunction<CTX> create(ConfigSection section) {
+            return new PotionEffectFunction<>(
+                    getPredicates(section),
+                    NumberProviders.fromObject(section.getOrDefault(20, "duration")),
+                    NumberProviders.fromObject(section.getOrDefault(0, "amplifier")),
+                    section.getBoolean("ambient"),
+                    section.getBoolean(true, "particles"),
+                    getPlayerSelector(section),
+                    section.getNonNullIdentifier("potion_effect", "potion-effect")
+            );
         }
     }
 }

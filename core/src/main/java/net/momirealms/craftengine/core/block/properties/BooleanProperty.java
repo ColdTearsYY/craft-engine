@@ -45,7 +45,7 @@ public final class BooleanProperty extends Property<Boolean> {
     }
 
     @Override
-    public final int idFor(final Boolean value) {
+    public int idFor(final Boolean value) {
         return value ? 1 : 0;
     }
 

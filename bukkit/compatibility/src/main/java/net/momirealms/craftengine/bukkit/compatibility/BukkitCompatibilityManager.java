@@ -13,8 +13,10 @@ import net.momirealms.craftengine.bukkit.compatibility.legacy.slimeworld.LegacyS
 import net.momirealms.craftengine.bukkit.compatibility.leveler.LevelerBridgeLeveler;
 import net.momirealms.craftengine.bukkit.compatibility.model.bettermodel.BetterModelBlockEntityElementConfig;
 import net.momirealms.craftengine.bukkit.compatibility.model.bettermodel.BetterModelModel;
+import net.momirealms.craftengine.bukkit.compatibility.model.bettermodel.BetterModelProvider;
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineBlockEntityElementConfig;
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineModel;
+import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineProvider;
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineUtils;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicItemDropListener;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicSkillHelper;
@@ -36,6 +38,7 @@ import net.momirealms.craftengine.core.entity.furniture.ExternalModel;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.compatibility.*;
 import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.condition.AlwaysFalseCondition;
@@ -70,11 +73,18 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
         this.itemSources = new HashMap<>();
         this.levelerProviders = new HashMap<>();
         this.entityProviders = new HashMap<>();
-        this.modelProviders = new HashMap<>(Map.of(
-                "ModelEngine", ModelEngineModel::new,
-                "BetterModel", BetterModelModel::new
-        ));
+        this.modelProviders = new HashMap<>();
         this.tagResolverProviders = new HashMap<>();
+    }
+
+    @Override
+    public ModelProvider getModelProvider(final String id) {
+        return this.modelProviders.get(id);
+    }
+
+    @Override
+    public void registerModelProvider(final ModelProvider provider) {
+        this.modelProviders.put(provider.plugin(), provider);
     }
 
     @Override
@@ -123,10 +133,16 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
             runCatchingHook(this::initWorldEditHook, "WorldEdit");
         }
         if (this.hasPlugin("BetterModel")) {
-            runCatchingHook(() -> BukkitBlockEntityElementConfigs.register(Key.ce("better_model"), new BetterModelBlockEntityElementConfig.Factory()), "BetterModel");
+            runCatchingHook(() -> {
+                BukkitBlockEntityElementConfigs.register(Key.ce("better_model"), new BetterModelBlockEntityElementConfig.Factory());
+                registerModelProvider(new BetterModelProvider());
+            }, "BetterModel");
         }
         if (this.hasPlugin("ModelEngine")) {
-            runCatchingHook(() -> BukkitBlockEntityElementConfigs.register(Key.ce("model_engine"), new ModelEngineBlockEntityElementConfig.Factory()), "ModelEngine");
+            runCatchingHook(() -> {
+                BukkitBlockEntityElementConfigs.register(Key.ce("model_engine"), new ModelEngineBlockEntityElementConfig.Factory());
+                registerModelProvider(new ModelEngineProvider());
+            }, "ModelEngine");
         }
         if (this.hasPlugin("CustomNameplates")) {
             runCatchingHook(() -> {
@@ -223,12 +239,12 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
     }
 
     private void logHook(String plugin) {
-        this.plugin.logger().info(TranslationManager.instance().translateLog("info.compatibility", plugin));
+        this.plugin.logger().info(TranslationManager.instance().translate("info.compatibility", plugin));
     }
 
     @Override
-    public ExternalModel createModel(String plugin, String id) {
-        return this.modelProviders.get(plugin).createModel(id);
+    public ExternalModel createModel(String id) {
+        return this.modelProviders.values().iterator().next().createModel(id);
     }
 
     @Override

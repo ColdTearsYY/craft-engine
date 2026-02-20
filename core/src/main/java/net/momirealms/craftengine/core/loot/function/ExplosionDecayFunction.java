@@ -40,7 +40,7 @@ public final class ExplosionDecayFunction<T> extends AbstractLootConditionalFunc
 
         @Override
         public LootFunction<T> create(Map<String, Object> arguments) {
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new ExplosionDecayFunction<>(conditions);
         }
     }

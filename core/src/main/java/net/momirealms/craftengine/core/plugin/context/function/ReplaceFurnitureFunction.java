@@ -1,20 +1,19 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.WorldPosition;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-public class ReplaceFurnitureFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
+public final class ReplaceFurnitureFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final Key newFurnitureId;
     private final NumberProvider x;
     private final NumberProvider y;
@@ -25,7 +24,7 @@ public class ReplaceFurnitureFunction<CTX extends Context> extends AbstractCondi
     private final boolean dropLoot;
     private final boolean playSound;
 
-    public ReplaceFurnitureFunction(
+    private ReplaceFurnitureFunction(
             List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider pitch, NumberProvider yaw, String variant, boolean dropLoot, boolean playSound, Key newFurnitureId
     ) {
         super(predicates);
@@ -65,28 +64,30 @@ public class ReplaceFurnitureFunction<CTX extends Context> extends AbstractCondi
         }
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, ReplaceFurnitureFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, ReplaceFurnitureFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, ReplaceFurnitureFunction<CTX>> {
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public ReplaceFurnitureFunction<CTX> create(Map<String, Object> arguments) {
-            Key furnitureId = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("furniture-id"), "warning.config.function.replace_furniture.missing_furniture_id"));
-            NumberProvider x = NumberProviders.fromObject(arguments.getOrDefault("x", "<arg:furniture.x>"));
-            NumberProvider y = NumberProviders.fromObject(arguments.getOrDefault("y", "<arg:furniture.y>"));
-            NumberProvider z = NumberProviders.fromObject(arguments.getOrDefault("z", "<arg:furniture.z>"));
-            NumberProvider pitch = NumberProviders.fromObject(arguments.getOrDefault("pitch", "<arg:furniture.pitch>"));
-            NumberProvider yaw = NumberProviders.fromObject(arguments.getOrDefault("yaw", "<arg:furniture.yaw>"));
-            String variant = ResourceConfigUtils.getAsStringOrNull(ResourceConfigUtils.get(arguments, "variant", "anchor-type"));
-            boolean dropLoot = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("drop-loot", true), "drop-loot");
-            boolean playSound = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("play-sound", true), "play-sound");
-            return new ReplaceFurnitureFunction<>(getPredicates(arguments), x, y, z, pitch, yaw, variant, dropLoot, playSound, furnitureId);
+        public ReplaceFurnitureFunction<CTX> create(ConfigSection section) {
+            return new ReplaceFurnitureFunction<>(
+                    getPredicates(section),
+                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.x>", "x")),
+                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.y>", "y")),
+                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.z>", "z")),
+                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.pitch>", "pitch")),
+                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.yaw>", "yaw")),
+                    section.getNonNullString("variant", "anchor_type", "anchor-type"),
+                    section.getBoolean(true, "drop_loot", "drop-loot"),
+                    section.getBoolean(true, "play_sound", "play-sound"),
+                    section.getNonNullIdentifier("furniture_id", "furniture-id", "furniture", "id")
+            );
         }
     }
 }

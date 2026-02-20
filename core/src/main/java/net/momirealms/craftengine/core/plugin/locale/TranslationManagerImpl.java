@@ -13,6 +13,7 @@ import net.momirealms.craftengine.core.plugin.text.minimessage.ImageTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.IndexedArgumentTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.ShiftTag;
 import net.momirealms.craftengine.core.util.AdventureHelper;
+import net.momirealms.craftengine.core.util.ExceptionCollector;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,9 +34,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class TranslationManagerImpl implements TranslationManager {
+// todo 此类需要重构，统一化管理 客户端资源包语言 与 服务端语言。并进行冲突检测
+public final class TranslationManagerImpl implements TranslationManager {
     private static final Locale DEFAULT_LOCALE = Locale.ENGLISH;
-    protected static TranslationManager instance;
+    static TranslationManager instance;
     private final Plugin plugin;
     private final Set<Locale> installed = ConcurrentHashMap.newKeySet();
     private final Path translationsDirectory;
@@ -278,13 +280,16 @@ public class TranslationManagerImpl implements TranslationManager {
         }
     }
 
-    private static void loadLangKeyDeeply(String prefix, Map<String, Object> data, BiConsumer<String, String> consumer) {
+    // 为了解决如下的格式兼容 a.b.c
+    // a:
+    //  b:
+    //   c: xxx
+    private static void loadLangKeyDeeply(String prefix, Map<String, Object> data, BiConsumer<String, String> collector) {
         for (Map.Entry<String, Object> entry : data.entrySet()) {
             if (entry.getValue() instanceof Map<?,?> map) {
-                Map<String, Object> innerMap = MiscUtils.castToMap(map, false);
-                loadLangKeyDeeply(assembleLangKey(prefix, entry.getKey()), innerMap, consumer);
+                loadLangKeyDeeply(assembleLangKey(prefix, entry.getKey()), MiscUtils.castToMap(map, false), collector);
             } else {
-                consumer.accept(assembleLangKey(prefix, entry.getKey()), String.valueOf(entry.getValue()));
+                collector.accept(assembleLangKey(prefix, entry.getKey()), String.valueOf(entry.getValue()));
             }
         }
     }
@@ -296,7 +301,7 @@ public class TranslationManagerImpl implements TranslationManager {
         return prefix + "." + lang;
     }
 
-    public class TranslationParser extends IdSectionConfigParser {
+    private final class TranslationParser extends SectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"translations", "translation", "l10n", "localization", "i18n", "internationalization"};
         private int count;
 
@@ -326,25 +331,36 @@ public class TranslationManagerImpl implements TranslationManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, net.momirealms.craftengine.core.util.Key id, Map<String, Object> section) {
-            Locale locale = TranslationManager.parseLocale(id.value());
-            if (locale == null) {
-                throw new LocalizedResourceConfigException("warning.config.translation.unknown_locale");
+        protected void parseSection(Pack pack, Path path, ConfigSection section) {
+            Map<String, Object> locales = section.values();
+            ExceptionCollector<ResourceException> collector = new ExceptionCollector<>();
+            for (Map.Entry<String, Object> entry : locales.entrySet()) {
+                String langId = entry.getKey();
+                Locale locale = TranslationManager.parseLocale(langId);
+                if (locale == null) {
+                    collector.add(new KnownResourceException("resource.lang.unknown_locale", section.assemblePath(langId), langId));
+                    continue;
+                }
+                Object langData = entry.getValue();
+                if (!(langData instanceof Map<?,?> map)) {
+                    collector.add(new KnownResourceException(ConfigSection.PARSE_SECTION_FAILED, section.assemblePath(langId), langData.getClass().getSimpleName()));
+                    continue;
+                }
+                Map<String, String> bundle = new HashMap<>();
+                loadLangKeyDeeply("", MiscUtils.castToMap(map, false), (key, value) -> {
+                    bundle.put(key, value);
+                    TranslationManagerImpl.this.translationKeys.add(key);
+                });
+                this.count += bundle.size();
+                TranslationManagerImpl.this.registry.registerAll(locale, bundle);
             }
-            Map<String, String> bundle = new HashMap<>();
-            loadLangKeyDeeply("", section, (key, value) -> {
-                bundle.put(key, value);
-                TranslationManagerImpl.this.translationKeys.add(key);
-            });
-            this.count += bundle.size();
-            TranslationManagerImpl.this.registry.registerAll(locale, bundle);
-            TranslationManagerImpl.this.installed.add(locale);
+            collector.throwIfPresent();
         }
     }
 
-    public class LangParser extends IdSectionConfigParser {
+    private final class LangParser extends SectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"lang", "language", "languages"};
-        private final Function<String, String> langProcessor = s -> {
+        private static final Function<String, String> LANG_FORMATTER = s -> {
             Component deserialize = AdventureHelper.miniMessage().deserialize(AdventureHelper.legacyToMiniMessage(s), ShiftTag.INSTANCE, ImageTag.INSTANCE);
             return AdventureHelper.getLegacy().serialize(deserialize);
         };
@@ -376,12 +392,22 @@ public class TranslationManagerImpl implements TranslationManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, net.momirealms.craftengine.core.util.Key id, Map<String, Object> section) {
-            String langId = id.value().toLowerCase(Locale.ENGLISH);
-            Map<String, String> sectionData = new HashMap<>();
-            loadLangKeyDeeply("", section, (key, value) -> sectionData.put(key, this.langProcessor.apply(value)));
-            this.count += sectionData.size();
-            TranslationManagerImpl.this.addClientTranslation(langId, sectionData);
+        protected void parseSection(Pack pack, Path path, ConfigSection section) {
+            Map<String, Object> locales = section.values();
+            ExceptionCollector<ResourceException> collector = new ExceptionCollector<>();
+            for (Map.Entry<String, Object> entry : locales.entrySet()) {
+                String langId = entry.getKey();
+                Object langData = entry.getValue();
+                if (!(langData instanceof Map<?,?> map)) {
+                    collector.add(new KnownResourceException(ConfigSection.PARSE_SECTION_FAILED, section.assemblePath(langId), langData.getClass().getSimpleName()));
+                    continue;
+                }
+                Map<String, String> sectionData = new HashMap<>();
+                loadLangKeyDeeply("", MiscUtils.castToMap(map, false), (key, value) -> sectionData.put(key, LANG_FORMATTER.apply(value)));
+                this.count += sectionData.size();
+                TranslationManagerImpl.this.addClientTranslation(langId, sectionData);
+            }
+            collector.throwIfPresent();
         }
     }
 

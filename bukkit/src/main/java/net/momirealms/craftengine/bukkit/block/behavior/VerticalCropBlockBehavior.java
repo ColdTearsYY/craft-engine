@@ -8,6 +8,7 @@ import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
@@ -17,7 +18,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -85,12 +85,12 @@ public class VerticalCropBlockBehavior extends BukkitBlockBehavior {
 
         @SuppressWarnings("unchecked")
         @Override
-        public VerticalCropBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public VerticalCropBlockBehavior create(CustomBlock block, ConfigSection section) {
             Property<Integer> ageProperty = (Property<Integer>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("age"), "warning.config.block.behavior.vertical_crop.missing_age");
-            int maxHeight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("max-height", 3), "max-height");
-            boolean direction = arguments.getOrDefault("direction", "up").toString().equalsIgnoreCase("up");
+            int maxHeight = ResourceConfigUtils.getAsInt(section.getOrDefault("max-height", 3), "max-height");
+            boolean direction = section.getOrDefault("direction", "up").toString().equalsIgnoreCase("up");
             return new VerticalCropBlockBehavior(block, ageProperty, maxHeight,
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("grow-speed", 1), "grow-speed"), direction);
+                    ResourceConfigUtils.getAsFloat(section.getOrDefault("grow-speed", 1), "grow-speed"), direction);
         }
     }
 }

@@ -1,0 +1,49 @@
+package net.momirealms.craftengine.core.plugin.config;
+
+import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+
+public final class ConfigConstants {
+    public static final Vector3f NORMAL_SCALE = new Vector3f(1f);
+    public static final Vector3f ZERO_VECTOR3 = new Vector3f();
+    public static final Quaternionf ZERO_QUATERNION = new Quaternionf();
+    public static final NumberProvider CONSTANT_ZERO = ConstantNumberProvider.constant(0);
+    public static final NumberProvider CONSTANT_ONE = ConstantNumberProvider.constant(1);
+    public static final String PARSE_SECTION_FAILED = "resource.argument.parser.section";
+    public static final String PARSE_BOOLEAN_FAILED = "resource.argument.parser.boolean";
+    public static final String PARSE_INT_FAILED = "resource.argument.parser.int";
+    public static final String PARSE_FLOAT_FAILED = "resource.argument.parser.float";
+    public static final String PARSE_DOUBLE_FAILED = "resource.argument.parser.double";
+    public static final String PARSE_LONG_FAILED = "resource.argument.parser.long";
+    public static final String PARSE_ENUM_FAILED = "resource.argument.parser.enum";
+    public static final String PARSE_VEC3_FAILED = "resource.argument.parser.vec3";
+    public static final String PARSE_QUATERNION_FAILED = "resource.argument.parser.quaternion";
+    public static final String PARSE_SNBT_FAILED = "resource.argument.parser.snbt";
+    public static final String PARSE_AABB_FAILED = "resource.argument.parser.aabb";
+    public static final String PARSE_IDENTIFIER_FAILED = "resource.argument.parser.identifier";
+    public static final String PARSE_LIST_FAILED = "resource.argument.parser.list";
+    public static final String MISSING_ARGUMENT = "resource.missing_argument";
+    public static final String ARGUMENT_SECTION = "resource.argument.type.section";
+    public static final String ARGUMENT_STRING = "resource.argument.type.string";
+    public static final String ARGUMENT_BOOLEAN = "resource.argument.type.boolean";
+    public static final String ARGUMENT_INT = "resource.argument.type.int";
+    public static final String ARGUMENT_LONG = "resource.argument.type.long";
+    public static final String ARGUMENT_FLOAT = "resource.argument.type.float";
+    public static final String ARGUMENT_DOUBLE = "resource.argument.type.double";
+    public static final String ARGUMENT_ENUM = "resource.argument.type.enum";
+    public static final String ARGUMENT_IDENTIFIER = "resource.argument.type.identifier";
+    public static final String ARGUMENT_VEC3 = "resource.argument.type.vec3";
+    public static final String ARGUMENT_QUATERNION = "resource.argument.type.quaternion";
+    public static final String ARGUMENT_AABB = "resource.argument.type.aabb";
+    public static final String ARGUMENT_SNBT = "resource.argument.type.snbt";
+    public static final String ARGUMENT_LIST = "resource.argument.type.list";
+    public static final String ARGUMENT_NUMBER = "resource.argument.type.number";
+
+    private ConfigConstants() {}
+
+
+
+
+}

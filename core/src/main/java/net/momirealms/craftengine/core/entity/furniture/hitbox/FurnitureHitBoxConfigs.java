@@ -1,17 +1,15 @@
 package net.momirealms.craftengine.core.entity.furniture.hitbox;
 
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
-import java.util.Map;
-import java.util.Optional;
-
-public class FurnitureHitBoxes {
-    protected FurnitureHitBoxes() {}
+public class FurnitureHitBoxConfigs {
+    protected FurnitureHitBoxConfigs() {}
 
     public static <H extends FurnitureHitBox> FurnitureHitboxConfigType<H> register(Key key, FurnitureHitBoxConfigFactory<H> factory) {
         FurnitureHitboxConfigType<H> type = new FurnitureHitboxConfigType<>(key, factory);
@@ -21,13 +19,13 @@ public class FurnitureHitBoxes {
     }
 
     @SuppressWarnings("unchecked")
-    public static <H extends FurnitureHitBox> FurnitureHitBoxConfig<H> fromMap(Map<String, Object> arguments) {
-        String typeString = Optional.ofNullable(arguments.get("type")).map(String::valueOf).orElse("interaction");
-        Key type = Key.ce(typeString);
+    public static <H extends FurnitureHitBox> FurnitureHitBoxConfig<H> fromConfig(ConfigSection section) {
+        String typeName = section.getDefaultedString("interaction", "type");
+        Key type = Key.ce(typeName);
         FurnitureHitboxConfigType<H> configType = (FurnitureHitboxConfigType<H>) BuiltInRegistries.FURNITURE_HITBOX_TYPE.getValue(type);
         if (configType == null) {
-            throw new LocalizedResourceConfigException("warning.config.furniture.hitbox.invalid_type", typeString);
+            throw new KnownResourceException("resource.furniture.hitbox.unknown_type", section.assemblePath("type"), typeName);
         }
-        return configType.factory().create(arguments);
+        return configType.factory().create(section);
     }
 }

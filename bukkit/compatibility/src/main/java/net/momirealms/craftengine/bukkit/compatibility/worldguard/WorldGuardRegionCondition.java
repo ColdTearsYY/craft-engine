@@ -6,6 +6,7 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.condition.ConditionFactory;
@@ -17,7 +18,6 @@ import org.bukkit.World;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -85,7 +85,7 @@ public final class WorldGuardRegionCondition<CTX extends Context> implements Con
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, WorldGuardRegionCondition<CTX>> {
 
         @Override
-        public WorldGuardRegionCondition<CTX> create(Map<String, Object> arguments) {
+        public WorldGuardRegionCondition<CTX> create(ConfigSection arguments) {
             int mode = ResourceConfigUtils.getAsInt(arguments.getOrDefault("mode", 1), "mode") - 1;
             MatchMode matchMode = MatchMode.values()[mode];
             List<String> regions = MiscUtils.getAsStringList(arguments.get("regions"));

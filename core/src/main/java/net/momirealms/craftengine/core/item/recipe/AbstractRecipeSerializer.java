@@ -33,17 +33,17 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
     protected Function<Context>[] functions(Map<String, Object> arguments) {
         Object functions = ResourceConfigUtils.get(arguments, "functions", "function");
         if (functions == null) return null;
-        List<Function<Context>> functionList = ResourceConfigUtils.parseConfigAsList(functions, CommonFunctions::fromMap);
+        List<Function<Context>> functionList = ResourceConfigUtils.parseConfigAsList(functions, CommonFunctions::fromConfig);
         return functionList.toArray(new Function[0]);
     }
 
     protected Condition<Context> conditions(Map<String, Object> arguments) {
         Object conditions = ResourceConfigUtils.get(arguments, "conditions", "condition");
         if (conditions == null) return null;
-        List<Condition<Context>> conditionList = ResourceConfigUtils.parseConfigAsList(conditions, CommonConditions::fromMap);
+        List<Condition<Context>> conditionList = ResourceConfigUtils.parseConfigAsList(conditions, CommonConditions::fromConfig);
         if (conditionList.isEmpty()) return null;
         if (conditionList.size() == 1) return conditionList.getFirst();
-        return new AllOfCondition<>(conditionList);
+        return AllOfCondition.allOf(conditionList);
     }
 
     protected boolean showNotification(Map<String, Object> arguments) {

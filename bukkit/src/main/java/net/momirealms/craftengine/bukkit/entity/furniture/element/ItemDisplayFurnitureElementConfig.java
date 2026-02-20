@@ -13,13 +13,14 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.item.data.FireworkExplosion;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +29,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -135,26 +135,26 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
     private static class Factory implements FurnitureElementConfigFactory<ItemDisplayFurnitureElement> {
 
         @Override
-        public ItemDisplayFurnitureElementConfig create(Map<String, Object> arguments) {
-            Map<String, Object> brightness = ResourceConfigUtils.getAsMap(arguments.getOrDefault("brightness", Map.of()), "brightness");
-            List<Condition<PlayerContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+        public ItemDisplayFurnitureElementConfig create(ConfigSection section) {
+            ConfigSection brightness = section.getSection("brightness");
+            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
             return new ItemDisplayFurnitureElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.furniture.element.item_display.missing_item")),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0f), "position"),
-                    ResourceConfigUtils.getAsVector3f(arguments.get("translation"), "translation"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsQuaternionf(arguments.getOrDefault("rotation", 0f), "rotation"),
-                    ResourceConfigUtils.getAsEnum(ResourceConfigUtils.get(arguments, "display-context", "display-transform"), ItemDisplayContext.class, ItemDisplayContext.NONE),
-                    ResourceConfigUtils.getAsEnum(arguments.get("billboard"), Billboard.class, Billboard.FIXED),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-radius", 0f), "shadow-radius"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-strength", 1f), "shadow-strength"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("apply-dyed-color", true), "apply-dyed-color"),
-                    Optional.ofNullable(arguments.get("glow-color")).map(it -> Color.fromStrings(it.toString().split(","))).orElse(null),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("block-light", -1), "block-light"),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("sky-light", -1), "sky-light"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("view-range", 1f), "view-range"),
+                    section.getNonNullIdentifier("item"),
+                    section.getVector3f(ConfigConstants.NORMAL_SCALE, "scale"),
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "translation"),
+                    section.getFloat(0f, "pitch"),
+                    section.getFloat(0f, "yaw"),
+                    section.getQuaternionf(ConfigConstants.ZERO_QUATERNION, "rotation"),
+                    section.getEnum(ItemDisplayContext.NONE, ItemDisplayContext.class, "display_context", "display_transform", "display-context", "display-transform"),
+                    section.getEnum(Billboard.FIXED, Billboard.class, "billboard"),
+                    section.getFloat(0f, "shadow_radius", "shadow-radius"),
+                    section.getFloat(1f, "shadow_strength", "shadow-strength"),
+                    section.getBoolean(true, "apply_dyed_color", "apply-dyed-color"),
+                    section.get(it -> Color.fromStrings(it.toString().split(",")), (Color) null, "glow_color", "glow-color"),
+                    brightness != null ? brightness.getInt(-1, "block_light", "block-light") : -1,
+                    brightness != null ? brightness.getInt(-1, "sky_light", "sky-light") : -1,
+                    section.getFloat(1f, "view_range", "view-range"),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

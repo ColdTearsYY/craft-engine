@@ -16,13 +16,14 @@ import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.SimpleContext;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.ItemUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -38,20 +39,19 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.Bonemealable
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @SuppressWarnings("DuplicatedCode")
-public class CropBlockBehavior extends BukkitBlockBehavior {
+public final class CropBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<CropBlockBehavior> FACTORY = new Factory();
-    private final IntegerProperty ageProperty;
-    private final float growSpeed;
-    private final int minGrowLight;
-    private final boolean isBoneMealTarget;
-    private final NumberProvider boneMealBonus;
+    public final IntegerProperty ageProperty;
+    public final float growSpeed;
+    public final int minGrowLight;
+    public final boolean isBoneMealTarget;
+    public final NumberProvider boneMealBonus;
 
-    public CropBlockBehavior(CustomBlock block, Property<Integer> ageProperty, float growSpeed, int minGrowLight, boolean isBoneMealTarget, NumberProvider boneMealBonus) {
+    private CropBlockBehavior(CustomBlock block, Property<Integer> ageProperty, float growSpeed, int minGrowLight, boolean isBoneMealTarget, NumberProvider boneMealBonus) {
         super(block);
         this.ageProperty = (IntegerProperty) ageProperty;
         this.growSpeed = growSpeed;
@@ -60,28 +60,12 @@ public class CropBlockBehavior extends BukkitBlockBehavior {
         this.boneMealBonus = boneMealBonus;
     }
 
-    public final int getAge(ImmutableBlockState state) {
+    public int getAge(ImmutableBlockState state) {
         return state.get(ageProperty);
     }
 
     public boolean isMaxAge(ImmutableBlockState state) {
         return state.get(ageProperty) == ageProperty.max;
-    }
-
-    public float growSpeed() {
-        return growSpeed;
-    }
-
-    public boolean isBoneMealTarget() {
-        return isBoneMealTarget;
-    }
-
-    public NumberProvider boneMealBonus() {
-        return boneMealBonus;
-    }
-
-    public int minGrowLight() {
-        return minGrowLight;
     }
 
     public static int getRawBrightness(Object level, Object pos) {
@@ -196,9 +180,9 @@ public class CropBlockBehavior extends BukkitBlockBehavior {
         int z = Vec3iProxy.INSTANCE.getZ(pos);
         int i = this.getAge(customState) + this.boneMealBonus.getInt(
                 SimpleContext.of(ContextHolder.builder()
-                            .withParameter(DirectContextParameters.CUSTOM_BLOCK_STATE, customState)
-                            .withParameter(DirectContextParameters.POSITION, new WorldPosition(BukkitAdaptors.adapt(world), Vec3d.atCenterOf(new Vec3i(x, y, z))))
-                            .build())
+                        .withParameter(DirectContextParameters.CUSTOM_BLOCK_STATE, customState)
+                        .withParameter(DirectContextParameters.POSITION, new WorldPosition(BukkitAdaptors.adapt(world), Vec3d.atCenterOf(new Vec3i(x, y, z))))
+                        .build())
         );
         int maxAge = this.ageProperty.max;
         if (i > maxAge) {
@@ -212,15 +196,16 @@ public class CropBlockBehavior extends BukkitBlockBehavior {
 
     private static class Factory implements BlockBehaviorFactory<CropBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
-        public CropBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<Integer> ageProperty = (Property<Integer>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("age"), "warning.config.block.behavior.crop.missing_age");
-            int minGrowLight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("light-requirement", 9), "light-requirement");
-            float growSpeed = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("grow-speed", 0.125f), "grow-speed");
-            boolean isBoneMealTarget = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("is-bone-meal-target", true), "is-bone-meal-target");
-            NumberProvider boneMealAgeBonus = NumberProviders.fromObject(arguments.getOrDefault("bone-meal-age-bonus", 1));
-            return new CropBlockBehavior(block, ageProperty, growSpeed, minGrowLight, isBoneMealTarget, boneMealAgeBonus);
+        public CropBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new CropBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
+                    section.getFloat(0.125f, "grow_speed", "grow-speed"),
+                    section.getInt(0, "light_requirement", "light-requirement"),
+                    section.getBoolean(true, "is_bone_meal_target", "is-bone-meal-target"),
+                    section.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "bone_meal_age_bonus", "bone-meal-age-bonus")
+            );
         }
     }
 }

@@ -3,12 +3,13 @@ package net.momirealms.craftengine.bukkit.entity.furniture.element;
 import net.momirealms.craftengine.bukkit.entity.data.TextDisplayEntityData;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
 import net.momirealms.craftengine.core.entity.display.Billboard;
-import net.momirealms.craftengine.core.entity.display.ItemDisplayContext;
 import net.momirealms.craftengine.core.entity.display.TextDisplayAlignment;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.NetworkTextReplaceContext;
@@ -16,7 +17,6 @@ import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -24,8 +24,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -39,7 +37,6 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
     public final float xRot;
     public final float yRot;
     public final Quaternionf rotation;
-    public final ItemDisplayContext displayContext;
     public final Billboard billboard;
     public final float shadowRadius;
     public final float shadowStrength;
@@ -64,8 +61,7 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
                                              float xRot,
                                              float yRot,
                                              Quaternionf rotation,
-                                             ItemDisplayContext displayContext,
-                                             Billboard billboard,
+                                              Billboard billboard,
                                              float shadowRadius,
                                              float shadowStrength,
                                              @Nullable Color glowColor,
@@ -88,7 +84,6 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
         this.xRot = xRot;
         this.yRot = yRot;
         this.rotation = rotation;
-        this.displayContext = displayContext;
         this.billboard = billboard;
         this.shadowRadius = shadowRadius;
         this.shadowStrength = shadowStrength;
@@ -138,32 +133,31 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
     private static class Factory implements FurnitureElementConfigFactory<TextDisplayFurnitureElement> {
 
         @Override
-        public TextDisplayFurnitureElementConfig create(Map<String, Object> arguments) {
-            Map<String, Object> brightness = ResourceConfigUtils.getAsMap(arguments.getOrDefault("brightness", Map.of()), "brightness");
-            List<Condition<PlayerContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+        public TextDisplayFurnitureElementConfig create(ConfigSection section) {
+            ConfigSection brightness = section.getSection("brightness");
+            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
             return new TextDisplayFurnitureElementConfig(
-                    ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("text"), "warning.config.furniture.element.text_display.missing_text"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0f), "position"),
-                    ResourceConfigUtils.getAsVector3f(arguments.get("translation"), "translation"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsQuaternionf(arguments.getOrDefault("rotation", 0f), "rotation"),
-                    ResourceConfigUtils.getAsEnum(ResourceConfigUtils.get(arguments, "display-context", "display-transform"), ItemDisplayContext.class, ItemDisplayContext.NONE),
-                    ResourceConfigUtils.getAsEnum(arguments.get("billboard"), Billboard.class, Billboard.FIXED),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-radius", 0f), "shadow-radius"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-strength", 1f), "shadow-strength"),
-                    Optional.ofNullable(arguments.get("glow-color")).map(it -> Color.fromStrings(it.toString().split(","))).orElse(null),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("block-light", -1), "block-light"),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("sky-light", -1), "sky-light"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("view-range", 1f), "view-range"),
-                    ResourceConfigUtils.getAsInt(arguments.getOrDefault("line-width", 200), "line-width"),
-                    ResourceConfigUtils.getOrDefault(arguments.get("background-color"), o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000),
-                    (byte) ResourceConfigUtils.getAsInt(arguments.getOrDefault("text-opacity", -1), "text-opacity"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("has-shadow", false), "has-shadow"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("is-see-through", false), "is-see-through"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-default-background-color", false), "use-default-background-color"),
-                    ResourceConfigUtils.getAsEnum(arguments.get("alignment"), TextDisplayAlignment.class, TextDisplayAlignment.CENTER),
+                    section.getNonNullString("text"),
+                    section.getVector3f(ConfigConstants.NORMAL_SCALE, "scale"),
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "translation"),
+                    section.getFloat(0f, "pitch"),
+                    section.getFloat(0f, "yaw"),
+                    section.getQuaternionf(ConfigConstants.ZERO_QUATERNION, "rotation"),
+                    section.getEnum(Billboard.FIXED, Billboard.class, "billboard"),
+                    section.getFloat(0f, "shadow_radius", "shadow-radius"),
+                    section.getFloat(1f, "shadow_strength", "shadow-strength"),
+                    section.get(it -> Color.fromStrings(it.toString().split(",")), (Color) null, "glow_color", "glow-color"),
+                    brightness != null ? brightness.getInt(-1, "block_light", "block-light") : -1,
+                    brightness != null ? brightness.getInt(-1, "sky_light", "sky-light") : -1,
+                    section.getFloat(1f, "view_range", "view-range"),
+                    section.getInt(200, "line_width", "line-width"),
+                    section.get(o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000, "background-color"),
+                    (byte) section.getInt(-1, "opacity","text_opacity", "text-opacity"),
+                    section.getBoolean("shadow", "has_shadow", "has-shadow"),
+                    section.getBoolean("is_see_through", "is-see-through"),
+                    section.getBoolean("use_default_background_color", "use-default-background-color"),
+                    section.getEnum(TextDisplayAlignment.CENTER, TextDisplayAlignment.class, "alignment"),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

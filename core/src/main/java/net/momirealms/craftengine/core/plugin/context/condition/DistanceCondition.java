@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
@@ -8,7 +9,6 @@ import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.world.WorldPosition;
 
-import java.util.Map;
 import java.util.Optional;
 
 // TODO It's designed for players for the moment, better using entities
@@ -16,7 +16,7 @@ public final class DistanceCondition<CTX extends Context> implements Condition<C
     private final NumberProvider min;
     private final NumberProvider max;
 
-    public DistanceCondition(NumberProvider min, NumberProvider max) {
+    private DistanceCondition(NumberProvider min, NumberProvider max) {
         this.max = max;
         this.min = min;
     }
@@ -57,10 +57,11 @@ public final class DistanceCondition<CTX extends Context> implements Condition<C
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, DistanceCondition<CTX>> {
 
         @Override
-        public DistanceCondition<CTX> create(Map<String, Object> arguments) {
-            NumberProvider min = NumberProviders.fromObject(arguments.getOrDefault("min", 0));
-            NumberProvider max = NumberProviders.fromObject(arguments.getOrDefault("max", 32));
-            return new DistanceCondition<>(min, max);
+        public DistanceCondition<CTX> create(ConfigSection section) {
+            return new DistanceCondition<>(
+                    NumberProviders.fromObject(section.getOrDefault(0, "min")),
+                    NumberProviders.fromObject(section.getOrDefault(32, "max"))
+            );
         }
     }
 }

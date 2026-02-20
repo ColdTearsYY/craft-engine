@@ -9,6 +9,7 @@ import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.parser.BlockStateParser;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -30,14 +31,13 @@ import org.bukkit.block.BlockState;
 import org.bukkit.event.block.BlockFormEvent;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
 
-public class ConcretePowderBlockBehavior extends BukkitBlockBehavior {
+public final class ConcretePowderBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<ConcretePowderBlockBehavior> FACTORY = new Factory();
-    private final LazyReference<@Nullable ImmutableBlockState> targetBlock;
+    public final LazyReference<@Nullable ImmutableBlockState> targetBlock;
 
-    public ConcretePowderBlockBehavior(CustomBlock block, String targetBlock) {
+    private ConcretePowderBlockBehavior(CustomBlock block, String targetBlock) {
         super(block);
         this.targetBlock = LazyReference.lazyReference(() -> BlockStateParser.deserialize(targetBlock));
     }
@@ -135,9 +135,11 @@ public class ConcretePowderBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<ConcretePowderBlockBehavior> {
 
         @Override
-        public ConcretePowderBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String solidBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("solid-block"), "warning.config.block.behavior.concrete.missing_solid");
-            return new ConcretePowderBlockBehavior(block, solidBlock);
+        public ConcretePowderBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new ConcretePowderBlockBehavior(
+                    block,
+                    section.getNonNullString("solid_block", "solid-block")
+            );
         }
     }
 }

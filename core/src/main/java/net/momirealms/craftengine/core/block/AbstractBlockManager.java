@@ -24,17 +24,13 @@ import net.momirealms.craftengine.core.pack.allocator.VisualBlockStateAllocator;
 import net.momirealms.craftengine.core.pack.model.generation.AbstractModelGenerator;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
-import net.momirealms.craftengine.core.plugin.config.SectionConfigParser;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
@@ -288,28 +284,25 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, Map<String, Object> section) throws LocalizedException {
-            ExceptionCollector<LocalizedResourceConfigException> exceptionCollector = new ExceptionCollector<>();
-            for (Map.Entry<String, Object> entry : section.entrySet()) {
+        public void parseSection(Pack pack, Path path, ConfigSection section) {
+            ExceptionCollector<KnownResourceException> collector = new ExceptionCollector<>();
+            Map<String, Object> values = section.values();
+            for (Map.Entry<String, Object> entry : values.entrySet()) {
                 String before = entry.getKey();
                 String after = entry.getValue().toString();
-                // 先解析为唯一的wrapper
                 BlockStateWrapper beforeState = createVanillaBlockState(before);
                 BlockStateWrapper afterState = createVanillaBlockState(after);
                 if (beforeState == null) {
-                    exceptionCollector.add(new LocalizedResourceConfigException("warning.config.block_state_mapping.invalid_state", before));
+                    collector.add(new KnownResourceException("resource.parse.blockstate.failed", section.path(), before));
                     continue;
                 }
                 if (afterState == null) {
-                    exceptionCollector.add(new LocalizedResourceConfigException("warning.config.block_state_mapping.invalid_state", after));
+                    collector.add(new KnownResourceException("resource.parse.blockstate.failed", section.assemblePath(before), after));
                     continue;
                 }
                 int previous = AbstractBlockManager.this.blockStateMappings[beforeState.registryId()];
                 if (previous != -1 && previous != afterState.registryId()) {
-                    exceptionCollector.add(new LocalizedResourceConfigException("warning.config.block_state_mapping.conflict",
-                            beforeState.toString(),
-                            afterState.toString(),
-                            BlockRegistryMirror.byId(previous).toString()));
+                    collector.add(new KnownResourceException("resource.mapping.conflict", section.assemblePath(before), before, after, BlockRegistryMirror.byId(previous).toString()));
                     continue;
                 }
                 AbstractBlockManager.this.blockStateMappings[beforeState.registryId()] = afterState.registryId();
@@ -319,7 +312,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 AbstractBlockManager.this.autoVisualBlockStateCandidates[beforeState.registryId()] = createVisualBlockCandidate(beforeState);
                 this.count++;
             }
-            exceptionCollector.throwIfPresent();
+            collector.throwIfPresent();
         }
 
         @Nullable
@@ -409,7 +402,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                     ResourceConfigUtils.runCatching(
                             section.path(),
                             section.node(),
-                            () -> parseSection(section.pack(), section.path(), section.node(), section.id(), section.config()),
+                            () -> parseSection(section.pack(), section.path(), section.id(), , section.config()),
                             () -> GsonHelper.get().toJson(section.config())
                     );
                 }
@@ -423,19 +416,15 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             if (isVanillaBlock(id)) {
                 parseVanillaBlock(id, section);
             } else {
-                // check duplicated config
-                if (AbstractBlockManager.this.byId.containsKey(id)) {
-                    throw new LocalizedResourceConfigException("warning.config.block.duplicate");
-                }
                 parseCustomBlock(path, node, id, section);
             }
         }
 
-        private void parseVanillaBlock(Key id, Map<String, Object> section) {
+        private void parseVanillaBlock(Key id, ConfigSection section) {
             Map<String, Object> settings = MiscUtils.castToMap(section.get("settings"), true);
             if (settings != null) {
                 Object clientBoundTags = settings.get("client-bound-tags");
@@ -446,7 +435,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             }
         }
 
-        private void parseCustomBlock(Path path, String node, Key id, Map<String, Object> section) {
+        private void parseCustomBlock(Path path, String node, Key id, ConfigSection section) {
             // 获取共享方块设置
             BlockSettings settings = BlockSettings.fromMap(id, MiscUtils.castToMap(section.get("settings"), true));
             // 读取states区域
@@ -531,7 +520,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
 
                 Map<EventTrigger, List<Function<Context>>> events;
                 try {
-                    events = CommonFunctions.parseEvents(ResourceConfigUtils.get(section, "events", "event"));
+                    events = CommonFunctions.parseEvents(section);
                 } catch (LocalizedResourceConfigException e) {
                     eCollector1.add(e);
                     events = Map.of();

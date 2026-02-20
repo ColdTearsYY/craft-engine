@@ -38,7 +38,7 @@ public final class ApplyDataFunction<T> extends AbstractLootConditionalFunction<
             List<ItemProcessor> modifiers = new ArrayList<>();
             Map<String, Object> data = ResourceConfigUtils.getAsMap(ResourceConfigUtils.requireNonNullOrThrow(arguments.get("data"), "warning.config.loot_table.function.apply_data.missing_data"), "data");
             ItemProcessors.collectProcessors(data, modifiers::add);
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new ApplyDataFunction<>(conditions, modifiers.toArray(new ItemProcessor[0]));
         }
     }

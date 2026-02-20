@@ -4,13 +4,20 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.processor.ItemProcessor;
 import net.momirealms.craftengine.core.item.processor.OverwritableEquippableAssetIdProcessor;
+import net.momirealms.craftengine.core.pack.Identifier;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.util.CharacterUtils;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public final class ComponentBasedEquipment extends AbstractEquipment implements Supplier<JsonObject> {
@@ -60,12 +67,15 @@ public final class ComponentBasedEquipment extends AbstractEquipment implements 
     private static class Factory implements EquipmentFactory<ComponentBasedEquipment> {
 
         @Override
-        public ComponentBasedEquipment create(Key id, Map<String, Object> args) {
+        public ComponentBasedEquipment create(Key id, ConfigSection section) {
             ComponentBasedEquipment equipment = new ComponentBasedEquipment(id);
-            for (Map.Entry<String, Object> entry : args.entrySet()) {
-                EquipmentLayerType layerType = EquipmentLayerType.byId(entry.getKey());
+            for (Map.Entry<String, Object> entry : section.values().entrySet()) {
+                String key = entry.getKey();
+                EquipmentLayerType layerType = EquipmentLayerType.byId(key);
                 if (layerType != null) {
-                    equipment.addLayer(layerType, Layer.fromConfig(layerType, entry.getValue()));
+                    equipment.addLayer(layerType, Layer.fromConfig(layerType, section.assemblePath(key), entry.getValue()));
+                } else {
+                    throw new KnownResourceException("resource.equipment.unknown_layer_type", section.path(), key);
                 }
             }
             return equipment;
@@ -75,19 +85,23 @@ public final class ComponentBasedEquipment extends AbstractEquipment implements 
     public record Layer(Key texture, DyeableData data, boolean usePlayerTexture) implements Supplier<JsonObject> {
 
         @NotNull
-        public static List<Layer> fromConfig(EquipmentLayerType layer, Object obj) {
+        public static List<Layer> fromConfig(EquipmentLayerType layer, String path, Object obj) {
             switch (obj) {
                 case String texture -> {
+                    texture = CharacterUtils.replaceBackslashWithSlash(texture);
+                    if (!Identifier.isValid(texture)) {
+                        throw new KnownResourceException(ConfigSection.PARSE_IDENTIFIER_FAILED, path, texture);
+                    }
                     Key textureKey = Key.of(texture);
                     return List.of(new Layer(getCorrectTexturePath(textureKey, layer), null, false));
                 }
                 case Map<?, ?> map -> {
-                    Map<String, Object> data = MiscUtils.castToMap(map, false);
-                    String texture = Objects.requireNonNull(ResourceConfigUtils.getAsStringOrNull(data.get("texture")), "missing texture");
-                    Key textureKey = Key.of(texture);
-                    return List.of(new Layer(getCorrectTexturePath(textureKey, layer),
+                    ConfigSection data = ConfigSection.of(path, MiscUtils.castToMap(map));
+                    Key textureKey = data.getNonNullIdentifier("texture");
+                    return List.of(new Layer(
+                            getCorrectTexturePath(textureKey, layer),
                             DyeableData.fromObj(data.get("dyeable")),
-                            ResourceConfigUtils.getAsBoolean(data.getOrDefault("use-player-texture", false), "use-player-texture")
+                            data.getBoolean("use_player_texture", "use-player-texture")
                     ));
                 }
                 case List<?> list -> {

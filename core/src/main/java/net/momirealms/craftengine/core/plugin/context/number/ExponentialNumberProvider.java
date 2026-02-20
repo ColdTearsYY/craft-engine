@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
@@ -19,18 +21,6 @@ public record ExponentialNumberProvider(
     int maxAttempts
 ) implements NumberProvider {
     public static final NumberProviderFactory<ExponentialNumberProvider> FACTORY = new Factory();
-
-    public ExponentialNumberProvider {
-        if (min >= max) {
-            throw new IllegalArgumentException("min must be less than max");
-        }
-        if (lambda <= 0) {
-            throw new IllegalArgumentException("lambda must be greater than 0");
-        }
-        if (maxAttempts <= 0) {
-            throw new IllegalArgumentException("max-attempts must be greater than 0");
-        }
-    }
 
     @Override
     public int getInt(RandomSource random) {
@@ -65,36 +55,37 @@ public record ExponentialNumberProvider(
     }
 
     private static class Factory implements NumberProviderFactory<ExponentialNumberProvider> {
+
         @Override
-        public ExponentialNumberProvider create(Map<String, Object> arguments) {
-            double min = ResourceConfigUtils.getAsDouble(
-                arguments.getOrDefault("min", 0.0), "min");
-            
-            double max = ResourceConfigUtils.getAsDouble(
-                arguments.getOrDefault("max", Double.MAX_VALUE), "max");
+        public ExponentialNumberProvider create(ConfigSection section) {
+            double min = section.getDouble(0d, "min");
+            double max = section.getDouble(Double.MAX_VALUE, "max");
             
             // 如果用户没填 lambda，尝试从 mean (均值) 转换
             // 指数分布中: mean = 1/lambda
             double lambda;
-            if (arguments.containsKey("mean")) {
-                double mean = ResourceConfigUtils.getAsDouble(arguments.get("mean"), "mean");
+            if (section.containsKey("mean")) {
+                double mean = section.getNonNullDouble("mean");
                 lambda = 1.0 / mean;
             } else {
-                lambda = ResourceConfigUtils.getAsDouble(
-                    ResourceConfigUtils.requireNonNullOrThrow(arguments.get("lambda"), 
-                    "warning.config.number.exponential.missing_lambda"), "lambda");
+                lambda = section.getNonNullDouble("lambda");
             }
             
-            int maxAttempts = ResourceConfigUtils.getAsInt(
-                arguments.getOrDefault("max-attempts", 64), "max-attempts");
-            
+            int maxAttempts = section.getInt(64, "max_attempts", "max-attempts");
+            validateParameters(section.path(), min, max, lambda, maxAttempts);
             return new ExponentialNumberProvider(min, max, lambda, maxAttempts);
         }
-    }
 
-    @Override
-    public @NotNull String toString() {
-        return String.format("ExponentialNumberProvider{min=%.2f, max=%.2f, lambda=%.4f, mean=%.2f}",
-                this.min, this.max, this.lambda, 1.0 / this.lambda);
+        private void validateParameters(String path, double min, double max, double lambda, int maxAttempts) {
+            if (min >= max) {
+                throw new KnownResourceException("number.less_than", path, "min", "max");
+            }
+            if (lambda <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "lambda", "0");
+            }
+            if (maxAttempts <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "max_attempts", "0");
+            }
+        }
     }
 }

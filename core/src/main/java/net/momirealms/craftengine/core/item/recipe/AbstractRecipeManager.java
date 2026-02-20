@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
@@ -170,12 +171,12 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             if (!Config.enableRecipeSystem()) return;
             if (AbstractRecipeManager.this.byId.containsKey(id)) {
                 throw new LocalizedResourceConfigException("warning.config.recipe.duplicate");
             }
-            boolean unlockOnIngredientObtained = (boolean) section.getOrDefault("unlock-on-ingredient-obtained", Config.unlockOnIngredientObtained());
+            boolean unlockOnIngredientObtained = (boolean) section.getOrDefault(Config.unlockOnIngredientObtained(), "unlock-on-ingredient-obtained");
             Recipe<T> recipe = RecipeSerializers.fromMap(id, section);
             try {
                 registerInternalRecipe(id, recipe, unlockOnIngredientObtained);

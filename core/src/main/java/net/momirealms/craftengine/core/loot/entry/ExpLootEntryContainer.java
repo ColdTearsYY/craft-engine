@@ -37,7 +37,7 @@ public final class ExpLootEntryContainer<T> extends AbstractLootEntryContainer<T
         @Override
         public LootEntryContainer<A> create(Map<String, Object> arguments) {
             Object value = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("count"), "warning.config.loot_table.entry.exp.missing_count");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new ExpLootEntryContainer<>(NumberProviders.fromObject(value), conditions);
         }
     }

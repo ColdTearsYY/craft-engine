@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.pack.conflict.matcher;
 
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.condition.ConditionFactory;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
@@ -8,7 +9,6 @@ import net.momirealms.craftengine.core.util.CharacterUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 public record ParentPrefixPathMatcher(String prefix) implements Condition<PathContext> {
     public static final ConditionFactory<PathContext, ParentPrefixPathMatcher> FACTORY = new Factory();
@@ -23,7 +23,7 @@ public record ParentPrefixPathMatcher(String prefix) implements Condition<PathCo
 
     private static class Factory implements ConditionFactory<PathContext, ParentPrefixPathMatcher> {
         @Override
-        public ParentPrefixPathMatcher create(Map<String, Object> arguments) {
+        public ParentPrefixPathMatcher create(ConfigSection arguments) {
             String prefix = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("prefix"), () -> new LocalizedException("warning.config.conflict_matcher.parent_prefix.missing_prefix"));
             return new ParentPrefixPathMatcher(prefix);
         }

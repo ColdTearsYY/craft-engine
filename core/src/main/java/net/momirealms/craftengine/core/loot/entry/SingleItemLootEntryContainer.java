@@ -42,7 +42,7 @@ public class SingleItemLootEntryContainer<T> extends AbstractSingleLootEntryCont
             Key item = Key.from(ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(arguments, "item", "id"), "warning.config.loot_table.entry.item.missing_item"));
             int weight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("weight", 1), "weight");
             int quality = ResourceConfigUtils.getAsInt(arguments.getOrDefault("quality", 0), "quality");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             List<LootFunction<A>> functions = ResourceConfigUtils.parseConfigAsList(arguments.get("functions"), LootFunctions::fromMap);
             return new SingleItemLootEntryContainer<>(item, conditions, functions, weight, quality);
         }

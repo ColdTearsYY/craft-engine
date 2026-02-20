@@ -310,6 +310,14 @@ public class MiscUtils {
     }
 
     @SuppressWarnings("unchecked")
+    public static Map<String, Object> castToMap(Object obj) {
+        if (obj instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        throw new IllegalArgumentException("Expected Map, got: " + (obj == null ? null : obj.getClass().getSimpleName()));
+    }
+
+    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> getAsMapList(Object obj) {
         if (obj == null) return List.of();
         if (obj instanceof List<?> list) {

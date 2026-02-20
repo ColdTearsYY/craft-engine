@@ -14,6 +14,7 @@ import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.compatibility.EntityProvider;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
@@ -36,7 +37,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 // note: block listeners are in BlockEventListener to reduce performance cost
 public class BukkitLootManager extends AbstractLootManager implements Listener {
@@ -152,7 +156,7 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("type"), "warning.config.loot.missing_type");
             VanillaLoot.Type typeEnum;
             try {
@@ -160,8 +164,8 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
             } catch (IllegalArgumentException e) {
                 throw new LocalizedResourceConfigException("warning.config.loot.invalid_type", type, EnumUtils.toString(VanillaLoot.Type.values()));
             }
-            boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault("override", false), "override");
-            List<String> targets = MiscUtils.getAsStringList(section.getOrDefault("target", List.of()));
+            boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault(false, "override"), "override");
+            List<String> targets = MiscUtils.getAsStringList(section.getOrDefault(List.of(), "target"));
             LootTable<?> lootTable = LootTable.fromMap(MiscUtils.castToMap(section.get("loot"), false));
             switch (typeEnum) {
                 case BLOCK -> {

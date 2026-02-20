@@ -15,6 +15,7 @@ public final class ItemKeys {
     public static final Key GOAT_HORN = Key.of("minecraft:goat_horn");
     public static final Key WOODEN_AXE = Key.of("minecraft:wooden_axe");
     public static final Key STONE_AXE = Key.of("minecraft:stone_axe");
+    public static final Key COPPER_AXE = Key.of("minecraft:copper_axe");
     public static final Key IRON_AXE = Key.of("minecraft:iron_axe");
     public static final Key GOLDEN_AXE = Key.of("minecraft:golden_axe");
     public static final Key DIAMOND_AXE = Key.of("minecraft:diamond_axe");
@@ -81,7 +82,7 @@ public final class ItemKeys {
     public static final Key LEATHER_HORSE_ARMOR = Key.of("minecraft:leather_horse_armor");
     public static final Key WOLF_ARMOR = Key.of("minecraft:wolf_armor");
 
-    public static final Key[] AXES = new Key[] {WOODEN_AXE, STONE_AXE, IRON_AXE, GOLDEN_AXE, DIAMOND_AXE, NETHERITE_AXE};
+    public static final Key[] AXES = new Key[] {WOODEN_AXE, COPPER_AXE, STONE_AXE, IRON_AXE, GOLDEN_AXE, DIAMOND_AXE, NETHERITE_AXE};
 
     public static final Key[] WATER_BUCKETS = new Key[] {WATER_BUCKET, COD_BUCKET, SALMON_BUCKET, TROPICAL_FISH_BUCKET, TADPOLE_BUCKET, PUFFERFISH_BUCKET, AXOLOTL_BUCKET};
 

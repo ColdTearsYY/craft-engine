@@ -1,12 +1,12 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
-import java.util.Map;
-
 public final class FallingBlockCondition<CTX extends Context> implements Condition<CTX> {
+    private FallingBlockCondition() {}
 
     @Override
     public boolean test(CTX ctx) {
@@ -20,7 +20,7 @@ public final class FallingBlockCondition<CTX extends Context> implements Conditi
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, FallingBlockCondition<CTX>> {
 
         @Override
-        public FallingBlockCondition<CTX> create(Map<String, Object> arguments) {
+        public FallingBlockCondition<CTX> create(ConfigSection arguments) {
             return new FallingBlockCondition<>();
         }
     }

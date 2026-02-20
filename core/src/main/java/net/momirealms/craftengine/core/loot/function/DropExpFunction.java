@@ -33,7 +33,7 @@ public final class DropExpFunction<T> extends AbstractLootConditionalFunction<T>
         @Override
         public LootFunction<T> create(Map<String, Object> arguments) {
             Object value = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("count"), "warning.config.loot_table.function.drop_exp.missing_count");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new DropExpFunction<>(NumberProviders.fromObject(value), conditions);
         }
     }

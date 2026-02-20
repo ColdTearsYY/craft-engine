@@ -37,7 +37,7 @@ public final class AlternativesLootEntryContainer<T> extends AbstractCompositeLo
         @Override
         public LootEntryContainer<A> create(Map<String, Object> arguments) {
             List<LootEntryContainer<A>> containers = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(arguments, "children", "terms", "branches"), LootEntryContainers::fromMap);
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new AlternativesLootEntryContainer<>(conditions, containers);
         }
     }

@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.entity.furniture.hitbox.AbstractFurniture
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigFactory;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -14,7 +15,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<HappyGhastFurnitureHitbox> {
@@ -66,15 +66,15 @@ public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitB
     public static class Factory implements FurnitureHitBoxConfigFactory<HappyGhastFurnitureHitbox> {
 
         @Override
-        public FurnitureHitBoxConfig<HappyGhastFurnitureHitbox> create(Map<String, Object> arguments) {
-            Vector3f position = ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0), "position");
-            boolean canUseItemOn = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-use-item-on", true), "can-use-item-on");
-            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("blocks-building", true), "blocks-building");
-            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-be-hit-by-projectile", true), "can-be-hit-by-projectile");
-            double scale = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("scale", 1), "scale");
-            boolean hardCollision = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("hard-collision", true), "hard-collision");
+        public FurnitureHitBoxConfig<HappyGhastFurnitureHitbox> create(ConfigSection section) {
+            Vector3f position = ResourceConfigUtils.getAsVector3f(section.getOrDefault("position", 0), "position");
+            boolean canUseItemOn = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-use-item-on", true), "can-use-item-on");
+            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(section.getOrDefault("blocks-building", true), "blocks-building");
+            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-be-hit-by-projectile", true), "can-be-hit-by-projectile");
+            double scale = ResourceConfigUtils.getAsDouble(section.getOrDefault("scale", 1), "scale");
+            boolean hardCollision = ResourceConfigUtils.getAsBoolean(section.getOrDefault("hard-collision", true), "hard-collision");
             return new HappyGhastFurnitureHitboxConfig(
-                    SeatConfig.fromObj(arguments.get("seats")),
+                    SeatConfig.fromObj(section.get("seats")),
                     position, canUseItemOn, blocksBuilding, canBeHitByProjectile,
                     scale, hardCollision
             );

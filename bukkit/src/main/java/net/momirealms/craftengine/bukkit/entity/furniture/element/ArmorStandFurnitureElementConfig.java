@@ -12,20 +12,19 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.item.data.FireworkExplosion;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LegacyChatFormatter;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -95,15 +94,15 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
     private static class Factory implements FurnitureElementConfigFactory<ArmorStandFurnitureElement> {
 
         @Override
-        public ArmorStandFurnitureElementConfig create(Map<String, Object> arguments) {
-            List<Condition<PlayerContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+        public ArmorStandFurnitureElementConfig create(ConfigSection section) {
+            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
             return new ArmorStandFurnitureElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.furniture.element.armor_stand.missing_item")),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0f), "position"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("apply-dyed-color", true), "apply-dyed-color"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("small", false), "small"),
-                    ResourceConfigUtils.getAsEnum(arguments.get("glow-color"), LegacyChatFormatter.class, null),
+                    section.getNonNullIdentifier("item"),
+                    section.getFloat(1f, "scale"),
+                    section.getVector3f(new Vector3f(0f), "position"),
+                    section.getBoolean(true, "apply_dyed_color", "apply-dyed-color"),
+                    section.getBoolean("small"),
+                    section.getEnum(null, LegacyChatFormatter.class, "glow_color", "glow-color"),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

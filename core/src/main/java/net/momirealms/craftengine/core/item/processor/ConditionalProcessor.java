@@ -50,7 +50,7 @@ public final class ConditionalProcessor implements ItemProcessor {
         @Override
         public ConditionalProcessor create(Object arg) {
             Map<String, Object> conditionalData = ResourceConfigUtils.getAsMap(arg, "conditional");
-            List<Condition<Context>> conditions = ResourceConfigUtils.parseConfigAsList(conditionalData.get("conditions"), CommonConditions::fromMap);
+            List<Condition<Context>> conditions = ResourceConfigUtils.parseConfigAsList(conditionalData.get("conditions"), CommonConditions::fromConfig);
             List<ItemProcessor> modifiers = new ArrayList<>();
             ItemProcessors.collectProcessors(ResourceConfigUtils.getAsMap(conditionalData.get("data"), "conditional.data"), modifiers::add);
             return new ConditionalProcessor(MiscUtils.allOf(conditions), modifiers.toArray(new ItemProcessor[0]));

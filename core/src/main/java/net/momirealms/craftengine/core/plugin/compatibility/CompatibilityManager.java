@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.plugin.compatibility;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.momirealms.craftengine.core.entity.furniture.ExternalModel;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.network.NetWorkUser;
 
@@ -16,7 +17,7 @@ public interface CompatibilityManager {
 
     void registerTagResolverProvider(TagResolverProvider provider);
 
-    ExternalModel createModel(String plugin, String id);
+    ExternalModel createModel(String id);
 
     int interactionToBaseEntity(int id);
 
@@ -37,6 +38,10 @@ public interface CompatibilityManager {
     TagResolver[] createExternalTagResolvers(Context context);
 
     boolean isBedrockPlayer(Player player);
+
+    ModelProvider getModelProvider(String id);
+
+    void registerModelProvider(ModelProvider provider);
 
     ItemSource<?> getItemSource(String id);
 

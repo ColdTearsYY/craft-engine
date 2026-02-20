@@ -19,6 +19,7 @@ import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -246,14 +247,14 @@ public class TrapDoorBlockBehavior extends BukkitBlockBehavior implements IsPath
     private static class Factory implements BlockBehaviorFactory<TrapDoorBlockBehavior> {
 
         @Override
-        public TrapDoorBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public TrapDoorBlockBehavior create(CustomBlock block, ConfigSection section) {
             Property<SingleBlockHalf> half = (Property<SingleBlockHalf>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("half"), "warning.config.block.behavior.trapdoor.missing_half");
             Property<HorizontalDirection> facing = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.trapdoor.missing_facing");
             Property<Boolean> open = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("open"), "warning.config.block.behavior.trapdoor.missing_open");
             Property<Boolean> powered = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.trapdoor.missing_powered");
-            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-open-with-hand", true), "can-open-with-hand");
-            boolean canOpenByWindCharge = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-open-by-wind-charge", true), "can-open-by-wind-charge");
-            Map<String, Object> sounds = MiscUtils.castToMap(arguments.get("sounds"), true);
+            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-open-with-hand", true), "can-open-with-hand");
+            boolean canOpenByWindCharge = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-open-by-wind-charge", true), "can-open-by-wind-charge");
+            Map<String, Object> sounds = MiscUtils.castToMap(section.get("sounds"), true);
             SoundData openSound = null;
             SoundData closeSound = null;
             if (sounds != null) {

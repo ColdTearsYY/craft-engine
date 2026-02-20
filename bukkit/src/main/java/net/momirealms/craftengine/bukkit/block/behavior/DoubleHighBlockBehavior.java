@@ -13,6 +13,7 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.block.properties.type.DoubleBlockHalf;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -28,17 +29,17 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
-public class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
+public final class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
     public static final BlockBehaviorFactory<DoubleHighBlockBehavior> FACTORY = new Factory();
-    private final Property<DoubleBlockHalf> halfProperty;
+    public final Property<DoubleBlockHalf> halfProperty;
 
-    public DoubleHighBlockBehavior(CustomBlock customBlock, Property<DoubleBlockHalf> halfProperty) {
+    private DoubleHighBlockBehavior(CustomBlock customBlock,
+                                    Property<DoubleBlockHalf> halfProperty) {
         super(customBlock, 0);
         this.halfProperty = halfProperty;
     }
@@ -152,13 +153,11 @@ public class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<DoubleHighBlockBehavior> {
 
         @Override
-        public DoubleHighBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<DoubleBlockHalf> half = (Property<DoubleBlockHalf>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("half"), "warning.config.block.behavior.double_high.missing_half");
-            return new DoubleHighBlockBehavior(block, half);
+        public DoubleHighBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new DoubleHighBlockBehavior(block, BlockBehaviorFactory.getProperty(section.path(), block, "half", DoubleBlockHalf.class));
         }
     }
 }

@@ -73,7 +73,7 @@ public interface TranslationManager extends Manageable {
         }
     }
 
-    default String translateLog(String id, String... arguments) {
+    default String translate(String id, String... arguments) {
         String translation = miniMessageTranslation(id);
         if (translation == null) {
             return id;

@@ -395,9 +395,9 @@ public abstract class CraftEngine implements Plugin {
             String lv = getLatestVersion();
             if (lv == null) return;
             if (compareVer(lv, pluginVersion())) {
-                this.logger.warn(TranslationManager.instance().translateLog("info.update.available", lv, link));
+                this.logger.warn(TranslationManager.instance().translate("info.update.available", lv, link));
             } else {
-                this.logger.info(TranslationManager.instance().translateLog("info.update.latest"));
+                this.logger.info(TranslationManager.instance().translate("info.update.latest"));
             }
         } catch (Exception ignored) {
         }

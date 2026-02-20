@@ -8,6 +8,7 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
 import net.momirealms.craftengine.core.block.properties.BooleanProperty;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -20,7 +21,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class HangableBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
@@ -82,7 +82,7 @@ public class HangableBlockBehavior extends BukkitBlockBehavior implements IsPath
     private static class Factory implements BlockBehaviorFactory<HangableBlockBehavior> {
 
         @Override
-        public HangableBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public HangableBlockBehavior create(CustomBlock block, ConfigSection section) {
             BooleanProperty hanging = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("hanging"), "warning.config.block.behavior.hangable.missing_hanging");
             return new HangableBlockBehavior(block, hanging);
         }

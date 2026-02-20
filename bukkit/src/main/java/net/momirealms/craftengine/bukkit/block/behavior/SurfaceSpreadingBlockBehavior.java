@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -24,7 +25,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.lighting.LightEngi
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
@@ -110,9 +110,9 @@ public class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
 
         @SuppressWarnings("unchecked")
         @Override
-        public SurfaceSpreadingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            int requiredLight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("required-light", 9), "required-light");
-            String baseBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.getOrDefault("base-block", "minecraft:dirt"), "warning.config.block.behavior.surface_spreading.missing_base_block");
+        public SurfaceSpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            int requiredLight = ResourceConfigUtils.getAsInt(section.getOrDefault("required-light", 9), "required-light");
+            String baseBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.getOrDefault("base-block", "minecraft:dirt"), "warning.config.block.behavior.surface_spreading.missing_base_block");
             return new SurfaceSpreadingBlockBehavior(block, requiredLight, baseBlock, (Property<Boolean>) block.getProperty("snowy"));
         }
     }

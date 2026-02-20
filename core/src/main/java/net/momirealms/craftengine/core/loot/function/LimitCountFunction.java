@@ -49,7 +49,7 @@ public final class LimitCountFunction<T> extends AbstractLootConditionalFunction
         public LootFunction<A> create(Map<String, Object> arguments) {
             Object min = arguments.get("min");
             Object max = arguments.get("max");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new LimitCountFunction<>(conditions, min == null ? null : NumberProviders.fromObject(min), max == null ? null : NumberProviders.fromObject(max));
         }
     }

@@ -5,6 +5,7 @@ import net.momirealms.craftengine.bukkit.util.DirectionUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -17,7 +18,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 public class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavior {
@@ -66,11 +66,11 @@ public class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<SturdyBaseBlockBehavior> {
 
         @Override
-        public SturdyBaseBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            int delay = ResourceConfigUtils.getAsInt(arguments.getOrDefault("delay", 0), "delay");
-            Direction direction = Direction.valueOf(arguments.getOrDefault("direction", "down").toString().toUpperCase(Locale.ENGLISH));
-            boolean stackable = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("stackable", false), "stackable");
-            List<String> supportTypes = MiscUtils.getAsStringList(arguments.getOrDefault("support-types", List.of("full")));
+        public SturdyBaseBlockBehavior create(CustomBlock block, ConfigSection section) {
+            int delay = ResourceConfigUtils.getAsInt(section.getOrDefault("delay", 0), "delay");
+            Direction direction = Direction.valueOf(section.getOrDefault("direction", "down").toString().toUpperCase(Locale.ENGLISH));
+            boolean stackable = ResourceConfigUtils.getAsBoolean(section.getOrDefault("stackable", false), "stackable");
+            List<String> supportTypes = MiscUtils.getAsStringList(section.getOrDefault("support-types", List.of("full")));
             return new SturdyBaseBlockBehavior(block, delay, direction, stackable, supportTypes.contains("full"), supportTypes.contains("rigid"), supportTypes.contains("center"));
         }
     }

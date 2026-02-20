@@ -10,6 +10,7 @@ import net.momirealms.craftengine.core.block.entity.BlockEntity;
 import net.momirealms.craftengine.core.block.entity.BlockEntityType;
 import net.momirealms.craftengine.core.block.entity.tick.BlockEntityTicker;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -18,7 +19,6 @@ import net.momirealms.craftengine.core.world.CEWorld;
 import net.momirealms.craftengine.core.world.particle.ParticleConfig;
 
 import java.util.List;
-import java.util.Map;
 
 public class WallTorchParticleBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<WallTorchParticleBlockBehavior> FACTORY = new Factory();
@@ -65,9 +65,9 @@ public class WallTorchParticleBlockBehavior extends BukkitBlockBehavior implemen
 
         @SuppressWarnings("unchecked")
         @Override
-        public WallTorchParticleBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            List<ParticleConfig> particles = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(arguments, "particles", "particle"), ParticleConfig::fromMap$blockEntity);
-            int tickInterval = ResourceConfigUtils.getAsInt(arguments.getOrDefault("tick-interval", 10), "tick-interval");
+        public WallTorchParticleBlockBehavior create(CustomBlock block, ConfigSection section) {
+            List<ParticleConfig> particles = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(section, "particles", "particle"), ParticleConfig::fromMap$blockEntity);
+            int tickInterval = ResourceConfigUtils.getAsInt(section.getOrDefault("tick-interval", 10), "tick-interval");
             Property<HorizontalDirection> directionProperty = (Property<HorizontalDirection>) block.getProperty("facing");
             if (directionProperty == null) {
                 throw new LocalizedResourceConfigException("warning.config.block.behavior.wall_torch_particle.missing_facing");

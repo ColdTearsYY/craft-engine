@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.PlaceLiquidBlockBehavior;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.world.WorldEvents;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelAccessorProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
@@ -11,7 +12,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class LiquidFlowableBlockBehavior extends BukkitBlockBehavior implements PlaceLiquidBlockBehavior {
@@ -45,7 +45,7 @@ public class LiquidFlowableBlockBehavior extends BukkitBlockBehavior implements 
     private static class Factory implements BlockBehaviorFactory<LiquidFlowableBlockBehavior> {
 
         @Override
-        public LiquidFlowableBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public LiquidFlowableBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new LiquidFlowableBlockBehavior(block);
         }
     }

@@ -20,7 +20,7 @@ import java.util.Map;
 
 import static org.yaml.snakeyaml.nodes.Tag.*;
 
-public class StringKeyConstructor extends SafeConstructor {
+public final class StringKeyConstructor extends SafeConstructor {
     private final Path path;
     private static final String VERSION_PREFIX = "$$";
     private static final String DEEP_KEY_SEPARATOR = "::";

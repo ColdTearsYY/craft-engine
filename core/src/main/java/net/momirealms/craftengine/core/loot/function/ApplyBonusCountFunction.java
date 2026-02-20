@@ -46,7 +46,7 @@ public final class ApplyBonusCountFunction<T> extends AbstractLootConditionalFun
             if (formulaMap == null) {
                 throw new LocalizedResourceConfigException("warning.config.loot_table.function.apply_bonus.missing_formula");
             }
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new ApplyBonusCountFunction<>(conditions, Key.from(enchantment), Formulas.fromMap(formulaMap));
         }
     }

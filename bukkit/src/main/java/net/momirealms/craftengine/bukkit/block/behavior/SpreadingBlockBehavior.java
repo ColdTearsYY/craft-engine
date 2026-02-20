@@ -4,6 +4,7 @@ import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
@@ -12,7 +13,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
@@ -38,8 +38,8 @@ public class SpreadingBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<SpreadingBlockBehavior> {
 
         @Override
-        public SpreadingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String targetBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("target-block"), "warning.config.block.behavior.spreading.missing_target_block");
+        public SpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String targetBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("target-block"), "warning.config.block.behavior.spreading.missing_target_block");
             return new SpreadingBlockBehavior(block, targetBlock);
         }
     }

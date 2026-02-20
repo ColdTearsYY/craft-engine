@@ -6,21 +6,20 @@ import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavi
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigs;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfig;
-import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxes;
+import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigs;
 import net.momirealms.craftengine.core.entity.furniture.tick.TickingFurniture;
 import net.momirealms.craftengine.core.loot.LootTable;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.scheduler.SchedulerTask;
 import net.momirealms.craftengine.core.util.*;
 import org.incendo.cloud.suggestion.Suggestion;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.nio.file.Path;
@@ -180,7 +179,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
                 ResourceConfigUtils.runCatching(
                         section.path(),
                         section.node(),
-                        () -> parseSection(section.pack(), section.path(), section.node(), section.id(), section.config()),
+                        () -> parseSection(section.pack(), section.path(), section.id(), , section.config()),
                         () -> GsonHelper.get().toJson(section.config())
                 );
             }
@@ -208,46 +207,33 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
-            if (AbstractFurnitureManager.this.byId.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.furniture.duplicate");
-            }
-
-            Map<String, Object> variantsMap = ResourceConfigUtils.getAsMap(ResourceConfigUtils.requireNonNullOrThrow(ResourceConfigUtils.get(section, "variants", "placement", "variant"), "warning.config.furniture.missing_variants"), "variants");
-            if (variantsMap.isEmpty()) {
-                throw new LocalizedResourceConfigException("warning.config.furniture.missing_variants");
-            }
-
+        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+            ConfigSection variantsSection = section.getNonNullSection("variant", "variants");
             Map<String, FurnitureVariant> variants = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> e0 : variantsMap.entrySet()) {
-                String variantName = e0.getKey();
-                Map<String, Object> variantArguments = ResourceConfigUtils.getAsMap(e0.getValue(), variantName);
-                Optional<Vector3f> optionalLootSpawnOffset = Optional.ofNullable(variantArguments.get("loot-spawn-offset")).map(it -> ResourceConfigUtils.getAsVector3f(it, "loot-spawn-offset"));
-                List<FurnitureElementConfig<?>> elements = ResourceConfigUtils.parseConfigAsList(variantArguments.get("elements"), FurnitureElementConfigs::fromMap);
+            for (String variant : variantsSection.keySet()) {
+                ConfigSection variantSection = variantsSection.getNonNullSection(variant);
+
+                // 掉落物偏移
+                Vector3f lootSpawnOffset =variantSection.getVector3f(ConfigConstants.ZERO_VECTOR3, "loot_spawn_offset", "loot-spawn-offset");
 
                 // 外部模型
-                Optional<ExternalModel> externalModel;
-                if (variantArguments.containsKey("model-engine")) {
-                    externalModel = Optional.of(plugin.compatibilityManager().createModel("ModelEngine", variantArguments.get("model-engine").toString()));
-                } else if (variantArguments.containsKey("better-model")) {
-                    externalModel = Optional.of(plugin.compatibilityManager().createModel("BetterModel", variantArguments.get("better-model").toString()));
-                } else {
-                    externalModel = Optional.empty();
-                }
+                String blueprint = variantSection.getString("blueprint", /* 旧版为具体插件，新版使用统一的 blueprint */ "better-model", "model-engine");
+                Optional<ExternalModel> externalModel = Optional.ofNullable(blueprint).map(it -> AbstractFurnitureManager.this.plugin.compatibilityManager().createModel(it));
 
-                // 碰撞箱配置
-                List<FurnitureHitBoxConfig<?>> hitboxes = ResourceConfigUtils.parseConfigAsList(variantArguments.get("hitboxes"), FurnitureHitBoxes::fromMap);
+                // 元素与碰撞箱
+                List<FurnitureElementConfig<?>> elements = variantSection.parseSectionList(FurnitureElementConfigs::fromConfig, "elements");
+                List<FurnitureHitBoxConfig<?>> hitboxes = variantSection.parseSectionList(FurnitureHitBoxConfigs::fromConfig, "hitboxes");
                 if (hitboxes.isEmpty() && externalModel.isEmpty()) {
                     hitboxes = List.of(defaultHitBox());
                 }
 
-                variants.put(variantName, new FurnitureVariant(
-                    variantName,
-                    parseCullingData(section.get("entity-culling")),
-                    elements.toArray(new FurnitureElementConfig[0]),
-                    hitboxes.toArray(new FurnitureHitBoxConfig[0]),
-                    externalModel,
-                    optionalLootSpawnOffset.orElse(new Vector3f(0f, 0f,0f))
+                variants.put(variant, new FurnitureVariant(
+                        variant,
+                        parseCullingData(section.getValue("entity_culling", "entity-culling")),
+                        elements.toArray(new FurnitureElementConfig[0]),
+                        hitboxes.toArray(new FurnitureHitBoxConfig[0]),
+                        externalModel,
+                        lootSpawnOffset
                 ));
             }
 
@@ -255,26 +241,33 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
                     .id(id)
                     .settings(FurnitureSettings.fromMap(MiscUtils.castToMap(section.get("settings"), true)))
                     .variants(variants)
-                    .events(CommonFunctions.parseEvents(ResourceConfigUtils.get(section, "events", "event")))
-                    .lootTable(LootTable.fromMap(MiscUtils.castToMap(section.get("loot"), true)))
+                    .events(CommonFunctions.parseEvents(section))
+                    .lootTable(LootTable.fromMap(section.getSection("loot", "loots")))
                     .build();
-            ((CustomFurnitureImpl) furniture).setBehavior(FurnitureBehaviors.fromMap(furniture, ResourceConfigUtils.getAsMapOrNull(ResourceConfigUtils.get(section, "behaviors", "behavior"), "behavior")));
 
+            // TODO 复合行为
+            ConfigSection behaviorSection = section.getSection("behavior", "behaviors");
+            if (behaviorSection != null) {
+                ((CustomFurnitureImpl) furniture).setBehavior(FurnitureBehaviors.fromConfig(furniture,behaviorSection));
+            }
             AbstractFurnitureManager.this.byId.put(id, furniture);
         }
 
-        private CullingData parseCullingData(Object arguments) {
-            if (arguments instanceof Boolean b && !b)
-                return null;
-            if (!(arguments instanceof Map))
-                return new CullingData(null, Config.entityCullingViewDistance(), 0.25, true);
-            Map<String, Object> argumentsMap = ResourceConfigUtils.getAsMap(arguments, "entity-culling");
-            return new CullingData(
-                    ResourceConfigUtils.getOrDefault(argumentsMap.get("aabb"), it -> ResourceConfigUtils.getAsAABB(it, "aabb"), null),
-                    ResourceConfigUtils.getAsInt(argumentsMap.getOrDefault("view-distance", Config.entityCullingViewDistance()), "view-distance"),
-                    ResourceConfigUtils.getAsDouble(argumentsMap.getOrDefault("aabb-expansion", 0.25), "aabb-expansion"),
-                    ResourceConfigUtils.getAsBoolean(argumentsMap.getOrDefault("ray-tracing", true), "ray-tracing")
-            );
+        private CullingData parseCullingData(@Nullable ConfigValue value) {
+            if (value != null) {
+                if (value.is(Boolean.class) && !value.getAsBoolean()) {
+                    return null;
+                } else if (value.is(Map.class)) {
+                    ConfigSection section = value.getAsSection();
+                    return new CullingData(
+                            section.getAABB("aabb"),
+                            section.getInt(Config.entityCullingViewDistance(), "view_distance", "view-distance"),
+                            section.getDouble(0.25, "aabb_expansion", "aabb-expansion"),
+                            section.getBoolean(true, "ray_tracing", "ray-tracing")
+                    );
+                }
+            }
+            return new CullingData(null, Config.entityCullingViewDistance(), 0.25, true);
         }
     }
 }

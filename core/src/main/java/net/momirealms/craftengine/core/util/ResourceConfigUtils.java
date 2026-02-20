@@ -2,10 +2,12 @@ package net.momirealms.craftengine.core.util;
 
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.config.ResourceException;
+import net.momirealms.craftengine.core.plugin.config.UnknownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.collision.AABB;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -13,6 +15,7 @@ import org.joml.Vector3f;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -393,22 +396,17 @@ public final class ResourceConfigUtils {
         }
     }
 
-    public static Vec3d getAsVec3d(Object o, String option) {
-        if (o == null) return new Vec3d(0, 0, 0);
-        if (o instanceof List<?> list && list.size() == 3) {
-            return new Vec3d(Double.parseDouble(list.get(0).toString()), Double.parseDouble(list.get(1).toString()), Double.parseDouble(list.get(2).toString()));
-        } else {
-            String stringFormat = o.toString();
-            String[] split = stringFormat.split(",");
-            if (split.length == 3) {
-                return new Vec3d(Double.parseDouble(split[0]), Double.parseDouble(split[1]), Double.parseDouble(split[2]));
-            } else if (split.length == 1) {
-                double d = Double.parseDouble(split[0]);
-                return new Vec3d(d, d, d);
-            } else {
-                throw new LocalizedResourceConfigException("warning.config.type.vec3d", stringFormat, option);
-            }
+    public static boolean runCatching(Path filePath, String node, Runnable runnable, Consumer<ResourceException> collector) {
+        try {
+            runnable.run();
+            return true;
+        } catch (KnownResourceException e) {
+            e.setFilePath(filePath);
+            collector.accept(e);
+        } catch (Throwable t) {
+            collector.accept(new UnknownResourceException(filePath, node, t));
         }
+        return false;
     }
 
     public static boolean runCatching(Path configPath, String node, Runnable runnable, Supplier<String> config) {

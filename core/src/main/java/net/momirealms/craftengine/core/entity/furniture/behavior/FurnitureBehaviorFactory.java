@@ -1,10 +1,9 @@
 package net.momirealms.craftengine.core.entity.furniture.behavior;
 
 import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public interface FurnitureBehaviorFactory<T extends FurnitureBehavior> {
 
-    T create(CustomFurniture furniture, Map<String, Object> properties);
+    T create(CustomFurniture furniture, ConfigSection section);
 }

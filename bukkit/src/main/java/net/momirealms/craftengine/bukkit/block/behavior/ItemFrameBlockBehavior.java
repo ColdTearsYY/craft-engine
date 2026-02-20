@@ -20,6 +20,7 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ItemUtils;
@@ -180,14 +181,14 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
     private static class Factory implements BlockBehaviorFactory<ItemFrameBlockBehavior> {
 
         @Override
-        public ItemFrameBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public ItemFrameBlockBehavior create(CustomBlock block, ConfigSection section) {
             @SuppressWarnings("unchecked")
             Property<Direction> directionProperty = (Property<Direction>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.item_frame.missing_facing");
-            Vector3f position = ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0), "position");
-            boolean glow = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("glow", false), "glow");
-            boolean invisible = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("invisible", false), "invisible");
-            boolean renderMapItem = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("render-map-item", true), "render-map-item"); // 地图渲染有少量开销可选启用
-            Map<String, Object> sounds = ResourceConfigUtils.getAsMapOrNull(arguments.get("sounds"), "sounds");
+            Vector3f position = ResourceConfigUtils.getAsVector3f(section.getOrDefault("position", 0), "position");
+            boolean glow = ResourceConfigUtils.getAsBoolean(section.getOrDefault("glow", false), "glow");
+            boolean invisible = ResourceConfigUtils.getAsBoolean(section.getOrDefault("invisible", false), "invisible");
+            boolean renderMapItem = ResourceConfigUtils.getAsBoolean(section.getOrDefault("render-map-item", true), "render-map-item"); // 地图渲染有少量开销可选启用
+            Map<String, Object> sounds = ResourceConfigUtils.getAsMapOrNull(section.get("sounds"), "sounds");
             SoundData putSound = null;
             SoundData takeSound = null;
             SoundData rotateSound = null;

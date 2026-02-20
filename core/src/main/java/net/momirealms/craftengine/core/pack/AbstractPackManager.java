@@ -36,10 +36,7 @@ import net.momirealms.craftengine.core.pack.model.simplified.*;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.SectionConfigParser;
-import net.momirealms.craftengine.core.plugin.config.StringKeyConstructor;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingPyramid;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
@@ -204,7 +201,7 @@ public abstract class AbstractPackManager implements PackManager {
         for (int i = 0; i < 256; i++) {
             VANILLA_TEXTURES.add(Key.of("minecraft", "font/unicode_page_" + String.format("%02x", i)));
         }
-        VANILLA_TEXTURES.add(MISSING_NO);
+        VANILLA_TEXTURES.add(Util.MISSING_NO);
         loadInternalList("internal/textures/processed.json", VANILLA_TEXTURES::add);
         loadInternalList("internal/sounds/processed.json", VANILLA_SOUNDS::add);
 
@@ -434,7 +431,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                     Pack pack = new Pack(path, new PackMeta(author, description, version, namespace), enable, subPacks.toArray(new String[0]));
                     this.loadedPacks.put(path.getFileName().toString(), pack);
-                    this.plugin.logger().info(TranslationManager.instance().translateLog("info.pack.load", pack.folder().getFileName().toString(), namespace));
+                    this.plugin.logger().info(TranslationManager.instance().translate("info.pack.load", pack.folder().getFileName().toString(), namespace));
                 }
             }
         } catch (IOException e) {
@@ -757,12 +754,14 @@ public abstract class AbstractPackManager implements PackManager {
 
     private void loadResourceConfigs(Predicate<ConfigParser> predicate) {
         LoadingPyramid pyramid = new LoadingPyramid();
+        List<ResourceException> exceptions = new ArrayList<>();
         for (ConfigParser parser : this.parsers) {
             if (!predicate.test(parser)) {
                 continue;
             }
             pyramid.addTask(parser.loadingStage(), parser.dependencies(), () -> {
                 long t1 = System.nanoTime();
+                parser.setErrorHandler(exceptions::add);
                 parser.preProcess();
                 parser.loadAll();
                 parser.postProcess();
@@ -771,7 +770,7 @@ public abstract class AbstractPackManager implements PackManager {
                 if (parser.silentIfNotExists() && count == 0) {
                     return;
                 }
-                this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource.load",
+                this.plugin.logger().info(TranslationManager.instance().translate("info.resource.load",
                        parser.loadingStage().name(), String.format("%.2f", ((t2 - t1) / 1_000_000.0)), String.valueOf(count)));
             });
         }
@@ -786,20 +785,20 @@ public abstract class AbstractPackManager implements PackManager {
     }
 
     private void processConfigEntry(Map.Entry<String, Object> entry, Path path, Pack pack, BiConsumer<ConfigParser, CachedConfigSection> callback) {
-        if (entry.getValue() instanceof Map<?,?> typeSections0) {
+        if (entry.getValue() instanceof Map<?,?> m) {
             String key = entry.getKey();
             int hashIndex = key.indexOf('#');
             String configType = hashIndex != -1 ? key.substring(0, hashIndex) : key;
-            Optional.ofNullable(this.sectionParsers.get(configType))
-                    .ifPresent(parser -> {
-                        callback.accept(parser, new CachedConfigSection(key, castToMap(typeSections0, false), path, pack));
-                    });
+            ConfigParser parser = this.sectionParsers.get(configType);
+            if (parser != null) {
+                callback.accept(parser, new CachedConfigSection(pack, path, ConfigSection.of(key, castToMap(m, false))));
+            }
         }
     }
 
     @Override
     public void generateResourcePack() {
-        this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.generate.start"));
+        this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.generate.start"));
         long time1 = System.currentTimeMillis();
 
         // Create cache data
@@ -852,14 +851,14 @@ public abstract class AbstractPackManager implements PackManager {
                 this.removeAllShaders(generatedPackPath);
             }
             long time2 = System.currentTimeMillis();
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.generate.finish", String.valueOf(time2 - time1)));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.generate.finish", String.valueOf(time2 - time1)));
             // 校验资源包
             if (Config.validateResourcePack()) {
                 this.validateResourcePack(generatedPackPath, packMcMeta);
             }
             long time3 = System.currentTimeMillis();
             if (Config.validateResourcePack()) {
-                this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.validate.finish", String.valueOf(time3 - time2)));
+                this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.validate.finish", String.valueOf(time3 - time2)));
             }
             // 验证完成后，应该重新校验pack.mcmeta并写入
             this.validatePackMetadata(generatedPackPath.resolve("pack.mcmeta"), packMcMeta);
@@ -869,9 +868,9 @@ public abstract class AbstractPackManager implements PackManager {
             }
             long time4 = System.currentTimeMillis();
             if (Config.optimizeResourcePack()) {
-                this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.finish", String.valueOf(time4 - time3)));
+                this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.finish", String.valueOf(time4 - time3)));
             }
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.create.start"));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.create.start"));
             Path finalPath = resourcePackPath();
             Files.createDirectories(finalPath.getParent());
             if (VersionHelper.PREMIUM && Config.createUnprotectedCopy()) {
@@ -888,7 +887,7 @@ public abstract class AbstractPackManager implements PackManager {
                 this.plugin.logger().severe("Error creating resource pack", e);
             }
             long time5 = System.currentTimeMillis();
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.create.finish", String.valueOf(time5 - time4)));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.create.finish", String.valueOf(time5 - time4)));
             this.generationEventDispatcher.accept(generatedPackPath, finalPath);
         } catch (IOException e) {
             this.plugin.logger().severe("Error generating resource pack", e);
@@ -1164,7 +1163,7 @@ public abstract class AbstractPackManager implements PackManager {
         }
 
         if (Config.optimizeJson()) {
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.json"));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.json"));
             AtomicLong previousBytes = new AtomicLong(0L);
             AtomicLong afterBytes = new AtomicLong(0L);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -1231,11 +1230,11 @@ public abstract class AbstractPackManager implements PackManager {
             long originalSize = previousBytes.get();
             long optimizedSize = afterBytes.get();
             double compressionRatio = ((double) optimizedSize / originalSize) * 100;
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
         }
 
         if (Config.optimizeTexture()) {
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.texture"));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.texture"));
             AtomicLong previousBytes = new AtomicLong(0L);
             AtomicLong afterBytes = new AtomicLong(0L);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -1277,7 +1276,7 @@ public abstract class AbstractPackManager implements PackManager {
             long originalSize = previousBytes.get();
             long optimizedSize = afterBytes.get();
             double compressionRatio = ((double) optimizedSize / originalSize) * 100;
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
         }
     }
 
@@ -1390,7 +1389,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                 }
             }
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.validate.start",
+            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.validate.start",
                     String.valueOf(i + 1), String.valueOf(size), String.valueOf(segment.min()), String.valueOf(segment.max()), overlayInOrder.stream().map(Overlay::directory).toList().toString()));
             ValidationResult result = validateOverlayedResourcePack(rootPathList.toArray(new Path[0]), segment.max() >= MinecraftVersion.V1_21_11.packFormat().major(), fixedModels);
             if (Config.fixTextureAtlas() && !Config.enableObfuscation()) {
@@ -2100,9 +2099,9 @@ public abstract class AbstractPackManager implements PackManager {
                         }
                     }
 
-                    itemAtlasToAdd.remove(MISSING_NO);
-                    itemAtlasToRemove.remove(MISSING_NO);
-                    blockAtlasToAdd.remove(MISSING_NO);
+                    itemAtlasToAdd.remove(Util.MISSING_NO);
+                    itemAtlasToRemove.remove(Util.MISSING_NO);
+                    blockAtlasToAdd.remove(Util.MISSING_NO);
 
                     JsonObject fixedItemAtlas = null;
                     if (!itemAtlasToAdd.isEmpty() || !itemAtlasToRemove.isEmpty()) {
@@ -2177,7 +2176,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                 }
 
-                blockAtlasToAdd.remove(MISSING_NO);
+                blockAtlasToAdd.remove(Util.MISSING_NO);
 
                 if (Config.fixTextureAtlas()) {
                     JsonObject fixedBlockAtlas = null;
@@ -3603,8 +3602,8 @@ public abstract class AbstractPackManager implements PackManager {
         return this.parser;
     }
 
-    public static class SkipOptimizationParser extends SectionConfigParser {
-        private static final String[] SECTION_ID = new String[] {"skip-optimization"};
+    public static final class SkipOptimizationParser extends SectionConfigParser {
+        private static final String[] SECTION_ID = new String[] {"skip-optimization", "skip_optimization"};
         private final Set<String> excludeTexture = new HashSet<>();
         private final Set<String> excludeJson = new HashSet<>();
 
@@ -3635,7 +3634,7 @@ public abstract class AbstractPackManager implements PackManager {
         }
 
         @Override
-        protected void parseSection(Pack pack, Path path, Map<String, Object> section) throws LocalizedException {
+        protected void parseSection(Pack pack, Path path, ConfigSection section) throws LocalizedException {
             if (!Config.optimizeResourcePack()) return;
             List<String> textures = MiscUtils.getAsStringList(section.get("texture"));
             if (!textures.isEmpty()) {

@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
@@ -67,14 +69,15 @@ public record BetaNumberProvider(
 
     private static class Factory implements NumberProviderFactory<BetaNumberProvider> {
         @Override
-        public BetaNumberProvider create(Map<String, Object> arguments) {
-            double min = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("min", 0.0), "min");
-            double max = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("max", 1.0), "max");
-            
+        public BetaNumberProvider create(ConfigSection section) {
+            double min = section.getDouble(0d, "min");
+            double max = section.getDouble(1d, "max");
+            if (min >= max) {
+                throw new KnownResourceException("number.less_than", section.path(), "min", "max");
+            }
             // α 和 β 的默认值通常设为 2.0 (形成一个平滑的中间高两头低的弧线)
-            double alpha = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("alpha", 2.0), "alpha");
-            double beta = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("beta", 2.0), "beta");
-            
+            double alpha = section.getDouble(2d, "alpha");
+            double beta = section.getDouble(2d, "beta");
             return new BetaNumberProvider(min, max, alpha, beta);
         }
     }

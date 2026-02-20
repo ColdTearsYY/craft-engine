@@ -13,6 +13,7 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -30,7 +31,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -252,8 +252,8 @@ public class MultiHighBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<MultiHighBlockBehavior> {
 
         @Override
-        public MultiHighBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String propertyName = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("property"), "warning.config.block.behavior.multi_high.missing_property_name");
+        public MultiHighBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String propertyName = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("property"), "warning.config.block.behavior.multi_high.missing_property_name");
             IntegerProperty property = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty(propertyName), () -> {
                 throw new LocalizedResourceConfigException("warning.config.block.behavior.multi_high.missing_property", propertyName);
             });

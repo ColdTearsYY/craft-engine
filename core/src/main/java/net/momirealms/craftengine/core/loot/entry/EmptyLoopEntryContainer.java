@@ -26,7 +26,7 @@ public final class EmptyLoopEntryContainer<T> extends AbstractSingleLootEntryCon
         public LootEntryContainer<A> create(Map<String, Object> arguments) {
             int weight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("weight", 1), "weight");
             int quality = ResourceConfigUtils.getAsInt(arguments.getOrDefault("quality", 0), "quality");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
             return new EmptyLoopEntryContainer<>(conditions, weight, quality);
         }
     }

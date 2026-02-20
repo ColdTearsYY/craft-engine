@@ -5,6 +5,7 @@ import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -17,7 +18,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
@@ -48,11 +48,11 @@ public class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<NearLiquidBlockBehavior> {
 
         @Override
-        public NearLiquidBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            List<String> liquidTypes = MiscUtils.getAsStringList(arguments.getOrDefault("liquid-type", List.of("water")));
-            boolean stackable = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("stackable", false), "stackable");
-            int delay = ResourceConfigUtils.getAsInt(arguments.getOrDefault("delay", 0), "delay");
-            List<String> positionsToCheck = MiscUtils.getAsStringList(arguments.getOrDefault("positions", List.of()));
+        public NearLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
+            List<String> liquidTypes = MiscUtils.getAsStringList(section.getOrDefault("liquid-type", List.of("water")));
+            boolean stackable = ResourceConfigUtils.getAsBoolean(section.getOrDefault("stackable", false), "stackable");
+            int delay = ResourceConfigUtils.getAsInt(section.getOrDefault("delay", 0), "delay");
+            List<String> positionsToCheck = MiscUtils.getAsStringList(section.getOrDefault("positions", List.of()));
             if (positionsToCheck.isEmpty()) {
                 return new NearLiquidBlockBehavior(block, delay, new BlockPos[]{new BlockPos(0,-1,0)}, stackable, liquidTypes.contains("water"), liquidTypes.contains("lava"));
             } else {

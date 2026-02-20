@@ -12,6 +12,7 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -33,7 +34,6 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import java.util.Map;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
@@ -182,8 +182,8 @@ public class GrassBlockBehavior extends BukkitBlockBehavior {
 
     private static class Factory implements BlockBehaviorFactory<GrassBlockBehavior> {
         @Override
-        public GrassBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(arguments, "feature", "placed-feature"), "warning.config.block.behavior.grass.missing_feature");
+        public GrassBlockBehavior create(CustomBlock block, ConfigSection section) {
+            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(section, "feature", "placed-feature"), "warning.config.block.behavior.grass.missing_feature");
             return new GrassBlockBehavior(block, Key.of(feature));
         }
     }

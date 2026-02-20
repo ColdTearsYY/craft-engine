@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -15,7 +16,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.SignalGetterProxy;
 import org.bukkit.event.block.BlockRedstoneEvent;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
@@ -88,7 +88,7 @@ public class LampBlockBehavior extends BukkitBlockBehavior {
     @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<LampBlockBehavior> {
         @Override
-        public LampBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public LampBlockBehavior create(CustomBlock block, ConfigSection section) {
             Property<Boolean> lit = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("lit"), "warning.config.block.behavior.lamp.missing_lit");
             return new LampBlockBehavior(block, lit);
         }
