@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,8 +46,8 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<ProfileProcessor> {
 
         @Override
-        public ProfileProcessor create(Object arg) {
-            if (arg instanceof String guess) {
+        public ProfileProcessor create(ConfigValue value) {
+            if (value instanceof String guess) {
                 String base64Data = null;
                 if (guess.startsWith("http://") || guess.startsWith("https://")) {
                     base64Data = Base64Utils.encode("{\"textures\":{\"SKIN\":{\"url\":\"" + guess + "\"}}}");
@@ -61,7 +62,7 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
                     return new ProfileProcessor(guess, null, null);
                 }
             } else {
-                Map<String, Object> profile = ResourceConfigUtils.getAsMap(arg, "profile");
+                Map<String, Object> profile = ResourceConfigUtils.getAsMap(value, "profile");
                 Object base64Raw = profile.get("base64");
                 String base64Data = ResourceConfigUtils.getAsStringOrNull(base64Raw);
                 if (base64Data == null && profile.containsKey("url")) {

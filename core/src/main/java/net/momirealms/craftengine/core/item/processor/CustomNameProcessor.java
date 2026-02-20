@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Key;
@@ -57,8 +58,8 @@ public final class CustomNameProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<CustomNameProcessor> {
 
         @Override
-        public CustomNameProcessor create(Object arg) {
-            String name = arg.toString();
+        public CustomNameProcessor create(ConfigValue value) {
+            String name = value.toString();
             return new CustomNameProcessor(name);
         }
     }

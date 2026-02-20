@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.item.processor;
 
 import com.google.common.collect.ImmutableMap;
 import net.momirealms.craftengine.core.item.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -230,8 +231,8 @@ public final class HideTooltipProcessor implements ItemProcessor {
     private static class Factory implements ItemProcessorFactory<HideTooltipProcessor> {
 
         @Override
-        public HideTooltipProcessor create(Object arg) {
-            List<Key> components = MiscUtils.getAsStringList(arg).stream().map(it -> it.replace("-", "_")).map(Key::of).toList();
+        public HideTooltipProcessor create(ConfigValue value) {
+            List<Key> components = MiscUtils.getAsStringList(value).stream().map(it -> it.replace("-", "_")).map(Key::of).toList();
             return new HideTooltipProcessor(components);
         }
     }

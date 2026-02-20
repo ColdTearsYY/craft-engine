@@ -68,7 +68,7 @@ public final class DropLootFunction<CTX extends Context> extends AbstractConditi
                     NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
                     NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
                     NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    LootTable.fromMap(section.getNonNullSection("loot", "loots")),
+                    LootTable.fromConfig(section.getNonNullSection("loot", "loots")),
                     section.getBoolean("to_inventory", "to-inventory")
             );
         }

@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
@@ -44,8 +45,8 @@ public final class OverwritableCustomModelDataProcessor implements SimpleNetwork
     private static class Factory implements ItemProcessorFactory<OverwritableCustomModelDataProcessor> {
 
         @Override
-        public OverwritableCustomModelDataProcessor create(Object arg) {
-            int customModelData = ResourceConfigUtils.getAsInt(arg, "custom-model-data");
+        public OverwritableCustomModelDataProcessor create(ConfigValue value) {
+            int customModelData = ResourceConfigUtils.getAsInt(value, "custom-model-data");
             return new OverwritableCustomModelDataProcessor(customModelData);
         }
     }

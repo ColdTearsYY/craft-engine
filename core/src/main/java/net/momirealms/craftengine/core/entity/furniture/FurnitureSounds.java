@@ -1,11 +1,13 @@
 package net.momirealms.craftengine.core.entity.furniture;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Key;
 
 import java.util.Map;
 
-public class FurnitureSounds {
+public final class FurnitureSounds {
     public static final SoundData EMPTY_SOUND = new SoundData(Key.of("minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_1);
     public static final FurnitureSounds EMPTY = new FurnitureSounds(EMPTY_SOUND, EMPTY_SOUND, EMPTY_SOUND);
 
@@ -19,12 +21,12 @@ public class FurnitureSounds {
         this.hitSound = hitSound;
     }
 
-    public static FurnitureSounds fromMap(Map<String, Object> map) {
-        if (map == null) return EMPTY;
+    public static FurnitureSounds fromConfig(ConfigSection section) {
+        if (section == null) return EMPTY;
         return new FurnitureSounds(
-                SoundData.create(map.getOrDefault("break", "minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8),
-                SoundData.create(map.getOrDefault("place", "minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8),
-                SoundData.create(map.getOrDefault("hit", "minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_5)
+                section.getValueOrDefault(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8), EMPTY_SOUND, "break"),
+                section.getValueOrDefault(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8), EMPTY_SOUND, "place"),
+                section.getValueOrDefault(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_5), EMPTY_SOUND, "hit")
         );
     }
 

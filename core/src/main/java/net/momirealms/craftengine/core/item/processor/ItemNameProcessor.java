@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Key;
@@ -47,8 +48,8 @@ public final class ItemNameProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<ItemNameProcessor> {
 
         @Override
-        public ItemNameProcessor create(Object arg) {
-            String name = arg.toString();
+        public ItemNameProcessor create(ConfigValue value) {
+            String name = value.toString();
             return new ItemNameProcessor(name);
         }
     }

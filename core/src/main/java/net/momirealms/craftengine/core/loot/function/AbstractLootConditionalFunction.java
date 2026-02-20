@@ -11,7 +11,7 @@ import java.util.function.Predicate;
 public abstract class AbstractLootConditionalFunction<T> implements LootFunction<T> {
     private final Predicate<LootContext> compositePredicates;
 
-    public AbstractLootConditionalFunction(List<Condition<LootContext>> predicates) {
+    protected AbstractLootConditionalFunction(List<Condition<LootContext>> predicates) {
         this.compositePredicates = MiscUtils.allOf(predicates);
     }
 

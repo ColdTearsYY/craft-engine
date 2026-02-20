@@ -2,12 +2,12 @@ package net.momirealms.craftengine.core.loot.entry;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public final class EmptyLoopEntryContainer<T> extends AbstractSingleLootEntryContainer<T> {
@@ -23,11 +23,12 @@ public final class EmptyLoopEntryContainer<T> extends AbstractSingleLootEntryCon
     private static class Factory<A> implements LootEntryContainerFactory<A> {
 
         @Override
-        public LootEntryContainer<A> create(Map<String, Object> arguments) {
-            int weight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("weight", 1), "weight");
-            int quality = ResourceConfigUtils.getAsInt(arguments.getOrDefault("quality", 0), "quality");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
-            return new EmptyLoopEntryContainer<>(conditions, weight, quality);
+        public LootEntryContainer<A> create(ConfigSection section) {
+            return new EmptyLoopEntryContainer<>(
+                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
+                    section.getInt(1, "weight"),
+                    section.getInt("quality")
+            );
         }
     }
 }

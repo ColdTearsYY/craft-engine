@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.loot.function;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
@@ -9,7 +10,6 @@ import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class ExplosionDecayFunction<T> extends AbstractLootConditionalFunction<T> {
@@ -39,9 +39,8 @@ public final class ExplosionDecayFunction<T> extends AbstractLootConditionalFunc
     private static class Factory<T> implements LootFunctionFactory<T> {
 
         @Override
-        public LootFunction<T> create(Map<String, Object> arguments) {
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
-            return new ExplosionDecayFunction<>(conditions);
+        public LootFunction<T> create(ConfigSection section) {
+            return new ExplosionDecayFunction<>(section.parseSectionList(CommonConditions::fromConfig, "conditions"));
         }
     }
 }

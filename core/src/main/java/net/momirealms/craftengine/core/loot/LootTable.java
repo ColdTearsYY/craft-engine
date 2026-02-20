@@ -6,7 +6,9 @@ import net.momirealms.craftengine.core.loot.entry.LootEntryContainer;
 import net.momirealms.craftengine.core.loot.entry.LootEntryContainers;
 import net.momirealms.craftengine.core.loot.function.LootFunction;
 import net.momirealms.craftengine.core.loot.function.LootFunctions;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
@@ -16,6 +18,7 @@ import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigExce
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.World;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -36,32 +39,17 @@ public final class LootTable<T> {
         this.compositeFunction = LootFunctions.compose(functions);
     }
 
-    @Nullable
-    @SuppressWarnings("unchecked")
-    public static <T> LootTable<T> fromMap(ConfigSection map) {
-        if (map == null || map.isEmpty()) return null;
-        Object pools = ResourceConfigUtils.requireNonNullOrThrow(map.get("pools"), "warning.config.loot_table.missing_pools");
-        if (!(pools instanceof List<?> list) || list.isEmpty()) {
-            throw new LocalizedResourceConfigException("warning.config.loot_table.invalid_pools_type", pools.getClass().getSimpleName());
-        }
-        List<Object> poolList = (List<Object>) map.get("pools");
-        List<LootPool<T>> lootPools = new ArrayList<>();
-        for (Object rawPool : poolList) {
-            if (rawPool instanceof Map<?,?> rawPoolMap) {
-                Map<String, Object> pool = MiscUtils.castToMap(rawPoolMap, false);
-                NumberProvider rolls = NumberProviders.fromObject(pool.getOrDefault("rolls", 1));
-                NumberProvider bonus_rolls = NumberProviders.fromObject(pool.getOrDefault("bonus_rolls", 0));
-                List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(pool.get("conditions"), CommonConditions::fromConfig);
-                List<LootEntryContainer<T>> containers = ResourceConfigUtils.parseConfigAsList(pool.get("entries"), LootEntryContainers::fromMap);
-                List<LootFunction<T>> functions = ResourceConfigUtils.parseConfigAsList(pool.get("functions"), LootFunctions::fromMap);
-                lootPools.add(new LootPool<>(containers, conditions, functions, rolls, bonus_rolls));
-            } else if (rawPool instanceof String string) {
-                LootPool<T> lootPool = readFlatFormatLootPool(string);
-                if (lootPool != null)
-                    lootPools.add(lootPool);
-            }
-        }
-        return new LootTable<>(lootPools, ResourceConfigUtils.parseConfigAsList(map.get("functions"), LootFunctions::fromMap));
+    @NotNull
+    public static <T> LootTable<T> fromConfig(@NotNull ConfigSection section) {
+        List<LootPool<T>> lootPools = section.parseSectionList(innerSection -> {
+            NumberProvider rolls = innerSection.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "rolls");
+            NumberProvider bonus_rolls = innerSection.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "bonus_rolls", "bonus-rolls");
+            List<Condition<LootContext>> conditions = innerSection.parseSectionList(CommonConditions::fromConfig, "conditions");
+            List<LootEntryContainer<T>> containers = innerSection.parseSectionList(LootEntryContainers::fromConfig, "entries");
+            List<LootFunction<T>> functions = innerSection.parseSectionList(LootFunctions::fromConfig, "functions");
+            return new LootPool<>(containers, conditions, functions, rolls, bonus_rolls);
+        }, "pools");
+        return new LootTable<>(lootPools, section.parseSectionList(LootFunctions::fromConfig, "functions"));
     }
 
     public List<Item<T>> getRandomItems(ContextHolder parameters, World world) {
@@ -110,19 +98,6 @@ public final class LootTable<T> {
         Consumer<Item<T>> consumer = LootFunction.decorate(this.compositeFunction, lootConsumer, context);
         for (LootPool<T> pool : this.pools) {
             pool.addRandomItems(consumer, context);
-        }
-    }
-
-    public static <T> LootPool<T> readFlatFormatLootPool(String pool) {
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> castToMapListOrThrow(Object obj, Supplier<RuntimeException> exceptionSupplier) {
-        if (obj instanceof List<?> list) {
-            return (List<Map<String, Object>>) list;
-        } else {
-            throw exceptionSupplier.get();
         }
     }
 }

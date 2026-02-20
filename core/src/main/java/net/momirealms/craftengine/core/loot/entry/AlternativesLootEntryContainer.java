@@ -1,12 +1,12 @@
 package net.momirealms.craftengine.core.loot.entry;
 
 import net.momirealms.craftengine.core.loot.LootContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class AlternativesLootEntryContainer<T> extends AbstractCompositeLootEntryContainer<T> {
     public static final LootEntryContainerFactory<?> FACTORY = new Factory<>();
@@ -35,10 +35,11 @@ public final class AlternativesLootEntryContainer<T> extends AbstractCompositeLo
     private static class Factory<A> implements LootEntryContainerFactory<A> {
 
         @Override
-        public LootEntryContainer<A> create(Map<String, Object> arguments) {
-            List<LootEntryContainer<A>> containers = ResourceConfigUtils.parseConfigAsList(ResourceConfigUtils.get(arguments, "children", "terms", "branches"), LootEntryContainers::fromMap);
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
-            return new AlternativesLootEntryContainer<>(conditions, containers);
+        public LootEntryContainer<A> create(ConfigSection section) {
+            return new AlternativesLootEntryContainer<>(
+                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
+                    section.parseSectionList(LootEntryContainers::fromConfig, "children")
+            );
         }
     }
 }

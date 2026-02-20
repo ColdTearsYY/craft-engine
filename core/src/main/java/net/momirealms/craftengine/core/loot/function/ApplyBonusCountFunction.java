@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.data.Enchantment;
 import net.momirealms.craftengine.core.loot.LootContext;
 import net.momirealms.craftengine.core.loot.function.formula.Formula;
 import net.momirealms.craftengine.core.loot.function.formula.Formulas;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
@@ -19,10 +20,12 @@ import java.util.Optional;
 
 public final class ApplyBonusCountFunction<T> extends AbstractLootConditionalFunction<T> {
     public static final LootFunctionFactory<?> FACTORY = new Factory<>();
-    private final Key enchantment;
-    private final Formula formula;
+    public final Key enchantment;
+    public final Formula formula;
 
-    public ApplyBonusCountFunction(List<Condition<LootContext>> predicates, Key enchantment, Formula formula) {
+    private ApplyBonusCountFunction(List<Condition<LootContext>> predicates,
+                                    Key enchantment,
+                                    Formula formula) {
         super(predicates);
         this.enchantment = enchantment;
         this.formula = formula;
@@ -40,14 +43,12 @@ public final class ApplyBonusCountFunction<T> extends AbstractLootConditionalFun
     private static class Factory<T> implements LootFunctionFactory<T> {
 
         @Override
-        public LootFunction<T> create(Map<String, Object> arguments) {
-            String enchantment = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("enchantment"), "warning.config.loot_table.function.apply_bonus.missing_enchantment");
-            Map<String, Object> formulaMap = MiscUtils.castToMap(arguments.get("formula"), true);
-            if (formulaMap == null) {
-                throw new LocalizedResourceConfigException("warning.config.loot_table.function.apply_bonus.missing_formula");
-            }
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
-            return new ApplyBonusCountFunction<>(conditions, Key.from(enchantment), Formulas.fromMap(formulaMap));
+        public LootFunction<T> create(ConfigSection section) {
+            return new ApplyBonusCountFunction<>(
+                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
+                    section.getNonNullIdentifier("enchantment"),
+                    Formulas.fromConfig(section.getNonNullSection("formula"))
+            );
         }
     }
 }

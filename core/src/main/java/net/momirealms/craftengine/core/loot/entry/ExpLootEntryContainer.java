@@ -1,6 +1,8 @@
 package net.momirealms.craftengine.core.loot.entry;
 
 import net.momirealms.craftengine.core.loot.LootContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
@@ -9,7 +11,6 @@ import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextPar
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 public final class ExpLootEntryContainer<T> extends AbstractLootEntryContainer<T> {
@@ -35,10 +36,11 @@ public final class ExpLootEntryContainer<T> extends AbstractLootEntryContainer<T
     private static class Factory<A> implements LootEntryContainerFactory<A> {
 
         @Override
-        public LootEntryContainer<A> create(Map<String, Object> arguments) {
-            Object value = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("count"), "warning.config.loot_table.entry.exp.missing_count");
-            List<Condition<LootContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromConfig);
-            return new ExpLootEntryContainer<>(NumberProviders.fromObject(value), conditions);
+        public LootEntryContainer<A> create(ConfigSection section) {
+            return new ExpLootEntryContainer<>(
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_NUMBER, "count").getAsNumber(),
+                    section.parseSectionList(CommonConditions::fromConfig, "conditions")
+            );
         }
     }
 }

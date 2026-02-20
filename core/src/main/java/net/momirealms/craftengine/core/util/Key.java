@@ -2,6 +2,8 @@ package net.momirealms.craftengine.core.util;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.function.UnaryOperator;
+
 public record Key(String namespace, String value) {
     public static final String DEFAULT_NAMESPACE = "craftengine";
     public static final String MINECRAFT_NAMESPACE = "minecraft";
@@ -40,6 +42,14 @@ public record Key(String namespace, String value) {
 
     public String[] decompose() {
         return new String[] { this.namespace, this.value };
+    }
+
+    public Key transform(UnaryOperator<String> transformer) {
+        return new Key(transformer.apply(this.namespace), transformer.apply(this.value));
+    }
+
+    public boolean contains(String key) {
+        return this.value.contains(key) || this.namespace.contains(key);
     }
 
     @Override

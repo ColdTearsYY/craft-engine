@@ -239,10 +239,10 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
 
             CustomFurniture furniture = CustomFurniture.builder()
                     .id(id)
-                    .settings(FurnitureSettings.fromMap(MiscUtils.castToMap(section.get("settings"), true)))
+                    .settings(FurnitureSettings.fromConfig(section.getSection("settings")))
                     .variants(variants)
                     .events(CommonFunctions.parseEvents(section))
-                    .lootTable(LootTable.fromMap(section.getSection("loot", "loots")))
+                    .lootTable(section.getValue(v -> LootTable.fromConfig(v.getAsSection()), "loot", "loots"))
                     .build();
 
             // TODO 复合行为

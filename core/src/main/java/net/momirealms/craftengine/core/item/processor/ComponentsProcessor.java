@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.item.processor;
 import com.google.gson.JsonElement;
 import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.sparrow.nbt.CompoundTag;
@@ -85,8 +86,8 @@ public final class ComponentsProcessor implements ItemProcessor {
     private static class Factory implements ItemProcessorFactory<ComponentsProcessor> {
 
         @Override
-        public ComponentsProcessor create(Object arg) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(arg, "components");
+        public ComponentsProcessor create(ConfigValue value) {
+            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "components");
             return new ComponentsProcessor(data);
         }
     }

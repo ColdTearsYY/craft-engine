@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
 import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -51,8 +52,8 @@ public final class ArgumentsProcessor implements ItemProcessor {
     private static class Factory implements ItemProcessorFactory<ArgumentsProcessor> {
 
         @Override
-        public ArgumentsProcessor create(Object arg) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(arg, "arguments");
+        public ArgumentsProcessor create(ConfigValue value) {
+            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "arguments");
             Map<String, TextProvider> arguments = new HashMap<>();
             for (Map.Entry<String, Object> entry : data.entrySet()) {
                 arguments.put(entry.getKey(), TextProviders.fromString(entry.getValue().toString()));

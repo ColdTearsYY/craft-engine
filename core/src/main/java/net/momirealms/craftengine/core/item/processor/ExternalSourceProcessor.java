@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.compatibility.ItemSource;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
@@ -67,8 +68,8 @@ public final class ExternalSourceProcessor implements ItemProcessor {
     private static class Factory implements ItemProcessorFactory<ExternalSourceProcessor> {
 
         @Override
-        public ExternalSourceProcessor create(Object arg) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(arg, "external");
+        public ExternalSourceProcessor create(ConfigValue value) {
+            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "external");
             String plugin = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(data, "plugin", "source"), "warning.config.item.data.external.missing_source");
             String id = ResourceConfigUtils.requireNonEmptyStringOrThrow(data.get("id"), "warning.config.item.data.external.missing_id");
             return new ExternalSourceProcessor(id, LazyReference.lazyReference(() -> {

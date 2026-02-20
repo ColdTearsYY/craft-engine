@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.item.processor;
 
 import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.item.data.Enchantment;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
@@ -89,8 +90,8 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<EnchantmentsProcessor> {
 
         @Override
-        public EnchantmentsProcessor create(Object arg) {
-            Map<String, Object> enchantData = ResourceConfigUtils.getAsMap(arg, "enchantments");
+        public EnchantmentsProcessor create(ConfigValue value) {
+            Map<String, Object> enchantData = ResourceConfigUtils.getAsMap(value, "enchantments");
             List<Enchantment> enchantments = new ArrayList<>();
             boolean merge = false;
             if (enchantData.containsKey("enchantments")) {

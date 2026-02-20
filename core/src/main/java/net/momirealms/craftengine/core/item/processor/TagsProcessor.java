@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.item.processor;
 
 import net.momirealms.craftengine.core.item.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -86,8 +87,8 @@ public final class TagsProcessor implements ItemProcessor {
     private static class Factory implements ItemProcessorFactory<TagsProcessor> {
 
         @Override
-        public TagsProcessor create(Object arg) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(arg, "nbt");
+        public TagsProcessor create(ConfigValue value) {
+            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "nbt");
             return new TagsProcessor(data);
         }
     }

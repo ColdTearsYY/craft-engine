@@ -521,14 +521,14 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 Map<EventTrigger, List<Function<Context>>> events;
                 try {
                     events = CommonFunctions.parseEvents(section);
-                } catch (LocalizedResourceConfigException e) {
+                } catch (KnownResourceException e) {
                     eCollector1.add(e);
                     events = Map.of();
                 }
                 LootTable<?> lootTable;
                 try {
-                    lootTable = LootTable.fromMap(ResourceConfigUtils.getAsMapOrNull(section.get("loot"), "loot"));
-                } catch (LocalizedResourceConfigException e) {
+                    lootTable = section.getValue(v -> LootTable.fromConfig(v.getAsSection()), "loot");
+                } catch (KnownResourceException e) {
                     eCollector1.add(e);
                     lootTable = null;
                 }

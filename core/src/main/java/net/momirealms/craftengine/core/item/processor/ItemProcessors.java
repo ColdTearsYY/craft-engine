@@ -4,14 +4,14 @@ import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.processor.lore.DynamicLoreProcessor;
 import net.momirealms.craftengine.core.item.processor.lore.LoreProcessor;
 import net.momirealms.craftengine.core.item.processor.lore.OverwritableLoreProcessor;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
-import net.momirealms.craftengine.core.util.ExceptionCollector;
-import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceKey;
-import net.momirealms.craftengine.core.util.VersionHelper;
+import net.momirealms.craftengine.core.util.*;
 
 import java.util.Map;
 import java.util.Optional;
@@ -72,76 +72,26 @@ public final class ItemProcessors {
         return register(key, condition ? factory : null);
     }
 
-    public static void collectProcessors(Map<String, Object> dataSection, Consumer<ItemProcessor> callback) {
-        ExceptionCollector<LocalizedResourceConfigException> errorCollector = new ExceptionCollector<>();
+    public static void collectProcessors(ConfigSection dataSection, Consumer<ItemProcessor> callback) {
+        ExceptionCollector<KnownResourceException> errorCollector = new ExceptionCollector<>();
         if (dataSection != null) {
-            for (Map.Entry<String, Object> dataEntry : dataSection.entrySet()) {
-                Object value = dataEntry.getValue();
+            for (String type : dataSection.keySet()) {
+                ConfigValue value = dataSection.getValue(type);
                 if (value == null) continue;
-                String key = processKey(dataEntry.getKey());
-                Optional.ofNullable(BuiltInRegistries.ITEM_PROCESSOR_TYPE.getValue(Key.withDefaultNamespace(key, Key.DEFAULT_NAMESPACE))).ifPresent(processorType -> {
+                String key = StringUtils.normalizeSettingsType(type);
+                Optional.ofNullable(BuiltInRegistries.ITEM_PROCESSOR_TYPE.getValue(Key.ce(key))).ifPresent(processorType -> {
                     try {
                         ItemProcessorFactory<? extends ItemProcessor> factory = processorType.factory();
                         if (factory != null) {
                             callback.accept(factory.create(value));
                         }
-                    } catch (LocalizedResourceConfigException e) {
+                    } catch (KnownResourceException e) {
                         errorCollector.add(e);
                     }
                 });
             }
         }
         errorCollector.throwIfPresent();
-    }
-
-    public static String processKey(String key) {
-        if (key == null) return null;
-        int len = key.length();
-        if (len == 0) return key;
-
-        // 提前扫描确定是否需要处理
-        boolean hasHash = false;
-        boolean hasDash = false;
-        int hashPos = -1;
-
-        for (int i = 0; i < len; i++) {
-            char c = key.charAt(i);
-            if (c == '#') {
-                hasHash = true;
-                hashPos = i;
-                break;
-            } else if (c == '-') {
-                hasDash = true;
-            }
-        }
-
-        // 情况1：无需任何处理
-        if (!hasHash && !hasDash) {
-            return key;
-        }
-
-        // 情况2：只有替换，没有截断
-        if (!hasHash) {
-            char[] chars = key.toCharArray();
-            for (int i = 0; i < len; i++) {
-                if (chars[i] == '-') {
-                    chars[i] = '_';
-                }
-            }
-            return new String(chars);
-        }
-
-        // 情况3：需要截断（可能有替换）
-        int newLen = hashPos;
-        char[] result = new char[newLen];
-
-        // 只需要复制到 hashPos 位置
-        for (int i = 0; i < newLen; i++) {
-            char c = key.charAt(i);
-            result[i] = (c == '-') ? '_' : c;
-        }
-
-        return new String(result);
     }
 
     public static void init() {}

@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
 public final class TooltipStyleProcessor implements SimpleNetworkItemProcessor {
@@ -32,8 +33,8 @@ public final class TooltipStyleProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<TooltipStyleProcessor> {
 
         @Override
-        public TooltipStyleProcessor create(Object arg) {
-            String id = arg.toString();
+        public TooltipStyleProcessor create(ConfigValue value) {
+            String id = value.toString();
             return new TooltipStyleProcessor(Key.of(id));
         }
     }

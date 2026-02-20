@@ -1,8 +1,8 @@
 package net.momirealms.craftengine.core.loot.function;
 
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public interface LootFunctionFactory<T> {
 
-    LootFunction<T> create(Map<String, Object> arguments);
+    LootFunction<T> create(ConfigSection section);
 }

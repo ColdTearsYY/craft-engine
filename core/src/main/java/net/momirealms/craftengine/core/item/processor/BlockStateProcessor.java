@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LazyReference;
 
@@ -47,15 +48,15 @@ public final class BlockStateProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<BlockStateProcessor> {
 
         @Override
-        public BlockStateProcessor create(Object arg) {
-            if (arg instanceof Map<?, ?> map) {
+        public BlockStateProcessor create(ConfigValue value) {
+            if (value instanceof Map<?, ?> map) {
                 Map<String, String> properties = new HashMap<>();
                 for (Map.Entry<?, ?> entry : map.entrySet()) {
                     properties.put(entry.getKey().toString(), entry.getValue().toString());
                 }
                 return new BlockStateProcessor(LazyReference.lazyReference(() -> properties));
             } else {
-                String stateString = arg.toString();
+                String stateString = value.toString();
                 return new BlockStateProcessor(LazyReference.lazyReference(() -> {
                     BlockStateWrapper blockState = CraftEngine.instance().blockManager().createBlockState(stateString);
                     if (blockState instanceof CustomBlockStateWrapper customBlockStateWrapper) {

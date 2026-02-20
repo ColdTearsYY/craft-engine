@@ -20,7 +20,6 @@ import java.util.function.Predicate;
 public final class LootPool<T> {
     private final List<LootEntryContainer<T>> entryContainers;
     private final Predicate<LootContext> compositeCondition;
-    private final List<LootFunction<T>> functions;
     private final BiFunction<Item<T>, LootContext, Item<T>> compositeFunction;
     private final NumberProvider rolls;
     private final NumberProvider bonusRolls;
@@ -31,7 +30,6 @@ public final class LootPool<T> {
                     NumberProvider rolls,
                     NumberProvider bonusRolls) {
         this.entryContainers = entryContainers;
-        this.functions = functions;
         this.rolls = rolls;
         this.bonusRolls = bonusRolls;
         this.compositeCondition = MiscUtils.allOf(conditions);

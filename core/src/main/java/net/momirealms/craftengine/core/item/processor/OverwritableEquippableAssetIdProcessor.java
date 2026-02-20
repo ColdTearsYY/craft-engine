@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 
@@ -70,8 +71,8 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
     private static class Factory implements ItemProcessorFactory<OverwritableEquippableAssetIdProcessor> {
 
         @Override
-        public OverwritableEquippableAssetIdProcessor create(Object arg) {
-            String id = arg.toString();
+        public OverwritableEquippableAssetIdProcessor create(ConfigValue value) {
+            String id = value.toString();
             return new OverwritableEquippableAssetIdProcessor(Key.of(id));
         }
     }

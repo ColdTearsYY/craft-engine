@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
@@ -36,8 +37,8 @@ public final class EquippableProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<EquippableProcessor> {
 
         @Override
-        public EquippableProcessor create(Object arg) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(arg, "equippable");
+        public EquippableProcessor create(ConfigValue value) {
+            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "equippable");
             return new EquippableProcessor(EquipmentData.fromMap(data));
         }
     }

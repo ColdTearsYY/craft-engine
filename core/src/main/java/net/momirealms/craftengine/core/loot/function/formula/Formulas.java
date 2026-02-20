@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.loot.function.formula;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
@@ -21,16 +23,13 @@ public final class Formulas {
         return type;
     }
 
-    public static Formula fromMap(Map<String, Object> map) {
-        String type = (String) map.get("type");
-        if (type == null) {
-            throw new NullPointerException("number type cannot be null");
-        }
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static Formula fromConfig(ConfigSection section) {
+        String type = section.getNonNullString("type");
+        Key key = Key.ce(type);
         FormulaType<? extends Formula> formulaType = BuiltInRegistries.FORMULA_TYPE.getValue(key);
         if (formulaType == null) {
-            throw new IllegalArgumentException("Unknown formula type: " + type);
+            throw new KnownResourceException("loot.function.formula.unknown_type", section.assemblePath("type"), type);
         }
-        return formulaType.factory().create(map);
+        return formulaType.factory().create(section);
     }
 }

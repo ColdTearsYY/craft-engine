@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 
@@ -47,8 +48,8 @@ public final class OverwritableItemNameProcessor implements SimpleNetworkItemPro
     private static class Factory implements ItemProcessorFactory<OverwritableItemNameProcessor> {
 
         @Override
-        public OverwritableItemNameProcessor create(Object arg) {
-            return new OverwritableItemNameProcessor(arg.toString());
+        public OverwritableItemNameProcessor create(ConfigValue value) {
+            return new OverwritableItemNameProcessor(value.toString());
         }
     }
 }

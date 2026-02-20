@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.*;
@@ -155,8 +156,8 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     private static class Factory implements ItemProcessorFactory<AttributeModifiersProcessor> {
 
         @Override
-        public AttributeModifiersProcessor create(Object arg) {
-            List<PreModifier> attributeModifiers = ResourceConfigUtils.parseConfigAsList(arg, (map) -> {
+        public AttributeModifiersProcessor create(ConfigValue value) {
+            List<PreModifier> attributeModifiers = ResourceConfigUtils.parseConfigAsList(value, (map) -> {
                 String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.item.data.attribute_modifiers.missing_type");
                 Key nativeType = AttributeModifiersProcessor.getNativeAttributeName(Key.of(type));
                 AttributeModifier.Slot slot = AttributeModifier.Slot.valueOf(map.getOrDefault("slot", "any").toString().toUpperCase(Locale.ENGLISH));

@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.item.processor;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -48,8 +49,8 @@ public final class ConditionalProcessor implements ItemProcessor {
     private static class Factory implements ItemProcessorFactory<ConditionalProcessor> {
 
         @Override
-        public ConditionalProcessor create(Object arg) {
-            Map<String, Object> conditionalData = ResourceConfigUtils.getAsMap(arg, "conditional");
+        public ConditionalProcessor create(ConfigValue value) {
+            Map<String, Object> conditionalData = ResourceConfigUtils.getAsMap(value, "conditional");
             List<Condition<Context>> conditions = ResourceConfigUtils.parseConfigAsList(conditionalData.get("conditions"), CommonConditions::fromConfig);
             List<ItemProcessor> modifiers = new ArrayList<>();
             ItemProcessors.collectProcessors(ResourceConfigUtils.getAsMap(conditionalData.get("data"), "conditional.data"), modifiers::add);

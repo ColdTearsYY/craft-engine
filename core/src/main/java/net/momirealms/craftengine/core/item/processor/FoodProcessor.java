@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
@@ -51,8 +52,8 @@ public final class FoodProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<FoodProcessor> {
 
         @Override
-        public FoodProcessor create(Object arg) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(arg, "food");
+        public FoodProcessor create(ConfigValue value) {
+            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "food");
             int nutrition = ResourceConfigUtils.getAsInt(data.get("nutrition"), "nutrition");
             float saturation = ResourceConfigUtils.getAsFloat(data.get("saturation"), "saturation");
             return new FoodProcessor(nutrition, saturation, ResourceConfigUtils.getAsBoolean(data.getOrDefault("can-always-eat", false), "can-always-eat"));

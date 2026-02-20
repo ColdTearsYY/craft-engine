@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -45,11 +46,11 @@ public final class DyedColorProcessor implements SimpleNetworkItemProcessor {
     private static class Factory implements ItemProcessorFactory<DyedColorProcessor> {
 
         @Override
-        public DyedColorProcessor create(Object arg) {
-            if (arg instanceof Integer integer) {
+        public DyedColorProcessor create(ConfigValue value) {
+            if (value instanceof Integer integer) {
                 return new DyedColorProcessor(Color.fromDecimal(integer));
             } else {
-                Vector3f vector3f = ResourceConfigUtils.getAsVector3f(arg, "dyed-color");
+                Vector3f vector3f = ResourceConfigUtils.getAsVector3f(value, "dyed-color");
                 return new DyedColorProcessor(Color.fromVector3f(vector3f));
             }
         }

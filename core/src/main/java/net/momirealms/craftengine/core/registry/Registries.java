@@ -8,6 +8,9 @@ import net.momirealms.craftengine.core.block.entity.BlockEntityType;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElement;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigType;
 import net.momirealms.craftengine.core.block.properties.PropertyType;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifier;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifierFactory;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifierType;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavior;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehaviorType;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElement;
@@ -111,4 +114,5 @@ public final class Registries {
     public static final ResourceKey<Registry<FurnitureElementConfigType<? extends FurnitureElement>>> FURNITURE_ELEMENT_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_element_type"));
     public static final ResourceKey<Registry<FurnitureHitboxConfigType<? extends FurnitureHitBox>>> FURNITURE_HITBOX_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_hitbox_type"));
     public static final ResourceKey<Registry<FurnitureBehaviorType<? extends FurnitureBehavior>>> FURNITURE_BEHAVIOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_behavior_type"));
+    public static final ResourceKey<Registry<FurnitureSettingsModifierType<? extends FurnitureSettingsModifier>>> FURNITURE_SETTINGS_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_settings_type"));
 }

@@ -2,6 +2,8 @@ package net.momirealms.craftengine.core.loot.function;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -55,13 +57,13 @@ public final class LootFunctions {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> LootFunction<T> fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.loot_table.function.missing_type");
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static <T> LootFunction<T> fromConfig(ConfigSection section) {
+        String type = section.getNonNullString("type");
+        Key key = Key.ce(type);
         LootFunctionType<T> functionType = (LootFunctionType<T>) BuiltInRegistries.LOOT_FUNCTION_TYPE.getValue(key);
         if (functionType == null) {
-            throw new LocalizedResourceConfigException("warning.config.loot_table.function.invalid_type", type);
+            throw new KnownResourceException("loot.function.unknown_type", section.assemblePath("type"), type);
         }
-        return functionType.factory().create(map);
+        return functionType.factory().create(section);
     }
 }

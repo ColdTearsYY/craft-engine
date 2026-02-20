@@ -166,7 +166,7 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
             }
             boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault(false, "override"), "override");
             List<String> targets = MiscUtils.getAsStringList(section.getOrDefault(List.of(), "target"));
-            LootTable<?> lootTable = LootTable.fromMap(MiscUtils.castToMap(section.get("loot"), false));
+            LootTable<?> lootTable = LootTable.fromConfig(section.getNonNullSection("loot"));
             switch (typeEnum) {
                 case BLOCK -> {
                     for (String target : targets) {
