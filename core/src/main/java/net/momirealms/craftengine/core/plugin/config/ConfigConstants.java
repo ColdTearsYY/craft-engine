@@ -2,10 +2,12 @@ package net.momirealms.craftengine.core.plugin.config;
 
 import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
+import net.momirealms.craftengine.core.util.Key;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 public final class ConfigConstants {
+    public static final Key DEFAULT_MODEL_TYPE = Key.withDefaultNamespace("model");
     public static final Vector3f NORMAL_SCALE = new Vector3f(1f);
     public static final Vector3f ZERO_VECTOR3 = new Vector3f();
     public static final Quaternionf ZERO_QUATERNION = new Quaternionf();
@@ -41,6 +43,7 @@ public final class ConfigConstants {
     public static final String ARGUMENT_LIST = "resource.argument.type.list";
     public static final String ARGUMENT_NUMBER = "resource.argument.type.number";
     public static final String ARGUMENT_COLOR = "resource.argument.type.color";
+    public static final String ARGUMENT_JSON = "resource.argument.type.json";
 
     private ConfigConstants() {}
 

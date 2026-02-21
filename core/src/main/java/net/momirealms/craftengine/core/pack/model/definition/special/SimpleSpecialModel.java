@@ -2,11 +2,11 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
 import java.util.List;
-import java.util.Map;
 
 public final class SimpleSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<SimpleSpecialModel> FACTORY = new Factory();
@@ -35,8 +35,8 @@ public final class SimpleSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<SimpleSpecialModel> {
         @Override
-        public SimpleSpecialModel create(Map<String, Object> arguments) {
-            Key type = Key.of(arguments.get("type").toString());
+        public SimpleSpecialModel create(ConfigSection section) {
+            Key type = section.getNonNullIdentifier("type");
             return new SimpleSpecialModel(type);
         }
     }

@@ -6,15 +6,13 @@ import net.momirealms.craftengine.core.pack.model.definition.special.SpecialMode
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModels;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
 public final class SpecialItemModel implements ItemModel {
     public static final ItemModelFactory<SpecialItemModel> FACTORY = new Factory();
@@ -68,18 +66,17 @@ public final class SpecialItemModel implements ItemModel {
     private static class Factory implements ItemModelFactory<SpecialItemModel> {
 
         @Override
-        public SpecialItemModel create(Map<String, Object> arguments) {
-            String base = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(arguments, "base", "path"), "warning.config.item.model.special.missing_path");
+        public SpecialItemModel create(ConfigSection section) {
+            String base = section.getNonNullString("base", "path");
             if (!Identifier.isValid(base)) {
                 throw new LocalizedResourceConfigException("warning.config.item.model.special.invalid_path", base);
             }
-            Map<String, Object> generation = MiscUtils.castToMap(arguments.get("generation"), true);
+            ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
                 modelGeneration = ModelGeneration.of(Key.of(base), generation);
             }
-            Map<String, Object> model = MiscUtils.castToMap(arguments.get("model"), false);
-            return new SpecialItemModel(SpecialModels.fromMap(model), base, modelGeneration);
+            return new SpecialItemModel(SpecialModels.fromMap(section.getNonNullSection("model")), base, modelGeneration);
         }
     }
 

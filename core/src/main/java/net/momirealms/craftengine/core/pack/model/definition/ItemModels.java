@@ -1,6 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -31,23 +33,22 @@ public final class ItemModels {
         return type;
     }
 
-    public static ItemModel fromObj(Object object) {
+    public static ItemModel fromObj(String path, Object object) {
         if (object == null) return null;
         if (object instanceof Map<?,?> map) {
-            return fromMap(MiscUtils.castToMap(map, false));
+            return fromMap(ConfigSection.of(path, MiscUtils.castToMap(map, false)));
         } else {
             return new BaseItemModel(object.toString(), List.of(), null);
         }
     }
 
-    public static ItemModel fromMap(Map<String, Object> map) {
-        String type = map.getOrDefault("type", "minecraft:model").toString();
-        Key key = Key.withDefaultNamespace(type, "minecraft");
-        ItemModelType<? extends ItemModel> itemModelType = BuiltInRegistries.ITEM_MODEL_TYPE.getValue(key);
+    public static ItemModel fromMap(ConfigSection section) {
+        Key type = section.getIdentifier(ConfigConstants.DEFAULT_MODEL_TYPE, "type");
+        ItemModelType<? extends ItemModel> itemModelType = BuiltInRegistries.ITEM_MODEL_TYPE.getValue(type);
         if (itemModelType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.invalid_type", type);
+            throw new LocalizedResourceConfigException("warning.config.item.model.invalid_type", type.asString());
         }
-        return itemModelType.factory().create(map);
+        return itemModelType.factory().create(section);
     }
 
     public static ItemModel fromJson(JsonObject json) {

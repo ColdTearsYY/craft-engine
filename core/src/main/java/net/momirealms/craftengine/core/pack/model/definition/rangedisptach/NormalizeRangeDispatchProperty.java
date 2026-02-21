@@ -1,10 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
 
 public final class NormalizeRangeDispatchProperty implements RangeDispatchProperty {
     public static final RangeDispatchPropertyFactory<NormalizeRangeDispatchProperty> FACTORY = new Factory();
@@ -35,9 +33,9 @@ public final class NormalizeRangeDispatchProperty implements RangeDispatchProper
 
     private static class Factory implements RangeDispatchPropertyFactory<NormalizeRangeDispatchProperty> {
         @Override
-        public NormalizeRangeDispatchProperty create(Map<String, Object> arguments) {
-            Key type = Key.of(arguments.get("property").toString());
-            boolean normalize = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("normalize", true), "normalize");
+        public NormalizeRangeDispatchProperty create(ConfigSection section) {
+            Key type = section.getNonNullIdentifier("property");
+            boolean normalize = section.getBoolean(true, "normalize");
             return new NormalizeRangeDispatchProperty(type, normalize);
         }
     }

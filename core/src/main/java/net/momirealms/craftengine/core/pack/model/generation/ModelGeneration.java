@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.display.DisplayMeta;
 import net.momirealms.craftengine.core.pack.model.generation.display.DisplayPosition;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.EnumUtils;
 import net.momirealms.craftengine.core.util.Key;
@@ -92,9 +93,9 @@ public final class ModelGeneration implements Supplier<JsonObject> {
         this.ambientOcclusion = ambientOcclusion;
     }
 
-    public static ModelGeneration of(Key path, Map<String, Object> map) {
+    public static ModelGeneration of(Key path, ConfigSection section) {
         Builder builder = builder().path(path);
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
+        for (Map.Entry<String, Object> entry : section.values().entrySet()) {
             Optional.ofNullable(BUILDER_FUNCTIONS.get(entry.getKey())).ifPresent(it -> it.accept(builder, entry.getValue()));
         }
         return builder.build();

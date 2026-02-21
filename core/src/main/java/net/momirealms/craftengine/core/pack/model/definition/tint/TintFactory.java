@@ -1,16 +1,16 @@
 package net.momirealms.craftengine.core.pack.model.definition.tint;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import org.incendo.cloud.type.Either;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public interface TintFactory<T extends Tint> {
 
-    T create(Map<String, Object> arguments);
+    T create(ConfigSection section);
 
     default Either<Integer, List<Float>> parseTintValue(Object value) {
         if (value instanceof Number i) {

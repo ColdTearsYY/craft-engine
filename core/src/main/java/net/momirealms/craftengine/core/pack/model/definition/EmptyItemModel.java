@@ -3,10 +3,10 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
 import java.util.List;
-import java.util.Map;
 
 public final class EmptyItemModel implements ItemModel {
     public static final ItemModelFactory<EmptyItemModel> FACTORY = new Factory();
@@ -34,7 +34,7 @@ public final class EmptyItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<EmptyItemModel> {
         @Override
-        public EmptyItemModel create(Map<String, Object> arguments) {
+        public EmptyItemModel create(ConfigSection section) {
             return INSTANCE;
         }
     }

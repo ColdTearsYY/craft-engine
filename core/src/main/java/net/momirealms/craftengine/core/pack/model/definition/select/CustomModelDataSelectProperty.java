@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.select;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class CustomModelDataSelectProperty implements SelectProperty {
     public static final SelectPropertyFactory<CustomModelDataSelectProperty> FACTORY = new Factory();
@@ -26,8 +24,8 @@ public final class CustomModelDataSelectProperty implements SelectProperty {
 
     private static class Factory implements SelectPropertyFactory<CustomModelDataSelectProperty> {
         @Override
-        public CustomModelDataSelectProperty create(Map<String, Object> arguments) {
-            int index = ResourceConfigUtils.getAsInt(arguments.getOrDefault("index", 0), "index");
+        public CustomModelDataSelectProperty create(ConfigSection section) {
+            int index = section.getInt("index");
             return new CustomModelDataSelectProperty(index);
         }
     }

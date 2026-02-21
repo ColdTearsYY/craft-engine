@@ -3,10 +3,8 @@ package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyModelPredicate;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
 
 public final class UseDurationRangeDispatchProperty implements RangeDispatchProperty, LegacyModelPredicate<Number> {
     public static final RangeDispatchPropertyFactory<UseDurationRangeDispatchProperty> FACTORY = new Factory();
@@ -42,8 +40,8 @@ public final class UseDurationRangeDispatchProperty implements RangeDispatchProp
 
     private static class Factory implements RangeDispatchPropertyFactory<UseDurationRangeDispatchProperty> {
         @Override
-        public UseDurationRangeDispatchProperty create(Map<String, Object> arguments) {
-            boolean remaining = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("remaining", false), "remaining");
+        public UseDurationRangeDispatchProperty create(ConfigSection section) {
+            boolean remaining = section.getBoolean("remaining");
             return new UseDurationRangeDispatchProperty(remaining);
         }
     }

@@ -2,11 +2,10 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class CopperGolemStatueSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<CopperGolemStatueSpecialModel> FACTORY = new Factory();
@@ -43,9 +42,9 @@ public final class CopperGolemStatueSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<CopperGolemStatueSpecialModel> {
         @Override
-        public CopperGolemStatueSpecialModel create(Map<String, Object> arguments) {
-            String pose = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("pose"), "warning.config.item.model.special.copper_golem_statue.missing_pose");
-            String texture = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("texture"), "warning.config.item.model.special.copper_golem_statue.missing_texture");
+        public CopperGolemStatueSpecialModel create(ConfigSection section) {
+            String pose = section.getNonNullString("pose");
+            String texture = section.getNonNullString("texture");
             return new CopperGolemStatueSpecialModel(pose, texture);
         }
     }

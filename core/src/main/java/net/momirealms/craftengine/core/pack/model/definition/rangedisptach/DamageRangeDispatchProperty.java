@@ -2,10 +2,8 @@ package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyModelPredicate;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
 
 public final class DamageRangeDispatchProperty implements RangeDispatchProperty, LegacyModelPredicate<Number> {
     public static final RangeDispatchPropertyFactory<DamageRangeDispatchProperty> FACTORY = new Factory();
@@ -42,8 +40,8 @@ public final class DamageRangeDispatchProperty implements RangeDispatchProperty,
 
     private static class Factory implements RangeDispatchPropertyFactory<DamageRangeDispatchProperty> {
         @Override
-        public DamageRangeDispatchProperty create(Map<String, Object> arguments) {
-            boolean normalize = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("normalize", true), "normalize");
+        public DamageRangeDispatchProperty create(ConfigSection section) {
+            boolean normalize = section.getBoolean(true, "normalize");
             return new DamageRangeDispatchProperty(normalize);
         }
     }

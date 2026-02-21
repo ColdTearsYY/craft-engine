@@ -2,10 +2,8 @@ package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyModelPredicate;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
 
 public final class CustomModelDataRangeDispatchProperty implements RangeDispatchProperty, LegacyModelPredicate<Number> {
     public static final RangeDispatchPropertyFactory<CustomModelDataRangeDispatchProperty> FACTORY = new Factory();
@@ -38,8 +36,8 @@ public final class CustomModelDataRangeDispatchProperty implements RangeDispatch
 
     private static class Factory implements RangeDispatchPropertyFactory<CustomModelDataRangeDispatchProperty> {
         @Override
-        public CustomModelDataRangeDispatchProperty create(Map<String, Object> arguments) {
-            int index = ResourceConfigUtils.getAsInt(arguments.getOrDefault("index", 0), "index");
+        public CustomModelDataRangeDispatchProperty create(ConfigSection section) {
+            int index = section.getInt("index");
             return new CustomModelDataRangeDispatchProperty(index);
         }
     }

@@ -2,11 +2,10 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class BedSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<BedSpecialModel> FACTORY = new Factory();
@@ -36,8 +35,8 @@ public final class BedSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<BedSpecialModel> {
         @Override
-        public BedSpecialModel create(Map<String, Object> arguments) {
-            String texture = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("texture"), "warning.config.item.model.special.bed.missing_texture");
+        public BedSpecialModel create(ConfigSection section) {
+            String texture = section.getNonNullString("texture");
             return new BedSpecialModel(texture);
         }
     }

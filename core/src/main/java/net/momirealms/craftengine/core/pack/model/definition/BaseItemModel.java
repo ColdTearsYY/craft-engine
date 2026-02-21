@@ -8,17 +8,16 @@ import net.momirealms.craftengine.core.pack.model.definition.tint.Tint;
 import net.momirealms.craftengine.core.pack.model.definition.tint.Tints;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public final class BaseItemModel implements ItemModel {
     public static final ItemModelFactory<BaseItemModel> FACTORY = new Factory();
@@ -80,22 +79,21 @@ public final class BaseItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<BaseItemModel> {
 
-        @SuppressWarnings("unchecked")
         @Override
-        public BaseItemModel create(Map<String, Object> arguments) {
-            String modelPath = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("path"), "warning.config.item.model.base.missing_path");
+        public BaseItemModel create(ConfigSection section) {
+            String modelPath = section.getNonNullString("path");
             if (!Identifier.isValid(modelPath)) {
                 throw new LocalizedResourceConfigException("warning.config.item.model.base.invalid_path", modelPath);
             }
-            Map<String, Object> generation = MiscUtils.castToMap(arguments.get("generation"), true);
+            ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
                 modelGeneration = ModelGeneration.of(Key.of(modelPath), generation);
             }
-            if (arguments.containsKey("tints")) {
+            if (section.containsKey("tints")) {
                 List<Tint> tints = new ArrayList<>();
-                List<Map<String, Object>> tintList = (List<Map<String, Object>>) arguments.get("tints");
-                for (Map<String, Object> tint : tintList) {
+                List<ConfigSection> tintList = section.parseList(ConfigValue::getAsSection,"tints");
+                for (ConfigSection tint : tintList) {
                     tints.add(Tints.fromMap(tint));
                 }
                 return new BaseItemModel(modelPath, tints, modelGeneration);

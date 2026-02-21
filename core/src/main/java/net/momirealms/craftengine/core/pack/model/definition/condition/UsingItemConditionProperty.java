@@ -3,9 +3,8 @@ package net.momirealms.craftengine.core.pack.model.definition.condition;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyModelPredicate;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-
-import java.util.Map;
 
 public final class UsingItemConditionProperty implements ConditionProperty, LegacyModelPredicate<Boolean> {
     public static final ConditionPropertyFactory<UsingItemConditionProperty> FACTORY = new Factory();
@@ -35,7 +34,7 @@ public final class UsingItemConditionProperty implements ConditionProperty, Lega
 
     private static class Factory implements ConditionPropertyFactory<UsingItemConditionProperty> {
         @Override
-        public UsingItemConditionProperty create(Map<String, Object> arguments) {
+        public UsingItemConditionProperty create(ConfigSection section) {
             return INSTANCE;
         }
     }

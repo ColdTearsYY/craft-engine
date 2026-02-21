@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.Range
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -105,11 +106,11 @@ public final class RangeDispatchItemModel implements ItemModel {
 
         @SuppressWarnings("unchecked")
         @Override
-        public RangeDispatchItemModel create(Map<String, Object> arguments) {
-            RangeDispatchProperty property = RangeDispatchProperties.fromMap(arguments);
-            float scale = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("scale", 1.0), "scale");
-            Object fallback = arguments.get("fallback");
-            Object entriesObj = arguments.get("entries");
+        public RangeDispatchItemModel create(ConfigSection section) {
+            RangeDispatchProperty property = RangeDispatchProperties.fromMap(section);
+            float scale = section.getFloat(1.0f, "scale");
+            Object fallback = section.get("fallback");
+            Object entriesObj = section.get("entries");
             if (entriesObj instanceof List<?> list) {
                 List<Map<String, Object>> entries = (List<Map<String, Object>>) list;
                 if (!entries.isEmpty()) {
@@ -120,12 +121,12 @@ public final class RangeDispatchItemModel implements ItemModel {
                         if (model == null) {
                             throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.entry.missing_model");
                         }
-                        entryMap.put(threshold, ItemModels.fromObj(model));
+                        entryMap.put(threshold, ItemModels.fromObj(section.path(), model));
                     }
                     return new RangeDispatchItemModel(
                             property,
                             scale,
-                            fallback == null ? null : ItemModels.fromObj(fallback),
+                            fallback == null ? null : ItemModels.fromObj(section.path(), fallback),
                             entryMap
                     );
                 } else {

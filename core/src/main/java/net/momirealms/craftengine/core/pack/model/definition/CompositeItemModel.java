@@ -5,13 +5,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public final class CompositeItemModel implements ItemModel {
     public static final ItemModelFactory<CompositeItemModel> FACTORY = new Factory();
@@ -59,25 +58,9 @@ public final class CompositeItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<CompositeItemModel> {
 
-        @SuppressWarnings("unchecked")
         @Override
-        public CompositeItemModel create(Map<String, Object> arguments) {
-            Object m = arguments.get("models");
-            if (m instanceof List<?> list) {
-                List<Object> models = (List<Object>) list;
-                if (models.isEmpty()) {
-                    throw new LocalizedResourceConfigException("warning.config.item.model.composite.missing_models");
-                }
-                List<ItemModel> modelList = new ArrayList<>();
-                for (Object model : models) {
-                    modelList.add(ItemModels.fromObj(model));
-                }
-                return new CompositeItemModel(modelList);
-            } else if (m != null) {
-                return new CompositeItemModel(List.of(ItemModels.fromObj(m)));
-            } else {
-                throw new LocalizedResourceConfigException("warning.config.item.model.composite.missing_models");
-            }
+        public CompositeItemModel create(ConfigSection section) {
+            return new CompositeItemModel(section.parseList(it -> ItemModels.fromObj(section.path(), it.value()), "models"));
         }
     }
 

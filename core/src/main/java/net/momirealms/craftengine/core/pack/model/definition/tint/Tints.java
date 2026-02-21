@@ -1,15 +1,13 @@
 package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
-
-import java.util.Map;
 
 public final class Tints {
     public static final TintType<ConstantTint> CONSTANT = register(Key.of("constant"), ConstantTint.FACTORY, ConstantTint.READER);
@@ -30,14 +28,14 @@ public final class Tints {
         return type;
     }
 
-    public static Tint fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.item.model.tint.missing_type");
+    public static Tint fromMap(ConfigSection section) {
+        String type = section.getNonNullString("type");
         Key key = Key.withDefaultNamespace(type, "minecraft");
         TintType<? extends Tint> tintType = BuiltInRegistries.TINT_TYPE.getValue(key);
         if (tintType == null) {
             throw new LocalizedResourceConfigException("warning.config.item.model.tint.invalid_type", type);
         }
-        return tintType.factory().create(map);
+        return tintType.factory().create(section);
     }
 
     public static Tint fromJson(JsonObject json) {
