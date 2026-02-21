@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.select;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class ComponentSelectProperty implements SelectProperty {
     public static final SelectPropertyFactory<ComponentSelectProperty> FACTORY = new Factory();
@@ -26,8 +24,8 @@ public final class ComponentSelectProperty implements SelectProperty {
 
     private static class Factory implements SelectPropertyFactory<ComponentSelectProperty> {
         @Override
-        public ComponentSelectProperty create(Map<String, Object> arguments) {
-            String component = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("component"), "warning.config.item.model.select.component.missing_component");
+        public ComponentSelectProperty create(ConfigSection section) {
+            String component = section.getNonNullString("component");
             return new ComponentSelectProperty(component);
         }
     }

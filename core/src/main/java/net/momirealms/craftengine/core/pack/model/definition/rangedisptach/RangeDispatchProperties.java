@@ -1,15 +1,13 @@
 package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
-
-import java.util.Map;
 
 public final class RangeDispatchProperties {
     public static final RangeDispatchPropertyType<SimpleRangeDispatchProperty> BUNDLE_FULLNESS = register(Key.of("bundle/fullness"), SimpleRangeDispatchProperty.FACTORY, SimpleRangeDispatchProperty.READER);
@@ -32,14 +30,13 @@ public final class RangeDispatchProperties {
         return type;
     }
 
-    public static RangeDispatchProperty fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("property"), "warning.config.item.model.range_dispatch.missing_property");
-        Key key = Key.withDefaultNamespace(type, "minecraft");
-        RangeDispatchPropertyType<? extends RangeDispatchProperty> propertyType = BuiltInRegistries.RANGE_DISPATCH_PROPERTY_TYPE.getValue(key);
+    public static RangeDispatchProperty fromMap(ConfigSection section) {
+        Key type = section.getNonNullIdentifier("property");
+        RangeDispatchPropertyType<? extends RangeDispatchProperty> propertyType = BuiltInRegistries.RANGE_DISPATCH_PROPERTY_TYPE.getValue(type);
         if (propertyType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.invalid_property", type);
+            throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.invalid_property", type.asString());
         }
-        return propertyType.factory().create(map);
+        return propertyType.factory().create(section);
     }
 
     public static RangeDispatchProperty fromJson(JsonObject json) {

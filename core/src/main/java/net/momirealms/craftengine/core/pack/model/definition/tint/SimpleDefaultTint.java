@@ -1,12 +1,12 @@
 package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import org.incendo.cloud.type.Either;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
 public final class SimpleDefaultTint implements Tint {
     public static final TintFactory<SimpleDefaultTint> FACTORY = new Factory();
@@ -37,9 +37,9 @@ public final class SimpleDefaultTint implements Tint {
 
     private static class Factory implements TintFactory<SimpleDefaultTint> {
         @Override
-        public SimpleDefaultTint create(Map<String, Object> arguments) {
-            Object value = arguments.containsKey("default") ? arguments.getOrDefault("default", 0) : arguments.getOrDefault("value", 0);
-            Key type = Key.of(arguments.get("type").toString());
+        public SimpleDefaultTint create(ConfigSection section) {
+            Either<Integer, List<Float>> value = section.getOrDefault(this::parseTintValue, Either.ofPrimary(0), "default", "value");
+            Key type = section.getNonNullIdentifier("type");
             return new SimpleDefaultTint(type, parseTintValue(value));
         }
     }

@@ -717,7 +717,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         return;
                     }
                     try {
-                        modernModel = ItemModels.fromObj(modelSection);
+                        modernModel = ItemModels.fromObj(section.path(), modelSection);
                         for (ModelGeneration generation : modernModel.modelsToGenerate()) {
                             prepareModelGeneration(generation);
                         }

@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.select;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-
-import java.util.Map;
 
 public final class SimpleSelectProperty implements SelectProperty {
     public static final SelectPropertyFactory<SimpleSelectProperty> FACTORY = new Factory();
@@ -25,8 +24,8 @@ public final class SimpleSelectProperty implements SelectProperty {
 
     private static class Factory implements SelectPropertyFactory<SimpleSelectProperty> {
         @Override
-        public SimpleSelectProperty create(Map<String, Object> arguments) {
-            Key type = Key.of(arguments.get("property").toString());
+        public SimpleSelectProperty create(ConfigSection section) {
+            Key type = section.getNonNullIdentifier("property");
             return new SimpleSelectProperty(type);
         }
     }

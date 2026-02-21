@@ -2,10 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.GsonHelper;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class ComponentConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<ComponentConditionProperty> FACTORY = new Factory();
@@ -35,9 +32,9 @@ public final class ComponentConditionProperty implements ConditionProperty {
 
     private static class Factory implements ConditionPropertyFactory<ComponentConditionProperty> {
         @Override
-        public ComponentConditionProperty create(Map<String, Object> arguments) {
-            String predicate = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("predicate"), "warning.config.item.model.condition.component.missing_predicate");
-            JsonElement jsonElement = GsonHelper.get().toJsonTree(ResourceConfigUtils.requireNonNullOrThrow(arguments.get("value"), "warning.config.item.model.condition.component.missing_value"));
+        public ComponentConditionProperty create(ConfigSection section) {
+            String predicate = section.getNonNullString("predicate");
+            JsonElement jsonElement = section.getNonNullJson("value");
             return new ComponentConditionProperty(predicate, jsonElement);
         }
     }

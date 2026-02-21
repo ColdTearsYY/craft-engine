@@ -1,10 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
 
 public final class GrassTint implements Tint {
     public static final TintFactory<GrassTint> FACTORY = new Factory();
@@ -37,9 +35,9 @@ public final class GrassTint implements Tint {
     private static class Factory implements TintFactory<GrassTint> {
 
         @Override
-        public GrassTint create(Map<String, Object> arguments) {
-            float temperature = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("temperature", 0), "temperature");
-            float downfall = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("downfall", 0), "downfall");
+        public GrassTint create(ConfigSection section) {
+            float temperature = section.getFloat("temperature");
+            float downfall = section.getFloat("downfall");
             if (temperature > 1 || temperature < 0) {
                 throw new LocalizedResourceConfigException("warning.config.item.model.tint.grass.invalid_temp", String.valueOf(temperature));
             }

@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class KeyBindDownConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<KeyBindDownConditionProperty> FACTORY = new Factory();
@@ -26,9 +24,9 @@ public final class KeyBindDownConditionProperty implements ConditionProperty {
 
     private static class Factory implements ConditionPropertyFactory<KeyBindDownConditionProperty> {
         @Override
-        public KeyBindDownConditionProperty create(Map<String, Object> arguments) {
-            String keybindObj = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("keybind"), "warning.config.item.model.condition.keybind.missing_keybind");
-            return new KeyBindDownConditionProperty(keybindObj);
+        public KeyBindDownConditionProperty create(ConfigSection section) {
+            String keybind = section.getNonNullString("keybind");
+            return new KeyBindDownConditionProperty(keybind);
         }
     }
 

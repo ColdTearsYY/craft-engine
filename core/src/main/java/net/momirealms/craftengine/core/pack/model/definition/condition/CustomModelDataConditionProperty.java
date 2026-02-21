@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class CustomModelDataConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<CustomModelDataConditionProperty> FACTORY = new Factory();
@@ -27,8 +25,8 @@ public final class CustomModelDataConditionProperty implements ConditionProperty
 
     private static class Factory implements ConditionPropertyFactory<CustomModelDataConditionProperty> {
         @Override
-        public CustomModelDataConditionProperty create(Map<String, Object> arguments) {
-            int index = ResourceConfigUtils.getAsInt(arguments.getOrDefault("index", 0), "index");
+        public CustomModelDataConditionProperty create(ConfigSection section) {
+            int index = section.getInt("index");
             return new CustomModelDataConditionProperty(index);
         }
     }

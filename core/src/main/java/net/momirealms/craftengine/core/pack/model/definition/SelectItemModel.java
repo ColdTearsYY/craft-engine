@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.pack.model.definition.select.SelectProper
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
@@ -125,10 +126,10 @@ public final class SelectItemModel implements ItemModel {
 
         @SuppressWarnings("unchecked")
         @Override
-        public SelectItemModel create(Map<String, Object> arguments) {
-            SelectProperty property = SelectProperties.fromMap(arguments);
-            Object fallback = arguments.get("fallback");
-            Object casesObj = arguments.get("cases");
+        public SelectItemModel create(ConfigSection section) {
+            SelectProperty property = SelectProperties.fromMap(section);
+            Object fallback = section.get("fallback");
+            Object casesObj = section.get("cases");
             if (casesObj instanceof List<?> list) {
                 List<Map<String, Object>> cases = (List<Map<String, Object>>) list;
                 if (!cases.isEmpty()) {
@@ -152,12 +153,12 @@ public final class SelectItemModel implements ItemModel {
                         if (model == null) {
                             throw new LocalizedResourceConfigException("warning.config.item.model.select.case.missing_model");
                         }
-                        whenMap.put(either, ItemModels.fromObj(model));
+                        whenMap.put(either, ItemModels.fromObj(section.path(), model));
                     }
                     return new SelectItemModel(
                             property,
                             whenMap,
-                            fallback == null ? null : ItemModels.fromObj(fallback)
+                            fallback == null ? null : ItemModels.fromObj(section.path(), fallback)
                     );
                 } else {
                     throw new LocalizedResourceConfigException("warning.config.item.model.select.missing_cases");

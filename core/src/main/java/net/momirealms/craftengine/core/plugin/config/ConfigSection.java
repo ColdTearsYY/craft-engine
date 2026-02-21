@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.config;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.*;
@@ -1443,6 +1445,70 @@ public final class ConfigSection {
                 return List.of(value.toString());
             }
         }
+    }
+
+    // --- Json Getters ---
+
+    public JsonElement getJson(String key) {
+        return getJson(JsonNull.INSTANCE, key);
+    }
+
+    public JsonElement getJson(String first, String... keys) {
+        return getJson(JsonNull.INSTANCE, first, keys);
+    }
+
+    public JsonElement getJson(JsonElement def, String key) {
+        Object value = this.value.get(key);
+        if (value == null) {
+            return def;
+        }
+        return getAsJson(value);
+    }
+
+    public JsonElement getJson(JsonElement def, String first, String... keys) {
+        Object firstValue = this.value.get(first);
+        if (firstValue != null) {
+            return getAsJson(firstValue);
+        }
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return getAsJson(value);
+            }
+        }
+        return def;
+    }
+
+    public JsonElement getNonNullJson(String key) {
+        Object value = this.value.get(key);
+        if (value == null) {
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_JSON));
+        }
+        return getAsJson(value);
+    }
+
+    public JsonElement getNonNullJson(String first, String... keys) {
+        Object firstValue = this.value.get(first);
+        if (firstValue != null) {
+            return getAsJson(firstValue);
+        }
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return getAsJson(value);
+            }
+        }
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_JSON));
+    }
+
+    private JsonElement getAsJson(Object value) {
+        if (value == null) {
+            return JsonNull.INSTANCE;
+        }
+        if (value instanceof JsonElement jsonElement) {
+            return jsonElement;
+        }
+        return GsonHelper.get().toJsonTree(value);
     }
 
     // --- Misc ---

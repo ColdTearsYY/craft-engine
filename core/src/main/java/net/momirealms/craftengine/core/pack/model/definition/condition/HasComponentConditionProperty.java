@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class HasComponentConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<HasComponentConditionProperty> FACTORY = new Factory();
@@ -35,10 +33,10 @@ public final class HasComponentConditionProperty implements ConditionProperty {
 
     private static class Factory implements ConditionPropertyFactory<HasComponentConditionProperty> {
         @Override
-        public HasComponentConditionProperty create(Map<String, Object> arguments) {
-            boolean ignoreDefault = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("ignore-default", false), "ignore-default");
-            String componentObj = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("component"), "warning.config.item.model.condition.has_component.missing_component");
-            return new HasComponentConditionProperty(componentObj, ignoreDefault);
+        public HasComponentConditionProperty create(ConfigSection section) {
+            boolean ignoreDefault = section.getBoolean("ignore-default");
+            String component = section.getNonNullString("component");
+            return new HasComponentConditionProperty(component, ignoreDefault);
         }
     }
 

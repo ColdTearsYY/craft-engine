@@ -2,16 +2,14 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
 
 public final class ShulkerBoxSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<ShulkerBoxSpecialModel> FACTORY = new Factory();
@@ -57,10 +55,10 @@ public final class ShulkerBoxSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<ShulkerBoxSpecialModel> {
         @Override
-        public ShulkerBoxSpecialModel create(Map<String, Object> arguments) {
-            float openness = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("openness", 0), "openness");
-            String texture = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("texture"), "warning.config.item.model.special.shulker_box.missing_texture");
-            Direction orientation = Optional.ofNullable(arguments.get("orientation")).map(String::valueOf).map(s -> s.toUpperCase(Locale.ROOT)).map(Direction::valueOf).orElse(null);
+        public ShulkerBoxSpecialModel create(ConfigSection section) {
+            float openness = section.getFloat("openness");
+            String texture = section.getNonNullString("texture");
+            Direction orientation = section.getEnum(Direction.class, "orientation");
             if (openness > 1 || openness < 0) {
                 throw new LocalizedResourceConfigException("warning.config.item.model.special.shulker_box.invalid_openness", String.valueOf(openness));
             }

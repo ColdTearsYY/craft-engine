@@ -2,12 +2,11 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class ChestSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<ChestSpecialModel> FACTORY = new Factory();
@@ -46,9 +45,9 @@ public final class ChestSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<ChestSpecialModel> {
         @Override
-        public ChestSpecialModel create(Map<String, Object> arguments) {
-            float openness = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("openness", 0), "openness");
-            String texture = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("texture"), "warning.config.item.model.special.chest.missing_texture");
+        public ChestSpecialModel create(ConfigSection section) {
+            float openness = section.getFloat("openness");
+            String texture = section.getNonNullString("texture");
             if (openness > 1 || openness < 0) {
                 throw new LocalizedResourceConfigException("warning.config.item.model.special.chest.invalid_openness", String.valueOf(openness));
             }
