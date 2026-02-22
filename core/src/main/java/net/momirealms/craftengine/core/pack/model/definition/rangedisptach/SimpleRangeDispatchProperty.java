@@ -25,16 +25,14 @@ public final class SimpleRangeDispatchProperty implements RangeDispatchProperty 
     private static class Factory implements RangeDispatchPropertyFactory<SimpleRangeDispatchProperty> {
         @Override
         public SimpleRangeDispatchProperty create(ConfigSection section) {
-            Key type = section.getNonNullIdentifier("property");
-            return new SimpleRangeDispatchProperty(type);
+            return new SimpleRangeDispatchProperty(section.getNonNullIdentifier("property"));
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<SimpleRangeDispatchProperty> {
         @Override
         public SimpleRangeDispatchProperty read(JsonObject json) {
-            Key type = Key.of(json.get("property").getAsString());
-            return new SimpleRangeDispatchProperty(type);
+            return new SimpleRangeDispatchProperty(Key.of(json.get("property").getAsString()));
         }
     }
 }

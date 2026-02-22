@@ -25,16 +25,14 @@ public final class BlockStateSelectProperty implements SelectProperty {
     private static class Factory implements SelectPropertyFactory<BlockStateSelectProperty> {
         @Override
         public BlockStateSelectProperty create(ConfigSection section) {
-            String property = section.getNonNullString("block-state-property", "block_state_property");
-            return new BlockStateSelectProperty(property);
+            return new BlockStateSelectProperty(section.getNonNullString("block_state_property", "block-state-property"));
         }
     }
 
     private static class Reader implements SelectPropertyReader<BlockStateSelectProperty> {
         @Override
         public BlockStateSelectProperty read(JsonObject json) {
-            String property = json.get("block_state_property").getAsString();
-            return new BlockStateSelectProperty(property);
+            return new BlockStateSelectProperty(json.get("block_state_property").getAsString());
         }
     }
 }

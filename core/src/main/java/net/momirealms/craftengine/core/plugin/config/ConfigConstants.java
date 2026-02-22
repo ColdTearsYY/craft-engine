@@ -7,7 +7,6 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 public final class ConfigConstants {
-    public static final Key DEFAULT_MODEL_TYPE = Key.withDefaultNamespace("model");
     public static final Vector3f NORMAL_SCALE = new Vector3f(1f);
     public static final Vector3f ZERO_VECTOR3 = new Vector3f();
     public static final Quaternionf ZERO_QUATERNION = new Quaternionf();
@@ -26,6 +25,7 @@ public final class ConfigConstants {
     public static final String PARSE_AABB_FAILED = "resource.argument.parser.aabb";
     public static final String PARSE_IDENTIFIER_FAILED = "resource.argument.parser.identifier";
     public static final String PARSE_LIST_FAILED = "resource.argument.parser.list";
+    public static final String PARSE_NONEMPTY_LIST_FAILED = "resource.argument.parser.nonempty_list";
     public static final String MISSING_ARGUMENT = "resource.missing_argument";
     public static final String ARGUMENT_SECTION = "resource.argument.type.section";
     public static final String ARGUMENT_STRING = "resource.argument.type.string";
@@ -43,7 +43,8 @@ public final class ConfigConstants {
     public static final String ARGUMENT_LIST = "resource.argument.type.list";
     public static final String ARGUMENT_NUMBER = "resource.argument.type.number";
     public static final String ARGUMENT_COLOR = "resource.argument.type.color";
-    public static final String ARGUMENT_JSON = "resource.argument.type.json";
+    public static final String ARGUMENT_ITEM_MODEL_DEFINITION = "resource.argument.type.item_model_definition";
+    public static final String ARGUMENT_ANY = "resource.argument.type.any";
 
     private ConfigConstants() {}
 

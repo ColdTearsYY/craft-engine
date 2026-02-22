@@ -34,18 +34,20 @@ public final class TimeRangeDispatchProperty implements RangeDispatchProperty {
     private static class Factory implements RangeDispatchPropertyFactory<TimeRangeDispatchProperty> {
         @Override
         public TimeRangeDispatchProperty create(ConfigSection section) {
-            String source = section.getNonNullString("source");
-            boolean wobble = section.getBoolean(true, "wobble");
-            return new TimeRangeDispatchProperty(source, wobble);
+            return new TimeRangeDispatchProperty(
+                    section.getNonNullString("source"),
+                    section.getBoolean(true, "wobble")
+            );
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<TimeRangeDispatchProperty> {
         @Override
         public TimeRangeDispatchProperty read(JsonObject json) {
-            String source = json.get("source").getAsString();
-            boolean wobble = !json.has("wobble") || json.get("wobble").getAsBoolean();
-            return new TimeRangeDispatchProperty(source, wobble);
+            return new TimeRangeDispatchProperty(
+                    json.get("source").getAsString(),
+                    !json.has("wobble") || json.get("wobble").getAsBoolean()
+            );
         }
     }
 }

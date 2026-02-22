@@ -19,23 +19,22 @@ public final class CustomModelDataConditionProperty implements ConditionProperty
     @Override
     public void accept(JsonObject jsonObject) {
         jsonObject.addProperty("property", "custom_model_data");
-        if (this.index != 0)
+        if (this.index != 0) {
             jsonObject.addProperty("index", this.index);
+        }
     }
 
     private static class Factory implements ConditionPropertyFactory<CustomModelDataConditionProperty> {
         @Override
         public CustomModelDataConditionProperty create(ConfigSection section) {
-            int index = section.getInt("index");
-            return new CustomModelDataConditionProperty(index);
+            return new CustomModelDataConditionProperty(section.getInt("index"));
         }
     }
 
     private static class Reader implements ConditionPropertyReader<CustomModelDataConditionProperty> {
         @Override
         public CustomModelDataConditionProperty read(JsonObject json) {
-            int index = json.has("index") ? json.get("index").getAsInt() : 0;
-            return new CustomModelDataConditionProperty(index);
+            return new CustomModelDataConditionProperty(json.has("index") ? json.get("index").getAsInt() : 0);
         }
     }
 }

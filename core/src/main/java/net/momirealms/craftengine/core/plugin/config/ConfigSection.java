@@ -1,7 +1,5 @@
 package net.momirealms.craftengine.core.plugin.config;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.*;
@@ -14,11 +12,11 @@ import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 @SuppressWarnings("DuplicatedCode")
 public final class ConfigSection {
-
     private final Map<String, Object> value;
     private final String path;
 
@@ -33,6 +31,14 @@ public final class ConfigSection {
 
     public static ConfigSection of(String path, Map<String, Object> value) {
         return new ConfigSection(path, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static ConfigSection of(String path, Object value) {
+        if (!(value instanceof Map)) {
+            throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, path, value.getClass().getSimpleName());
+        }
+        return new ConfigSection(path, (Map<String, Object>) value);
     }
 
     public static ConfigSection ofSamePath(ConfigSection section, Map<String, Object> value) {
@@ -128,7 +134,6 @@ public final class ConfigSection {
         return convertor.apply(value);
     }
 
-    @Nullable
     public ConfigValue getValue(String key) {
         Object value = this.value.get(key);
         if (value == null) {
@@ -137,7 +142,6 @@ public final class ConfigSection {
         return new ConfigValue(assemblePath(key), value);
     }
 
-    @Nullable
     public ConfigValue getValue(String first, String... keys) {
         Object firstValue = this.value.get(first);
         if (firstValue != null) {
@@ -1282,6 +1286,28 @@ public final class ConfigSection {
 
     // --- List Getters ---
 
+    public List<Object> getNonEmptyList(String key) {
+        Object value = this.value.get(key);
+        if (value != null) {
+            return getAsNonEmptyList(value, key);
+        }
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
+    }
+
+    public List<Object> getNonEmptyList(String first, String... keys) {
+        Object firstValue = this.value.get(first);
+        if (firstValue != null) {
+            return getAsNonEmptyList(firstValue, first);
+        }
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return getAsNonEmptyList(value, key);
+            }
+        }
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
+    }
+
     public List<Object> getList(String key) {
         return getList(List.of(), key);
     }
@@ -1362,6 +1388,18 @@ public final class ConfigSection {
             return (List<Object>) list;
         }
         throw new KnownResourceException(ConfigConstants.PARSE_LIST_FAILED, assemblePath(key), obj.getClass().getSimpleName());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> getAsNonEmptyList(Object obj, String key) {
+        if (obj instanceof List<?> list) {
+            if (list.isEmpty()) {
+                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, assemblePath(key));
+            }
+            return (List<Object>) list;
+        } else {
+            return List.of(obj);
+        }
     }
 
     private <T> List<T> getAsList(Object obj, String key, BiFunction<Object, String, T> mapper) {
@@ -1447,71 +1485,31 @@ public final class ConfigSection {
         }
     }
 
-    // --- Json Getters ---
-
-    public JsonElement getJson(String key) {
-        return getJson(JsonNull.INSTANCE, key);
-    }
-
-    public JsonElement getJson(String first, String... keys) {
-        return getJson(JsonNull.INSTANCE, first, keys);
-    }
-
-    public JsonElement getJson(JsonElement def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsJson(value);
-    }
-
-    public JsonElement getJson(JsonElement def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsJson(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsJson(value);
-            }
-        }
-        return def;
-    }
-
-    public JsonElement getNonNullJson(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_JSON));
-        }
-        return getAsJson(value);
-    }
-
-    public JsonElement getNonNullJson(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsJson(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsJson(value);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_JSON));
-    }
-
-    private JsonElement getAsJson(Object value) {
-        if (value == null) {
-            return JsonNull.INSTANCE;
-        }
-        if (value instanceof JsonElement jsonElement) {
-            return jsonElement;
-        }
-        return GsonHelper.get().toJsonTree(value);
-    }
-
     // --- Misc ---
+
+    public <T> List<T> parseNonEmptyList(Function<ConfigValue, T> parser, String key) {
+        List<Object> list = getNonEmptyList(key);
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(this.assemblePath(key, i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> parseNonEmptyList(Function<ConfigValue, T> parser, String first, String keys) {
+        ConfigValue listValue = getValue(first, keys);
+        if (listValue == null) {
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
+        }
+        List<Object> list = listValue.getAsNonEmptyList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(listValue.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
 
     public <T> List<T> parseList(Function<ConfigValue, T> parser, String key) {
         List<Object> list = getList(key);
@@ -1527,25 +1525,18 @@ public final class ConfigSection {
     }
 
     public <T> List<T> parseList(Function<ConfigValue, T> parser, String first, String... keys) {
-        List<Object> list = getList(first);
+        ConfigValue listValue = getValue(first, keys);
+        if (listValue == null) {
+            return List.of();
+        }
+        List<Object> list = listValue.getAsNonEmptyList();
         if (!list.isEmpty()) {
             List<T> result = new ArrayList<>(list.size());
             for (int i = 0; i < list.size(); i++) {
-                ConfigValue configValue = new ConfigValue(this.assemblePath(first, i), list.get(i));
+                ConfigValue configValue = new ConfigValue(listValue.assemblePath(i), list.get(i));
                 result.add(parser.apply(configValue));
             }
             return result;
-        }
-        for (String key : keys) {
-            list = getList(key);
-            if (!list.isEmpty()) {
-                List<T> result = new ArrayList<>(list.size());
-                for (int i = 0; i < list.size(); i++) {
-                    ConfigValue configValue = new ConfigValue(this.assemblePath(key, i), list.get(i));
-                    result.add(parser.apply(configValue));
-                }
-                return result;
-            }
         }
         return List.of();
     }
@@ -1588,25 +1579,65 @@ public final class ConfigSection {
                     return Collections.emptyList();
                 }
                 case 1 -> {
-                    return List.of(parser.apply(ConfigSection.of(this.assemblePath(key, 0), MiscUtils.castToMap(list.getFirst(), false))));
+                    return List.of(parser.apply(ConfigSection.of(this.assemblePath(key, 0), list.getFirst())));
                 }
                 case 2 -> {
                     return List.of(
-                            parser.apply(ConfigSection.of(this.assemblePath(key, 0), MiscUtils.castToMap(list.getFirst(), false))),
-                            parser.apply(ConfigSection.of(this.assemblePath(key, 1), MiscUtils.castToMap(list.getLast(), false)))
+                            parser.apply(ConfigSection.of(this.assemblePath(key, 0), list.getFirst())),
+                            parser.apply(ConfigSection.of(this.assemblePath(key, 1), list.getLast()))
                     );
                 }
                 default -> {
                     List<T> result = new ArrayList<>(list.size());
                     for (int i = 0; i < list.size() ; i++) {
                         Object configInList = list.get(i);
-                        result.add(parser.apply(ConfigSection.of(this.assemblePath(key, i), MiscUtils.castToMap(configInList, false))));
+                        result.add(parser.apply(ConfigSection.of(this.assemblePath(key, i), configInList)));
                     }
                     return result;
                 }
             }
         } else if (target instanceof Map<?, ?> map) {
-            return List.of(parser.apply(ConfigSection.of(this.assemblePath(key), MiscUtils.castToMap(map, false))));
+            return List.of(parser.apply(ConfigSection.of(this.assemblePath(key), MiscUtils.castToMap(map))));
+        } else {
+            throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key), target.getClass().getSimpleName());
+        }
+    }
+
+    public void forEachSection(Consumer<ConfigSection> consumer, String key) {
+        Object value = this.value.get(key);
+        if (value != null) {
+            forEachSection(consumer, key, value);
+        }
+    }
+
+    public void forEachSection(Consumer<ConfigSection> consumer, String first, String... keys) {
+        Object firstValue = this.value.get(first);
+        if (firstValue != null) {
+            forEachSection(consumer, first, firstValue);
+        } else {
+            for (String key : keys) {
+                Object value = this.value.get(key);
+                if (value != null) {
+                    forEachSection(consumer, key, value);
+                }
+            }
+        }
+    }
+
+    private void forEachSection(Consumer<ConfigSection> consumer, String key, Object target) {
+        if (target instanceof List<?> list) {
+            for (int i = 0; i < list.size() ; i++) {
+                Object configInList = list.get(i);
+                if (configInList == null) {
+                    continue;
+                }
+                if (!(configInList instanceof Map<?,?>)) {
+                    throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key, i), configInList.getClass().getSimpleName());
+                }
+                consumer.accept(ConfigSection.of(this.assemblePath(key, i), configInList));
+            }
+        } else if (target instanceof Map<?, ?> map) {
+            consumer.accept(ConfigSection.of(this.assemblePath(key), map));
         } else {
             throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key), target.getClass().getSimpleName());
         }

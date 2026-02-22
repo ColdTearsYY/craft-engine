@@ -34,18 +34,20 @@ public final class NormalizeRangeDispatchProperty implements RangeDispatchProper
     private static class Factory implements RangeDispatchPropertyFactory<NormalizeRangeDispatchProperty> {
         @Override
         public NormalizeRangeDispatchProperty create(ConfigSection section) {
-            Key type = section.getNonNullIdentifier("property");
-            boolean normalize = section.getBoolean(true, "normalize");
-            return new NormalizeRangeDispatchProperty(type, normalize);
+            return new NormalizeRangeDispatchProperty(
+                    section.getNonNullIdentifier("property"),
+                    section.getBoolean(true, "normalize")
+            );
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<NormalizeRangeDispatchProperty> {
         @Override
         public NormalizeRangeDispatchProperty read(JsonObject json) {
-            Key type = Key.of(json.get("property").toString());
-            boolean normalize = !json.has("normalize") || json.get("normalize").getAsBoolean();
-            return new NormalizeRangeDispatchProperty(type, normalize);
+            return new NormalizeRangeDispatchProperty(
+                    Key.of(json.get("property").toString()),
+                    !json.has("normalize") || json.get("normalize").getAsBoolean()
+            );
         }
     }
 }

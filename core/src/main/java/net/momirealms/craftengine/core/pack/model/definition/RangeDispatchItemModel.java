@@ -7,7 +7,9 @@ import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.Range
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -104,37 +106,23 @@ public final class RangeDispatchItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<RangeDispatchItemModel> {
 
-        @SuppressWarnings("unchecked")
         @Override
         public RangeDispatchItemModel create(ConfigSection section) {
-            RangeDispatchProperty property = RangeDispatchProperties.fromMap(section);
+            RangeDispatchProperty property = RangeDispatchProperties.fromConfig(section);
             float scale = section.getFloat(1.0f, "scale");
-            Object fallback = section.get("fallback");
-            Object entriesObj = section.get("entries");
-            if (entriesObj instanceof List<?> list) {
-                List<Map<String, Object>> entries = (List<Map<String, Object>>) list;
-                if (!entries.isEmpty()) {
-                    Map<Float, ItemModel> entryMap = new TreeMap<>();
-                    for (Map<String, Object> entry : entries) {
-                        float threshold = ResourceConfigUtils.getAsFloat(entry.getOrDefault("threshold", 1), "threshold");
-                        Object model = entry.getOrDefault("model", fallback);
-                        if (model == null) {
-                            throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.entry.missing_model");
-                        }
-                        entryMap.put(threshold, ItemModels.fromObj(section.path(), model));
-                    }
-                    return new RangeDispatchItemModel(
-                            property,
-                            scale,
-                            fallback == null ? null : ItemModels.fromObj(section.path(), fallback),
-                            entryMap
-                    );
-                } else {
-                    throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.missing_entries");
-                }
-            } else {
-                throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.missing_entries");
-            }
+            ItemModel fallbackModel = section.getValue(ConfigValue::getAsItemModel, "fallback");
+            Map<Float, ItemModel> entryMap = new TreeMap<>();
+            section.forEachSection(entry -> {
+                float threshold = entry.getNonNullFloat("threshold");
+                ItemModel model = entry.getValueOrDefault(ConfigValue::getAsItemModel, fallbackModel, "model");
+                entryMap.put(threshold, model);
+            }, "entries");
+            return new RangeDispatchItemModel(
+                    property,
+                    scale,
+                    fallbackModel,
+                    entryMap
+            );
         }
     }
 
@@ -142,12 +130,12 @@ public final class RangeDispatchItemModel implements ItemModel {
 
         @Override
         public RangeDispatchItemModel read(JsonObject json) {
-            JsonArray entriesObj = json.getAsJsonArray("entries");
-            if (entriesObj == null) {
+            JsonArray entriesArray = json.getAsJsonArray("entries");
+            if (entriesArray == null) {
                 throw new IllegalArgumentException("entries is expected to be a JsonArray");
             }
             Map<Float, ItemModel> entries = new TreeMap<>();
-            for (JsonElement entry : entriesObj) {
+            for (JsonElement entry : entriesArray) {
                 if (entry instanceof JsonObject entryObj) {
                     float threshold = entryObj.getAsJsonPrimitive("threshold").getAsFloat();
                     ItemModel model = ItemModels.fromJson(entryObj.getAsJsonObject("model"));

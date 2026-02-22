@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 
@@ -60,7 +61,7 @@ public final class CompositeItemModel implements ItemModel {
 
         @Override
         public CompositeItemModel create(ConfigSection section) {
-            return new CompositeItemModel(section.parseList(it -> ItemModels.fromObj(section.path(), it.value()), "models"));
+            return new CompositeItemModel(section.parseList(ConfigValue::getAsItemModel, "models"));
         }
     }
 
@@ -74,11 +75,10 @@ public final class CompositeItemModel implements ItemModel {
             }
             List<ItemModel> modelList = new ArrayList<>();
             for (JsonElement model : models) {
-                if (model instanceof JsonObject jo) {
-                    modelList.add(ItemModels.fromJson(jo));
-                } else {
+                if (!(model instanceof JsonObject jo)) {
                     throw new IllegalArgumentException("model is expected to be a JsonObject");
                 }
+                modelList.add(ItemModels.fromJson(jo));
             }
             return new CompositeItemModel(modelList);
         }

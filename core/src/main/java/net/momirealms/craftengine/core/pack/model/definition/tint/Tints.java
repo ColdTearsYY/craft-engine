@@ -28,7 +28,7 @@ public final class Tints {
         return type;
     }
 
-    public static Tint fromMap(ConfigSection section) {
+    public static Tint fromConfig(ConfigSection section) {
         String type = section.getNonNullString("type");
         Key key = Key.withDefaultNamespace(type, "minecraft");
         TintType<? extends Tint> tintType = BuiltInRegistries.TINT_TYPE.getValue(key);

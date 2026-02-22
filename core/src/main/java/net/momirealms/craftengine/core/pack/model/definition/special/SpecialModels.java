@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -37,7 +38,7 @@ public final class SpecialModels {
         Key type = section.getNonNullIdentifier("property");
         SpecialModelType<? extends SpecialModel> specialModelType = BuiltInRegistries.SPECIAL_MODEL_TYPE.getValue(type);
         if (specialModelType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.special.invalid_type", type.asString());
+            throw new KnownResourceException("resource.item.model_definition.special.unknown_type", section.assemblePath("property"), type.asString());
         }
         return specialModelType.factory().create(section);
     }

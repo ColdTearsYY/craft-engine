@@ -34,18 +34,20 @@ public final class CompassRangeDispatchProperty implements RangeDispatchProperty
     private static class Factory implements RangeDispatchPropertyFactory<CompassRangeDispatchProperty> {
         @Override
         public CompassRangeDispatchProperty create(ConfigSection section) {
-            String target = section.getNonNullString("target");
-            boolean wobble = section.getBoolean(true, "wobble");
-            return new CompassRangeDispatchProperty(target, wobble);
+            return new CompassRangeDispatchProperty(
+                    section.getNonNullString("target"),
+                    section.getBoolean(true, "wobble")
+            );
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<CompassRangeDispatchProperty> {
         @Override
         public CompassRangeDispatchProperty read(JsonObject json) {
-            String target = json.get("target").getAsString();
-            boolean wobble = !json.has("wobble") || json.get("wobble").getAsBoolean();
-            return new CompassRangeDispatchProperty(target, wobble);
+            return new CompassRangeDispatchProperty(
+                    json.get("target").getAsString(),
+                    !json.has("wobble") || json.get("wobble").getAsBoolean()
+            );
         }
     }
 }

@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
+import net.momirealms.craftengine.core.util.MiscUtils;
 
 import java.util.List;
 
@@ -46,20 +47,20 @@ public final class ChestSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<ChestSpecialModel> {
         @Override
         public ChestSpecialModel create(ConfigSection section) {
-            float openness = section.getFloat("openness");
-            String texture = section.getNonNullString("texture");
-            if (openness > 1 || openness < 0) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.special.chest.invalid_openness", String.valueOf(openness));
-            }
-            return new ChestSpecialModel(texture, openness);
+            return new ChestSpecialModel(
+                    section.getNonNullIdentifier("texture").asMinimalString(),
+                    MiscUtils.clamp(section.getFloat("openness"), 0f, 1f)
+            );
         }
     }
 
     private static class Reader implements SpecialModelReader<ChestSpecialModel> {
         @Override
         public ChestSpecialModel read(JsonObject json) {
-            float openness = json.has("openness") ? json.get("openness").getAsFloat() : 0;
-            return new ChestSpecialModel(json.get("texture").getAsString(), openness);
+            return new ChestSpecialModel(
+                    json.get("texture").getAsString(),
+                    json.has("openness") ? json.get("openness").getAsFloat() : 0
+            );
         }
     }
 }

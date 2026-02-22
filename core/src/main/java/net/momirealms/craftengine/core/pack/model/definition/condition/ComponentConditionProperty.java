@@ -2,7 +2,9 @@ package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.util.GsonHelper;
 
 public final class ComponentConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<ComponentConditionProperty> FACTORY = new Factory();
@@ -33,18 +35,17 @@ public final class ComponentConditionProperty implements ConditionProperty {
     private static class Factory implements ConditionPropertyFactory<ComponentConditionProperty> {
         @Override
         public ComponentConditionProperty create(ConfigSection section) {
-            String predicate = section.getNonNullString("predicate");
-            JsonElement jsonElement = section.getNonNullJson("value");
-            return new ComponentConditionProperty(predicate, jsonElement);
+            return new ComponentConditionProperty(
+                    section.getNonNullString("predicate"),
+                    section.getNonNull(it -> GsonHelper.get().toJsonTree(it), ConfigConstants.ARGUMENT_ANY, "value")
+            );
         }
     }
 
     private static class Reader implements ConditionPropertyReader<ComponentConditionProperty> {
         @Override
         public ComponentConditionProperty read(JsonObject json) {
-            String predicate = json.get("predicate").getAsString();
-            JsonElement value = json.get("value");
-            return new ComponentConditionProperty(predicate, value);
+            return new ComponentConditionProperty(json.get("predicate").getAsString(), json.get("value"));
         }
     }
 }

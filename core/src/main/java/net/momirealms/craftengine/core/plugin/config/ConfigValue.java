@@ -1,14 +1,20 @@
 package net.momirealms.craftengine.core.plugin.config;
 
+import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.pack.Identifier;
+import net.momirealms.craftengine.core.pack.model.definition.BaseItemModel;
+import net.momirealms.craftengine.core.pack.model.definition.ItemModel;
+import net.momirealms.craftengine.core.pack.model.definition.ItemModels;
+import net.momirealms.craftengine.core.pack.model.generation.display.DisplayMeta;
 import net.momirealms.craftengine.core.plugin.context.number.*;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.MiscUtils;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3f;
 
-import javax.swing.plaf.PanelUI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -186,7 +192,19 @@ public record ConfigValue(String path, @NotNull Object value) {
         if (this.value instanceof List<?> list) {
             return (List<Object>) list;
         }
-        throw new KnownResourceException(ConfigConstants.PARSE_LIST_FAILED, this.path, this.value.getClass().getSimpleName());
+        return List.of(this.value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Object> getAsNonEmptyList() {
+        if (this.value instanceof List<?> list) {
+            if (list.isEmpty()) {
+                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, this.path);
+            }
+            return (List<Object>) list;
+        } else {
+            return List.of(this.value);
+        }
     }
 
     public List<String> getAsStringList() {
@@ -198,6 +216,48 @@ public record ConfigValue(String path, @NotNull Object value) {
             return listStr;
         } else {
             return List.of(this.value.toString());
+        }
+    }
+
+    public ItemModel getAsItemModel() {
+        if (is(Map.class)) {
+            return ItemModels.fromConfig(getAsSection());
+        } else {
+            return new BaseItemModel(getAsIdentifier(), List.of(), null);
+        }
+    }
+
+    public DisplayMeta getAsDisplayMeta() {
+        ConfigSection section = getAsSection();
+        Vector3f rotation = section.getVector3f(null, "rotation");
+        Vector3f scale = section.getVector3f(null, "scale");
+        Vector3f translation = section.getVector3f(null, "translation");
+        return new DisplayMeta(rotation, scale, translation);
+    }
+
+    public Either<Integer, List<Float>> getAsTint() {
+        if (this.value instanceof Number number) {
+            return Either.left(number.intValue());
+        } else if (this.value instanceof List<?>) {
+            List<String> colorList = getAsStringList();
+            boolean hasDot = false;
+            for (String color : colorList) {
+                if (color.contains(".")) {
+                    hasDot = true;
+                    break;
+                }
+            }
+            List<Float> fList = new ArrayList<>();
+            for (String color : colorList) {
+                if (hasDot) {
+                    fList.add(MiscUtils.clamp(Float.parseFloat(color), 0f, 1f));
+                } else {
+                    fList.add(MiscUtils.clamp(Float.parseFloat(color) / 255f, 0f, 1f));
+                }
+            }
+            return Either.right(fList);
+        } else {
+            return Either.left(getAsColor().color());
         }
     }
 }

@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
+import net.momirealms.craftengine.core.util.MiscUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -56,23 +57,22 @@ public final class ShulkerBoxSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<ShulkerBoxSpecialModel> {
         @Override
         public ShulkerBoxSpecialModel create(ConfigSection section) {
-            float openness = section.getFloat("openness");
-            String texture = section.getNonNullString("texture");
-            Direction orientation = section.getEnum(Direction.class, "orientation");
-            if (openness > 1 || openness < 0) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.special.shulker_box.invalid_openness", String.valueOf(openness));
-            }
-            return new ShulkerBoxSpecialModel(texture, openness, orientation);
+            return new ShulkerBoxSpecialModel(
+                    section.getNonNullIdentifier("texture").asMinimalString(),
+                    MiscUtils.clamp(section.getFloat("openness"), 0f, 1f),
+                    section.getEnum(Direction.class, "orientation")
+            );
         }
     }
 
     private static class Reader implements SpecialModelReader<ShulkerBoxSpecialModel> {
         @Override
         public ShulkerBoxSpecialModel read(JsonObject json) {
-            float openness = json.has("openness") ? json.get("openness").getAsFloat() : 0f;
-            Direction orientation = json.has("orientation") ? Direction.valueOf(json.get("orientation").getAsString().toUpperCase(Locale.ENGLISH)) : null;
-            String texture = json.get("texture").getAsString();
-            return new ShulkerBoxSpecialModel(texture, openness, orientation);
+            return new ShulkerBoxSpecialModel(
+                    json.get("texture").getAsString(),
+                    json.has("openness") ? json.get("openness").getAsFloat() : 0f,
+                    json.has("orientation") ? Direction.valueOf(json.get("orientation").getAsString().toUpperCase(Locale.ROOT)) : null
+            );
         }
     }
 }

@@ -25,8 +25,7 @@ public final class SimpleConditionProperty implements ConditionProperty {
     private static class Factory implements ConditionPropertyFactory<SimpleConditionProperty> {
         @Override
         public SimpleConditionProperty create(ConfigSection section) {
-            Key type = section.getNonNullIdentifier("property");
-            return new SimpleConditionProperty(type);
+            return new SimpleConditionProperty(section.getNonNullIdentifier("property"));
         }
     }
 

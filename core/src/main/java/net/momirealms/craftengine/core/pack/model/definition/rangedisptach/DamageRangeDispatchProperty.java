@@ -41,16 +41,14 @@ public final class DamageRangeDispatchProperty implements RangeDispatchProperty,
     private static class Factory implements RangeDispatchPropertyFactory<DamageRangeDispatchProperty> {
         @Override
         public DamageRangeDispatchProperty create(ConfigSection section) {
-            boolean normalize = section.getBoolean(true, "normalize");
-            return new DamageRangeDispatchProperty(normalize);
+            return new DamageRangeDispatchProperty(section.getBoolean(true, "normalize"));
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<DamageRangeDispatchProperty> {
         @Override
         public DamageRangeDispatchProperty read(JsonObject json) {
-            boolean normalize = !json.has("normalize") || json.get("normalize").getAsBoolean();
-            return new DamageRangeDispatchProperty(normalize);
+            return new DamageRangeDispatchProperty(!json.has("normalize") || json.get("normalize").getAsBoolean());
         }
     }
 }

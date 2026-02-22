@@ -1,20 +1,17 @@
 package net.momirealms.craftengine.core.pack.model.definition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
-import java.util.List;
-import java.util.Map;
-
 public final class ItemModels {
+    private static final Key DEFAULT_MODEL_TYPE = Key.withDefaultNamespace("model");
     public static final ItemModelType<EmptyItemModel> EMPTY = register(Key.of("empty"), EmptyItemModel.FACTORY, EmptyItemModel.READER);
     public static final ItemModelType<BaseItemModel> MODEL = register(Key.of("model"), BaseItemModel.FACTORY, BaseItemModel.READER);
     public static final ItemModelType<CompositeItemModel> COMPOSITE = register(Key.of("composite"), CompositeItemModel.FACTORY, CompositeItemModel.READER);
@@ -33,20 +30,11 @@ public final class ItemModels {
         return type;
     }
 
-    public static ItemModel fromObj(String path, Object object) {
-        if (object == null) return null;
-        if (object instanceof Map<?,?> map) {
-            return fromMap(ConfigSection.of(path, MiscUtils.castToMap(map, false)));
-        } else {
-            return new BaseItemModel(object.toString(), List.of(), null);
-        }
-    }
-
-    public static ItemModel fromMap(ConfigSection section) {
-        Key type = section.getIdentifier(ConfigConstants.DEFAULT_MODEL_TYPE, "type");
+    public static ItemModel fromConfig(ConfigSection section) {
+        Key type = section.getIdentifier(DEFAULT_MODEL_TYPE, "type");
         ItemModelType<? extends ItemModel> itemModelType = BuiltInRegistries.ITEM_MODEL_TYPE.getValue(type);
         if (itemModelType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.invalid_type", type.asString());
+            throw new KnownResourceException("resource.item.model_definition.unknown_type", section.assemblePath("type"), type.asString());
         }
         return itemModelType.factory().create(section);
     }

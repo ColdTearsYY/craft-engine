@@ -36,16 +36,14 @@ public final class BedSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<BedSpecialModel> {
         @Override
         public BedSpecialModel create(ConfigSection section) {
-            String texture = section.getNonNullString("texture");
-            return new BedSpecialModel(texture);
+            return new BedSpecialModel(section.getNonNullIdentifier("texture").asMinimalString());
         }
     }
 
     private static class Reader implements SpecialModelReader<BedSpecialModel> {
         @Override
         public BedSpecialModel read(JsonObject json) {
-            String texture = json.get("texture").getAsString();
-            return new BedSpecialModel(texture);
+            return new BedSpecialModel(json.get("texture").getAsString());
         }
     }
 }

@@ -25,16 +25,14 @@ public final class SimpleSelectProperty implements SelectProperty {
     private static class Factory implements SelectPropertyFactory<SimpleSelectProperty> {
         @Override
         public SimpleSelectProperty create(ConfigSection section) {
-            Key type = section.getNonNullIdentifier("property");
-            return new SimpleSelectProperty(type);
+            return new SimpleSelectProperty(section.getNonNullIdentifier("property"));
         }
     }
 
     private static class Reader implements SelectPropertyReader<SimpleSelectProperty> {
         @Override
         public SimpleSelectProperty read(JsonObject json) {
-            Key type = Key.of(json.get("property").getAsString());
-            return new SimpleSelectProperty(type);
+            return new SimpleSelectProperty(Key.of(json.get("property").getAsString()));
         }
     }
 }

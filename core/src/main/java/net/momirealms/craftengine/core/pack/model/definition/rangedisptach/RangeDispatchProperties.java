@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -30,18 +31,17 @@ public final class RangeDispatchProperties {
         return type;
     }
 
-    public static RangeDispatchProperty fromMap(ConfigSection section) {
+    public static RangeDispatchProperty fromConfig(ConfigSection section) {
         Key type = section.getNonNullIdentifier("property");
         RangeDispatchPropertyType<? extends RangeDispatchProperty> propertyType = BuiltInRegistries.RANGE_DISPATCH_PROPERTY_TYPE.getValue(type);
         if (propertyType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.range_dispatch.invalid_property", type.asString());
+            throw new KnownResourceException("resource.item.model_definition.range_dispatch.unknown_type", section.assemblePath("property"), type.asString());
         }
         return propertyType.factory().create(section);
     }
 
     public static RangeDispatchProperty fromJson(JsonObject json) {
-        String type = json.get("property").getAsString();
-        Key key = Key.withDefaultNamespace(type, "minecraft");
+        Key key = Key.of(json.get("property").getAsString());
         RangeDispatchPropertyType<? extends RangeDispatchProperty> propertyType = BuiltInRegistries.RANGE_DISPATCH_PROPERTY_TYPE.getValue(key);
         if (propertyType == null) {
             throw new IllegalArgumentException("Invalid range dispatch property type: " + key);

@@ -18,10 +18,10 @@ public final class SpecialItemModel implements ItemModel {
     public static final ItemModelFactory<SpecialItemModel> FACTORY = new Factory();
     public static final ItemModelReader<SpecialItemModel> READER = new Reader();
     private final SpecialModel specialModel;
-    private final String base;
+    private final Key base;
     private final ModelGeneration modelGeneration;
 
-    public SpecialItemModel(SpecialModel specialModel, String base, @Nullable ModelGeneration generation) {
+    public SpecialItemModel(SpecialModel specialModel, Key base, @Nullable ModelGeneration generation) {
         this.specialModel = specialModel;
         this.base = base;
         this.modelGeneration = generation;
@@ -36,7 +36,7 @@ public final class SpecialItemModel implements ItemModel {
         return this.modelGeneration;
     }
 
-    public String base() {
+    public Key base() {
         return this.base;
     }
 
@@ -45,7 +45,7 @@ public final class SpecialItemModel implements ItemModel {
         JsonObject json = new JsonObject();
         json.addProperty("type", "special");
         json.add("model", this.specialModel.apply(version));
-        json.addProperty("base", this.base);
+        json.addProperty("base", this.base.asMinimalString());
         return json;
     }
 
@@ -67,14 +67,11 @@ public final class SpecialItemModel implements ItemModel {
 
         @Override
         public SpecialItemModel create(ConfigSection section) {
-            String base = section.getNonNullString("base", "path");
-            if (!Identifier.isValid(base)) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.special.invalid_path", base);
-            }
+            Key base = section.getNonNullIdentifier("base", "path");
             ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
-                modelGeneration = ModelGeneration.of(Key.of(base), generation);
+                modelGeneration = ModelGeneration.of(base, generation);
             }
             return new SpecialItemModel(SpecialModels.fromMap(section.getNonNullSection("model")), base, modelGeneration);
         }
@@ -84,9 +81,11 @@ public final class SpecialItemModel implements ItemModel {
 
         @Override
         public SpecialItemModel read(JsonObject json) {
-            String base = json.get("base").getAsString();
-            SpecialModel sm = SpecialModels.fromJson(json.getAsJsonObject("model"));
-            return new SpecialItemModel(sm, base, null);
+            return new SpecialItemModel(
+                    SpecialModels.fromJson(json.getAsJsonObject("model")),
+                    Key.of(json.get("base").getAsString()),
+                    null
+            );
         }
     }
 }

@@ -25,16 +25,14 @@ public final class ComponentSelectProperty implements SelectProperty {
     private static class Factory implements SelectPropertyFactory<ComponentSelectProperty> {
         @Override
         public ComponentSelectProperty create(ConfigSection section) {
-            String component = section.getNonNullString("component");
-            return new ComponentSelectProperty(component);
+            return new ComponentSelectProperty(section.getNonNullString("component"));
         }
     }
 
     private static class Reader implements SelectPropertyReader<ComponentSelectProperty> {
         @Override
         public ComponentSelectProperty read(JsonObject json) {
-            String component = json.get("component").getAsString();
-            return new ComponentSelectProperty(component);
+            return new ComponentSelectProperty(json.get("component").getAsString());
         }
     }
 }

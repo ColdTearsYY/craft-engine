@@ -4,70 +4,24 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.display.DisplayMeta;
 import net.momirealms.craftengine.core.pack.model.generation.display.DisplayPosition;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.util.EnumUtils;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 public final class ModelGeneration implements Supplier<JsonObject> {
-    private static final Map<String, BiConsumer<Builder, Object>> BUILDER_FUNCTIONS = new HashMap<>();
-    static {
-        BUILDER_FUNCTIONS.put("textures", (b, data) -> {
-            Map<String, Object> texturesMap = MiscUtils.castToMap(data, false);
-            Map<String, String> texturesOverride = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : texturesMap.entrySet()) {
-                if (entry.getValue() instanceof String p) {
-                    texturesOverride.put(entry.getKey(), p);
-                }
-            }
-            b.texturesOverride(texturesOverride);
-        });
-        BUILDER_FUNCTIONS.put("display", (b, data) -> {
-            Map<String, Object> displayMap = MiscUtils.castToMap(data, false);
-            Map<DisplayPosition, DisplayMeta> displays = new EnumMap<>(DisplayPosition.class);
-            for (Map.Entry<String, Object> entry : displayMap.entrySet()) {
-                try {
-                    DisplayPosition displayPosition = DisplayPosition.valueOf(entry.getKey().toUpperCase(Locale.ENGLISH));
-                    if (entry.getValue() instanceof Map<?,?> metaMap) {
-                        displays.put(displayPosition, DisplayMeta.fromMap(MiscUtils.castToMap(metaMap, false)));
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new LocalizedResourceConfigException("warning.config.model.generation.invalid_display_position", e, entry.getKey(), EnumUtils.toString(DisplayPosition.values()));
-                }
-            }
-            b.displays(displays);
-        });
-        BUILDER_FUNCTIONS.put("gui-light", (b, data) -> {
-            String guiLightStr = String.valueOf(data);
-            try {
-                GuiLight guiLight = GuiLight.valueOf(guiLightStr.toUpperCase(Locale.ENGLISH));
-                b.guiLight(guiLight);
-            } catch (IllegalArgumentException e) {
-                throw new LocalizedResourceConfigException("warning.config.model.generation.invalid_gui_light", e, guiLightStr, EnumUtils.toString(GuiLight.values()));
-            }
-        });
-        BUILDER_FUNCTIONS.put("ambient-occlusion", (b, data) -> {
-           b.ambientOcclusion(ResourceConfigUtils.getAsBoolean(data, "ambient-occlusion"));
-        });
-        BUILDER_FUNCTIONS.put("parent", (b, data) -> {
-            String parentModelPath = data.toString();
-            b.parentModelPath(parentModelPath);
-        });
-    }
-
     @NotNull
     private final Key path;
     @NotNull
-    private final String parentModelPath;
+    private final Key parentModelPath;
     @Nullable
     private final Map<String, String> texturesOverride;
     @Nullable
@@ -75,58 +29,78 @@ public final class ModelGeneration implements Supplier<JsonObject> {
     @Nullable
     private final GuiLight guiLight;
     @Nullable
-    private final Boolean ambientOcclusion;
-    @Nullable
     private JsonObject cachedModel;
 
     public ModelGeneration(@NotNull Key path,
-                           @NotNull String parentModelPath,
+                           @NotNull Key parentModelPath,
                            @Nullable Map<String, String> texturesOverride,
                            @Nullable Map<DisplayPosition, DisplayMeta> displays,
-                           @Nullable GuiLight guiLight,
-                           @Nullable Boolean ambientOcclusion) {
+                           @Nullable GuiLight guiLight) {
         this.path = path;
         this.parentModelPath = parentModelPath;
         this.texturesOverride = texturesOverride;
         this.displays = displays;
         this.guiLight = guiLight;
-        this.ambientOcclusion = ambientOcclusion;
     }
 
     public static ModelGeneration of(Key path, ConfigSection section) {
-        Builder builder = builder().path(path);
-        for (Map.Entry<String, Object> entry : section.values().entrySet()) {
-            Optional.ofNullable(BUILDER_FUNCTIONS.get(entry.getKey())).ifPresent(it -> it.accept(builder, entry.getValue()));
-        }
-        return builder.build();
+        return builder()
+                .path(path)
+                .parentModelPath(section.getNonNullIdentifier("parent"))
+                .guiLight(section.getEnum(null, GuiLight.class, "gui_light", "gui-light"))
+                .displays(section.getValue(v -> {
+                    Map<DisplayPosition, DisplayMeta> displays = new EnumMap<>(DisplayPosition.class);
+                    ConfigSection displaySection = v.getAsSection();
+                    for (String displayType : displaySection.keySet()) {
+                        DisplayPosition position;
+                        try {
+                            position = DisplayPosition.valueOf(displayType.toUpperCase(Locale.ROOT));
+                        } catch (IllegalArgumentException e) {
+                            throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, displaySection.path(), displayType, EnumUtils.toString(DisplayPosition.values()));
+                        }
+                        displays.put(position, displaySection.getValue(ConfigValue::getAsDisplayMeta, displayType));
+                    }
+                    return displays;
+                }, "display"))
+                .texturesOverride(section.getValue(v -> {
+                    ConfigSection texturesSection = v.getAsSection();
+                    Map<String, String> texturesOverride = new LinkedHashMap<>();
+                    for (String key : texturesSection.keySet()) {
+                        ConfigValue configValue = texturesSection.getValue(key);
+                        assert configValue != null;
+                        String value = configValue.getAsString();
+                        if (value.charAt(0) == '#') {
+                            texturesOverride.put(key, value);
+                        } else {
+                            texturesOverride.put(key, configValue.getAsIdentifier().asMinimalString());
+                        }
+                    }
+                    return texturesOverride;
+                }, "textures"))
+                .build();
     }
 
     @Nullable
     public Map<String, String> texturesOverride() {
-        return texturesOverride;
+        return this.texturesOverride;
     }
 
     public Key path() {
-        return path;
+        return this.path;
     }
 
-    public String parentModelPath() {
-        return parentModelPath;
+    public Key parentModelPath() {
+        return this.parentModelPath;
     }
 
     @Nullable
     public Map<DisplayPosition, DisplayMeta> displays() {
-        return displays;
+        return this.displays;
     }
 
     @Nullable
     public GuiLight guiLight() {
-        return guiLight;
-    }
-
-    @Nullable
-    public Boolean ambientOcclusion() {
-        return ambientOcclusion;
+        return this.guiLight;
     }
 
     @Override
@@ -139,7 +113,7 @@ public final class ModelGeneration implements Supplier<JsonObject> {
 
     private JsonObject getCachedModel() {
         JsonObject model = new JsonObject();
-        model.addProperty("parent", this.parentModelPath);
+        model.addProperty("parent", this.parentModelPath.asMinimalString());
         if (this.texturesOverride != null) {
             JsonObject textures = new JsonObject();
             for (Map.Entry<String, String> entry : this.texturesOverride.entrySet()) {
@@ -158,12 +132,12 @@ public final class ModelGeneration implements Supplier<JsonObject> {
                     displayMetadata.add("translation", vectorToJsonArray(meta.translation()));
                 if (meta.scale() != null)
                     displayMetadata.add("scale", vectorToJsonArray(meta.scale()));
-                displays.add(entry.getKey().name().toLowerCase(Locale.ENGLISH), displayMetadata);
+                displays.add(entry.getKey().name().toLowerCase(Locale.ROOT), displayMetadata);
             }
             model.add("display", displays);
         }
         if (this.guiLight != null) {
-            model.addProperty("gui_light", this.guiLight.name().toLowerCase(Locale.ENGLISH));
+            model.addProperty("gui_light", this.guiLight.name().toLowerCase(Locale.ROOT));
         }
         return model;
     }
@@ -182,7 +156,7 @@ public final class ModelGeneration implements Supplier<JsonObject> {
         if (o == null || getClass() != o.getClass()) return false;
         ModelGeneration that = (ModelGeneration) o;
         return this.path.equals(that.path) && parentModelPath.equals(that.parentModelPath) && Objects.equals(texturesOverride, that.texturesOverride)
-                && Objects.equals(displays, that.displays) && Objects.equals(ambientOcclusion, that.ambientOcclusion) && Objects.equals(guiLight, that.guiLight);
+                && Objects.equals(displays, that.displays) && Objects.equals(guiLight, that.guiLight);
     }
 
     @Override
@@ -198,24 +172,23 @@ public final class ModelGeneration implements Supplier<JsonObject> {
 
     public static class Builder {
         private Key path;
-        private String parentModelPath;
+        private Key parentModelPath;
         @Nullable
         private Map<String, String> texturesOverride;
         @Nullable
         private Map<DisplayPosition, DisplayMeta> displays;
         @Nullable
         private GuiLight guiLight;
-        @Nullable
-        private Boolean ambientOcclusion;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         public Builder path(Key key) {
             this.path = key;
             return this;
         }
 
-        public Builder parentModelPath(String parentModelPath) {
+        public Builder parentModelPath(Key parentModelPath) {
             this.parentModelPath = parentModelPath;
             return this;
         }
@@ -235,16 +208,8 @@ public final class ModelGeneration implements Supplier<JsonObject> {
             return this;
         }
 
-        public Builder ambientOcclusion(Boolean ambientOcclusion) {
-            this.ambientOcclusion = ambientOcclusion;
-            return this;
-        }
-
         public ModelGeneration build() {
-            if (this.parentModelPath == null) {
-                throw new LocalizedResourceConfigException("warning.config.model.generation.missing_parent");
-            }
-            return new ModelGeneration(Objects.requireNonNull(this.path, "path should be nonnull"), this.parentModelPath, this.texturesOverride, this.displays, this.guiLight, this.ambientOcclusion);
+            return new ModelGeneration(this.path, this.parentModelPath, this.texturesOverride, this.displays, this.guiLight);
         }
     }
 }

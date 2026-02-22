@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import org.incendo.cloud.type.Either;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public final class ConstantTint implements Tint {
     private static class Factory implements TintFactory<ConstantTint> {
         @Override
         public ConstantTint create(ConfigSection section) {
+            ConfigValue
             Either<Integer, List<Float>> value = section.getNonNull(this::parseTintValue, "warning.config.item.model.tint.constant.missing_value", "value", "default");
             return new ConstantTint(value);
         }

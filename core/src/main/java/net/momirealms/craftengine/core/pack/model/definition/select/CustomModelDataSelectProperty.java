@@ -25,16 +25,14 @@ public final class CustomModelDataSelectProperty implements SelectProperty {
     private static class Factory implements SelectPropertyFactory<CustomModelDataSelectProperty> {
         @Override
         public CustomModelDataSelectProperty create(ConfigSection section) {
-            int index = section.getInt("index");
-            return new CustomModelDataSelectProperty(index);
+            return new CustomModelDataSelectProperty(section.getInt("index"));
         }
     }
 
     private static class Reader implements SelectPropertyReader<CustomModelDataSelectProperty> {
         @Override
         public CustomModelDataSelectProperty read(JsonObject json) {
-            int index = json.has("index") ? json.get("index").getAsInt() : 0;
-            return new CustomModelDataSelectProperty(index);
+            return new CustomModelDataSelectProperty(json.has("index") ? json.get("index").getAsInt() : 0);
         }
     }
 }

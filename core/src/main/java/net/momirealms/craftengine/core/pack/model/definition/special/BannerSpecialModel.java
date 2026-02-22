@@ -36,16 +36,14 @@ public final class BannerSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<BannerSpecialModel> {
         @Override
         public BannerSpecialModel create(ConfigSection section) {
-            String color = section.getNonNullString("color");
-            return new BannerSpecialModel(color);
+            return new BannerSpecialModel(section.getNonNullString("color"));
         }
     }
 
     private static class Reader implements SpecialModelReader<BannerSpecialModel> {
         @Override
         public BannerSpecialModel read(JsonObject json) {
-            String color = json.get("color").getAsString();
-            return new BannerSpecialModel(color);
+            return new BannerSpecialModel(json.get("color").getAsString());
         }
     }
 }

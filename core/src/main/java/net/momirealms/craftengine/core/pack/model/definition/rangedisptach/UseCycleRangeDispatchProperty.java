@@ -25,16 +25,14 @@ public final class UseCycleRangeDispatchProperty implements RangeDispatchPropert
     private static class Factory implements RangeDispatchPropertyFactory<UseCycleRangeDispatchProperty> {
         @Override
         public UseCycleRangeDispatchProperty create(ConfigSection section) {
-            float period = section.getFloat("source");
-            return new UseCycleRangeDispatchProperty(period);
+            return new UseCycleRangeDispatchProperty(section.getFloat("source"));
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<UseCycleRangeDispatchProperty> {
         @Override
         public UseCycleRangeDispatchProperty read(JsonObject json) {
-            float period = json.has("period") ? json.get("period").getAsFloat() : 1.0f;
-            return new UseCycleRangeDispatchProperty(period);
+            return new UseCycleRangeDispatchProperty(json.has("period") ? json.get("period").getAsFloat() : 1.0f);
         }
     }
 }

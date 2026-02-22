@@ -34,18 +34,20 @@ public final class HasComponentConditionProperty implements ConditionProperty {
     private static class Factory implements ConditionPropertyFactory<HasComponentConditionProperty> {
         @Override
         public HasComponentConditionProperty create(ConfigSection section) {
-            boolean ignoreDefault = section.getBoolean("ignore-default");
-            String component = section.getNonNullString("component");
-            return new HasComponentConditionProperty(component, ignoreDefault);
+            return new HasComponentConditionProperty(
+                    section.getNonNullString("component"),
+                    section.getBoolean("ignore_default", "ignore-default")
+            );
         }
     }
 
     private static class Reader implements ConditionPropertyReader<HasComponentConditionProperty> {
         @Override
         public HasComponentConditionProperty read(JsonObject json) {
-            String component = json.get("component").getAsString();
-            boolean ignoreDefault = json.has("ignore_default") && json.get("ignore_default").getAsBoolean();
-            return new HasComponentConditionProperty(component, ignoreDefault);
+            return new HasComponentConditionProperty(
+                    json.get("component").getAsString(),
+                    json.has("ignore_default") && json.get("ignore_default").getAsBoolean()
+            );
         }
     }
 }

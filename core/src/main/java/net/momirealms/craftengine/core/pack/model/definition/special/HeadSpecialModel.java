@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
 import java.util.List;
@@ -54,20 +55,22 @@ public final class HeadSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<HeadSpecialModel> {
         @Override
         public HeadSpecialModel create(ConfigSection section) {
-            String kind = section.getNonNullString("kind");
-            String texture = section.getString("texture");
-            float animation = section.getFloat("animation");
-            return new HeadSpecialModel(kind, texture, animation);
+            return new HeadSpecialModel(
+                    section.getNonNullString("kind"),
+                    section.getValue(v -> v.getAsIdentifier().asMinimalString(), "texture"),
+                    section.getFloat("animation")
+            );
         }
     }
 
     private static class Reader implements SpecialModelReader<HeadSpecialModel> {
         @Override
         public HeadSpecialModel read(JsonObject json) {
-            String kind = json.get("kind").getAsString();
-            String texture = json.has("texture") ? json.get("texture").getAsString() : null;
-            float animation = json.has("animation") ? json.get("animation").getAsFloat() : 0f;
-            return new HeadSpecialModel(kind, texture, animation);
+            return new HeadSpecialModel(
+                    json.get("kind").getAsString(),
+                    json.has("texture") ? json.get("texture").getAsString() : null,
+                    json.has("animation") ? json.get("animation").getAsFloat() : 0f
+            );
         }
     }
 }

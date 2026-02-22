@@ -25,16 +25,14 @@ public final class KeyBindDownConditionProperty implements ConditionProperty {
     private static class Factory implements ConditionPropertyFactory<KeyBindDownConditionProperty> {
         @Override
         public KeyBindDownConditionProperty create(ConfigSection section) {
-            String keybind = section.getNonNullString("keybind");
-            return new KeyBindDownConditionProperty(keybind);
+            return new KeyBindDownConditionProperty(section.getNonNullString("keybind"));
         }
     }
 
     private static class Reader implements ConditionPropertyReader<KeyBindDownConditionProperty> {
         @Override
         public KeyBindDownConditionProperty read(JsonObject json) {
-            String keybind = json.get("keybind").getAsString();
-            return new KeyBindDownConditionProperty(keybind);
+            return new KeyBindDownConditionProperty(json.get("keybind").getAsString());
         }
     }
 }

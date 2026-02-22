@@ -36,16 +36,14 @@ public final class SimpleSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<SimpleSpecialModel> {
         @Override
         public SimpleSpecialModel create(ConfigSection section) {
-            Key type = section.getNonNullIdentifier("type");
-            return new SimpleSpecialModel(type);
+            return new SimpleSpecialModel(section.getNonNullIdentifier("type"));
         }
     }
 
     private static class Reader implements SpecialModelReader<SimpleSpecialModel> {
         @Override
         public SimpleSpecialModel read(JsonObject json) {
-            Key type = Key.of(json.get("type").getAsString());
-            return new SimpleSpecialModel(type);
+            return new SimpleSpecialModel(Key.of(json.get("type").getAsString()));
         }
     }
 }

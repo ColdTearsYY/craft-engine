@@ -37,16 +37,14 @@ public final class CustomModelDataRangeDispatchProperty implements RangeDispatch
     private static class Factory implements RangeDispatchPropertyFactory<CustomModelDataRangeDispatchProperty> {
         @Override
         public CustomModelDataRangeDispatchProperty create(ConfigSection section) {
-            int index = section.getInt("index");
-            return new CustomModelDataRangeDispatchProperty(index);
+            return new CustomModelDataRangeDispatchProperty(section.getInt("index"));
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<CustomModelDataRangeDispatchProperty> {
         @Override
         public CustomModelDataRangeDispatchProperty read(JsonObject json) {
-            int index = json.has("index") ? json.get("index").getAsInt() : 0;
-            return new CustomModelDataRangeDispatchProperty(index);
+            return new CustomModelDataRangeDispatchProperty(json.has("index") ? json.get("index").getAsInt() : 0);
         }
     }
 }

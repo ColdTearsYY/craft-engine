@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -33,11 +34,11 @@ public final class ConditionProperties {
         return type;
     }
 
-    public static ConditionProperty fromMap(ConfigSection section) {
+    public static ConditionProperty fromConfig(ConfigSection section) {
         Key type = section.getNonNullIdentifier("property");
         ConditionPropertyType<? extends ConditionProperty> propertyType = BuiltInRegistries.CONDITION_PROPERTY_TYPE.getValue(type);
         if (propertyType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.condition.invalid_property", type.asString());
+            throw new KnownResourceException("resource.item.model_definition.condition.unknown_type", section.assemblePath("property"), type.asString());
         }
         return propertyType.factory().create(section);
     }

@@ -50,10 +50,11 @@ public final class SignSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<SignSpecialModel> {
         @Override
         public SignSpecialModel create(ConfigSection section) {
-            Key type = section.getNonNullIdentifier("type");
-            String woodType = section.getNonNullString("wood-type", "wood_type");
-            String texture = section.getNonNullString("texture");
-            return new SignSpecialModel(type, woodType, texture);
+            return new SignSpecialModel(
+                    section.getNonNullIdentifier("type"),
+                    section.getNonNullString("wood_type", "wood-type"),
+                    section.getNonNullString("texture")
+            );
         }
     }
 

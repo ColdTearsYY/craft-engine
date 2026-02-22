@@ -43,18 +43,17 @@ public final class CopperGolemStatueSpecialModel implements SpecialModel {
     private static class Factory implements SpecialModelFactory<CopperGolemStatueSpecialModel> {
         @Override
         public CopperGolemStatueSpecialModel create(ConfigSection section) {
-            String pose = section.getNonNullString("pose");
-            String texture = section.getNonNullString("texture");
-            return new CopperGolemStatueSpecialModel(pose, texture);
+            return new CopperGolemStatueSpecialModel(
+                    section.getNonNullString("pose"),
+                    section.getNonNullIdentifier("texture").asMinimalString()
+            );
         }
     }
 
     private static class Reader implements SpecialModelReader<CopperGolemStatueSpecialModel> {
         @Override
         public CopperGolemStatueSpecialModel read(JsonObject json) {
-            String pose = json.get("pose").getAsString();
-            String texture = json.get("texture").getAsString();
-            return new CopperGolemStatueSpecialModel(pose, texture);
+            return new CopperGolemStatueSpecialModel(json.get("pose").getAsString(), json.get("texture").getAsString());
         }
     }
 }

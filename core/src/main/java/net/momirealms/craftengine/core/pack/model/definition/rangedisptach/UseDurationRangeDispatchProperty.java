@@ -41,16 +41,14 @@ public final class UseDurationRangeDispatchProperty implements RangeDispatchProp
     private static class Factory implements RangeDispatchPropertyFactory<UseDurationRangeDispatchProperty> {
         @Override
         public UseDurationRangeDispatchProperty create(ConfigSection section) {
-            boolean remaining = section.getBoolean("remaining");
-            return new UseDurationRangeDispatchProperty(remaining);
+            return new UseDurationRangeDispatchProperty(section.getBoolean("remaining"));
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<UseDurationRangeDispatchProperty> {
         @Override
         public UseDurationRangeDispatchProperty read(JsonObject json) {
-            boolean remaining = json.has("remaining") && json.get("remaining").getAsBoolean();
-            return new UseDurationRangeDispatchProperty(remaining);
+            return new UseDurationRangeDispatchProperty(json.has("remaining") && json.get("remaining").getAsBoolean());
         }
     }
 }
