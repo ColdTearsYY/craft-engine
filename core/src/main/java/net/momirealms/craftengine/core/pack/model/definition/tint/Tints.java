@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -33,7 +34,7 @@ public final class Tints {
         Key key = Key.withDefaultNamespace(type, "minecraft");
         TintType<? extends Tint> tintType = BuiltInRegistries.TINT_TYPE.getValue(key);
         if (tintType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.model.tint.invalid_type", type);
+            throw new KnownResourceException("resource.item.model_definition.tint.unknown_type", section.assemblePath("type"), type);
         }
         return tintType.factory().create(section);
     }

@@ -1,8 +1,9 @@
 package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import org.incendo.cloud.type.Either;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 
 import java.util.List;
 
@@ -31,16 +32,17 @@ public final class CustomModelDataTint implements Tint {
         json.addProperty("type", "custom_model_data");
         if (this.index != 0)
             json.addProperty("index", this.index);
-        applyAnyTint(json, this.value, "default");
+        applyTint(json, this.value, "default");
         return json;
     }
 
     private static class Factory implements TintFactory<CustomModelDataTint> {
         @Override
         public CustomModelDataTint create(ConfigSection section) {
-            Either<Integer, List<Float>> value = section.getOrDefault(this::parseTintValue, Either.ofPrimary(0), "default", "value");
-            int index = section.getInt("index");
-            return new CustomModelDataTint(value, index);
+            return new CustomModelDataTint(
+                    section.getValue(ConfigValue::getAsTint, "default", "value"),
+                    section.getInt("index")
+            );
         }
     }
 

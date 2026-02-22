@@ -2,27 +2,23 @@ package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.incendo.cloud.type.Either;
+import com.mojang.datafixers.util.Either;
 
 import java.util.List;
 import java.util.function.Supplier;
 
 public interface Tint extends Supplier<JsonObject> {
 
-    default void applyAnyTint(JsonObject json, Either<Integer, List<Float>> value, String key) {
+    default void applyTint(JsonObject json, Either<Integer, List<Float>> value, String key) {
         if (value == null) return;
-        if (value.primary().isPresent()) {
-            json.addProperty(key, value.primary().get());
-        } else {
-            List<Float> list = value.fallback().get();
-            if (list.size() != 3) {
-                throw new RuntimeException("Invalid tint value list size: " + list.size() + " which is expected to be 3");
-            }
+        value.ifLeft(i -> {
+            json.addProperty(key, i);
+        }).ifRight(list -> {
             JsonArray array = new JsonArray();
             for (float i : list) {
                 array.add(i);
             }
             json.add(key, array);
-        }
+        });
     }
 }

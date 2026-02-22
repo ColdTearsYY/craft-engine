@@ -2,7 +2,7 @@ package net.momirealms.craftengine.core.pack.model.definition.tint;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.util.MiscUtils;
 
 public final class GrassTint implements Tint {
     public static final TintFactory<GrassTint> FACTORY = new Factory();
@@ -36,24 +36,20 @@ public final class GrassTint implements Tint {
 
         @Override
         public GrassTint create(ConfigSection section) {
-            float temperature = section.getFloat("temperature");
-            float downfall = section.getFloat("downfall");
-            if (temperature > 1 || temperature < 0) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.tint.grass.invalid_temp", String.valueOf(temperature));
-            }
-            if (downfall > 1 || downfall < 0) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.tint.grass.invalid_downfall", String.valueOf(downfall));
-            }
-            return new GrassTint(temperature, downfall);
+            return new GrassTint(
+                    MiscUtils.clamp(section.getFloat("temperature"), 0f, 1f),
+                    MiscUtils.clamp(section.getFloat("downfall"), 0f, 1f)
+            );
         }
     }
 
     private static class Reader implements TintReader<GrassTint> {
         @Override
         public GrassTint read(JsonObject json) {
-            float temperature = json.has("temperature") ? json.get("temperature").getAsFloat() : 0;
-            float downfall = json.has("downfall") ? json.get("downfall").getAsFloat() : 0;
-            return new GrassTint(temperature, downfall);
+            return new GrassTint(
+                    json.has("temperature") ? json.get("temperature").getAsFloat() : 0,
+                    json.has("downfall") ? json.get("downfall").getAsFloat() : 0
+            );
         }
     }
 }

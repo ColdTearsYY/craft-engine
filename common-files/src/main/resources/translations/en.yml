@@ -142,4 +142,5 @@ resource.item.model_definition.condition.unknown_type: "Unknown condition proper
 resource.item.model_definition.range_dispatch.unknown_type: "Unknown range_dispatch property type '<arg:0>'"
 resource.item.model_definition.select.unknown_type: "Unknown select property type '<arg:0>'"
 resource.item.model_definition.special.unknown_type: "Unknown special model type '<arg:0>'"
+resource.item.model_definition.tint.unknown_type: "Unknown tint type '<arg:0>'"
 resource.model.generation.conflict: "Failed to generate model for '<arg:0>' as two or more configurations attempt to generate different json models with the same path"
