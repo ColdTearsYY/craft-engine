@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import net.momirealms.craftengine.core.util.MiscUtils;

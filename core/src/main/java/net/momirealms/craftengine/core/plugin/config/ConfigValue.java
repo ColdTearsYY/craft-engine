@@ -1,13 +1,17 @@
 package net.momirealms.craftengine.core.plugin.config;
 
 import com.mojang.datafixers.util.Either;
+import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.item.setting.EquipmentData;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.model.definition.BaseItemModel;
 import net.momirealms.craftengine.core.pack.model.definition.ItemModel;
 import net.momirealms.craftengine.core.pack.model.definition.ItemModels;
 import net.momirealms.craftengine.core.pack.model.generation.display.DisplayMeta;
 import net.momirealms.craftengine.core.plugin.context.number.*;
+import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
+import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
@@ -18,6 +22,7 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public record ConfigValue(String path, @NotNull Object value) {
 
@@ -43,6 +48,10 @@ public record ConfigValue(String path, @NotNull Object value) {
 
     public String getAsString() {
         return this.value.toString();
+    }
+
+    public TextProvider getAsTextProvider() {
+        return TextProviders.fromString(getAsString());
     }
 
     public SoundData.SoundValue getAsSoundValue() {
@@ -84,6 +93,22 @@ public record ConfigValue(String path, @NotNull Object value) {
             return new SoundData(soundId, volume, pitch);
         } else {
             return new SoundData(getAsIdentifier(), volume, pitch);
+        }
+    }
+
+    public int getAsInt() {
+        switch (this.value) {
+            case Integer i -> { return i; }
+            case Number n -> { return n.intValue(); }
+            case String s -> {
+                try {
+                    return Integer.parseInt(s.replace("_", ""));
+                } catch (NumberFormatException e) {
+                    throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.path, s);
+                }
+            }
+            case Boolean b -> { return b ? 1 : 0; }
+            default -> throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.path, this.value.toString());
         }
     }
 
@@ -188,11 +213,29 @@ public record ConfigValue(String path, @NotNull Object value) {
     }
 
     @SuppressWarnings("unchecked")
+    public Map<String, Object> getAsMap() {
+        if (this.value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.path, this.value.getClass().getSimpleName());
+    }
+
+    @SuppressWarnings("unchecked")
     public List<Object> getAsList() {
         if (this.value instanceof List<?> list) {
             return (List<Object>) list;
         }
         return List.of(this.value);
+    }
+
+    public <T> List<T> parseAsList(Function<ConfigValue, T> convertor) {
+        List<Object> asList = getAsList();
+        List<T> converted = new ArrayList<>(asList.size());
+        for (int i = 0; i < asList.size(); i++) {
+            ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+            converted.add(convertor.apply(innerValue));
+        }
+        return converted;
     }
 
     @SuppressWarnings("unchecked")
@@ -259,5 +302,18 @@ public record ConfigValue(String path, @NotNull Object value) {
         } else {
             return Either.left(getAsColor().color());
         }
+    }
+
+    public EquipmentData getAsEquipmentData() {
+        ConfigSection section = getAsSection();
+        EquipmentSlot slot = section.getNonNullEnum(EquipmentSlot.class, "slot");
+        Key assetId = section.getIdentifier("asset_id", "asset-id");
+        Key cameraOverlay = section.getIdentifier("camera_overlay", "camera-overlay");
+        boolean dispensable = section.getBoolean(true, "dispensable");
+        boolean swappable = section.getBoolean(true, "swappable");
+        boolean equipOnInteract = section.getBoolean("equip_on_interact", "equip-on-interact");
+        boolean damageOnHurt = section.getBoolean(true, "damage_on_hurt", "damage-on-hurt");
+        boolean canBeSheared = section.getBoolean("can_be_sheared", "can-be-sheared");
+        return new EquipmentData(slot, assetId, dispensable, swappable, damageOnHurt, equipOnInteract, canBeSheared, cameraOverlay);
     }
 }

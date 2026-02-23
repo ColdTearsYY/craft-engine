@@ -2,15 +2,11 @@ package net.momirealms.craftengine.core.loot.entry;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
-
-import java.util.Map;
 
 public final class LootEntryContainers {
     public static final LootEntryContainerType<?> ALTERNATIVES = register(Key.ce("alternatives"), AlternativesLootEntryContainer.FACTORY);

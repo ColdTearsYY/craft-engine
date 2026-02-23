@@ -6,11 +6,9 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.sparrow.nbt.CompoundTag;
 
-import java.util.Map;
 import java.util.Optional;
 
 public final class PDCProcessor implements ItemProcessor {
@@ -38,9 +36,7 @@ public final class PDCProcessor implements ItemProcessor {
 
         @Override
         public PDCProcessor create(ConfigValue value) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "pdc");
-            CompoundTag tag = (CompoundTag) CraftEngine.instance().platform().javaToSparrowNBT(data);
-            return new PDCProcessor(tag);
+            return new PDCProcessor((CompoundTag) CraftEngine.instance().platform().javaToSparrowNBT(value.getAsMap()));
         }
     }
 }

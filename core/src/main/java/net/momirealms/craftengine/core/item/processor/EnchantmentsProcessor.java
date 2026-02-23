@@ -2,13 +2,12 @@ package net.momirealms.craftengine.core.item.processor;
 
 import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.item.data.Enchantment;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -91,17 +90,18 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public EnchantmentsProcessor create(ConfigValue value) {
-            Map<String, Object> enchantData = ResourceConfigUtils.getAsMap(value, "enchantments");
-            List<Enchantment> enchantments = new ArrayList<>();
+            ConfigSection section = value.getAsSection();
             boolean merge = false;
-            if (enchantData.containsKey("enchantments")) {
-                merge = ResourceConfigUtils.getAsBoolean(enchantData.get("merge"), "merge");
-                enchantData = ResourceConfigUtils.getAsMap(enchantData.get("enchantments"), "enchantments");
+            ConfigSection enchantSection;
+            if (section.containsKey("merge") || section.containsKey("enchantments")) {
+                merge = section.getBoolean("merge");
+                enchantSection = section.getNonNullSection("enchantments");
+            } else {
+                enchantSection = section;
             }
-            for (Map.Entry<String, Object> e : enchantData.entrySet()) {
-                if (e.getValue() instanceof Number number) {
-                    enchantments.add(new Enchantment(Key.of(e.getKey()), number.intValue()));
-                }
+            List<Enchantment> enchantments = new ArrayList<>();
+            for (String enchantment : enchantSection.keySet()) {
+                enchantments.add(new Enchantment(Key.of(enchantment), enchantSection.getInt(enchantment)));
             }
             return new EnchantmentsProcessor(enchantments, merge);
         }

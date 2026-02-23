@@ -5,7 +5,6 @@ import com.ezylang.evalex.data.EvaluationValue;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.template.ArgumentString;
 
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;

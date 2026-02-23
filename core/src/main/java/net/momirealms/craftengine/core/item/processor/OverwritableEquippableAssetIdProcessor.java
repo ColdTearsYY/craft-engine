@@ -55,6 +55,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
                                 data.swappable(),
                                 data.damageOnHurt(),
                                 data.equipOnInteract(),
+                                data.canBeSheared(),
                                 data.cameraOverlay()
                         ));
                     }

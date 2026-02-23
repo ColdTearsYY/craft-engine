@@ -7,8 +7,6 @@ import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-import org.joml.Vector3f;
 
 import java.util.Optional;
 
@@ -51,12 +49,7 @@ public final class OverwritableDyedColorProcessor implements SimpleNetworkItemPr
 
         @Override
         public OverwritableDyedColorProcessor create(ConfigValue value) {
-            if (value instanceof Integer integer) {
-                return new OverwritableDyedColorProcessor(Color.fromDecimal(integer));
-            } else {
-                Vector3f vector3f = ResourceConfigUtils.getAsVector3f(value, "dyed-color");
-                return new OverwritableDyedColorProcessor(Color.fromVector3f(vector3f));
-            }
+            return new OverwritableDyedColorProcessor(value.getAsColor());
         }
     }
 }

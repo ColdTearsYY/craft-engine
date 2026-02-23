@@ -5,24 +5,20 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 public final class CustomModelDataProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<CustomModelDataProcessor> FACTORY = new Factory();
-    private final int argument;
+    private final NumberProvider argument;
 
-    public CustomModelDataProcessor(int argument) {
+    public CustomModelDataProcessor(NumberProvider argument) {
         this.argument = argument;
-    }
-
-    public int customModelData() {
-        return this.argument;
     }
 
     @Override
     public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        item.customModelData(argument);
+        item.customModelData(this.argument.getInt(context));
         return item;
     }
 
@@ -45,8 +41,7 @@ public final class CustomModelDataProcessor implements SimpleNetworkItemProcesso
 
         @Override
         public CustomModelDataProcessor create(ConfigValue value) {
-            int customModelData = ResourceConfigUtils.getAsInt(value, "custom-model-data");
-            return new CustomModelDataProcessor(customModelData);
+            return new CustomModelDataProcessor(value.getAsNumber());
         }
     }
 }

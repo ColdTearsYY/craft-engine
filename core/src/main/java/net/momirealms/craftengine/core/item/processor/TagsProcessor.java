@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.item.processor;
 import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.Tag;
@@ -12,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+// todo 更好支持参数
 public final class TagsProcessor implements ItemProcessor {
     public static final ItemProcessorFactory<TagsProcessor> FACTORY = new Factory();
     private final Map<String, Object> arguments;
@@ -88,8 +88,7 @@ public final class TagsProcessor implements ItemProcessor {
 
         @Override
         public TagsProcessor create(ConfigValue value) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "nbt");
-            return new TagsProcessor(data);
+            return new TagsProcessor(value.getAsMap());
         }
     }
 }

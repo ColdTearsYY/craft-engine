@@ -49,7 +49,7 @@ public final class OverwritableItemNameProcessor implements SimpleNetworkItemPro
 
         @Override
         public OverwritableItemNameProcessor create(ConfigValue value) {
-            return new OverwritableItemNameProcessor(value.toString());
+            return new OverwritableItemNameProcessor(value.getAsString());
         }
     }
 }

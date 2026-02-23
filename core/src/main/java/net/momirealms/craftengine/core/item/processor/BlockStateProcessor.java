@@ -49,24 +49,23 @@ public final class BlockStateProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public BlockStateProcessor create(ConfigValue value) {
-            if (value instanceof Map<?, ?> map) {
+            if (value.is(Map.class)) {
                 Map<String, String> properties = new HashMap<>();
-                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                    properties.put(entry.getKey().toString(), entry.getValue().toString());
+                for (Map.Entry<String, Object> entry : value.getAsMap().entrySet()) {
+                    properties.put(entry.getKey(), entry.getValue().toString());
                 }
                 return new BlockStateProcessor(LazyReference.lazyReference(() -> properties));
             } else {
-                String stateString = value.toString();
+                String blockStateTag = value.getAsString();
                 return new BlockStateProcessor(LazyReference.lazyReference(() -> {
-                    BlockStateWrapper blockState = CraftEngine.instance().blockManager().createBlockState(stateString);
+                    BlockStateWrapper blockState = CraftEngine.instance().blockManager().createBlockState(blockStateTag);
                     if (blockState instanceof CustomBlockStateWrapper customBlockStateWrapper) {
                         blockState = customBlockStateWrapper.visualBlockState();
                     }
                     if (blockState != null) {
                         Map<String, String> properties = new HashMap<>(4);
                         for (String property : blockState.getPropertyNames()) {
-                            Object value = blockState.getProperty(property);
-                            properties.put(property, String.valueOf(value).toLowerCase(Locale.ROOT));
+                            properties.put(property, String.valueOf(blockState.getProperty(property)).toLowerCase(Locale.ROOT)); // 可能是 Enum
                         }
                         return properties;
                     }

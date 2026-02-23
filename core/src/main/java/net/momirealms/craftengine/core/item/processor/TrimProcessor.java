@@ -5,14 +5,11 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.data.Trim;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Locale;
-import java.util.Map;
 
 public final class TrimProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<TrimProcessor> FACTORY = new Factory();
@@ -57,10 +54,8 @@ public final class TrimProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public TrimProcessor create(ConfigValue value) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "trim");
-            String material = data.get("material").toString().toLowerCase(Locale.ENGLISH);
-            String pattern = data.get("pattern").toString().toLowerCase(Locale.ENGLISH);
-            return new TrimProcessor(Key.of(material), Key.of(pattern));
+            ConfigSection section = value.getAsSection();
+            return new TrimProcessor(section.getIdentifier("material"), section.getIdentifier("pattern"));
         }
     }
 }

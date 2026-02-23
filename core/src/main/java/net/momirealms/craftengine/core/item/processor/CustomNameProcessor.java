@@ -59,8 +59,7 @@ public final class CustomNameProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public CustomNameProcessor create(ConfigValue value) {
-            String name = value.toString();
-            return new CustomNameProcessor(name);
+            return new CustomNameProcessor(value.getAsString());
         }
     }
 }

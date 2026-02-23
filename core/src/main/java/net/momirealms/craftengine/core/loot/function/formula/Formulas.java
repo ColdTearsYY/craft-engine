@@ -8,8 +8,6 @@ import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
-import java.util.Map;
-
 public final class Formulas {
     public static final FormulaType<OreDrops> ORE_DROPS = register(Key.ce("ore_drops"), OreDrops.FACTORY);
     public static final FormulaType<CropDrops> CROP_DROPS = register(Key.ce("binomial_with_bonus_count"), CropDrops.FACTORY);

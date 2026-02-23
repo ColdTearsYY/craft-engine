@@ -1,12 +1,10 @@
 package net.momirealms.craftengine.core.sound;
 
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public record SoundData(Key id, SoundValue volume, SoundValue pitch) {

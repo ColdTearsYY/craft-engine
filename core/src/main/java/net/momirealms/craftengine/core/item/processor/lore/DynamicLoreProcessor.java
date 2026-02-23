@@ -56,10 +56,8 @@ public final class DynamicLoreProcessor implements SimpleNetworkItemProcessor {
         @Override
         public DynamicLoreProcessor create(ConfigValue value) {
             Map<String, LoreProcessor> dynamicLore = new LinkedHashMap<>();
-            if (value instanceof Map<?, ?> map) {
-                for (Map.Entry<?, ?> entry : map.entrySet()) {
-                    dynamicLore.put(entry.getKey().toString(), LoreProcessor.createLoreModifier(entry.getValue()));
-                }
+            for (Map.Entry<String, Object> entry : value.getAsMap().entrySet()) {
+                dynamicLore.put(entry.getKey(), LoreProcessor.createLoreModifier(entry.getValue()));
             }
             return new DynamicLoreProcessor(dynamicLore);
         }

@@ -7,7 +7,6 @@ import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 public final class SelfPlayerSelector<CTX extends Context> implements PlayerSelector<CTX> {

@@ -7,10 +7,7 @@ import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.util.AdventureHelper;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
-
-import java.util.Map;
 
 public record ExpressionNumberProvider(String expression) implements NumberProvider {
     public static final NumberProviderFactory<ExpressionNumberProvider> FACTORY = new Factory();

@@ -64,8 +64,7 @@ public final class OverwritableLoreProcessor implements SimpleNetworkItemProcess
     private static class Factory implements ItemProcessorFactory<OverwritableLoreProcessor> {
         @Override
         public OverwritableLoreProcessor create(ConfigValue value) {
-            LoreProcessor lore = LoreProcessor.createLoreModifier(value);
-            return new OverwritableLoreProcessor(lore);
+            return new OverwritableLoreProcessor(LoreProcessor.createLoreModifier(value));
         }
     }
 }

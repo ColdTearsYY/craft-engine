@@ -34,8 +34,7 @@ public final class TooltipStyleProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public TooltipStyleProcessor create(ConfigValue value) {
-            String id = value.toString();
-            return new TooltipStyleProcessor(Key.of(id));
+            return new TooltipStyleProcessor(value.getAsIdentifier());
         }
     }
 }

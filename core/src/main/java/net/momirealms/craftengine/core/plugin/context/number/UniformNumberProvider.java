@@ -1,11 +1,8 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
-
-import java.util.Map;
 
 public record UniformNumberProvider(NumberProvider min, NumberProvider max) implements NumberProvider {
     public static final NumberProviderFactory<UniformNumberProvider> FACTORY = new Factory();

@@ -6,7 +6,6 @@ import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.Key;
 
-import java.util.Map;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")

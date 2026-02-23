@@ -3,11 +3,7 @@ package net.momirealms.craftengine.core.plugin.context.number;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Map;
 
 /**
  * 指数分布提供器

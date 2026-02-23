@@ -34,8 +34,7 @@ public final class OverwritableItemModelProcessor implements SimpleNetworkItemPr
 
         @Override
         public OverwritableItemModelProcessor create(ConfigValue value) {
-            String id = value.toString();
-            return new OverwritableItemModelProcessor(Key.of(id));
+            return new OverwritableItemModelProcessor(value.getAsIdentifier());
         }
     }
 }

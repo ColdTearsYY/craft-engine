@@ -3,17 +3,16 @@ package net.momirealms.craftengine.core.item.processor;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.sparrow.nbt.CompoundTag;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 
 public final class ConditionalProcessor implements ItemProcessor {
@@ -50,10 +49,10 @@ public final class ConditionalProcessor implements ItemProcessor {
 
         @Override
         public ConditionalProcessor create(ConfigValue value) {
-            Map<String, Object> conditionalData = ResourceConfigUtils.getAsMap(value, "conditional");
-            List<Condition<Context>> conditions = ResourceConfigUtils.parseConfigAsList(conditionalData.get("conditions"), CommonConditions::fromConfig);
+            ConfigSection section = value.getAsSection();
+            List<Condition<Context>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
             List<ItemProcessor> modifiers = new ArrayList<>();
-            ItemProcessors.collectProcessors(ResourceConfigUtils.getAsMap(conditionalData.get("data"), "conditional.data"), modifiers::add);
+            ItemProcessors.collectProcessors(section.getNonNullSection("data"), modifiers::add);
             return new ConditionalProcessor(MiscUtils.allOf(conditions), modifiers.toArray(new ItemProcessor[0]));
         }
     }

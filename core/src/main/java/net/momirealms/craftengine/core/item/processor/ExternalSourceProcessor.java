@@ -5,12 +5,15 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.compatibility.ItemSource;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.LazyReference;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
+import java.util.StringJoiner;
 
 public final class ExternalSourceProcessor implements ItemProcessor {
     public static final ItemProcessorFactory<ExternalSourceProcessor> FACTORY = new Factory();
@@ -69,9 +72,9 @@ public final class ExternalSourceProcessor implements ItemProcessor {
 
         @Override
         public ExternalSourceProcessor create(ConfigValue value) {
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(value, "external");
-            String plugin = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(data, "plugin", "source"), "warning.config.item.data.external.missing_source");
-            String id = ResourceConfigUtils.requireNonEmptyStringOrThrow(data.get("id"), "warning.config.item.data.external.missing_id");
+            ConfigSection section = value.getAsSection();
+            String plugin = section.getNonNullString("plugin", "source");
+            String id = section.getNonNullString("id");
             return new ExternalSourceProcessor(id, LazyReference.lazyReference(() -> {
                 ItemSource<?> itemSource = CraftEngine.instance().compatibilityManager().getItemSource(plugin.toLowerCase(Locale.ENGLISH));
                 if (itemSource == null) {

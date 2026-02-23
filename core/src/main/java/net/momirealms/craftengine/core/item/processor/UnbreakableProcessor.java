@@ -6,7 +6,6 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 public final class UnbreakableProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<UnbreakableProcessor> FACTORY = new Factory();
@@ -46,8 +45,7 @@ public final class UnbreakableProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public UnbreakableProcessor create(ConfigValue value) {
-            boolean value = ResourceConfigUtils.getAsBoolean(value, "unbreakable");
-            return new UnbreakableProcessor(value);
+            return new UnbreakableProcessor(value.getAsBoolean());
         }
     }
 }

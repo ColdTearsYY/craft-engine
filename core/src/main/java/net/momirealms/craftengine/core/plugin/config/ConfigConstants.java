@@ -2,7 +2,6 @@ package net.momirealms.craftengine.core.plugin.config;
 
 import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.util.Key;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 

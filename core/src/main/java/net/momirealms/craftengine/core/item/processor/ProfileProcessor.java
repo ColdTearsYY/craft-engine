@@ -1,12 +1,16 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
+import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
+import net.momirealms.craftengine.core.util.Base64Utils;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,11 +19,13 @@ import java.util.Map;
 public final class ProfileProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<ProfileProcessor> FACTORY = new Factory();
     private static final Object[] NBT_PATH = new Object[] {"SkullOwner"};
-    private final @Nullable String profileName;
+    private final @Nullable TextProvider profileName;
     private final @Nullable String base64Data;
-    private final @Nullable String texture;
+    private final @Nullable Key texture;
 
-    public ProfileProcessor(@Nullable String profileName, @Nullable String base64Data, @Nullable String texture) {
+    public ProfileProcessor(@Nullable TextProvider profileName,
+                            @Nullable String base64Data,
+                            @Nullable Key texture) {
         this.profileName = profileName;
         this.base64Data = base64Data;
         this.texture = texture;
@@ -28,8 +34,7 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
     @Override
     public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
         if (this.profileName != null) {
-            Component resultComponent = AdventureHelper.customMiniMessage().deserialize(this.profileName, context.tagResolvers());
-            String resultString = AdventureHelper.plainTextContent(resultComponent);
+            String resultString = this.profileName.get(context);
             if (VersionHelper.isOrAbove1_20_5()) {
                 item.setJavaComponent(DataComponentKeys.PROFILE, resultString);
             } else {
@@ -38,7 +43,7 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
         } else if (this.base64Data != null) {
             item.skull(this.base64Data);
         } else if (VersionHelper.isOrAbove1_20_5() && this.texture != null) {
-            item.setJavaComponent(DataComponentKeys.PROFILE, Map.of("texture", this.texture));
+            item.setJavaComponent(DataComponentKeys.PROFILE, Map.of("texture", this.texture.asString()));
         }
         return item;
     }
@@ -47,7 +52,24 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public ProfileProcessor create(ConfigValue value) {
-            if (value instanceof String guess) {
+            if (value.is(Map.class)) {
+                ConfigSection section = value.getAsSection();
+                String base64Data = section.getString("base64");
+                if (base64Data == null && section.containsKey("url")) {
+                    base64Data = Base64Utils.encode("{\"textures\":{\"SKIN\":{\"url\":\"" + section.getString("url") + "\"}}}");
+                }
+                if (base64Data != null) {
+                    return new ProfileProcessor(null, base64Data, null);
+                }
+                if (VersionHelper.isOrAbove1_20_5()) {
+                    Key texture = section.getIdentifier("texture");
+                    if (texture != null) {
+                        return new ProfileProcessor(null, null, texture);
+                    }
+                }
+                return new ProfileProcessor(TextProviders.fromString(section.getDefaultedString("<arg:player.name>", "name")), null, null);
+            } else {
+                String guess = value.getAsString();
                 String base64Data = null;
                 if (guess.startsWith("http://") || guess.startsWith("https://")) {
                     base64Data = Base64Utils.encode("{\"textures\":{\"SKIN\":{\"url\":\"" + guess + "\"}}}");
@@ -57,31 +79,10 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
                 if (base64Data != null) {
                     return new ProfileProcessor(null, base64Data, null);
                 } else if (VersionHelper.isOrAbove1_20_5() && (guess.contains(":") || guess.contains("/")) && !guess.contains("<") && !guess.contains(">")) {
-                    return new ProfileProcessor(null, null, guess);
+                    return new ProfileProcessor(null, null, Key.of(guess));
                 } else {
-                    return new ProfileProcessor(guess, null, null);
+                    return new ProfileProcessor(TextProviders.fromString(guess), null, null);
                 }
-            } else {
-                Map<String, Object> profile = ResourceConfigUtils.getAsMap(value, "profile");
-                Object base64Raw = profile.get("base64");
-                String base64Data = ResourceConfigUtils.getAsStringOrNull(base64Raw);
-                if (base64Data == null && profile.containsKey("url")) {
-                    String url = ResourceConfigUtils.getAsStringOrNull(profile.get("url"));
-                    base64Data = Base64Utils.encode("{\"textures\":{\"SKIN\":{\"url\":\"" + url + "\"}}}");
-                } else if (base64Data != null && base64Raw instanceof Map<?,?>) {
-                    base64Data = Base64Utils.encode(GsonHelper.get().toJson(base64Raw));
-                }
-                if (base64Data != null) {
-                    return new ProfileProcessor(null, base64Data, null);
-                }
-                if (VersionHelper.isOrAbove1_20_5()) {
-                    String texture = ResourceConfigUtils.getAsStringOrNull(profile.get("texture"));
-                    if (texture != null) {
-                        return new ProfileProcessor(null, null, texture);
-                    }
-                }
-                String profileName = ResourceConfigUtils.getAsStringOrNull(profile.getOrDefault("name", "<arg:player.name>"));
-                return new ProfileProcessor(profileName, null, null);
             }
         }
     }

@@ -29,8 +29,7 @@ public final class IdProcessor implements ItemProcessor {
 
         @Override
         public IdProcessor create(ConfigValue value) {
-            String id = value.toString();
-            return new IdProcessor(Key.of(id));
+            return new IdProcessor(value.getAsIdentifier());
         }
     }
 }

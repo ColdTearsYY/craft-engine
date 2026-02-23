@@ -15,7 +15,7 @@ public final class JukeboxSongProcessor implements ItemProcessor {
     }
 
     public JukeboxPlayable song() {
-        return song;
+        return this.song;
     }
 
     @Override
@@ -28,8 +28,7 @@ public final class JukeboxSongProcessor implements ItemProcessor {
 
         @Override
         public JukeboxSongProcessor create(ConfigValue value) {
-            String song = value.toString();
-            return new JukeboxSongProcessor(new JukeboxPlayable(song, true));
+            return new JukeboxSongProcessor(new JukeboxPlayable(value.getAsString(), true));
         }
     }
 }

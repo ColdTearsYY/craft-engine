@@ -8,9 +8,6 @@ import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
-import java.util.List;
-import java.util.Map;
-
 public final class TemplateArguments {
     public static final TemplateArgumentType<PlainStringTemplateArgument> PLAIN = register(Key.ce("plain"), PlainStringTemplateArgument.FACTORY);
     public static final TemplateArgumentType<SelfIncreaseIntTemplateArgument> SELF_INCREASE_INT = register(Key.ce("self_increase_int"), SelfIncreaseIntTemplateArgument.FACTORY);

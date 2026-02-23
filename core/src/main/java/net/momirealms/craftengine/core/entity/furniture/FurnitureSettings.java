@@ -3,7 +3,9 @@ package net.momirealms.craftengine.core.entity.furniture;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.CustomDataType;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.IdentityHashMap;

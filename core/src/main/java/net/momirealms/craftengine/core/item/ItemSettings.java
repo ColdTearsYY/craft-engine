@@ -520,7 +520,7 @@ public final class ItemSettings {
                     } else {
                         // trim based
                         Map<String, Object> copiedArgs = new HashMap<>(args);
-                        copiedArgs.put("asset-id", Config.sacrificedVanillaArmorType());
+                        copiedArgs.put("asset_id", Config.sacrificedVanillaArmorType());
                         EquipmentData data = EquipmentData.fromMap(copiedArgs);
                         return settings -> settings.equipment(new ItemEquipment(clientBoundModel, data, optionalEquipment.get()));
                     }

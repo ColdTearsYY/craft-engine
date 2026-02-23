@@ -12,7 +12,6 @@ import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.LazyReference;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.block.CraftBlockStateProxy;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.block.CraftBlockStatesProxy;

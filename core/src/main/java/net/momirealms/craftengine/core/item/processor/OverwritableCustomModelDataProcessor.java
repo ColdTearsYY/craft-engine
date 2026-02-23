@@ -5,25 +5,21 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 public final class OverwritableCustomModelDataProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<OverwritableCustomModelDataProcessor> FACTORY = new Factory();
-    private final int argument;
+    private final NumberProvider argument;
 
-    public OverwritableCustomModelDataProcessor(int argument) {
+    public OverwritableCustomModelDataProcessor(NumberProvider argument) {
         this.argument = argument;
-    }
-
-    public int customModelData() {
-        return this.argument;
     }
 
     @Override
     public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
         if (item.customModelData().isPresent()) return item;
-        item.customModelData(this.argument);
+        item.customModelData(this.argument.getInt(context));
         return item;
     }
 
@@ -46,8 +42,7 @@ public final class OverwritableCustomModelDataProcessor implements SimpleNetwork
 
         @Override
         public OverwritableCustomModelDataProcessor create(ConfigValue value) {
-            int customModelData = ResourceConfigUtils.getAsInt(value, "custom-model-data");
-            return new OverwritableCustomModelDataProcessor(customModelData);
+            return new OverwritableCustomModelDataProcessor(value.getAsNumber());
         }
     }
 }

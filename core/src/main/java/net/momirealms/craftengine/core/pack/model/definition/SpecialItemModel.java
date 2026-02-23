@@ -1,13 +1,11 @@
 package net.momirealms.craftengine.core.pack.model.definition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModel;
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModels;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.Nullable;

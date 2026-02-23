@@ -6,7 +6,6 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.Key;
 
 public final class MaxDamageProcessor implements SimpleNetworkItemProcessor {
@@ -19,7 +18,7 @@ public final class MaxDamageProcessor implements SimpleNetworkItemProcessor {
 
     @Override
     public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        item.maxDamage(argument.getInt(context));
+        item.maxDamage(this.argument.getInt(context));
         return item;
     }
 
@@ -32,8 +31,7 @@ public final class MaxDamageProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public MaxDamageProcessor create(ConfigValue value) {
-            NumberProvider numberProvider = NumberProviders.fromObject(value);
-            return new MaxDamageProcessor(numberProvider);
+            return new MaxDamageProcessor(value.getAsNumber());
         }
     }
 }

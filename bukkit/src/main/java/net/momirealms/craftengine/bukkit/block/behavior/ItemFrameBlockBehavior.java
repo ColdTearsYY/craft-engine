@@ -25,7 +25,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ItemUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.World;
@@ -35,8 +34,6 @@ import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 
 public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {

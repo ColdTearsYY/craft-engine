@@ -9,7 +9,6 @@ import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityEl
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigType;
 import net.momirealms.craftengine.core.block.properties.PropertyType;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifier;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifierFactory;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifierType;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavior;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehaviorType;
