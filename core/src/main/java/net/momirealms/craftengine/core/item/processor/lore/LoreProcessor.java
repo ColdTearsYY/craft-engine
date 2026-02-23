@@ -7,13 +7,13 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.processor.SimpleNetworkItemProcessor;
 import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
-import net.momirealms.craftengine.core.util.AdventureHelper;
-import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.util.*;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -42,8 +42,8 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
 
     List<LoreModification> lore();
 
-    static LoreProcessor createLoreModifier(Object arg) {
-        List<Object> rawLoreData = MiscUtils.getAsList(arg, Object.class);
+    static LoreProcessor createLoreModifier(ConfigValue configValue) {
+        List<Object> rawLoreData = configValue.getAsList();
         String[] rawLore = new String[rawLoreData.size()];
         label_all_string_check: {
             for (int i = 0; i < rawLore.length; i++) {
@@ -55,24 +55,13 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
                 }
             }
             return new SingleLoreProcessor(new LoreModification(LoreModification.Operation.APPEND, false,
-                    Arrays.stream(rawLore).map(AdventureHelper::legacyToMiniMessage).map(line -> Config.addNonItalicTag() && !line.startsWith("<!i>") ? FormattedLine.create("<!i>" + line) : FormattedLine.create(line))
+                    Arrays.stream(rawLore)
+                            .map(AdventureHelper::legacyToMiniMessage)
+                            .map(line -> Config.addNonItalicTag() && !line.startsWith("<!i>") ? FormattedLine.create("<!i>" + line) : FormattedLine.create(line))
                             .toArray(FormattedLine[]::new), c -> true));
         }
 
-        List<LoreModificationHolder> modifications = new ArrayList<>(rawLoreData.size() + 1);
-        int lastPriority = 0;
-        for (Object o : rawLoreData) {
-            if (o instanceof Map<?,?> complexLore) {
-                String[] content = MiscUtils.getAsStringArray(complexLore.get("content"));
-                LoreModification.Operation operation = ResourceConfigUtils.getAsEnum(Optional.ofNullable(complexLore.get("operation")).map(String::valueOf).orElse(null), LoreModification.Operation.class, LoreModification.Operation.APPEND);
-                lastPriority = Optional.ofNullable(complexLore.get("priority")).map(it -> ResourceConfigUtils.getAsInt(it, "priority")).orElse(lastPriority);
-                boolean split = ResourceConfigUtils.getAsBoolean(complexLore.get("split-lines"), "split-lines");
-                List<Condition<ItemBuildContext>> conditions = ResourceConfigUtils.parseConfigAsList(complexLore.get("conditions"), CommonConditions::fromConfig);
-                modifications.add(new LoreModificationHolder(new LoreModification(operation, split,
-                        Arrays.stream(content).map(AdventureHelper::legacyToMiniMessage).map(line -> Config.addNonItalicTag() && !line.startsWith("<!i>") ? FormattedLine.create("<!i>" + line) : FormattedLine.create(line))
-                        .toArray(FormattedLine[]::new), MiscUtils.allOf(conditions)), lastPriority));
-            }
-        }
+        List<LoreModificationHolder> modifications = getLoreModificationHolders(configValue);
         modifications.sort(LoreModificationHolder::compareTo);
         return switch (modifications.size()) {
             case 0 -> new EmptyLoreProcessor();
@@ -80,6 +69,41 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
             case 2 -> new DoubleLoreProcessor(modifications.get(0).modification(), modifications.get(1).modification());
             default -> new CompositeLoreProcessor(modifications.stream().map(LoreModificationHolder::modification).toArray(LoreModification[]::new));
         };
+    }
+
+    private static @NotNull List<LoreModificationHolder> getLoreModificationHolders(ConfigValue configValue) {
+        MutableInt lastPriority = new MutableInt(0);
+        List<LoreModificationHolder> modifications = new ArrayList<>();
+        configValue.forEach(v -> {
+            if (v.is(Map.class)) {
+                ConfigSection section = v.getAsSection();
+                String[] contents = section.getStringList("content").toArray(String[]::new);
+                LoreModification.Operation operation = section.getEnum(LoreModification.Operation.APPEND, LoreModification.Operation.class, "operation");
+                int priority = section.getInt(lastPriority.intValue(), "priority");
+                boolean split = section.getBoolean("split", "split_lines", "split-lines");
+                List<Condition<ItemBuildContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+                modifications.add(new LoreModificationHolder(new LoreModification(operation, split,
+                        Arrays.stream(contents)
+                                .map(AdventureHelper::legacyToMiniMessage)
+                                .map(line -> Config.addNonItalicTag() && !line.startsWith("<!i>") ? FormattedLine.create("<!i>" + line) : FormattedLine.create(line))
+                                .toArray(FormattedLine[]::new), MiscUtils.allOf(conditions)
+                        ),
+                        priority
+                ));
+                lastPriority.set(priority);
+            } else {
+                new LoreModificationHolder(
+                        new LoreModification(
+                                LoreModification.Operation.APPEND,
+                                false,
+                                new FormattedLine[]{FormattedLine.create(v.getAsString())},
+                                (c) -> true
+                        ),
+                        lastPriority.intValue()
+                );
+            }
+        });
+        return modifications;
     }
 
     non-sealed class EmptyLoreProcessor implements LoreProcessor {

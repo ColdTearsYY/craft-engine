@@ -5,6 +5,8 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.processor.SimpleNetworkItemProcessor;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
@@ -56,8 +58,9 @@ public final class DynamicLoreProcessor implements SimpleNetworkItemProcessor {
         @Override
         public DynamicLoreProcessor create(ConfigValue value) {
             Map<String, LoreProcessor> dynamicLore = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : value.getAsMap().entrySet()) {
-                dynamicLore.put(entry.getKey(), LoreProcessor.createLoreModifier(entry.getValue()));
+            ConfigSection section = value.getAsSection();
+            for (String key : section.keySet()) {
+                dynamicLore.put(key, LoreProcessor.createLoreModifier(section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, key)));
             }
             return new DynamicLoreProcessor(dynamicLore);
         }

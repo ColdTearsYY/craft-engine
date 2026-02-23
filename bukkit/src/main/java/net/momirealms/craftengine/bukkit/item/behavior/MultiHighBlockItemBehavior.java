@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.item.behavior;
 
+import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.block.behavior.MultiHighBlockBehavior;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
@@ -8,6 +9,10 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
+import net.momirealms.craftengine.core.pack.PendingConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
@@ -105,16 +110,13 @@ public final class MultiHighBlockItemBehavior extends BlockItemBehavior {
 
     private static class Factory implements ItemBehaviorFactory<MultiHighBlockItemBehavior> {
         @Override
-        public MultiHighBlockItemBehavior create(Pack pack, Path path, String node, Key key, Map<String, Object> arguments) {
-            Object id = arguments.get("block");
-            if (id == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.behavior.multi_high.missing_block");
-            }
-            if (id instanceof Map<?, ?> map) {
-                addPendingSection(pack, path, node, key, map);
+        public MultiHighBlockItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+            ConfigValue blockValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "block");
+            if (blockValue.is(Map.class)) {
+                BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, key, blockValue.getAsSection()));
                 return new MultiHighBlockItemBehavior(key);
             } else {
-                return new MultiHighBlockItemBehavior(Key.of(id.toString()));
+                return new MultiHighBlockItemBehavior(blockValue.getAsIdentifier());
             }
         }
     }

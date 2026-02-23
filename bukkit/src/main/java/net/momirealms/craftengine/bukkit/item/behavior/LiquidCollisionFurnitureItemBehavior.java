@@ -13,6 +13,7 @@ import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.util.Direction;
@@ -98,12 +99,12 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
 
         @SuppressWarnings("DuplicatedCode")
         @Override
-        public LiquidCollisionFurnitureItemBehavior create(Pack pack, Path path, String node, Key key, Map<String, Object> arguments) {
-            Object id = arguments.get("furniture");
+        public LiquidCollisionFurnitureItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+            Object id = section.get("furniture");
             if (id == null) {
                 throw new LocalizedResourceConfigException("warning.config.item.behavior.furniture.missing_furniture", new IllegalArgumentException("Missing required parameter 'furniture' for furniture_item behavior"));
             }
-            Map<String, Object> rulesMap = ResourceConfigUtils.getAsMapOrNull(arguments.get("rules"), "rules");
+            Map<String, Object> rulesMap = ResourceConfigUtils.getAsMapOrNull(section.get("rules"), "rules");
             Key furnitureId;
             if (id instanceof Map<?,?> map) {
                 Map<String, Object> furnitureSection;
@@ -152,10 +153,10 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
                 }
             }
             return new LiquidCollisionFurnitureItemBehavior(furnitureId, rules,
-                    ResourceConfigUtils.getAsBoolean(arguments.get("ignore-placer"), "ignore-placer"),
-                    ResourceConfigUtils.getAsBoolean(arguments.get("ignore-entities"), "ignore-entities"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("source-only", true), "source-only"),
-                    MiscUtils.getAsStringList(arguments.get("liquid-type"))
+                    ResourceConfigUtils.getAsBoolean(section.get("ignore-placer"), "ignore-placer"),
+                    ResourceConfigUtils.getAsBoolean(section.get("ignore-entities"), "ignore-entities"),
+                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("source-only", true), "source-only"),
+                    MiscUtils.getAsStringList(section.get("liquid-type"))
             );
         }
     }

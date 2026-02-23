@@ -17,10 +17,11 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.behavior.BlockBoundItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
+import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
@@ -234,27 +235,15 @@ public class BlockItemBehavior extends BlockBoundItemBehavior {
         return this.blockId;
     }
 
-    static void addPendingSection(Pack pack, Path path, String node, Key key, Map<?, ?> map) {
-        if (map.containsKey(key.toString())) {
-            // 防呆
-            BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, node, key, MiscUtils.castToMap(map.get(key.toString()), false)));
-        } else {
-            BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, node, key, MiscUtils.castToMap(map, false)));
-        }
-    }
-
     private static class Factory implements ItemBehaviorFactory<BlockItemBehavior> {
         @Override
-        public BlockItemBehavior create(Pack pack, Path path, String node, Key key, Map<String, Object> arguments) {
-            Object id = arguments.get("block");
-            if (id == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.behavior.block.missing_block", new IllegalArgumentException("Missing required parameter 'block' for block_item behavior"));
-            }
-            if (id instanceof Map<?, ?> map) {
-                addPendingSection(pack, path, node, key, map);
+        public BlockItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+            ConfigValue blockValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "block");
+            if (blockValue.is(Map.class)) {
+                BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, key, blockValue.getAsSection()));
                 return new BlockItemBehavior(key);
             } else {
-                return new BlockItemBehavior(Key.of(id.toString()));
+                return new BlockItemBehavior(blockValue.getAsIdentifier());
             }
         }
     }

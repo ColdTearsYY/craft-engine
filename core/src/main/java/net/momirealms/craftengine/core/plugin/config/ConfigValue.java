@@ -16,12 +16,14 @@ import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.world.Vec3i;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public record ConfigValue(String path, @NotNull Object value) {
@@ -238,6 +240,14 @@ public record ConfigValue(String path, @NotNull Object value) {
         return converted;
     }
 
+    public void forEach(Consumer<ConfigValue> consumer) {
+        List<Object> asList = getAsList();
+        for (int i = 0; i < asList.size(); i++) {
+            ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+            consumer.accept(innerValue);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public List<Object> getAsNonEmptyList() {
         if (this.value instanceof List<?> list) {
@@ -260,6 +270,66 @@ public record ConfigValue(String path, @NotNull Object value) {
         } else {
             return List.of(this.value.toString());
         }
+    }
+
+    public Vector3f getAsVector3f() {
+        try {
+            switch (this.value) {
+                case Number n -> { return new Vector3f(n.floatValue()); }
+                case List<?> list -> {
+                    if (list.size() == 3) {
+                        return new Vector3f(
+                                Float.parseFloat(list.get(0).toString()),
+                                Float.parseFloat(list.get(1).toString()),
+                                Float.parseFloat(list.get(2).toString())
+                        );
+                    } else if (list.size() == 1) {
+                        return new Vector3f(Float.parseFloat(list.getFirst().toString()));
+                    }
+                }
+                case String s -> {
+                    String[] split = s.replace("_", "").split(",");
+                    if (split.length == 3) {
+                        return new Vector3f(Float.parseFloat(split[0]), Float.parseFloat(split[1]), Float.parseFloat(split[2]));
+                    } else if (split.length == 1) {
+                        return new Vector3f(Float.parseFloat(split[0]));
+                    }
+                }
+                default -> {}
+            }
+        } catch (Exception ignored) {
+        }
+        throw new KnownResourceException(ConfigConstants.PARSE_VEC3_FAILED, this.path, this.value.toString());
+    }
+
+    public Vec3i getAsVector3i() {
+        try {
+            switch (this.value) {
+                case Number n -> { return new Vec3i(n.intValue()); }
+                case List<?> list -> {
+                    if (list.size() == 3) {
+                        return new Vec3i(
+                                Integer.parseInt(list.get(0).toString()),
+                                Integer.parseInt(list.get(1).toString()),
+                                Integer.parseInt(list.get(2).toString())
+                        );
+                    } else if (list.size() == 1) {
+                        return new Vec3i(Integer.parseInt(list.getFirst().toString()));
+                    }
+                }
+                case String s -> {
+                    String[] split = s.replace("_", "").split(",");
+                    if (split.length == 3) {
+                        return new Vec3i(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+                    } else if (split.length == 1) {
+                        return new Vec3i(Integer.parseInt(split[0]));
+                    }
+                }
+                default -> {}
+            }
+        } catch (Exception ignored) {
+        }
+        throw new KnownResourceException(ConfigConstants.PARSE_VEC3_FAILED, this.path, this.value.toString());
     }
 
     public ItemModel getAsItemModel() {

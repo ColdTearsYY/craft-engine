@@ -12,6 +12,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundSource;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
@@ -28,7 +29,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 public final class FlintAndSteelItemBehavior extends ItemBehavior {
     public static final FlintAndSteelItemBehavior INSTANCE = new FlintAndSteelItemBehavior();
@@ -145,7 +145,7 @@ public final class FlintAndSteelItemBehavior extends ItemBehavior {
 
     private static class Factory implements ItemBehaviorFactory<FlintAndSteelItemBehavior> {
         @Override
-        public FlintAndSteelItemBehavior create(Pack pack, Path path, String node, Key id, Map<String, Object> arguments) {
+        public FlintAndSteelItemBehavior create(Pack pack, Path path, String node, Key id, ConfigSection section) {
             return INSTANCE;
         }
     }
