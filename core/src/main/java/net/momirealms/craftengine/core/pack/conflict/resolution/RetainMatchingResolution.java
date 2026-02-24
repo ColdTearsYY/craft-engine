@@ -30,8 +30,7 @@ public record RetainMatchingResolution(Condition<PathContext> matcher) implement
 
         @Override
         public RetainMatchingResolution create(ConfigSection section) {
-            Map<String, Object> term = MiscUtils.castToMap(section.get("term"), false);
-            return new RetainMatchingResolution(PathMatchers.fromConfig(term));
+            return new RetainMatchingResolution(PathMatchers.fromConfig(section.getNonNullSection("term")));
         }
     }
 }

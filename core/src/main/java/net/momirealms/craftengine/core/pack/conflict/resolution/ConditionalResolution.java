@@ -22,9 +22,10 @@ public record ConditionalResolution(Condition<PathContext> matcher, Resolution r
 
         @Override
         public ConditionalResolution create(ConfigSection section) {
-            Map<String, Object> term = MiscUtils.castToMap(section.get("term"), false);
-            Map<String, Object> resolution = MiscUtils.castToMap(section.get("resolution"), false);
-            return new ConditionalResolution(PathMatchers.fromConfig(term), Resolutions.fromMap(resolution));
+            return new ConditionalResolution(
+                    PathMatchers.fromConfig(section.getNonNullSection("term")),
+                    Resolutions.fromConfig(section.getNonNullSection("resolution"))
+            );
         }
     }
 }

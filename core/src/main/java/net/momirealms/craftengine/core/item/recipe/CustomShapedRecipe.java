@@ -5,6 +5,12 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.recipe.input.CraftingInput;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
@@ -15,8 +21,9 @@ import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.Predicate;
 
-public class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
+public final class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<CustomShapedRecipe<?>>();
     private final ParsedPattern<T> parsedPattern;
     private final Pattern<T> pattern;
@@ -30,7 +37,7 @@ public class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
                               CraftingRecipeCategory category,
                               Pattern<T> pattern,
                               Function<Context>[] craftingFunctions,
-                              Condition<Context> craftingCondition,
+                              Predicate<Context> craftingCondition,
                               boolean alwaysRebuildOutput,
                               boolean ingredientCountSupport) {
         super(id, showNotification, result, visualResult, group, category, craftingFunctions, craftingCondition, alwaysRebuildOutput);
@@ -204,38 +211,36 @@ public class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
 
         @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
         @Override
-        public CustomShapedRecipe<A> readMap(Key id, Map<String, Object> arguments) {
-            List<String> pattern = MiscUtils.getAsStringList(arguments.get("pattern"));
-            if (pattern.isEmpty()) {
-                throw new LocalizedResourceConfigException("warning.config.recipe.shaped.missing_pattern");
-            }
+        public CustomShapedRecipe<A> readConfig(Key id, ConfigSection section) {
+            List<String> pattern = section.parseNonEmptyList(ConfigValue::getAsString, "pattern");
             if (!validatePattern(pattern)) {
-                throw new LocalizedResourceConfigException("warning.config.recipe.shaped.invalid_pattern", pattern.toString());
+                throw new KnownResourceException("resource.recipe.shaped.invalid_pattern", section.assemblePath("pattern"), pattern.toString());
             }
-            Object ingredientObj = getIngredientOrThrow(arguments);
+            ConfigSection ingredientSection = section.getNonNullSection("ingredients", "ingredient");
             Map<Character, Ingredient<A>> ingredients = new HashMap<>();
             boolean hasAdditionalIngredients = false;
-            for (Map.Entry<String, Object> entry : ResourceConfigUtils.getAsMap(ingredientObj, "ingredient").entrySet()) {
-                String key = entry.getKey();
-                if (key.length() != 1) {
-                    throw new LocalizedResourceConfigException("warning.config.recipe.shaped.invalid_symbol", key);
+            for (String ingredientChar : ingredientSection.keySet()) {
+                if (ingredientChar.length() != 1) {
+                    throw new KnownResourceException("resource.recipe.shaped.invalid_symbol", ingredientSection.path(), ingredientChar);
                 }
-                char ch = key.charAt(0);
-                Ingredient<A> in = parseIngredient(entry.getValue());
-                ingredients.put(ch, in);
-                if (in.count() > 1) {
+                char ch = ingredientChar.charAt(0);
+                Ingredient<A> ingredient = ingredientSection.getNonNullValue(ConfigConstants.ARGUMENT_LIST, ingredientChar).getAsIngredient();
+                ingredients.put(ch, ingredient);
+                if (ingredient.count() > 1) {
                     hasAdditionalIngredients = true;
                 }
             }
-            return new CustomShapedRecipe(id,
-                    showNotification(arguments),
-                    parseResult(arguments),
-                    parseVisualResult(arguments),
-                    arguments.containsKey("group") ? arguments.get("group").toString() : null, craftingRecipeCategory(arguments),
+            return new CustomShapedRecipe(
+                    id,
+                    section.getBoolean(true, "show_notification", "show-notification"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "visual_result", "visual-result").getAsCustomRecipeResult(),
+                    section.getString("group"),
+                    section.getEnum(null, CraftingRecipeCategory.class, "category"),
                     new Pattern<>(pattern.toArray(new String[0]), ingredients),
-                    functions(arguments),
-                    conditions(arguments),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("always-rebuild-result", true), "always-rebuild-result"),
+                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
+                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition")),
+                    section.getBoolean(true, "always_rebuild_result", "always-rebuild-result"),
                     hasAdditionalIngredients
             );
         }

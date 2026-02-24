@@ -4,6 +4,11 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.recipe.input.CraftingInput;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
@@ -15,8 +20,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
-public class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T> {
+public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
     private final List<Ingredient<T>> ingredients;
     private final PlacementInfo<T> placementInfo;
@@ -30,7 +36,7 @@ public class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T> {
                                  CraftingRecipeCategory category,
                                  List<Ingredient<T>> ingredients,
                                  Function<Context>[] craftingFunctions,
-                                 Condition<Context> craftingCondition,
+                                 Predicate<Context> craftingCondition,
                                  boolean alwaysRebuildOutput,
                                  boolean ingredientCountSupport) {
         super(id, showNotification, result, visualResult, group, category, craftingFunctions, craftingCondition, alwaysRebuildOutput);
@@ -112,30 +118,31 @@ public class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T> {
 
         @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
         @Override
-        public CustomShapelessRecipe<A> readMap(Key id, Map<String, Object> arguments) {
-            List<Ingredient<A>> ingredients = new ArrayList<>();
+        public CustomShapelessRecipe<A> readConfig(Key id, ConfigSection section) {
+            List<Ingredient<A>> ingredients;
             boolean hasAdditionalInput = false;
-            Object ingredientsObject = getIngredientOrThrow(arguments);
-            if (ingredientsObject instanceof Map<?,?> map) {
-                for (Map.Entry<String, Object> entry : (MiscUtils.castToMap(map, false)).entrySet()) {
-                    if (entry.getValue() == null) continue;
-                    Ingredient<A> in = parseIngredient(entry.getValue());
-                    ingredients.add(in);
-                    if (in.count() > 1) {
+            ConfigValue ingredientsValue = section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredients", "ingredient");
+            if (ingredientsValue.is(Map.class)) {
+                ingredients = new ArrayList<>();
+                ConfigSection ingredientSection = ingredientsValue.getAsSection();
+                for (String key : ingredientSection.keySet()) {
+                    Ingredient<A> value = ingredientSection.getNonNullValue(ConfigConstants.ARGUMENT_LIST, key).getAsIngredient();
+                    ingredients.add(value);
+                    if (value.count() > 1) {
                         hasAdditionalInput = true;
                     }
                 }
-            } else if (ingredientsObject instanceof List<?> list) {
-                for (Object obj : list) {
-                    Ingredient<A> in = parseIngredient(obj);
-                    ingredients.add(in);
-                    if (in.count() > 1) {
+            } else if (ingredientsValue.is(List.class)) {
+                ingredients = ingredientsValue.parseAsList(ConfigValue::getAsIngredient);
+                for (Ingredient<A> ingredient : ingredients) {
+                    if (ingredient.count() > 1) {
                         hasAdditionalInput = true;
+                        break;
                     }
                 }
             } else {
-                Ingredient<A> ingredient = parseIngredient(ingredientsObject);
-                ingredients.add(ingredient);
+                Ingredient<A> ingredient = ingredientsValue.getAsIngredient();
+                ingredients = List.of(ingredient);
                 if (ingredient.count() > 1) {
                     hasAdditionalInput = true;
                 }
@@ -144,22 +151,25 @@ public class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T> {
             if (hasAdditionalInput) {
                 ingredients.sort((o1, o2) -> Integer.compare(o2.count(), o1.count()));
             }
-            return new CustomShapelessRecipe(id,
-                    showNotification(arguments),
-                    parseResult(arguments),
-                    parseVisualResult(arguments),
-                    arguments.containsKey("group") ? arguments.get("group").toString() : null, craftingRecipeCategory(arguments),
+            return new CustomShapelessRecipe(
+                    id,
+                    section.getBoolean(true, "show_notification", "show-notification"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "visual_result", "visual-result").getAsCustomRecipeResult(),
+                    section.getString("group"),
+                    section.getEnum(null, CraftingRecipeCategory.class, "category"),
                     ingredients,
-                    functions(arguments),
-                    conditions(arguments),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("always-rebuild-result", true), "always-rebuild-result"),
+                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
+                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition")),
+                    section.getBoolean(true, "always_rebuild_result", "always-rebuild-result"),
                     hasAdditionalInput
             );
         }
 
         @Override
         public CustomShapelessRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomShapelessRecipe<>(id,
+            return new CustomShapelessRecipe<>(
+                    id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.craftingResult(json.get("result"))),
                     null,

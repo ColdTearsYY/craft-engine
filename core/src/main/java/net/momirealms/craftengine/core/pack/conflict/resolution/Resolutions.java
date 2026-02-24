@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.pack.conflict.resolution;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -28,13 +30,13 @@ public final class Resolutions {
         return type;
     }
 
-    public static Resolution fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), () -> new LocalizedException("warning.config.conflict_resolution.missing_type"));
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static Resolution fromConfig(ConfigSection section) {
+        String type = section.getNonEmptyString("type");
+        Key key = Key.ce(type);
         ResolutionType<? extends Resolution> resolutionType = BuiltInRegistries.RESOLUTION_TYPE.getValue(key);
         if (resolutionType == null) {
-            throw new LocalizedException("warning.config.conflict_resolution.invalid_type", type);
+            throw new KnownResourceException("resource.pack.conflict_resolution.unknown_type", section.assemblePath("type"), key.asString());
         }
-        return resolutionType.factory().create(map);
+        return resolutionType.factory().create(section);
     }
 }

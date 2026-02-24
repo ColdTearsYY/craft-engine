@@ -3,16 +3,25 @@ package net.momirealms.craftengine.core.plugin.config;
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.item.BuildableItem;
+import net.momirealms.craftengine.core.item.CustomItem;
+import net.momirealms.craftengine.core.item.ItemManager;
+import net.momirealms.craftengine.core.item.recipe.Ingredient;
+import net.momirealms.craftengine.core.item.recipe.IngredientElement;
 import net.momirealms.craftengine.core.item.recipe.remainder.CompositeCraftRemainder;
 import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainder;
 import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainders;
 import net.momirealms.craftengine.core.item.recipe.remainder.FixedCraftRemainder;
+import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
+import net.momirealms.craftengine.core.item.recipe.result.PostProcessor;
+import net.momirealms.craftengine.core.item.recipe.result.PostProcessors;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.model.definition.BaseItemModel;
 import net.momirealms.craftengine.core.pack.model.definition.ItemModel;
 import net.momirealms.craftengine.core.pack.model.definition.ItemModels;
 import net.momirealms.craftengine.core.pack.model.generation.display.DisplayMeta;
+import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.context.number.*;
 import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
 import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
@@ -20,14 +29,12 @@ import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.util.UniqueKey;
 import net.momirealms.craftengine.core.world.Vec3i;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -236,20 +243,42 @@ public record ConfigValue(String path, @NotNull Object value) {
     }
 
     public <T> List<T> parseAsList(Function<ConfigValue, T> convertor) {
-        List<Object> asList = getAsList();
-        List<T> converted = new ArrayList<>(asList.size());
-        for (int i = 0; i < asList.size(); i++) {
-            ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
-            converted.add(convertor.apply(innerValue));
+        if (this.is(List.class)) {
+            List<Object> asList = getAsList();
+            List<T> converted = new ArrayList<>(asList.size());
+            for (int i = 0; i < asList.size(); i++) {
+                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+                converted.add(convertor.apply(innerValue));
+            }
+            return converted;
+        } else {
+            return List.of(convertor.apply(this));
         }
-        return converted;
+    }
+
+    public List<ConfigValue> getAsValueList() {
+        if (this.is(List.class)) {
+            List<Object> asList = getAsList();
+            List<ConfigValue> converted = new ArrayList<>(asList.size());
+            for (int i = 0; i < asList.size(); i++) {
+                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+                converted.add(innerValue);
+            }
+            return converted;
+        } else {
+            return List.of(this);
+        }
     }
 
     public void forEach(Consumer<ConfigValue> consumer) {
-        List<Object> asList = getAsList();
-        for (int i = 0; i < asList.size(); i++) {
-            ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
-            consumer.accept(innerValue);
+        if (this.is(List.class)) {
+            List<Object> asList = getAsList();
+            for (int i = 0; i < asList.size(); i++) {
+                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+                consumer.accept(innerValue);
+            }
+        } else {
+            consumer.accept(this);
         }
     }
 
@@ -436,5 +465,92 @@ public record ConfigValue(String path, @NotNull Object value) {
         } else {
             return new FixedCraftRemainder(getAsIdentifier(), ConfigConstants.CONSTANT_ONE);
         }
+    }
+
+    public ConfigValue nonEmptyList() {
+        if (this.value instanceof List<?> list) {
+            if (list.isEmpty()) {
+                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, this.path);
+            }
+        }
+        return this;
+    }
+
+    public <T> Ingredient<T> getAsIngredient() {
+        int count = 1;
+        ConfigValue itemsValue;
+        if (this.is(Map.class)) {
+            ConfigSection section = getAsSection();
+            count = section.getInt(1, "count");
+            itemsValue = section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "items", "item");
+        } else {
+            itemsValue = this;
+        }
+        Set<UniqueKey> itemIds = new HashSet<>();
+        Set<UniqueKey> minecraftItemIds = new HashSet<>();
+        List<IngredientElement> elements = new ArrayList<>();
+        ItemManager itemManager = CraftEngine.instance().itemManager();
+
+        itemsValue.nonEmptyList().forEach(v -> {
+            String itemOrTag = v.getAsString();
+            if (itemOrTag.charAt(0) == '#') {
+                Key tag = Key.of(itemOrTag.substring(1));
+                IngredientElement.Tag itemTag = IngredientElement.tag(tag);
+                elements.add(itemTag);
+                List<UniqueKey> items = itemManager.itemIdsByTag(tag);
+                if (items.isEmpty()) {
+                    throw new KnownResourceException("resource.recipe.ingredient.invalid_tag", v.path, itemOrTag);
+                }
+                itemIds.addAll(items);
+                for (UniqueKey uniqueKey : items) {
+                    List<UniqueKey> ingredientSubstitutes = itemManager.getIngredientSubstitutes(uniqueKey.key());
+                    if (!ingredientSubstitutes.isEmpty()) {
+                        itemIds.addAll(ingredientSubstitutes);
+                    }
+                }
+            } else {
+                Key itemId = Key.of(itemOrTag);
+                elements.add(new IngredientElement.Item(itemId));
+                if (itemManager.getBuildableItem(itemId).isEmpty()) {
+                    throw new KnownResourceException("resource.recipe.ingredient.item_not_exist", v.path, itemOrTag);
+                }
+                itemIds.add(UniqueKey.create(itemId));
+                List<UniqueKey> ingredientSubstitutes = itemManager.getIngredientSubstitutes(itemId);
+                if (!ingredientSubstitutes.isEmpty()) {
+                    itemIds.addAll(ingredientSubstitutes);
+                }
+            }
+        });
+        boolean hasCustomItem = false;
+        for (UniqueKey holder : itemIds) {
+            Optional<CustomItem> optionalCustomItem = itemManager.getCustomItem(holder.key());
+            UniqueKey vanillaItem = holder;
+            if (optionalCustomItem.isPresent()) {
+                CustomItem customItem = optionalCustomItem.get();
+                if (!customItem.isVanillaItem()) {
+                    vanillaItem = UniqueKey.create(customItem.material());
+                    hasCustomItem = true;
+                }
+            }
+            minecraftItemIds.add(vanillaItem);
+        }
+        return Ingredient.of(elements, itemIds, minecraftItemIds, hasCustomItem, count);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> CustomRecipeResult<T> getAsCustomRecipeResult() {
+        ConfigSection section = getAsSection();
+        Key id = section.getNonNullIdentifier("id");
+        int count = section.getInt(1, "count");
+        Optional<BuildableItem<T>> buildableItem = (Optional<BuildableItem<T>>) CraftEngine.instance().itemManager().getBuildableItem(id);
+        if (buildableItem.isEmpty()) {
+            throw new KnownResourceException("resource.recipe.result.item_not_exist", section.assemblePath("id"), id.asString());
+        }
+        List<PostProcessor> processors = section.parseSectionList(PostProcessors::fromConfig, "post_processors", "post-processors");
+        return new CustomRecipeResult<>(
+                buildableItem.get(),
+                count,
+                processors.isEmpty() ? null : processors.toArray(new PostProcessor[0])
+        );
     }
 }

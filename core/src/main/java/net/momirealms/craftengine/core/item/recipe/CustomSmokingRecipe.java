@@ -2,13 +2,13 @@ package net.momirealms.craftengine.core.item.recipe;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
-
-public class CustomSmokingRecipe<T> extends CustomCookingRecipe<T> {
+public final class CustomSmokingRecipe<T> extends CustomCookingRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
 
     public CustomSmokingRecipe(Key id,
@@ -36,19 +36,23 @@ public class CustomSmokingRecipe<T> extends CustomCookingRecipe<T> {
 
         @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
         @Override
-        public CustomSmokingRecipe<A> readMap(Key id, Map<String, Object> arguments) {
-            return new CustomSmokingRecipe(id,
-                    showNotification(arguments),
-                    parseResult(arguments), arguments.containsKey("group") ? arguments.get("group").toString() : null, cookingRecipeCategory(arguments),
-                    singleInputIngredient(arguments),
-                    ResourceConfigUtils.getAsInt(arguments.getOrDefault("time", 80), "time"),
-                    ResourceConfigUtils.getAsFloat(ResourceConfigUtils.get(arguments, "exp", "experience"), "experience")
+        public CustomSmokingRecipe<A> readConfig(Key id, ConfigSection section) {
+            return new CustomSmokingRecipe(
+                    id,
+                    section.getBoolean(true, "show_notification", "show-notification"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getString("group"),
+                    section.getEnum(null, CookingRecipeCategory.class, "category"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredient", "ingredients").getAsIngredient(),
+                    section.getInt(80, "time"),
+                    section.getFloat("exp", "experience")
             );
         }
 
         @Override
         public CustomSmokingRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomSmokingRecipe<>(id,
+            return new CustomSmokingRecipe<>(
+                    id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.cookingResult(json.get("result"))), VANILLA_RECIPE_HELPER.readGroup(json), VANILLA_RECIPE_HELPER.cookingCategory(json),
                     toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("ingredient"))),

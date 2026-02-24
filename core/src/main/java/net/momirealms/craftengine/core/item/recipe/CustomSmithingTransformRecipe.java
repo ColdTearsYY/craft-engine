@@ -8,13 +8,15 @@ import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
@@ -26,10 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<T>
+public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<T>
         implements ConditionalRecipe<T>, VisualResultRecipe<T>, FunctionalRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
     private final Ingredient<T> base;
@@ -38,7 +41,7 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
     private final boolean mergeComponents;
     private final boolean mergeEnchantments;
     private final List<ItemDataProcessor> processors;
-    private final Condition<Context> condition;
+    private final Predicate<Context> condition;
     private final Function<Context>[] smithingFunctions;
     private final CustomRecipeResult<T> visualResult;
     private final boolean ingredientCountSupport;
@@ -54,7 +57,7 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
                                          boolean mergeComponents,
                                          boolean mergeEnchantments,
                                          Function<Context>[] smithingFunctions,
-                                         Condition<Context> condition,
+                                         Predicate<Context> condition,
                                          boolean ingredientCountSupport
     ) {
         super(id, showNotification, result);
@@ -206,14 +209,12 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
     @SuppressWarnings({"DuplicatedCode"})
     public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmithingTransformRecipe<A>> {
 
+        @SuppressWarnings("unchecked")
         @Override
-        public CustomSmithingTransformRecipe<A> readMap(Key id, Map<String, Object> arguments) {
-            boolean mergeComponents = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("merge-components", true), "merge-components");
-            boolean mergeEnchantments = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("merge-enchantments", false), "merge-enchantments");
-
-            Ingredient<A> templateIngredient = parseIngredient(ResourceConfigUtils.get(arguments, "template-type", "template_type"));
-            Ingredient<A> baseIngredient = ResourceConfigUtils.requireNonNullOrThrow(parseIngredient(arguments.get("base")), "warning.config.recipe.smithing_transform.missing_base");
-            Ingredient<A> additionIngredient = parseIngredient(arguments.get("addition"));
+        public CustomSmithingTransformRecipe<A> readConfig(Key id, ConfigSection section) {
+            Ingredient<A> templateIngredient = section.getValue(ConfigValue::getAsIngredient, "template_type", "template-type");
+            Ingredient<A> baseIngredient = section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "base").getAsIngredient();
+            Ingredient<A> additionIngredient = section.getValue(ConfigValue::getAsIngredient, "addition");
             boolean countSupport = false;
             if (/* !countSupport && */ templateIngredient != null && templateIngredient.count() > 1) {
                 countSupport = true;
@@ -224,20 +225,18 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
             if (!countSupport && /* baseIngredient != null && */ baseIngredient.count() > 1) {
                 countSupport = true;
             }
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> processors = (List<Map<String, Object>>) arguments.getOrDefault("post-processors", List.of());
             return new CustomSmithingTransformRecipe<>(id,
-                    showNotification(arguments),
+                    section.getBoolean(true, "show_notification", "show-notification"),
                     templateIngredient,
                     baseIngredient,
                     additionIngredient,
-                    parseResult(arguments),
-                    parseVisualResult(arguments),
-                    ItemDataProcessors.fromMapList(processors),
-                    mergeComponents,
-                    mergeEnchantments,
-                    functions(arguments),
-                    conditions(arguments),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "visual_result", "visual-result").getAsCustomRecipeResult(),
+                    section.parseSectionList(ItemDataProcessors::fromConfig, "post_processors", "post-processors"),
+                    section.getBoolean(true, "merge-components", "merge_components"),
+                    section.getBoolean(false, "merge-enchantments", "merge_enchantments"),
+                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
+                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition")),
                     countSupport
             );
         }
@@ -269,15 +268,6 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
         public static final ItemDataProcessor.Type<MergeEnchantments> MERGE_ENCHANTMENTS = register(Key.ce("merge_enchantments"), MergeEnchantments.FACTORY);
 
         private ItemDataProcessors() {}
-
-        public static List<ItemDataProcessor> fromMapList(List<Map<String, Object>> mapList) {
-            if (mapList == null || mapList.isEmpty()) return List.of();
-            List<ItemDataProcessor> functions = new ArrayList<>();
-            for (Map<String, Object> map : mapList) {
-                functions.add(fromConfig(map));
-            }
-            return functions;
-        }
 
         public static ItemDataProcessor fromConfig(ConfigSection section) {
             String type = section.getNonNullString("type");

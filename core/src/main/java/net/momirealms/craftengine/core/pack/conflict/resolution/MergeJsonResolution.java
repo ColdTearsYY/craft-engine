@@ -33,8 +33,7 @@ public record MergeJsonResolution(boolean deeply) implements Resolution {
 
         @Override
         public MergeJsonResolution create(ConfigSection section) {
-            boolean deeply = ResourceConfigUtils.getAsBoolean(section.getOrDefault("deeply", false), "deeply");
-            return new MergeJsonResolution(deeply);
+            return new MergeJsonResolution(section.getBoolean("deeply"));
         }
     }
 }

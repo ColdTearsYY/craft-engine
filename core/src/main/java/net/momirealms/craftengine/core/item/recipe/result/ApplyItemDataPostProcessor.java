@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.processor.ItemProcessor;
 import net.momirealms.craftengine.core.item.processor.ItemProcessors;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.ArrayList;
@@ -29,10 +30,9 @@ public class ApplyItemDataPostProcessor implements PostProcessor {
     private static class Factory implements PostProcessorFactory<ApplyItemDataPostProcessor> {
 
         @Override
-        public ApplyItemDataPostProcessor create(Map<String, Object> args) {
+        public ApplyItemDataPostProcessor create(ConfigSection section) {
             List<ItemProcessor> modifiers = new ArrayList<>();
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(args.get("data"), "data");
-            ItemProcessors.collectProcessors(data, modifiers::add);
+            ItemProcessors.collectProcessors(section.getNonNullSection("data"), modifiers::add);
             return new ApplyItemDataPostProcessor(modifiers.toArray(new ItemProcessor[0]));
         }
     }

@@ -6,6 +6,10 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
@@ -18,10 +22,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
-public class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
+public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
         implements ConditionalRecipe<T>, FunctionalRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
     private final Ingredient<T> base;
@@ -30,7 +34,7 @@ public class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
     @Nullable // 1.21.5
     private final Key pattern;
     @Nullable
-    private final Condition<Context> condition;
+    private final Predicate<Context> condition;
     private final Function<Context>[] smithingFunctions;
 
     public CustomSmithingTrimRecipe(@NotNull Key id,
@@ -39,8 +43,8 @@ public class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
                                     @NotNull Ingredient<T> base,
                                     @NotNull Ingredient<T> addition,
                                     @Nullable Key pattern,
-                                    Function<Context>[] smithingFunctions,
-                                    @Nullable Condition<Context> condition
+                                    @Nullable Function<Context>[] smithingFunctions,
+                                    @Nullable Predicate<Context> condition
     ) {
         super(id, showNotification);
         this.base = base;
@@ -147,20 +151,17 @@ public class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
     @SuppressWarnings({"DuplicatedCode"})
     public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmithingTrimRecipe<A>> {
 
+        @SuppressWarnings("unchecked")
         @Override
-        public CustomSmithingTrimRecipe<A> readMap(Key id, Map<String, Object> arguments) {
-            List<String> base = MiscUtils.getAsStringList(arguments.get("base"));
-            List<String> template = MiscUtils.getAsStringList(arguments.get("template-type"));
-            List<String> addition = MiscUtils.getAsStringList(arguments.get("addition"));
-            Key pattern = VersionHelper.isOrAbove1_21_5() ? Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("pattern"), "warning.config.recipe.smithing_trim.missing_pattern")) : null;
+        public CustomSmithingTrimRecipe<A> readConfig(Key id, ConfigSection section) {
             return new CustomSmithingTrimRecipe<>(id,
-                    showNotification(arguments),
-                    ResourceConfigUtils.requireNonNullOrThrow(toIngredient(template), "warning.config.recipe.smithing_trim.missing_template_type"),
-                    ResourceConfigUtils.requireNonNullOrThrow(toIngredient(base), "warning.config.recipe.smithing_trim.missing_base"),
-                    ResourceConfigUtils.requireNonNullOrThrow(toIngredient(addition), "warning.config.recipe.smithing_trim.missing_addition"),
-                    pattern,
-                    functions(arguments),
-                    conditions(arguments)
+                    section.getBoolean(true, "show_notification", "show-notification"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "template_type", "template-type").getAsIngredient(),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "base").getAsIngredient(),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "addition").getAsIngredient(),
+                    VersionHelper.isOrAbove1_21_5() ? section.getNonNullIdentifier("pattern") : null,
+                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
+                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition"))
             );
         }
 

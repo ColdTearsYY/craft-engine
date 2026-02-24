@@ -4,13 +4,14 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SingleItemInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 
-public class CustomStoneCuttingRecipe<T> extends AbstractGroupedRecipe<T> {
+public final class CustomStoneCuttingRecipe<T> extends AbstractGroupedRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
     protected final Ingredient<T> ingredient;
 
@@ -55,12 +56,12 @@ public class CustomStoneCuttingRecipe<T> extends AbstractGroupedRecipe<T> {
 
         @SuppressWarnings({"DuplicatedCode"})
         @Override
-        public CustomStoneCuttingRecipe<A> readMap(Key id, Map<String, Object> arguments) {
-            String group = arguments.containsKey("group") ? arguments.get("group").toString() : null;
+        public CustomStoneCuttingRecipe<A> readConfig(Key id, ConfigSection section) {
             return new CustomStoneCuttingRecipe<>(id,
-                    showNotification(arguments),
-                    parseResult(arguments), group,
-                    singleInputIngredient(arguments)
+                    section.getBoolean(true, "show_notification", "show-notification"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getString("group"),
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredient", "ingredients").getAsIngredient()
             );
         }
 

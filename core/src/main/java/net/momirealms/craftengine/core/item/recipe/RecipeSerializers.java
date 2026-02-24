@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.item.recipe;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -44,13 +46,13 @@ public final class RecipeSerializers {
     }
 
     @SuppressWarnings("unchecked")
-    public static <T, R extends Recipe<T>> Recipe<T> fromMap(Key id, Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.recipe.missing_type");
-        Key key = Key.withDefaultNamespace(type, "minecraft");
+    public static <T, R extends Recipe<T>> Recipe<T> fromConfig(Key id, ConfigSection section) {
+        String type = section.getNonEmptyString("type");
+        Key key = Key.of(type);
         RecipeSerializer<T, R> factory = (RecipeSerializer<T, R>) BuiltInRegistries.RECIPE_SERIALIZER.getValue(key);
         if (factory == null) {
-            throw new LocalizedResourceConfigException("warning.config.recipe.invalid_type", type);
+            throw new KnownResourceException("resource.recipe.unknown_type", section.assemblePath("type"), key.asString());
         }
-        return factory.readMap(id, map);
+        return factory.readConfig(id, section);
     }
 }

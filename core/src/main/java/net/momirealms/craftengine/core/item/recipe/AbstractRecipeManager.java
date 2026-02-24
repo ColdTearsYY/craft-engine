@@ -177,7 +177,7 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
                 throw new LocalizedResourceConfigException("warning.config.recipe.duplicate");
             }
             boolean unlockOnIngredientObtained = (boolean) section.getOrDefault(Config.unlockOnIngredientObtained(), "unlock-on-ingredient-obtained");
-            Recipe<T> recipe = RecipeSerializers.fromMap(id, section);
+            Recipe<T> recipe = RecipeSerializers.fromConfig(id, section);
             try {
                 registerInternalRecipe(id, recipe, unlockOnIngredientObtained);
             } catch (LocalizedResourceConfigException e) {
