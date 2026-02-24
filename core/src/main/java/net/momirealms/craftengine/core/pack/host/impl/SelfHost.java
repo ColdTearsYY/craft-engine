@@ -4,6 +4,9 @@ import io.github.bucket4j.Bandwidth;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
@@ -56,44 +59,52 @@ public final class SelfHost implements ResourcePackHost {
     private static class Factory implements ResourcePackHostFactory<SelfHost> {
 
         @Override
-        public SelfHost create(Map<String, Object> arguments) {
+        public SelfHost create(ConfigSection section) {
             SelfHostHttpServer selfHostHttpServer = SelfHostHttpServer.instance();
-            String ip = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("ip"), () -> new LocalizedException("warning.config.host.self.missing_ip"));
-            int port = ResourceConfigUtils.getAsInt(arguments.getOrDefault("port", 8163), "port");
-            if (port <= 0 || port > 65535) {
-                throw new LocalizedException("warning.config.host.self.invalid_port", String.valueOf(port));
+
+            // url 拼接
+            String ip = section.getNonEmptyString("ip");
+            int port = section.getInt(8163, "port");
+            if (port <= 0) {
+                throw new KnownResourceException("number.greater_than", section.assemblePath("port"), "port", "0");
+            } else if (port > 65535) {
+                throw new KnownResourceException("number.less_than", section.assemblePath("port"), "port", "65536");
             }
-            String url = arguments.getOrDefault("url", "").toString();
+            String url = section.getDefaultedString("", "url");
             if (!url.isEmpty()) {
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
-                    throw new LocalizedException("warning.config.host.self.invalid_url", url);
+                    url = "http://" + url;
                 }
                 if (!url.endsWith("/")) url  += "/";
             }
-            boolean oneTimeToken = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("one-time-token", true), "one-time-token");
-            String protocol = arguments.getOrDefault("protocol", "http").toString();
-            boolean denyNonMinecraftRequest = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("deny-non-minecraft-request", true), "deny-non-minecraft-request");
-            boolean strictValidation = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("strict-validation", false), "strict-validation");
 
+            // 其他参数
+            boolean oneTimeToken = section.getBoolean(true, "one_time_token", "one-time-token");
+            String protocol = section.getDefaultedString("http", "protocol");
+            boolean denyNonMinecraftRequest = section.getBoolean(true, "deny_non_minecraft_request", "deny-non-minecraft-request");
+            boolean strictValidation = section.getBoolean(false, "strict_validation", "strict-validation");
+
+            // 流量控制
             Bandwidth limit = null;
-            Map<String, Object> rateLimitingSection = ResourceConfigUtils.getAsMapOrNull(arguments.get("rate-limiting"), "rate-limiting");
+            ConfigSection rateLimitingSection = section.getSection("rate_limiting", "rate-limiting");
             long maxBandwidthUsage = 0L;
             long minDownloadSpeed = 50_000L;
             if (rateLimitingSection != null) {
-                if (rateLimitingSection.containsKey("qps-per-ip")) {
-                    String qps = rateLimitingSection.get("qps-per-ip").toString();
-                    String[] split = qps.split("/", 2);
-                    if (split.length == 1) split = new String[]{split[0], "1"};
-                    int maxRequests = ResourceConfigUtils.getAsInt(split[0], "qps-per-ip");
-                    int resetInterval = ResourceConfigUtils.getAsInt(split[1], "qps-per-ip");
+                ConfigValue qpsValue = rateLimitingSection.getValue("qps_per_ip", "qps-per-ip");
+                if (qpsValue != null) {
+                    ConfigValue[] splitValues = qpsValue.getSplitValuesRestrict("/", 2);
+                    int maxRequests = splitValues[0].getAsInt();
+                    int resetInterval = splitValues[1].getAsInt();
                     limit = Bandwidth.builder()
                             .capacity(maxRequests)
                             .refillGreedy(maxRequests, Duration.ofSeconds(resetInterval))
                             .build();
                 }
-                maxBandwidthUsage = ResourceConfigUtils.getAsLong(rateLimitingSection.getOrDefault("max-bandwidth-per-second", 0), "max-bandwidth");
-                minDownloadSpeed = ResourceConfigUtils.getAsLong(rateLimitingSection.getOrDefault("min-download-speed-per-player", 50_000), "min-download-speed-per-player");
+                maxBandwidthUsage = section.getLong(0, "max_bandwidth_per_second", "max-bandwidth-per-second");
+                minDownloadSpeed = section.getLong(50_000, "min_download_speed_per_player", "min-download-speed-per-player");
             }
+
+            // 更新单例
             selfHostHttpServer.updateProperties(ip, port, url, denyNonMinecraftRequest, protocol, limit, oneTimeToken, maxBandwidthUsage, minDownloadSpeed, strictValidation);
             return INSTANCE;
         }

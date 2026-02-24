@@ -82,7 +82,8 @@ blocks:
         age:
           type: int
           default: 0
-          range: 0~2
+          min: 0
+          max: 2
       appearances:
         stage_0:
           auto-state: lower_tripwire

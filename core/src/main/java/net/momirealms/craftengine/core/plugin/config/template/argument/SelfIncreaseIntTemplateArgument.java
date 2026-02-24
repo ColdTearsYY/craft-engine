@@ -64,11 +64,12 @@ public final class SelfIncreaseIntTemplateArgument implements TemplateArgument {
 
         @Override
         public SelfIncreaseIntTemplateArgument create(ConfigSection section) {
-            int from = section.getNonNullInt("from");
-            int to = section.getNonNullInt("to");
-            int step = section.getInt(1, "step");
-            int stepInterval = section.getInt(1, "step_interval", "step-interval");
-            return new SelfIncreaseIntTemplateArgument(from, to, step, stepInterval);
+            return new SelfIncreaseIntTemplateArgument(
+                    section.getNonNullInt("from"),
+                    section.getNonNullInt("to"),
+                    section.getInt(1, "step"),
+                    section.getInt(1, "step_interval", "step-interval")
+            );
         }
     }
 }

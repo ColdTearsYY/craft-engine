@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class ArmorStandBlockEntityElement implements BlockEntityElement {
+public final class ArmorStandBlockEntityElement implements BlockEntityElement {
     public final ArmorStandBlockEntityElementConfig config;
     public final Object cachedSpawnPacket;
     public final Object cachedDespawnPacket;

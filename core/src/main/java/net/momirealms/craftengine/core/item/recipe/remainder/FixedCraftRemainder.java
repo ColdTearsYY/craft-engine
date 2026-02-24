@@ -2,13 +2,14 @@ package net.momirealms.craftengine.core.item.recipe.remainder;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.ThreadLocalRandomSource;
-
-import java.util.Map;
 
 public final class FixedCraftRemainder implements CraftRemainder {
     public static final CraftRemainderFactory<FixedCraftRemainder> FACTORY = new Factory();
@@ -33,10 +34,11 @@ public final class FixedCraftRemainder implements CraftRemainder {
     private static class Factory implements CraftRemainderFactory<FixedCraftRemainder> {
 
         @Override
-        public FixedCraftRemainder create(Map<String, Object> args) {
-            Key item = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(args.get("item"), "warning.config.item.settings.craft_remainder.fixed.missing_item"));
-            NumberProvider count = NumberProviders.fromObject(args.getOrDefault("count", 1));
-            return new FixedCraftRemainder(item, count);
+        public FixedCraftRemainder create(ConfigSection section) {
+            return new FixedCraftRemainder(
+                    section.getNonNullIdentifier("item"),
+                    section.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "count", "amount")
+            );
         }
     }
 }

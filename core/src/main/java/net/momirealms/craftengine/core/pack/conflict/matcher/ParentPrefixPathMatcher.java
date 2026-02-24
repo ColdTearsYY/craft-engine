@@ -23,9 +23,8 @@ public record ParentPrefixPathMatcher(String prefix) implements Condition<PathCo
 
     private static class Factory implements ConditionFactory<PathContext, ParentPrefixPathMatcher> {
         @Override
-        public ParentPrefixPathMatcher create(ConfigSection arguments) {
-            String prefix = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("prefix"), () -> new LocalizedException("warning.config.conflict_matcher.parent_prefix.missing_prefix"));
-            return new ParentPrefixPathMatcher(prefix);
+        public ParentPrefixPathMatcher create(ConfigSection section) {
+            return new ParentPrefixPathMatcher(section.getNonNullString("prefix"));
         }
     }
 }

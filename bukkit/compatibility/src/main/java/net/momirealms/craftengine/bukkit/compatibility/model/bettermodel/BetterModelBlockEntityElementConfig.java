@@ -2,12 +2,11 @@ package net.momirealms.craftengine.bukkit.compatibility.model.bettermodel;
 
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfig;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import org.joml.Vector3f;
-
-import java.util.Map;
 
 public final class BetterModelBlockEntityElementConfig implements BlockEntityElementConfig<BetterModelBlockEntityElement> {
     private final Vector3f position;
@@ -61,7 +60,7 @@ public final class BetterModelBlockEntityElementConfig implements BlockEntityEle
     public static class Factory implements BlockEntityElementConfigFactory<BetterModelBlockEntityElement> {
 
         @Override
-        public BetterModelBlockEntityElementConfig create(Map<String, Object> arguments) {
+        public BetterModelBlockEntityElementConfig create(ConfigSection arguments) {
             String model = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("model"), "warning.config.block.state.entity_renderer.better_model.missing_model");
             return new BetterModelBlockEntityElementConfig(
                     model,

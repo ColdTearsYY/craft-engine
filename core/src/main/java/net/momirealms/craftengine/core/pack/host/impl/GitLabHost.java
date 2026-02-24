@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.pack.host.impl;
 import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.GsonHelper;
@@ -169,25 +170,16 @@ public final class GitLabHost implements ResourcePackHost {
     private static class Factory implements ResourcePackHostFactory<GitLabHost> {
 
         @Override
-        public GitLabHost create(Map<String, Object> arguments) {
-            boolean useEnv = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-environment-variables", false), "use-environment-variables");
-            String gitlabUrl = Optional.ofNullable(arguments.get("gitlab-url")).map(String::valueOf).orElse(null);
-            if (gitlabUrl == null || gitlabUrl.isEmpty()) {
-                throw new LocalizedException("warning.config.host.gitlab.missing_url");
-            }
+        public GitLabHost create(ConfigSection section) {
+            boolean useEnv = section.getBoolean("use_environment_variables", "use-environment-variables");
+            String gitlabUrl = section.getNonEmptyString("gitlab_url", "gitlab-url");
             if (gitlabUrl.endsWith("/")) {
                 gitlabUrl = gitlabUrl.substring(0, gitlabUrl.length() - 1);
             }
-            String accessToken = useEnv ? System.getenv("CE_GITLAB_ACCESS_TOKEN") : Optional.ofNullable(arguments.get("access-token")).map(String::valueOf).orElse(null);
-            if (accessToken == null || accessToken.isEmpty()) {
-                throw new LocalizedException("warning.config.host.gitlab.missing_token");
-            }
-            String projectId = Optional.ofNullable(arguments.get("project-id")).map(String::valueOf).orElse(null);
-            if (projectId == null || projectId.isEmpty()) {
-                throw new LocalizedException("warning.config.host.gitlab.missing_project");
-            }
+            String accessToken = useEnv ? System.getenv("CE_GITLAB_ACCESS_TOKEN") : section.getNonEmptyString("access_token", "access-token");
+            String projectId = section.getNonEmptyString("project_id", "project-id");
             projectId = URLEncoder.encode(projectId, StandardCharsets.UTF_8).replace("/", "%2F");
-            ProxySelector proxy = getProxySelector(MiscUtils.castToMap(arguments.get("proxy"), true));
+            ProxySelector proxy = getProxySelector(section.getSection("proxy"));
             return new GitLabHost(gitlabUrl, accessToken, projectId, proxy);
         }
     }

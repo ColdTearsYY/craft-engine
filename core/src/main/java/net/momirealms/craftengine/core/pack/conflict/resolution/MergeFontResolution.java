@@ -5,10 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.GsonHelper;
 
 import java.util.HashSet;
-import java.util.Map;
 
 public final class MergeFontResolution implements Resolution {
     public static final ResolutionFactory<MergeFontResolution> FACTORY = new Factory();
@@ -46,7 +46,7 @@ public final class MergeFontResolution implements Resolution {
     private static class Factory implements ResolutionFactory<MergeFontResolution> {
 
         @Override
-        public MergeFontResolution create(Map<String, Object> arguments) {
+        public MergeFontResolution create(ConfigSection section) {
             return INSTANCE;
         }
     }

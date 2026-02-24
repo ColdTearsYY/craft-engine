@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.pack.conflict.resolution;
 
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.pack.conflict.matcher.PathMatchers;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.util.MiscUtils;
 
@@ -20,10 +21,10 @@ public record ConditionalResolution(Condition<PathContext> matcher, Resolution r
     private static class Factory implements ResolutionFactory<ConditionalResolution> {
 
         @Override
-        public ConditionalResolution create(Map<String, Object> arguments) {
-            Map<String, Object> term = MiscUtils.castToMap(arguments.get("term"), false);
-            Map<String, Object> resolution = MiscUtils.castToMap(arguments.get("resolution"), false);
-            return new ConditionalResolution(PathMatchers.fromMap(term), Resolutions.fromMap(resolution));
+        public ConditionalResolution create(ConfigSection section) {
+            Map<String, Object> term = MiscUtils.castToMap(section.get("term"), false);
+            Map<String, Object> resolution = MiscUtils.castToMap(section.get("resolution"), false);
+            return new ConditionalResolution(PathMatchers.fromConfig(term), Resolutions.fromMap(resolution));
         }
     }
 }

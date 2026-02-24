@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.item.processor.ItemProcessor;
 import net.momirealms.craftengine.core.item.processor.ItemProcessors;
 import net.momirealms.craftengine.core.item.updater.ItemUpdater;
 import net.momirealms.craftengine.core.item.updater.ItemUpdaterFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
@@ -34,10 +35,9 @@ public final class ApplyDataOperation implements ItemUpdater {
     private static class Factory implements ItemUpdaterFactory<ApplyDataOperation> {
 
         @Override
-        public ApplyDataOperation create(Key item, Map<String, Object> args) {
+        public ApplyDataOperation create(Key item, ConfigSection section) {
             List<ItemProcessor> modifiers = new ArrayList<>();
-            Map<String, Object> data = ResourceConfigUtils.getAsMap(args.get("data"), "data");
-            ItemProcessors.collectProcessors(data, modifiers::add);
+            ItemProcessors.collectProcessors(section.getNonNullSection("data"), modifiers::add);
             return new ApplyDataOperation(modifiers);
         }
     }

@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.block.properties;
 
 import com.google.common.collect.ImmutableMap;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.sparrow.nbt.StringTag;
 import net.momirealms.sparrow.nbt.Tag;
 
@@ -118,14 +119,14 @@ public final class EnumProperty<T extends Enum<T>> extends Property<T> {
         }
 
         @Override
-        public Property<A> create(String name, Map<String, Object> arguments) {
-            List<A> enums = Arrays.asList(enumClass.getEnumConstants());
-            String defaultValueName = arguments.getOrDefault("default", "").toString().toLowerCase(Locale.ENGLISH);
+        public Property<A> create(String name, ConfigSection section) {
+            List<A> enums = Arrays.asList(this.enumClass.getEnumConstants());
+            String defaultValueName = section.getString("default");
             A defaultValue = enums.stream()
-                    .filter(e -> e.name().toLowerCase(Locale.ENGLISH).equals(defaultValueName))
+                    .filter(e -> e.name().toLowerCase(Locale.ROOT).equals(defaultValueName))
                     .findFirst()
-                    .orElseGet(() -> enums.get(0));
-            return EnumProperty.create(name, enumClass, enums, defaultValue);
+                    .orElseGet(enums::getFirst);
+            return EnumProperty.create(name, this.enumClass, enums, defaultValue);
         }
     }
 }

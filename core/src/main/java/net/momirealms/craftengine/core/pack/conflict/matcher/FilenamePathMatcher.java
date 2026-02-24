@@ -18,9 +18,8 @@ public record FilenamePathMatcher(String name) implements Condition<PathContext>
 
     private static class Factory implements ConditionFactory<PathContext, FilenamePathMatcher> {
         @Override
-        public FilenamePathMatcher create(ConfigSection arguments) {
-            String name = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("name"), () -> new LocalizedException("warning.config.conflict_matcher.filename.missing_name"));
-            return new FilenamePathMatcher(name);
+        public FilenamePathMatcher create(ConfigSection section) {
+            return new FilenamePathMatcher(section.getNonNullString("name"));
         }
     }
 }

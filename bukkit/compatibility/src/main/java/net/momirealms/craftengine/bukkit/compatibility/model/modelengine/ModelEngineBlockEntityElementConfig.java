@@ -2,12 +2,11 @@ package net.momirealms.craftengine.bukkit.compatibility.model.modelengine;
 
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfig;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import org.joml.Vector3f;
-
-import java.util.Map;
 
 public final class ModelEngineBlockEntityElementConfig implements BlockEntityElementConfig<ModelEngineBlockEntityElement> {
     private final Vector3f position;
@@ -51,7 +50,7 @@ public final class ModelEngineBlockEntityElementConfig implements BlockEntityEle
     public static class Factory implements BlockEntityElementConfigFactory<ModelEngineBlockEntityElement> {
 
         @Override
-        public ModelEngineBlockEntityElementConfig create(Map<String, Object> arguments) {
+        public ModelEngineBlockEntityElementConfig create(ConfigSection arguments) {
             String model = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("model"), "warning.config.block.state.entity_renderer.model_engine.missing_model");
             return new ModelEngineBlockEntityElementConfig(
                     model,

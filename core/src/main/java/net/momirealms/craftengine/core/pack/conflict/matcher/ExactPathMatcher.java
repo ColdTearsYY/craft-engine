@@ -19,9 +19,8 @@ public record ExactPathMatcher(String path) implements Condition<PathContext> {
 
     private static class Factory implements ConditionFactory<PathContext, ExactPathMatcher> {
         @Override
-        public ExactPathMatcher create(ConfigSection arguments) {
-            String path = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("path"), () -> new LocalizedException("warning.config.conflict_matcher.exact.missing_path"));
-            return new ExactPathMatcher(path);
+        public ExactPathMatcher create(ConfigSection section) {
+            return new ExactPathMatcher(section.getNonNullString("path"));
         }
     }
 }

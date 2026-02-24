@@ -226,23 +226,25 @@ public final class ConfigSection {
         return null;
     }
 
-    public Object getOrDefault(Object defaultValue, String key) {
+    @SuppressWarnings("unchecked")
+    public <T> T getOrDefault(T defaultValue, String key) {
         Object value = this.value.get(key);
         if (value == null) {
             return defaultValue;
         }
-        return value;
+        return (T) value;
     }
 
-    public Object getOrDefault(Object defaultValue, String first, String... keys) {
+    @SuppressWarnings("unchecked")
+    public <T> T getOrDefault(T defaultValue, String first, String... keys) {
         Object firstValue = this.value.get(first);
         if (firstValue != null) {
-            return firstValue;
+            return (T) firstValue;
         }
         for (String key : keys) {
             Object value = this.value.get(key);
             if (value != null) {
-                return value;
+                return (T) value;
             }
         }
         return defaultValue;
@@ -295,6 +297,23 @@ public final class ConfigSection {
     }
 
     // --- String Getters ---
+
+    @NotNull
+    public String getNonEmptyString(String key) {
+        return validateString(key, getNonNullString(key));
+    }
+
+    @NotNull
+    public String getNonEmptyString(String first, String... keys) {
+        return validateString(first, getNonNullString(first, keys));
+    }
+
+    private String validateString(String key, String value) {
+        if (value.isEmpty()) {
+            throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_STRING_FAILED, assemblePath(key));
+        }
+        return value;
+    }
 
     @NotNull
     public String getNonNullString(String key) {

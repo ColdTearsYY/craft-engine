@@ -6,14 +6,16 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.updater.ItemUpdater;
 import net.momirealms.craftengine.core.item.updater.ItemUpdaterFactory;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 
 import java.util.List;
-import java.util.Map;
 
+// todo 完善 custom data 保留机制
 public final class ResetOperation implements ItemUpdater {
     public static final ItemUpdaterFactory<ResetOperation> FACTORY = new Factory();
     private final LazyReference<CustomItem<?>> item;
@@ -49,11 +51,11 @@ public final class ResetOperation implements ItemUpdater {
     private static class Factory implements ItemUpdaterFactory<ResetOperation> {
 
         @Override
-        public ResetOperation create(Key item, Map<String, Object> args) {
+        public ResetOperation create(Key item, ConfigSection section) {
             return new ResetOperation(
                     LazyReference.lazyReference(() -> CraftEngine.instance().itemManager().getCustomItem(item).orElseThrow()),
-                    MiscUtils.getAsStringList(args.get("keep-components")).stream().map(Key::of).toList(),
-                    MiscUtils.getAsStringList(args.get("keep-tags")).stream().map(tag -> tag.split("\\.")).toList()
+                    section.parseList(ConfigValue::getAsIdentifier, "keep_components", "keep-components"),
+                    section.parseList(v -> v.getAsString().split("\\."), "keep_tags", "keep-tags")
             );
         }
     }

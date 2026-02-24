@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.item.recipe.remainder;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
@@ -27,26 +29,13 @@ public final class CraftRemainders {
         return type;
     }
 
-    public static CraftRemainder fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.item.settings.craft_remainder.missing_type");
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static CraftRemainder fromConfig(ConfigSection section) {
+        String type = section.getNonNullString("type");
+        Key key = Key.ce(type);
         CraftRemainderType<?> craftRemainderType = BuiltInRegistries.CRAFT_REMAINDER_TYPE.getValue(key);
         if (craftRemainderType == null) {
-            throw new LocalizedResourceConfigException("warning.config.item.settings.craft_remainder.invalid_type", type);
+            throw new KnownResourceException("resource.item.settings.craft_remainder.unknown_type", section.assemblePath("type"), key.asString());
         }
-        return craftRemainderType.factory().create(map);
-    }
-
-    public static CraftRemainder fromObject(Object obj) {
-        if (obj instanceof Map<?,?> map) {
-            return fromMap(MiscUtils.castToMap(map, false));
-        } else if (obj instanceof List<?> list) {
-            List<CraftRemainder> remainderList = ResourceConfigUtils.parseConfigAsList(list, map -> fromMap(MiscUtils.castToMap(map, false)));
-            return new CompositeCraftRemainder(remainderList.toArray(new CraftRemainder[0]));
-        } else if (obj != null) {
-            return new FixedCraftRemainder(Key.of(obj.toString()), ConstantNumberProvider.constant(1));
-        } else {
-            return null;
-        }
+        return craftRemainderType.factory().create(section);
     }
 }

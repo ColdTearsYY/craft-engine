@@ -23,9 +23,8 @@ public record ParentSuffixPathMatcher(String suffix) implements Condition<PathCo
 
     private static class Factory implements ConditionFactory<PathContext, ParentSuffixPathMatcher> {
         @Override
-        public ParentSuffixPathMatcher create(ConfigSection arguments) {
-            String suffix = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("suffix"), () -> new LocalizedException("warning.config.conflict_matcher.parent_suffix.missing_suffix"));
-            return new ParentSuffixPathMatcher(suffix);
+        public ParentSuffixPathMatcher create(ConfigSection section) {
+            return new ParentSuffixPathMatcher(section.getNonNullString("suffix"));
         }
     }
 }

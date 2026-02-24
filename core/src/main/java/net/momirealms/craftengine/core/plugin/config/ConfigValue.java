@@ -3,6 +3,10 @@ package net.momirealms.craftengine.core.plugin.config;
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.item.recipe.remainder.CompositeCraftRemainder;
+import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainder;
+import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainders;
+import net.momirealms.craftengine.core.item.recipe.remainder.FixedCraftRemainder;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.model.definition.BaseItemModel;
@@ -23,6 +27,7 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -385,5 +390,51 @@ public record ConfigValue(String path, @NotNull Object value) {
         boolean damageOnHurt = section.getBoolean(true, "damage_on_hurt", "damage-on-hurt");
         boolean canBeSheared = section.getBoolean("can_be_sheared", "can-be-sheared");
         return new EquipmentData(slot, assetId, dispensable, swappable, damageOnHurt, equipOnInteract, canBeSheared, cameraOverlay);
+    }
+
+    public UUID getAsUUID() {
+        try {
+            return UUID.fromString(this.getAsString());
+        } catch (IllegalArgumentException e) {
+            throw new KnownResourceException(ConfigConstants.PARSE_UUID_FAILED, this.path, this.value.toString());
+        }
+    }
+
+    public ConfigValue[] getSplitValues(String regex) {
+        return getSplitValues(regex, 0);
+    }
+
+    public ConfigValue[] getSplitValues(String regex, int limits) {
+        String[] splits = this.getAsString().split(regex, limits);
+        ConfigValue[] values = new ConfigValue[splits.length];
+        for (int i = 0; i < splits.length; i++) {
+            ConfigValue configValue = new ConfigValue(this.path, splits[i]);
+            values[i] = configValue;
+        }
+        return values;
+    }
+
+    public ConfigValue[] getSplitValuesRestrict(String regex, int limits) {
+        String[] splits = this.getAsString().split(regex, limits);
+        if (splits.length != limits) {
+            throw new KnownResourceException(ConfigConstants.PARSE_SPLIT_FAILED, this.path, String.valueOf(limits), String.valueOf(splits.length));
+        }
+        ConfigValue[] values = new ConfigValue[splits.length];
+        for (int i = 0; i < splits.length; i++) {
+            ConfigValue configValue = new ConfigValue(this.path, splits[i]);
+            values[i] = configValue;
+        }
+        return values;
+    }
+
+    public CraftRemainder getAsCraftRemainder() {
+        if (this.is(Map.class)) {
+            return CraftRemainders.fromConfig(getAsSection());
+        } else if (this.is(List.class)) {
+            List<CraftRemainder> list = parseAsList(ConfigValue::getAsCraftRemainder);
+            return new CompositeCraftRemainder(list.toArray(new CraftRemainder[0]));
+        } else {
+            return new FixedCraftRemainder(getAsIdentifier(), ConfigConstants.CONSTANT_ONE);
+        }
     }
 }

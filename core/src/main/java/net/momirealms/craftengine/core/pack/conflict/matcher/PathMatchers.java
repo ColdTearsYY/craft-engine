@@ -1,6 +1,9 @@
 package net.momirealms.craftengine.core.pack.conflict.matcher;
 
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.condition.AllOfCondition;
 import net.momirealms.craftengine.core.plugin.context.condition.AnyOfCondition;
@@ -17,9 +20,9 @@ import net.momirealms.craftengine.core.util.ResourceKey;
 import java.util.Map;
 
 public final class PathMatchers {
-    public static final PathMatcherType<AnyOfCondition<PathContext>> ANY_OF = register(Key.ce("any_of"), AnyOfCondition.factory(PathMatchers::fromMap));
-    public static final PathMatcherType<AllOfCondition<PathContext>> ALL_OF = register(Key.ce("all_of"), AllOfCondition.factory(PathMatchers::fromMap));
-    public static final PathMatcherType<InvertedCondition<PathContext>> INVERTED = register(Key.ce("inverted"), InvertedCondition.factory(PathMatchers::fromMap));
+    public static final PathMatcherType<AnyOfCondition<PathContext>> ANY_OF = register(Key.ce("any_of"), AnyOfCondition.factory(PathMatchers::fromConfig));
+    public static final PathMatcherType<AllOfCondition<PathContext>> ALL_OF = register(Key.ce("all_of"), AllOfCondition.factory(PathMatchers::fromConfig));
+    public static final PathMatcherType<InvertedCondition<PathContext>> INVERTED = register(Key.ce("inverted"), InvertedCondition.factory(PathMatchers::fromConfig));
     public static final PathMatcherType<ContainsPathMatcher> CONTAINS = register(Key.ce("contains"), ContainsPathMatcher.FACTORY);
     public static final PathMatcherType<ExactPathMatcher> EXACT = register(Key.ce("exact"), ExactPathMatcher.FACTORY);
     public static final PathMatcherType<FilenamePathMatcher> FILENAME = register(Key.ce("filename"), FilenamePathMatcher.FACTORY);
@@ -36,8 +39,8 @@ public final class PathMatchers {
         return type;
     }
 
-    public static Condition<PathContext> fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), () -> new LocalizedException("warning.config.conflict_matcher.missing_type"));
+    public static Condition<PathContext> fromConfig(ConfigSection section) {
+        String type = section.getNonNullString("type");
         boolean reverted = type.charAt(0) == '!';
         if (reverted) {
             type = type.substring(1);
@@ -45,8 +48,8 @@ public final class PathMatchers {
         Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
         PathMatcherType<? extends Condition<PathContext>> matcherType = BuiltInRegistries.PATH_MATCHER_TYPE.getValue(key);
         if (matcherType == null) {
-            throw new LocalizedException("warning.config.conflict_matcher.invalid_type", type);
+            throw new KnownResourceException("condition.unknown_type", section.assemblePath("type"), type);
         }
-        return reverted ? new InvertedCondition<>(matcherType.factory().create(map)) : matcherType.factory().create(map);
+        return reverted ? InvertedCondition.inverted(matcherType.factory().create(section)) : matcherType.factory().create(section);
     }
 }

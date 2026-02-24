@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.pack.conflict.resolution;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.pack.conflict.matcher.PathMatchers;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.util.MiscUtils;
 
@@ -28,9 +29,9 @@ public record RetainMatchingResolution(Condition<PathContext> matcher) implement
     private static class Factory implements ResolutionFactory<RetainMatchingResolution> {
 
         @Override
-        public RetainMatchingResolution create(Map<String, Object> arguments) {
-            Map<String, Object> term = MiscUtils.castToMap(arguments.get("term"), false);
-            return new RetainMatchingResolution(PathMatchers.fromMap(term));
+        public RetainMatchingResolution create(ConfigSection section) {
+            Map<String, Object> term = MiscUtils.castToMap(section.get("term"), false);
+            return new RetainMatchingResolution(PathMatchers.fromConfig(term));
         }
     }
 }

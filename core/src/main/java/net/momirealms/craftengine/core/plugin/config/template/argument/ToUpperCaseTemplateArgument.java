@@ -31,9 +31,9 @@ public final class ToUpperCaseTemplateArgument implements TemplateArgument {
 
         @Override
         public ToUpperCaseTemplateArgument create(ConfigSection section) {
-            String text = section.getNonNullString("value");
-            Locale locale = section.get(o -> TranslationManager.parseLocale(o.toString()), Locale.ROOT, "locale");
-            return new ToUpperCaseTemplateArgument(text.toUpperCase(locale));
+            return new ToUpperCaseTemplateArgument(
+                    section.getNonNullString("value").toUpperCase(section.getOrDefault(o -> TranslationManager.parseLocale(o.toString()), Locale.ROOT, "locale"))
+            );
         }
     }
 }

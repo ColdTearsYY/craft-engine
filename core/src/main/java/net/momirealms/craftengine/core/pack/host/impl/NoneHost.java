@@ -1,10 +1,10 @@
 package net.momirealms.craftengine.core.pack.host.impl;
 
 import net.momirealms.craftengine.core.pack.host.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -37,7 +37,7 @@ public final class NoneHost implements ResourcePackHost {
     private static class Factory implements ResourcePackHostFactory<NoneHost> {
 
         @Override
-        public NoneHost create(Map<String, Object> arguments) {
+        public NoneHost create(ConfigSection section) {
             return INSTANCE;
         }
     }

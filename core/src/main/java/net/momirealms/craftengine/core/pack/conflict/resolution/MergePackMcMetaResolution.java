@@ -8,6 +8,7 @@ import com.google.gson.JsonPrimitive;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.pack.mcmeta.PackVersion;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Pair;
 
@@ -282,7 +283,7 @@ public final class MergePackMcMetaResolution implements Resolution {
 
     private static class Factory implements ResolutionFactory<MergePackMcMetaResolution> {
         @Override
-        public MergePackMcMetaResolution create(Map<String, Object> arguments) {
+        public MergePackMcMetaResolution create(ConfigSection section) {
             return INSTANCE;
         }
     }

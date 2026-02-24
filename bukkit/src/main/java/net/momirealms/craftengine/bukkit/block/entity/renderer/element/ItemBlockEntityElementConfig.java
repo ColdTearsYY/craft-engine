@@ -7,6 +7,8 @@ import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityEl
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -16,11 +18,10 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class ItemBlockEntityElementConfig implements BlockEntityElementConfig<ItemBlockEntityElement> {
+public final class ItemBlockEntityElementConfig implements BlockEntityElementConfig<ItemBlockEntityElement> {
     public static final Factory FACTORY = new Factory();
     public final Function<Player, List<Object>> lazyMetadataPacket;
     public final Key itemId;
@@ -83,10 +84,10 @@ public class ItemBlockEntityElementConfig implements BlockEntityElementConfig<It
     public static class Factory implements BlockEntityElementConfigFactory<ItemBlockEntityElement> {
 
         @Override
-        public ItemBlockEntityElementConfig create(Map<String, Object> arguments) {
+        public ItemBlockEntityElementConfig create(ConfigSection section) {
             return new ItemBlockEntityElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.block.state.entity_renderer.item.missing_item")),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0.5f), "position")
+                    section.getNonNullIdentifier("item"),
+                    section.getVector3f(ConfigConstants.CENTER_VECTOR3, "position")
             );
         }
     }

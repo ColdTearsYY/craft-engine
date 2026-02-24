@@ -151,7 +151,8 @@ items:
             stage:
               type: int
               default-value: 0
-              range: 0~1
+              min: 0
+              max: 1
           appearances:
             default:
               auto-state: sapling

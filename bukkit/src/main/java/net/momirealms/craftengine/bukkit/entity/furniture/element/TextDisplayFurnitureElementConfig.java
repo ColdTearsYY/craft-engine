@@ -10,6 +10,7 @@ import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElement
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.NetworkTextReplaceContext;
@@ -147,12 +148,12 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
                     section.getEnum(Billboard.FIXED, Billboard.class, "billboard"),
                     section.getFloat(0f, "shadow_radius", "shadow-radius"),
                     section.getFloat(1f, "shadow_strength", "shadow-strength"),
-                    section.get(it -> Color.fromStrings(it.toString().split(",")), (Color) null, "glow_color", "glow-color"),
+                    section.getValue(ConfigValue::getAsColor, "glow_color", "glow-color"),
                     brightness != null ? brightness.getInt(-1, "block_light", "block-light") : -1,
                     brightness != null ? brightness.getInt(-1, "sky_light", "sky-light") : -1,
                     section.getFloat(1f, "view_range", "view-range"),
                     section.getInt(200, "line_width", "line-width"),
-                    section.get(o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000, "background-color"),
+                    section.getOrDefault(o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000, "background-color"),
                     (byte) section.getInt(-1, "opacity","text_opacity", "text-opacity"),
                     section.getBoolean("shadow", "has_shadow", "has-shadow"),
                     section.getBoolean("is_see_through", "is-see-through"),

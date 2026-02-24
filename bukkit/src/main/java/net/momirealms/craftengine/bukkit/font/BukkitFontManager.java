@@ -37,7 +37,7 @@ import org.bukkit.inventory.view.AnvilView;
 
 import java.util.*;
 
-public class BukkitFontManager extends AbstractFontManager implements Listener {
+public final class BukkitFontManager extends AbstractFontManager implements Listener {
     private static BukkitFontManager instance;
     private final BukkitCraftEngine plugin;
 

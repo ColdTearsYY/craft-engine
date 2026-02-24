@@ -8,6 +8,9 @@ import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
@@ -271,22 +274,19 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
             if (mapList == null || mapList.isEmpty()) return List.of();
             List<ItemDataProcessor> functions = new ArrayList<>();
             for (Map<String, Object> map : mapList) {
-                functions.add(fromMap(map));
+                functions.add(fromConfig(map));
             }
             return functions;
         }
 
-        public static ItemDataProcessor fromMap(Map<String, Object> map) {
-            String type = (String) map.get("type");
-            if (type == null) {
-                throw new LocalizedResourceConfigException("warning.config.recipe.smithing_transform.post_processor.missing_type");
-            }
+        public static ItemDataProcessor fromConfig(ConfigSection section) {
+            String type = section.getNonNullString("type");
             Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
             ItemDataProcessor.Type<? extends CustomSmithingTransformRecipe.ItemDataProcessor> processorType = BuiltInRegistries.SMITHING_RESULT_PROCESSOR_TYPE.getValue(key);
             if (processorType == null) {
-                throw new LocalizedResourceConfigException("warning.config.recipe.smithing_transform.post_processor.invalid_type", type);
+                throw new KnownResourceException("resource.recipe.smithing_transform.post_processor.unknown_type", section.assemblePath("type"), key.asString());
             }
-            return processorType.factory.create(map);
+            return processorType.factory.create(section);
         }
 
         public static <T extends ItemDataProcessor> ItemDataProcessor.Type<T> register(Key key, ItemDataProcessor.Factory<T> factory) {
@@ -300,7 +300,7 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
     public interface ItemDataProcessor extends TriConsumer<Item<?>, Item<?>, Item<?>> {
 
         interface Factory<T extends ItemDataProcessor> {
-            T create(Map<String, Object> arguments);
+            T create(ConfigSection section);
         }
 
         record Type<T extends ItemDataProcessor>(Key id, Factory<T> factory) {}
@@ -331,7 +331,7 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
         private static class Factory implements ItemDataProcessor.Factory<MergeEnchantments> {
 
             @Override
-            public MergeEnchantments create(Map<String, Object> arguments) {
+            public MergeEnchantments create(ConfigSection section) {
                 return INSTANCE;
             }
         }
@@ -358,12 +358,8 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
         private static class Factory implements ItemDataProcessor.Factory<KeepCustomData> {
 
             @Override
-            public KeepCustomData create(Map<String, Object> arguments) {
-                List<String> paths = MiscUtils.getAsStringList(ResourceConfigUtils.requireNonNullOrThrow(
-                        arguments.get("paths"),
-                        "warning.config.recipe.smithing_transform.post_processor.keep_custom_data.missing_paths")
-                );
-                return new KeepCustomData(paths.stream().map(it -> it.split("\\.")).toList());
+            public KeepCustomData create(ConfigSection section) {
+                return new KeepCustomData(section.parseNonEmptyList(v -> v.getAsString().split("\\."), "tags", "paths"));
             }
         }
     }
@@ -390,13 +386,8 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
             private static final Key CUSTOM_DATA = Key.of("minecraft", "custom_data");
 
             @Override
-            public KeepComponents create(Map<String, Object> arguments) {
-                Object componentsObj = arguments.get("components");
-                if (componentsObj == null) {
-                    throw new LocalizedResourceConfigException("warning.config.recipe.smithing_transform.post_processor.keep_component.missing_components");
-                }
-                List<String> components = MiscUtils.getAsStringList(componentsObj);
-                return new KeepComponents(components.stream().map(Key::of).filter(it -> !CUSTOM_DATA.equals(it)).toList());
+            public KeepComponents create(ConfigSection section) {
+                return new KeepComponents(section.parseNonEmptyList(ConfigValue::getAsIdentifier, "components").stream().filter(it -> !CUSTOM_DATA.equals(it)).toList());
             }
         }
     }
@@ -422,13 +413,8 @@ public class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<
         private static class Factory implements ItemDataProcessor.Factory<KeepTags> {
 
             @Override
-            public KeepTags create(Map<String, Object> arguments) {
-                Object tagsObj = arguments.get("tags");
-                if (tagsObj == null) {
-                    throw new LocalizedResourceConfigException("warning.config.recipe.smithing_transform.post_processor.keep_component.missing_tags");
-                }
-                List<String> tags = MiscUtils.getAsStringList(tagsObj);
-                return new KeepTags(tags.stream().map(it -> it.split("\\.")).toList());
+            public KeepTags create(ConfigSection section) {
+                return new KeepTags(section.parseNonEmptyList(v -> v.getAsString().split("\\."), "tags"));
             }
         }
     }

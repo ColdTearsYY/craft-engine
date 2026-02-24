@@ -9,6 +9,9 @@ import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityEl
 import net.momirealms.craftengine.core.entity.display.Billboard;
 import net.momirealms.craftengine.core.entity.display.TextDisplayAlignment;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.NetworkTextReplaceContext;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Color;
@@ -22,7 +25,7 @@ import org.joml.Vector3f;
 import java.util.*;
 import java.util.function.Function;
 
-public class TextDisplayBlockEntityElementConfig implements BlockEntityElementConfig<TextDisplayBlockEntityElement> {
+public final class TextDisplayBlockEntityElementConfig implements BlockEntityElementConfig<TextDisplayBlockEntityElement> {
     public static final Factory FACTORY = new Factory();
     public final Function<Player, List<Object>> lazyMetadataPacket;
     public final String text;
@@ -33,6 +36,8 @@ public class TextDisplayBlockEntityElementConfig implements BlockEntityElementCo
     public final float yRot;
     public final Quaternionf rotation;
     public final Billboard billboard;
+    public final float shadowRadius;
+    public final float shadowStrength;
     public final Color glowColor;
     public final int blockLight;
     public final int skyLight;
@@ -53,6 +58,8 @@ public class TextDisplayBlockEntityElementConfig implements BlockEntityElementCo
                                                float yRot,
                                                Quaternionf rotation,
                                                Billboard billboard,
+                                               float shadowRadius,
+                                               float shadowStrength,
                                                @Nullable Color glowColor,
                                                int blockLight,
                                                int skyLight,
@@ -73,6 +80,8 @@ public class TextDisplayBlockEntityElementConfig implements BlockEntityElementCo
         this.rotation = rotation;
         this.billboard = billboard;
         this.glowColor = glowColor;
+        this.shadowRadius = shadowRadius;
+        this.shadowStrength = shadowStrength;
         this.blockLight = blockLight;
         this.skyLight = skyLight;
         this.viewRange = viewRange;
@@ -100,6 +109,8 @@ public class TextDisplayBlockEntityElementConfig implements BlockEntityElementCo
             TextDisplayEntityData.LineWidth.addEntityData(this.lineWidth, dataValues);
             TextDisplayEntityData.BackgroundColor.addEntityData(this.backgroundColor, dataValues);
             TextDisplayEntityData.TextOpacity.addEntityData(this.opacity, dataValues);
+            TextDisplayEntityData.ShadowRadius.addEntityDataIfNotDefaultValue(this.shadowRadius, dataValues);
+            TextDisplayEntityData.ShadowStrength.addEntityDataIfNotDefaultValue(this.shadowStrength, dataValues);
             TextDisplayEntityData.TextDisplayMasks.addEntityData(TextDisplayEntityData.encodeMask(this.hasShadow, this.isSeeThrough, this.useDefaultBackgroundColor, this.alignment), dataValues);
             if (this.blockLight != -1 && this.skyLight != -1) {
                 TextDisplayEntityData.BrightnessOverride.addEntityData(this.blockLight << 4 | this.skyLight << 20, dataValues);
@@ -189,29 +200,30 @@ public class TextDisplayBlockEntityElementConfig implements BlockEntityElementCo
     public static class Factory implements BlockEntityElementConfigFactory<TextDisplayBlockEntityElement> {
 
         @Override
-        public TextDisplayBlockEntityElementConfig create(Map<String, Object> arguments) {
-            String text = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("text"), "warning.config.block.state.entity_renderer.text_display.missing_text");
-            Map<String, Object> brightness = ResourceConfigUtils.getAsMap(arguments.getOrDefault("brightness", Map.of()), "brightness");
+        public TextDisplayBlockEntityElementConfig create(ConfigSection section) {
+            ConfigSection brightness = section.getSection("brightness");
             return new TextDisplayBlockEntityElementConfig(
-                    text,
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0.5f), "position"),
-                    ResourceConfigUtils.getAsVector3f(arguments.get("translation"), "translation"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsQuaternionf(arguments.getOrDefault("rotation", 0f), "rotation"),
-                    Billboard.valueOf(arguments.getOrDefault("billboard", "fixed").toString().toUpperCase(Locale.ROOT)),
-                    Optional.ofNullable(arguments.get("glow-color")).map(it -> Color.fromStrings(it.toString().split(","))).orElse(null),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("block-light", -1), "block-light"),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("sky-light", -1), "sky-light"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("view-range", 1f), "view-range"),
-                    ResourceConfigUtils.getAsInt(arguments.getOrDefault("line-width", 200), "line-width"),
-                    ResourceConfigUtils.getOrDefault(arguments.get("background-color"), o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000),
-                    (byte) ResourceConfigUtils.getAsInt(arguments.getOrDefault("text-opacity", -1), "text-opacity"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("has-shadow", false), "has-shadow"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("is-see-through", false), "is-see-through"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-default-background-color", false), "use-default-background-color"),
-                    ResourceConfigUtils.getAsEnum(arguments.get("alignment"), TextDisplayAlignment.class, TextDisplayAlignment.CENTER)
+                    section.getNonNullString("text"),
+                    section.getVector3f(ConfigConstants.NORMAL_SCALE, "scale"),
+                    section.getVector3f(ConfigConstants.CENTER_VECTOR3, "position"),
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "translation"),
+                    section.getFloat(0f, "pitch"),
+                    section.getFloat(0f, "yaw"),
+                    section.getQuaternionf(ConfigConstants.ZERO_QUATERNION, "rotation"),
+                    section.getEnum(Billboard.FIXED, Billboard.class, "billboard"),
+                    section.getFloat(0f, "shadow_radius", "shadow-radius"),
+                    section.getFloat(1f, "shadow_strength", "shadow-strength"),
+                    section.getValue(ConfigValue::getAsColor, "glow_color", "glow-color"),
+                    brightness != null ? brightness.getInt(-1, "block_light", "block-light") : -1,
+                    brightness != null ? brightness.getInt(-1, "sky_light", "sky-light") : -1,
+                    section.getFloat(1f, "view_range", "view-range"),
+                    section.getInt(200, "line_width", "line-width"),
+                    section.getOrDefault(o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000, "background-color"),
+                    (byte) section.getInt(-1, "opacity","text_opacity", "text-opacity"),
+                    section.getBoolean("shadow", "has_shadow", "has-shadow"),
+                    section.getBoolean("is_see_through", "is-see-through"),
+                    section.getBoolean("use_default_background_color", "use-default-background-color"),
+                    section.getEnum(TextDisplayAlignment.CENTER, TextDisplayAlignment.class, "alignment")
             );
         }
     }

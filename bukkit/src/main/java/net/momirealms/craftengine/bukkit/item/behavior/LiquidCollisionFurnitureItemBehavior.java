@@ -13,7 +13,9 @@ import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.util.Direction;
@@ -43,7 +45,7 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
     private final List<String> liquidTypes;
     private final boolean sourceOnly;
 
-    private LiquidCollisionFurnitureItemBehavior(Key id, Map<AnchorType, Rule> rules, boolean ignorePlacer, boolean ignoreEntities, boolean sourceOnly, List<String> liquidTypes) {
+    private LiquidCollisionFurnitureItemBehavior(Key id, Map<String, Rule> rules, boolean ignorePlacer, boolean ignoreEntities, boolean sourceOnly, List<String> liquidTypes) {
         super(id, rules, ignorePlacer, ignoreEntities);
         this.liquidTypes = liquidTypes;
         this.sourceOnly = sourceOnly;
@@ -56,42 +58,37 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
 
     @Override
     public InteractionResult use(World world, @Nullable Player player, InteractionHand hand) {
-        try {
-            if (player == null) return InteractionResult.FAIL;
-            Object blockHitResult = ItemProxy.INSTANCE.getPlayerPOVHitResult(world.serverWorld(), player.serverPlayer(), ClipContextProxy.FluidProxy.ANY);
-            Object blockPos = BlockHitResultProxy.INSTANCE.getBlockPos(blockHitResult);
-            BlockPos above = new BlockPos(Vec3iProxy.INSTANCE.getX(blockPos), Vec3iProxy.INSTANCE.getY(blockPos), Vec3iProxy.INSTANCE.getZ(blockPos));
-            Direction direction = DirectionUtils.fromNMSDirection(BlockHitResultProxy.INSTANCE.getDirection(blockHitResult));
-            boolean miss = BlockHitResultProxy.INSTANCE.isMiss(blockHitResult);
-            Vec3d hitPos = LocationUtils.fromVec(HitResultProxy.INSTANCE.getLocation(blockHitResult));
-            Object fluidType = FluidStateProxy.INSTANCE.getType(BlockGetterProxy.INSTANCE.getFluidState(world.serverWorld(), blockPos));
-            if (fluidType == FluidsProxy.EMPTY) {
-                return InteractionResult.PASS;
-            }
-            String liquid = null;
-            if (fluidType == FluidsProxy.LAVA) {
-                liquid = "lava";
-            } else if (fluidType == FluidsProxy.WATER) {
-                liquid = "water";
-            } else if (fluidType == FluidsProxy.FLOWING_LAVA) {
-                if (this.sourceOnly) return InteractionResult.PASS;
-                liquid = "lava";
-            } else if (fluidType == FluidsProxy.FLOWING_WATER) {
-                if (this.sourceOnly) return InteractionResult.PASS;
-                liquid = "water";
-            }
-            if (!this.liquidTypes.contains(liquid)) {
-                return InteractionResult.PASS;
-            }
-            if (miss) {
-                return super.useOnBlock(new UseOnContext(player, hand, BlockHitResult.miss(hitPos, direction, above)));
-            } else {
-                boolean inside = BlockHitResultProxy.INSTANCE.isInside(blockHitResult);
-                return super.useOnBlock(new UseOnContext(player, hand, new BlockHitResult(hitPos, direction, above, inside)));
-            }
-        } catch (Exception e) {
-            CraftEngine.instance().logger().warn("Error handling use", e);
-            return InteractionResult.FAIL;
+        if (player == null) return InteractionResult.FAIL;
+        Object blockHitResult = ItemProxy.INSTANCE.getPlayerPOVHitResult(world.serverWorld(), player.serverPlayer(), ClipContextProxy.FluidProxy.ANY);
+        Object blockPos = BlockHitResultProxy.INSTANCE.getBlockPos(blockHitResult);
+        BlockPos above = new BlockPos(Vec3iProxy.INSTANCE.getX(blockPos), Vec3iProxy.INSTANCE.getY(blockPos), Vec3iProxy.INSTANCE.getZ(blockPos));
+        Direction direction = DirectionUtils.fromNMSDirection(BlockHitResultProxy.INSTANCE.getDirection(blockHitResult));
+        boolean miss = BlockHitResultProxy.INSTANCE.isMiss(blockHitResult);
+        Vec3d hitPos = LocationUtils.fromVec(HitResultProxy.INSTANCE.getLocation(blockHitResult));
+        Object fluidType = FluidStateProxy.INSTANCE.getType(BlockGetterProxy.INSTANCE.getFluidState(world.serverWorld(), blockPos));
+        if (fluidType == FluidsProxy.EMPTY) {
+            return InteractionResult.PASS;
+        }
+        String liquid = null;
+        if (fluidType == FluidsProxy.LAVA) {
+            liquid = "lava";
+        } else if (fluidType == FluidsProxy.WATER) {
+            liquid = "water";
+        } else if (fluidType == FluidsProxy.FLOWING_LAVA) {
+            if (this.sourceOnly) return InteractionResult.PASS;
+            liquid = "lava";
+        } else if (fluidType == FluidsProxy.FLOWING_WATER) {
+            if (this.sourceOnly) return InteractionResult.PASS;
+            liquid = "water";
+        }
+        if (!this.liquidTypes.contains(liquid)) {
+            return InteractionResult.PASS;
+        }
+        if (miss) {
+            return super.useOnBlock(new UseOnContext(player, hand, BlockHitResult.miss(hitPos, direction, above)));
+        } else {
+            boolean inside = BlockHitResultProxy.INSTANCE.isInside(blockHitResult);
+            return super.useOnBlock(new UseOnContext(player, hand, new BlockHitResult(hitPos, direction, above, inside)));
         }
     }
 
@@ -100,63 +97,50 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
         @SuppressWarnings("DuplicatedCode")
         @Override
         public LiquidCollisionFurnitureItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            Object id = section.get("furniture");
-            if (id == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.behavior.furniture.missing_furniture", new IllegalArgumentException("Missing required parameter 'furniture' for furniture_item behavior"));
-            }
-            Map<String, Object> rulesMap = ResourceConfigUtils.getAsMapOrNull(section.get("rules"), "rules");
+            ConfigValue furnitureValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "furniture");
+            ConfigSection rulesSection = section.getValue(ConfigValue::getAsSection, "rules");
+
+            Map<String, Rule> rules = new HashMap<>();
             Key furnitureId;
-            if (id instanceof Map<?,?> map) {
-                Map<String, Object> furnitureSection;
-                if (map.containsKey(key.toString())) {
-                    // 防呆
-                    furnitureSection = MiscUtils.castToMap(map.get(key.toString()), false);
-                    BukkitFurnitureManager.instance().parser().addPendingConfigSection(new PendingConfigSection(pack, path, node, key, furnitureSection));
-                } else {
-                    furnitureSection = MiscUtils.castToMap(map, false);
-                    BukkitFurnitureManager.instance().parser().addPendingConfigSection(new PendingConfigSection(pack, path, node, key, furnitureSection));
-                }
+            if (furnitureValue.is(Map.class)) {
+                ConfigSection furnitureSection = furnitureValue.getAsSection();
+                BukkitFurnitureManager.instance().parser().addPendingConfigSection(new PendingConfigSection(pack, path, key, furnitureSection));
                 furnitureId = key;
-                // 兼容老版本
-                if (rulesMap == null) {
-                    Map<String, Object> placementSection = ResourceConfigUtils.getAsMapOrNull(furnitureSection.get("placement"), "placement");
+                // 以下代码是兼容老版本配置，旧版配置放置规则位于furniture下
+                if (rulesSection == null) {
+                    ConfigSection placementSection = furnitureSection.getSection("placement");
                     if (placementSection != null) {
-                        rulesMap = new HashMap<>();
-                        for (Map.Entry<String, Object> entry : placementSection.entrySet()) {
-                            if (entry.getValue() instanceof Map<?, ?> innerMap) {
-                                if (innerMap.containsKey("rules")) {
-                                    Map<String, Object> rules = ResourceConfigUtils.getAsMap(innerMap.get("rules"), "rules");
-                                    if (ALLOWED_ANCHOR_TYPES.contains(entry.getKey())) {
-                                        rulesMap.put(entry.getKey(), rules);
-                                    }
+                        for (String anchorType : placementSection.keySet()) {
+                            if (ALLOWED_ANCHOR_TYPES.contains(anchorType)) {
+                                ConfigSection varSection = placementSection.getNonNullSection(anchorType);
+                                ConfigSection ruleSection = varSection.getSection("rules");
+                                if (ruleSection != null) {
+                                    AlignmentRule alignmentRule = ruleSection.getEnum(AlignmentRule.ANY, AlignmentRule.class, "alignment");
+                                    RotationRule rotationRule = ruleSection.getEnum(RotationRule.ANY, RotationRule.class, "rotation");
+                                    rules.put(anchorType, new Rule(alignmentRule, rotationRule));
                                 }
                             }
                         }
                     }
                 }
             } else {
-                furnitureId = Key.of(id.toString());
+                furnitureId = furnitureValue.getAsIdentifier();
             }
-            Map<AnchorType, Rule> rules = new EnumMap<>(AnchorType.class);
-            if (rulesMap != null) {
-                for (Map.Entry<String, Object> entry : rulesMap.entrySet()) {
-                    try {
-                        AnchorType type = AnchorType.valueOf(entry.getKey().toUpperCase(Locale.ROOT));
-                        Map<String, Object> ruleSection = MiscUtils.castToMap(entry.getValue(), true);
-                        rules.put(type, new Rule(
-                                ResourceConfigUtils.getAsEnum(ruleSection.get("alignment"), AlignmentRule.class, AlignmentRule.ANY),
-                                ResourceConfigUtils.getAsEnum(ruleSection.get("rotation"), RotationRule.class, RotationRule.ANY)
-                        ));
-                    } catch (IllegalArgumentException ignored) {
-                        Debugger.FURNITURE.debug(() -> "Invalid anchor type: " + entry.getKey());
-                    }
+            if (rulesSection != null) {
+                for (String variant : rulesSection.keySet()) {
+                    ConfigSection ruleSection = rulesSection.getNonNullSection(variant);
+                    AlignmentRule alignmentRule = ruleSection.getEnum(AlignmentRule.ANY, AlignmentRule.class, "alignment");
+                    RotationRule rotationRule = ruleSection.getEnum(RotationRule.ANY, RotationRule.class, "rotation");
+                    rules.put(variant, new Rule(alignmentRule, rotationRule));
                 }
             }
-            return new LiquidCollisionFurnitureItemBehavior(furnitureId, rules,
-                    ResourceConfigUtils.getAsBoolean(section.get("ignore-placer"), "ignore-placer"),
-                    ResourceConfigUtils.getAsBoolean(section.get("ignore-entities"), "ignore-entities"),
-                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("source-only", true), "source-only"),
-                    MiscUtils.getAsStringList(section.get("liquid-type"))
+            return new LiquidCollisionFurnitureItemBehavior(
+                    furnitureId,
+                    rules,
+                    section.getBoolean("ignore_placer", "ignore-placer"),
+                    section.getBoolean("ignore_entities", "ignore-entities"),
+                    section.getBoolean(true, "source_only", "source-only"),
+                    section.getStringList("liquid_type", "liquid-type")
             );
         }
     }

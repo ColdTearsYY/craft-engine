@@ -19,9 +19,8 @@ public record ContainsPathMatcher(String path) implements Condition<PathContext>
 
     private static class Factory implements ConditionFactory<PathContext, ContainsPathMatcher> {
         @Override
-        public ContainsPathMatcher create(ConfigSection arguments) {
-            String path = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("path"), () -> new LocalizedException("warning.config.conflict_matcher.contains.missing_path"));
-            return new ContainsPathMatcher(path);
+        public ContainsPathMatcher create(ConfigSection section) {
+            return new ContainsPathMatcher(section.getNonNullString("path"));
         }
     }
 }

@@ -34,9 +34,8 @@ public final class PatternPathMatcher implements Condition<PathContext> {
 
     private static class Factory implements ConditionFactory<PathContext, PatternPathMatcher> {
         @Override
-        public PatternPathMatcher create(ConfigSection arguments) {
-            String pattern = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("pattern"), () -> new LocalizedException("warning.config.conflict_matcher.pattern.missing_pattern"));
-            return new PatternPathMatcher(pattern);
+        public PatternPathMatcher create(ConfigSection section) {
+            return new PatternPathMatcher(section.getNonNullString("pattern"));
         }
     }
 }

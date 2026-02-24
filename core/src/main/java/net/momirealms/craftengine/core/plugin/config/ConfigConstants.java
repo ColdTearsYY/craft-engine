@@ -8,6 +8,7 @@ import org.joml.Vector3f;
 public final class ConfigConstants {
     public static final Vector3f NORMAL_SCALE = new Vector3f(1f);
     public static final Vector3f ZERO_VECTOR3 = new Vector3f();
+    public static final Vector3f CENTER_VECTOR3 = new Vector3f(0.5f);
     public static final Quaternionf ZERO_QUATERNION = new Quaternionf();
     public static final NumberProvider CONSTANT_ZERO = ConstantNumberProvider.constant(0);
     public static final NumberProvider CONSTANT_ONE = ConstantNumberProvider.constant(1);
@@ -24,7 +25,10 @@ public final class ConfigConstants {
     public static final String PARSE_AABB_FAILED = "resource.argument.parser.aabb";
     public static final String PARSE_IDENTIFIER_FAILED = "resource.argument.parser.identifier";
     public static final String PARSE_LIST_FAILED = "resource.argument.parser.list";
+    public static final String PARSE_UUID_FAILED = "resource.argument.parser.uuid";
+    public static final String PARSE_SPLIT_FAILED = "resource.argument.parser.split";
     public static final String PARSE_NONEMPTY_LIST_FAILED = "resource.argument.parser.nonempty_list";
+    public static final String PARSE_NONEMPTY_STRING_FAILED = "resource.argument.parser.nonempty_string";
     public static final String MISSING_ARGUMENT = "resource.missing_argument";
     public static final String ARGUMENT_SECTION = "resource.argument.type.section";
     public static final String ARGUMENT_STRING = "resource.argument.type.string";
