@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.registry;
 
+import net.momirealms.craftengine.core.block.BlockSettingsModifier;
+import net.momirealms.craftengine.core.block.BlockSettingsModifierType;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.behavior.BlockBehavior;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorType;
@@ -114,4 +116,5 @@ public final class Registries {
     public static final ResourceKey<Registry<FurnitureHitboxConfigType<? extends FurnitureHitBox>>> FURNITURE_HITBOX_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_hitbox_type"));
     public static final ResourceKey<Registry<FurnitureBehaviorType<? extends FurnitureBehavior>>> FURNITURE_BEHAVIOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_behavior_type"));
     public static final ResourceKey<Registry<FurnitureSettingsModifierType<? extends FurnitureSettingsModifier>>> FURNITURE_SETTINGS_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("furniture_settings_type"));
+    public static final ResourceKey<Registry<BlockSettingsModifierType<? extends BlockSettingsModifier>>> BLOCK_SETTINGS_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withDefaultNamespace("block_settings_type"));
 }

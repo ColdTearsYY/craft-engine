@@ -176,17 +176,20 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             this.pendingConfigSections.add(section);
         }
 
+        @SuppressWarnings("DuplicatedCode")
         @Override
         public void preProcess() {
-            for (PendingConfigSection section : this.pendingConfigSections) {
-                ResourceConfigUtils.runCatching(
-                        section.path(),
-                        section.node(),
-                        () -> parseSection(section.pack(), section.path(), section.id(), , section.config()),
-                        () -> GsonHelper.get().toJson(section.config())
-                );
+            if (!this.pendingConfigSections.isEmpty()) {
+                for (PendingConfigSection section : this.pendingConfigSections) {
+                    ResourceConfigUtils.runCatching(
+                            section.path(),
+                            section.section().path(),
+                            () -> parseSection(section.pack(), section.path(), section.id(), section.section()),
+                            super.errorHandler
+                    );
+                }
+                this.pendingConfigSections.clear();
             }
-            this.pendingConfigSections.clear();
         }
 
         @Override
@@ -242,7 +245,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
 
             CustomFurniture furniture = CustomFurniture.builder()
                     .id(id)
-                    .settings(FurnitureSettings.fromConfig(section.getSection("settings")))
+                    .settings(FurnitureSettings.applyModifiers(FurnitureSettings.of().itemId(id), section.getSection("settings")))
                     .variants(variants)
                     .events(CommonFunctions.parseEvents(section))
                     .lootTable(section.getValue(v -> LootTable.fromConfig(v.getAsSection()), "loot", "loots"))

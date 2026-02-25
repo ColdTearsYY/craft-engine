@@ -383,6 +383,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             }
         }
 
+        @SuppressWarnings("DuplicatedCode")
         @Override
         public void preProcess() {
             this.internalIdAllocator.reset(0, Config.serverSideBlocks() - 1);
@@ -401,9 +402,9 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 for (PendingConfigSection section : this.pendingConfigSections) {
                     ResourceConfigUtils.runCatching(
                             section.path(),
-                            section.node(),
-                            () -> parseSection(section.pack(), section.path(), section.id(), , section.config()),
-                            () -> GsonHelper.get().toJson(section.config())
+                            section.section().path(),
+                            () -> parseSection(section.pack(), section.path(), section.id(), section.section()),
+                            super.errorHandler
                     );
                 }
                 this.pendingConfigSections.clear();
@@ -420,24 +421,24 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             if (isVanillaBlock(id)) {
                 parseVanillaBlock(id, section);
             } else {
-                parseCustomBlock(path, node, id, section);
+                parseCustomBlock(path, id, section);
             }
         }
 
         private void parseVanillaBlock(Key id, ConfigSection section) {
-            Map<String, Object> settings = MiscUtils.castToMap(section.get("settings"), true);
-            if (settings != null) {
-                Object clientBoundTags = settings.get("client-bound-tags");
-                if (clientBoundTags instanceof List<?> list) {
-                    List<String> clientSideTags = MiscUtils.getAsStringList(list).stream().filter(Identifier::isValid).toList();
-                    AbstractBlockManager.this.setVanillaBlockTags(id, clientSideTags);
+            ConfigSection settingsSection = section.getSection("settings");
+            if (settingsSection != null) {
+                ConfigValue configValue = settingsSection.getValue("client_bound_tags", "client-bound-tags");
+                if (configValue != null) {
+                    List<String> tags = configValue.parseAsList(v -> v.getAsIdentifier().asString());
+                    AbstractBlockManager.this.setVanillaBlockTags(id, tags);
                 }
             }
         }
 
-        private void parseCustomBlock(Path path, String node, Key id, ConfigSection section) {
+        private void parseCustomBlock(Path path, Key id, ConfigSection section) {
             // 获取共享方块设置
-            BlockSettings settings = BlockSettings.fromMap(id, MiscUtils.castToMap(section.get("settings"), true));
+            BlockSettings settings = BlockSettings.applyModifiers(BlockSettings.of().itemId(id), section.getSection("settings"));
             // 读取states区域
             Map<String, Object> stateSection = MiscUtils.castToMap(ResourceConfigUtils.requireNonNullOrThrow(ResourceConfigUtils.get(section, "state", "states"), "warning.config.block.missing_state"), true);
             boolean singleState = !stateSection.containsKey("properties");

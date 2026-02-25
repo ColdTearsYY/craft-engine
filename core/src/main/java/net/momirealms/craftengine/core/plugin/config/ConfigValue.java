@@ -26,10 +26,7 @@ import net.momirealms.craftengine.core.plugin.context.number.*;
 import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
 import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
 import net.momirealms.craftengine.core.sound.SoundData;
-import net.momirealms.craftengine.core.util.Color;
-import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.UniqueKey;
+import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.Vec3i;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
@@ -123,6 +120,47 @@ public record ConfigValue(String path, @NotNull Object value) {
             }
             case Boolean b -> { return b ? 1 : 0; }
             default -> throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.path, this.value.toString());
+        }
+    }
+
+    public float getAsFloat() {
+        switch (this.value) {
+            case Float f -> { return f; }
+            case Number n -> { return n.floatValue(); }
+            case String s -> {
+                try {
+                    return Float.parseFloat(s.replace("_", ""));
+                } catch (NumberFormatException e) {
+                    throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, s);
+                }
+            }
+            case Boolean b -> { return b ? 1.0f : 0.0f; }
+            default -> throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, this.value.toString());
+        }
+    }
+
+    public double getAsDouble() {
+        switch (this.value) {
+            case Double d -> { return d; }
+            case Number n -> { return n.doubleValue(); }
+            case String s -> {
+                try {
+                    return Double.parseDouble(s.replace("_", ""));
+                } catch (NumberFormatException e) {
+                    throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, s);
+                }
+            }
+            case Boolean b -> { return b ? 1.0 : 0.0; }
+            default -> throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, this.value.toString());
+        }
+    }
+
+    public <T extends Enum<T>> T getAsEnum(Class<T> clazz) {
+        String enumString = value.toString();
+        try {
+            return Enum.valueOf(clazz, enumString.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, this.path, enumString, EnumUtils.toString(clazz.getEnumConstants()));
         }
     }
 

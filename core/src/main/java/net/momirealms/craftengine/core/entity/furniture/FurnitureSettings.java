@@ -26,14 +26,18 @@ public final class FurnitureSettings {
     }
 
     public static FurnitureSettings fromConfig(ConfigSection section) {
-        FurnitureSettings settings = FurnitureSettings.of();
+        return applyModifiers(FurnitureSettings.of(), section);
+    }
+
+    public static FurnitureSettings applyModifiers(FurnitureSettings settings, ConfigSection section) {
         if (section != null) {
             for (String type : section.keySet()) {
                 ConfigValue value = section.getValue(type);
                 if (value == null) continue;
                 String key = StringUtils.normalizeSettingsType(type);
                 Optional.ofNullable(BuiltInRegistries.FURNITURE_SETTINGS_TYPE.getValue(Key.ce(key)))
-                        .ifPresent(modifierType -> modifierType.factory().createModifier(value).apply(settings));
+                        .ifPresent(modifierType ->
+                                modifierType.factory().create(value).apply(settings));
             }
         }
         return settings;

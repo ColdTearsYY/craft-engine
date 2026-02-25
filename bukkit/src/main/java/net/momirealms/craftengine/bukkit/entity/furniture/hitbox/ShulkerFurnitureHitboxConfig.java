@@ -10,6 +10,7 @@ import net.momirealms.craftengine.core.entity.furniture.hitbox.AbstractFurniture
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigFactory;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitboxPart;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MiscUtils;
@@ -35,14 +36,14 @@ import java.util.function.Consumer;
 
 public final class ShulkerFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<ShulkerFurnitureHitbox> {
     public static final Factory FACTORY = new Factory();
-    private final float scale;
-    private final byte peek;
-    private final boolean interactive;
-    private final boolean interactionEntity;
-    private final Direction direction;
-    private final DirectionalShulkerSpawner spawner;
-    private final List<Object> cachedShulkerValues = new ArrayList<>(6);
-    private final AABBCreator aabbCreator;
+    public final float scale;
+    public final byte peek;
+    public final boolean interactive;
+    public final boolean interactionEntity;
+    public final Direction direction;
+    public final DirectionalShulkerSpawner spawner;
+    public final List<Object> cachedShulkerValues = new ArrayList<>(6);
+    public final AABBCreator aabbCreator;
 
     private ShulkerFurnitureHitboxConfig(SeatConfig[] seats,
                                         Vector3f position,
@@ -306,21 +307,18 @@ public final class ShulkerFurnitureHitboxConfig extends AbstractFurnitureHitBoxC
 
         @Override
         public ShulkerFurnitureHitboxConfig create(ConfigSection section) {
-            Vector3f position = ResourceConfigUtils.getAsVector3f(section.getOrDefault("position", 0), "position");
-            float scale = ResourceConfigUtils.getAsFloat(section.getOrDefault("scale", 1), "scale");
-            byte peek = (byte) ResourceConfigUtils.getAsInt(section.getOrDefault("peek", 0), "peek");
-            Direction directionEnum = ResourceConfigUtils.getAsEnum(section.get("direction"), Direction.class, Direction.UP);
-            boolean interactive = ResourceConfigUtils.getAsBoolean(section.getOrDefault("interactive", true), "interactive");
-            boolean interactionEntity = ResourceConfigUtils.getAsBoolean(section.getOrDefault("interaction-entity", true), "interaction-entity");
-            boolean canUseItemOn = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-use-item-on", true), "can-use-item-on");
-            boolean canBeHitByProjectile = ResourceConfigUtils.getAsBoolean(section.getOrDefault("can-be-hit-by-projectile", true), "can-be-hit-by-projectile");
-            boolean blocksBuilding = ResourceConfigUtils.getAsBoolean(section.getOrDefault("blocks-building", true), "blocks-building");
-            boolean invisible = ResourceConfigUtils.getAsBoolean(section.getOrDefault("invisible", false), "invisible");
             return new ShulkerFurnitureHitboxConfig(
-                    SeatConfig.fromObj(section.get("seats")),
-                    position,
-                    canUseItemOn, blocksBuilding, canBeHitByProjectile,
-                    scale, peek, interactive, interactionEntity, invisible, directionEnum
+                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "seats").getAsSeats(),
+                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
+                    section.getBoolean(true, "can_use_item_on", "can-use-item-on"),
+                    section.getBoolean(true, "blocks_building", "blocks-building"),
+                    section.getBoolean(true, "can_be_hit_by_projectile", "can-be-hit-by-projectile"),
+                    section.getFloat(1f, "scale"),
+                    (byte) section.getInt("peek"),
+                    section.getBoolean(true, "interactive"),
+                    section.getBoolean(true, "interaction_entity", "interaction-entity"),
+                    section.getBoolean("invisible"),
+                    section.getEnum(Direction.UP, Direction.class, "direction")
             );
         }
     }
