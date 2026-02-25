@@ -949,7 +949,7 @@ public final class ConfigSection {
 
     @Nullable
     public Vector3f getVector3f(String key) {
-        return getVector3f((Vector3f) null, key);
+        return getVector3f(null, key);
     }
 
     @Nullable

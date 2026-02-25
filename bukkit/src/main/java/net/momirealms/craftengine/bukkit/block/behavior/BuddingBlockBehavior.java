@@ -109,7 +109,7 @@ public final class BuddingBlockBehavior extends BukkitBlockBehavior {
             return new BuddingBlockBehavior(
                     block,
                     section.getFloat(0.2f, "growth_chance", "growth-chance"),
-                    section.parseList(ConfigValue::getAsKey, "blocks")
+                    section.parseList(ConfigValue::getAsIdentifier, "blocks")
             );
         }
     }

@@ -629,7 +629,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 ItemSettings settings;
                 try {
                     settings = Optional.ofNullable(ResourceConfigUtils.get(section, "settings"))
-                            .map(map -> ItemSettings.fromMap(MiscUtils.castToMap(map, true)))
+                            .map(map -> ItemSettings.fromConfig(MiscUtils.castToMap(map, true)))
                             .map(it -> {
                                 if (isVanillaItem) {
                                     it.disableVanillaBehavior(false);

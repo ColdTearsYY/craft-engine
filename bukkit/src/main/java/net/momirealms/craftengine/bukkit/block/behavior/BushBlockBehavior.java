@@ -67,7 +67,7 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
 
     // todo 重构一下
     public static Tuple<List<Object>, Set<Object>, Set<String>> readTagsAndState(ConfigSection section, boolean aboveOrBelow) {
-        List<Object> mcTags = section.parseList(v -> BlockTags.getOrCreate(v.getAsKey()),
+        List<Object> mcTags = section.parseList(v -> BlockTags.getOrCreate(v.getAsIdentifier()),
                 (aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags");
         Set<Object> mcBlocks = new HashSet<>();
         Set<String> customBlocks = new HashSet<>();
