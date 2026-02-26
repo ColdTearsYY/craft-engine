@@ -5,5 +5,5 @@ import net.momirealms.craftengine.core.util.Key;
 
 public interface EquipmentFactory<E extends Equipment> {
 
-    E create(Key id, ConfigSection args);
+    E create(Key id, ConfigSection section);
 }

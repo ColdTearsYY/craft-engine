@@ -2,6 +2,9 @@ package net.momirealms.craftengine.core.plugin.config;
 
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
+import net.momirealms.craftengine.core.entity.display.Billboard;
+import net.momirealms.craftengine.core.entity.display.ItemDisplayContext;
+import net.momirealms.craftengine.core.entity.projectile.ProjectileMeta;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.item.BuildableItem;
 import net.momirealms.craftengine.core.item.CustomItem;
@@ -16,6 +19,7 @@ import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
 import net.momirealms.craftengine.core.item.recipe.result.PostProcessor;
 import net.momirealms.craftengine.core.item.recipe.result.PostProcessors;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
+import net.momirealms.craftengine.core.item.setting.FoodData;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.model.definition.BaseItemModel;
 import net.momirealms.craftengine.core.pack.model.definition.ItemModel;
@@ -29,6 +33,7 @@ import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.Vec3i;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -527,7 +532,7 @@ public record ConfigValue(String path, @NotNull Object value) {
         Set<UniqueKey> itemIds = new HashSet<>();
         Set<UniqueKey> minecraftItemIds = new HashSet<>();
         List<IngredientElement> elements = new ArrayList<>();
-        ItemManager itemManager = CraftEngine.instance().itemManager();
+        ItemManager<T> itemManager = CraftEngine.instance().itemManager();
 
         itemsValue.nonEmptyList().forEach(v -> {
             String itemOrTag = v.getAsString();
@@ -561,10 +566,10 @@ public record ConfigValue(String path, @NotNull Object value) {
         });
         boolean hasCustomItem = false;
         for (UniqueKey holder : itemIds) {
-            Optional<CustomItem> optionalCustomItem = itemManager.getCustomItem(holder.key());
+            Optional<CustomItem<T>> optionalCustomItem = itemManager.getCustomItem(holder.key());
             UniqueKey vanillaItem = holder;
             if (optionalCustomItem.isPresent()) {
-                CustomItem customItem = optionalCustomItem.get();
+                CustomItem<T> customItem = optionalCustomItem.get();
                 if (!customItem.isVanillaItem()) {
                     vanillaItem = UniqueKey.create(customItem.material());
                     hasCustomItem = true;
@@ -590,5 +595,22 @@ public record ConfigValue(String path, @NotNull Object value) {
                 count,
                 processors.isEmpty() ? null : processors.toArray(new PostProcessor[0])
         );
+    }
+
+    public ProjectileMeta getAsProjectileMeta() {
+        ConfigSection section = getAsSection();
+        Key customTridentItemId = section.getNonNullIdentifier("item");
+        ItemDisplayContext displayType = section.getEnum(ItemDisplayContext.NONE, ItemDisplayContext.class, "display_transform", "display-transform");
+        Billboard billboard = section.getEnum(Billboard.FIXED, Billboard.class, "billboard");
+        Vector3f translation = section.getVector3f(new Vector3f(0), "translation");
+        Vector3f scale = section.getVector3f(new Vector3f(1), "scale");
+        Quaternionf rotation = section.getQuaternionf(new Quaternionf(), "rotation");
+        double range = section.getDouble(1, "range");
+        return new ProjectileMeta(customTridentItemId, displayType, billboard, scale, translation, rotation, range);
+    }
+
+    public FoodData getAsFoodData() {
+        ConfigSection section = getAsSection();
+        return new FoodData(section.getInt("nutrition"), section.getFloat("saturation"));
     }
 }
