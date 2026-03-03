@@ -26,7 +26,9 @@ public abstract class IdValueConfigParser extends IdConfigParser {
             ResourceConfigUtils.runCatching(
                     path,
                     currentNode,
-                    () -> parseValue(cached.pack(), filePath, id, new ConfigValue(currentNode, TemplateManager.INSTANCE.applyTemplates(id, entry.getValue()))),
+                    () -> {
+                        parseValue(cached.pack(), filePath, id, new ConfigValue(currentNode, TemplateManager.INSTANCE.applyTemplates(id, entry.getValue())));
+                    },
                     super.errorHandler
             );
         }

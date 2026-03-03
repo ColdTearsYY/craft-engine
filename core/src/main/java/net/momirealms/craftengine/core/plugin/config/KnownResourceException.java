@@ -32,6 +32,11 @@ public final class KnownResourceException extends ResourceException {
     }
 
     @Override
+    public String getLocalizedMessage() {
+        return TranslationManager.instance().translate(this.translationKey, this.arguments);
+    }
+
+    @Override
     public String node() {
         return this.node;
     }

@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.pack;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.jimfs.Configuration;
@@ -741,14 +742,16 @@ public abstract class AbstractPackManager implements PackManager {
 
     private void loadResourceConfigs(Predicate<ConfigParser> predicate) {
         LoadingPyramid pyramid = new LoadingPyramid();
-        List<ResourceException> exceptions = new ArrayList<>();
+        Map<Path, List<ResourceException>> errorByPath = new HashMap<>();
         for (ConfigParser parser : this.parsers) {
             if (!predicate.test(parser)) {
                 continue;
             }
             pyramid.addTask(parser.loadingStage(), parser.dependencies(), () -> {
                 long t1 = System.nanoTime();
-                parser.setErrorHandler(exceptions::add);
+                parser.setErrorHandler(e -> {
+                    errorByPath.computeIfAbsent(e.filePath(), k -> new ArrayList<>(4)).add(e);
+                });
                 parser.preProcess();
                 parser.loadAll();
                 parser.postProcess();
@@ -762,6 +765,14 @@ public abstract class AbstractPackManager implements PackManager {
             });
         }
         pyramid.execute().join();
+        for (Map.Entry<Path, List<ResourceException>> entry : errorByPath.entrySet()) {
+            List<ResourceException> issues = entry.getValue();
+            this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detected", entry.getKey().toString(), String.valueOf(issues.size())));
+            for (int i = 0; i < issues.size(); i++) {
+                ResourceException issue = issues.get(i);
+                this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+            }
+        }
     }
 
     @Override

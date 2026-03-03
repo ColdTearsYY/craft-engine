@@ -34,7 +34,7 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
                             error(new KnownResourceException(filePath, ConfigConstants.PARSE_SECTION_FAILED, currentNode, value.getClass().getSimpleName()));
                             return;
                         }
-                        ConfigSection innerSection = ConfigSection.of(currentNode, MiscUtils.castToMap(section, false));
+                        ConfigSection innerSection = ConfigSection.of(currentNode, MiscUtils.castToMap(section));
                         if (!innerSection.getBoolean("enable")) {
                             return;
                         }

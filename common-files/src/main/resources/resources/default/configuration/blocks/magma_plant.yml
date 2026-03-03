@@ -151,7 +151,7 @@ blocks:
             damage-type: on_fire
           - type: update_interaction_tick
 placed-features:
-  default:reed:
+  default:magma_plant:
     dimension-type:
       - minecraft:the_nether
     feature:

@@ -81,7 +81,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
     private List<ConditionalFeature> placedFeatures;
     public long lastReloadFeatureTime;
 
-    private BukkitWorldManager(BukkitCraftEngine plugin) {
+    public BukkitWorldManager(BukkitCraftEngine plugin) {
         if (instance != null) { throw new IllegalStateException(); }
         this.plugin = plugin;
         this.worlds = ConcurrentUUID2ReferenceChainedHashTable.createWithCapacity(10, 0.5f);

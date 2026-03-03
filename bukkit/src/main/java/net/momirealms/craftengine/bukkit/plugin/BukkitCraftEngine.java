@@ -170,7 +170,7 @@ public final class BukkitCraftEngine extends CraftEngine {
         // 初始化GUI管理器
         super.guiManager = new BukkitGuiManager(this);
         // 初始化世界管理器
-        super.worldManager = Internal.BukkitWorldManagerProxy.INSTANCE.newInstance(this);
+        super.worldManager = new BukkitWorldManager(this);
         // 初始化声音管理器
         super.soundManager = new BukkitSoundManager(this);
         // 初始化战利品管理器
