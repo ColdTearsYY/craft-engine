@@ -153,6 +153,8 @@ public final class BlockSettingsModifiers {
 
     private BlockSettingsModifiers() {}
 
+    public static void init() {}
+
     public static <M extends BlockSettingsModifier> BlockSettingsModifierType<M> register(Key id, BlockSettingsModifierFactory<M> factory) {
         BlockSettingsModifierType<M> type = new BlockSettingsModifierType<>(id, factory);
         ((WritableRegistry<BlockSettingsModifierType<? extends BlockSettingsModifier>>) BuiltInRegistries.BLOCK_SETTINGS_TYPE)

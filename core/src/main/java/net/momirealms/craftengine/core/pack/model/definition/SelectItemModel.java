@@ -136,7 +136,7 @@ public final class SelectItemModel implements ItemModel {
                 } else {
                     either = Either.right(when);
                 }
-                ItemModel model = section.getNonNullValue("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig);
+                ItemModel model = entry.getNonNullValue("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig);
                 whenMap.put(either, model);
             });
             return new SelectItemModel(

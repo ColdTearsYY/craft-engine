@@ -1,7 +1,7 @@
 items:
   default:flame_cane:
     data:
-      item-name: <!i><lang:item.default.flame_cane>
+      item_name: <!i><lang:item.default.flame_cane>
     texture: minecraft:item/custom/flame_cane
     behavior:
       type: block_item
@@ -11,18 +11,18 @@ items:
             - default:hardness/none
             - default:sound/grass
           overrides:
-            push-reaction: destroy
-            map-color: 15
-            is-randomly-ticking: true
+            push_reaction: destroy
+            map_color: 15
+            is_randomly_ticking: true
         behaviors:
           - type: vertical_crop_block
-            max-height: 4
-            grow-speed: 0.333
+            max_height: 4
+            grow_speed: 0.333
             direction: up
           - type: bush_block
             stackable: true
             delay: 1
-            bottom-blocks:
+            bottom_blocks:
               - minecraft:netherrack
               - minecraft:soul_sand
               - minecraft:soul_soil
@@ -31,7 +31,7 @@ items:
               - minecraft:crimson_nylium
               - minecraft:basalt
           - type: near_liquid_block
-            liquid-type: lava
+            liquid_type: lava
             delay: 1
             stackable: true
             positions:
@@ -50,7 +50,7 @@ items:
               max: 5
           appearances:
             default:
-              auto-state: sugar_cane
+              auto_state: sugar_cane
               models:
                 - path: minecraft:block/custom/flame_cane_1
                   weight: 1
@@ -100,9 +100,9 @@ recipes:
     result:
       id: minecraft:magma_block
       count: 2
-placed-features:
+placed_features:
   default:flame_cane:
-    dimension-type:
+    dimension_type:
       - minecraft:the_nether
     feature:
       type: 'minecraft:random_patch'

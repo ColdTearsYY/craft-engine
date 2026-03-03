@@ -33,7 +33,7 @@ public final class MatchFurnitureVariantCondition<CTX extends Context> implement
 
         @Override
         public MatchFurnitureVariantCondition<CTX> create(ConfigSection section) {
-            return new MatchFurnitureVariantCondition<>(section.getNonNullStringList(VARIANTS));
+            return new MatchFurnitureVariantCondition<>(section.getStringList(VARIANTS));
         }
     }
 }

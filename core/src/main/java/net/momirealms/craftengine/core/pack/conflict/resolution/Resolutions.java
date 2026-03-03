@@ -31,7 +31,7 @@ public final class Resolutions {
         Key key = Key.ce(type);
         ResolutionType<? extends Resolution> resolutionType = BuiltInRegistries.RESOLUTION_TYPE.getValue(key);
         if (resolutionType == null) {
-            throw new KnownResourceException("resource.pack.conflict_resolution.unknown_type", section.assemblePath("type"), key.asString());
+            throw new KnownResourceException("resource_pack.conflict_resolution.unknown_type", section.assemblePath("type"), key.asString());
         }
         return resolutionType.factory().create(section);
     }

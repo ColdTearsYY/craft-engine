@@ -33,8 +33,8 @@ public final class SpecialModels {
         return type;
     }
 
-    public static SpecialModel fromMap(ConfigSection section) {
-        Key type = section.getNonNullIdentifier("property");
+    public static SpecialModel fromConfig(ConfigSection section) {
+        Key type = section.getNonNullIdentifier("type");
         SpecialModelType<? extends SpecialModel> specialModelType = BuiltInRegistries.SPECIAL_MODEL_TYPE.getValue(type);
         if (specialModelType == null) {
             throw new KnownResourceException("resource.item.model_definition.special.unknown_type", section.assemblePath("property"), type.asString());

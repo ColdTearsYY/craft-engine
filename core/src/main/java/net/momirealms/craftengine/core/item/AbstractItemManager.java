@@ -573,7 +573,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                                         hasModelSection = true;
                                     }
                                 } catch (KnownResourceException e) {
-                                    super.errorHandler.accept(e);
+                                    error(e, path);
                                 }
                             }
                         }
@@ -595,7 +595,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                                         hasModelSection = true;
                                     }
                                 } catch (KnownResourceException e) {
-                                    super.errorHandler.accept(e);
+                                    error(e, path);
                                 }
                             }
                         }
@@ -615,7 +615,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 try {
                     ItemProcessors.collectProcessors(section.getSection("data"), itemBuilder::dataModifier);
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                 }
 
                 // 应用客户端侧数据
@@ -624,7 +624,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         ItemProcessors.collectProcessors(section.getSection(CLIENT_BOUND_DATA), itemBuilder::clientBoundDataModifier);
                     }
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                 }
 
                 // 如果不是原版物品，那么加入ce的标识符
@@ -636,7 +636,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 try {
                     CommonFunctions.parseEvents(section.getValue(EVENTS), (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>(4)).add(f));
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                 }
 
                 // 设置
@@ -644,7 +644,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 try {
                     ItemSettings.applyModifiers(settings, section.getSection("settings"));
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                 }
 
                 // 行为
@@ -653,7 +653,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 try {
                     behaviors = section.getList(BEHAVIORS, v -> ItemBehaviors.fromConfig(pack, path, section.path(), id, v.getAsSection()));
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                     behaviors = Collections.emptyList();
                 }
 
@@ -670,7 +670,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                                     updaterSection.getList(version, v -> ItemUpdaters.fromConfig(id, v.getAsSection())).toArray(new ItemUpdater[0])
                             ));
                         } catch (NumberFormatException ignored) {
-                            super.errorHandler.accept(new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, updaterValue.path(), version));
+                            error(new KnownResourceException(path, ConfigConstants.PARSE_INT_FAILED, updaterValue.path(), version));
                         }
                     }
                     ItemUpdateConfig config = new ItemUpdateConfig(versions);

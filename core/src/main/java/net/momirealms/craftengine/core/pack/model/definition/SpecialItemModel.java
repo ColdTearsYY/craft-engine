@@ -72,7 +72,7 @@ public final class SpecialItemModel implements ItemModel {
             if (generation != null) {
                 modelGeneration = ModelGeneration.of(base, generation);
             }
-            return new SpecialItemModel(SpecialModels.fromMap(section.getNonNullSection("model")), base, modelGeneration);
+            return new SpecialItemModel(SpecialModels.fromConfig(section.getNonNullSection("model")), base, modelGeneration);
         }
     }
 

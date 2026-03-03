@@ -2,14 +2,15 @@ package net.momirealms.craftengine.core.plugin;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.advancement.AdvancementManager;
-import net.momirealms.craftengine.core.block.AbstractBlockManager;
-import net.momirealms.craftengine.core.block.BlockManager;
+import net.momirealms.craftengine.core.block.*;
 import net.momirealms.craftengine.core.entity.culling.EntityCullingManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureManager;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifiers;
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
 import net.momirealms.craftengine.core.font.FontManager;
 import net.momirealms.craftengine.core.item.ItemManager;
+import net.momirealms.craftengine.core.item.ItemSettingsModifiers;
 import net.momirealms.craftengine.core.item.recipe.RecipeManager;
 import net.momirealms.craftengine.core.item.recipe.network.legacy.LegacyRecipeTypes;
 import net.momirealms.craftengine.core.item.recipe.network.modern.display.RecipeDisplayTypes;
@@ -126,6 +127,9 @@ public abstract class CraftEngine implements Plugin {
         RecipeDisplayTypes.init();
         SlotDisplayTypes.init();
         LegacyRecipeTypes.init();
+        ItemSettingsModifiers.init();
+        BlockSettingsModifiers.init();
+        FurnitureSettingsModifiers.init();
 
         // 初始化模板管理器
         this.templateManager = TemplateManager.INSTANCE;

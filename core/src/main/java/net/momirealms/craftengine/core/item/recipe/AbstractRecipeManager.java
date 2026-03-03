@@ -175,7 +175,7 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
             try {
                 registerInternalRecipe(id, recipe, unlockOnIngredientObtained);
             } catch (KnownResourceException e) {
-                super.errorHandler.accept(e);
+                error(e, path);
             }
         }
     }

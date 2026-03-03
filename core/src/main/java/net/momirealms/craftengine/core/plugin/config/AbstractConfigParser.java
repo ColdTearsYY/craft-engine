@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.plugin.config;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.core.pack.CachedConfigSection;
 
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 public abstract class AbstractConfigParser implements ConfigParser {
@@ -37,6 +38,11 @@ public abstract class AbstractConfigParser implements ConfigParser {
     }
 
     public void error(final ResourceException e) {
+        this.errorHandler.accept(e);
+    }
+
+    public void error(final KnownResourceException e, final Path path) {
+        e.setFilePath(path);
         this.errorHandler.accept(e);
     }
 

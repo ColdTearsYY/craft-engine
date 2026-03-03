@@ -3,12 +3,12 @@ items:
     material: melon_slice
     texture: minecraft:item/custom/hami_melon_slice
     data:
-      item-name: <!i><lang:item.default.hami_melon_slice>
+      item_name: <!i><lang:item.default.hami_melon_slice>
       $$>=1.20.5:
         food:
           nutrition: 2
           saturation: 1.0
-          can-always-eat: false
+          can_always_eat: false
     $$<=1.20.4:
       settings:
         food:
@@ -16,14 +16,14 @@ items:
           saturation: 1.0
   default:hami_melon:
     data:
-      item-name: <!i><lang:item.default.hami_melon>
+      item_name: <!i><lang:item.default.hami_melon>
     model: minecraft:block/custom/hami_melon
     behavior:
       type: block_item
       block: default:hami_melon
   default:hami_melon_seeds:
     data:
-      item-name: <!i><lang:item.default.hami_melon_seeds>
+      item_name: <!i><lang:item.default.hami_melon_seeds>
     texture: minecraft:item/custom/hami_melon_seeds
     behavior:
       type: block_item
@@ -59,16 +59,16 @@ blocks:
         - default:sound/wood
         - default:hardness/melon
       overrides:
-        map-color: 19
-        push-reaction: DESTROY
-        is-suffocating: true
-        is-redstone-conductor: true
+        map_color: 19
+        push_reaction: DESTROY
+        is_suffocating: true
+        is_redstone_conductor: true
         tags:
           - minecraft:enderman_holdable
           - minecraft:mineable/axe
           - minecraft:sword_efficient
     state:
-      auto-state: solid
+      auto_state: solid
       model:
         template: default:model/cube
         arguments:
@@ -86,12 +86,12 @@ blocks:
         - default:sound/stem_crop
         - default:hardness/none
       overrides:
-        map-color: 7
-        push-reaction: DESTROY
-        is-suffocating: false
-        is-redstone-conductor: false
+        map_color: 7
+        push_reaction: DESTROY
+        is_suffocating: false
+        is_redstone_conductor: false
         item: default:hami_melon_seeds
-        is-randomly-ticking: true
+        is_randomly_ticking: true
         tags:
           - minecraft:bee_growables
           - minecraft:crops
@@ -100,9 +100,9 @@ blocks:
       - type: liquid_flowable_block
       - type: stem_block
         fruit: default:hami_melon
-        attached-stem: default:attached_hami_melon_stem
+        attached_stem: default:attached_hami_melon_stem
       - type: bush_block
-        bottom-blocks:
+        bottom_blocks:
           - minecraft:farmland
     states:
       properties:
@@ -151,12 +151,12 @@ blocks:
         - default:sound/stem_crop
         - default:hardness/none
       overrides:
-        map-color: 7
-        push-reaction: DESTROY
-        is-suffocating: false
-        is-redstone-conductor: false
+        map_color: 7
+        push_reaction: DESTROY
+        is_suffocating: false
+        is_redstone_conductor: false
         item: default:hami_melon_seeds
-        is-randomly-ticking: true
+        is_randomly_ticking: true
         tags:
           - minecraft:maintains_farmland
     behaviors:
@@ -166,7 +166,7 @@ blocks:
         stem: default:hami_melon_stem
       - type: bush_block
         blacklist: false
-        bottom-blocks:
+        bottom_blocks:
           - minecraft:farmland
     states:
       properties:
@@ -210,9 +210,9 @@ recipes:
     result:
       id: default:hami_melon_seeds
       count: 1
-placed-features:
+placed_features:
   default:hami_melon:
-    dimension-type:
+    dimension_type:
       - minecraft:overworld
     feature:
       type: 'minecraft:random_patch'

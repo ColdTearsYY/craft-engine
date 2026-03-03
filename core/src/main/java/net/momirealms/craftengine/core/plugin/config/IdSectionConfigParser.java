@@ -35,7 +35,7 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
                             return;
                         }
                         ConfigSection innerSection = ConfigSection.of(currentNode, MiscUtils.castToMap(section));
-                        if (!innerSection.getBoolean("enable")) {
+                        if (!innerSection.getBoolean("enable", true)) {
                             return;
                         }
                         if (innerSection.getBoolean("debug")) {

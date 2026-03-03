@@ -232,7 +232,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             try {
                 FurnitureSettings.applyModifiers(settings, section.getSection("settings"));
             } catch (KnownResourceException e) {
-                super.errorHandler.accept(e);
+                error(e, path);
             }
 
             // 读取变体配置
@@ -271,7 +271,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             try {
                 CommonFunctions.parseEvents(section.getValue(EVENT), (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>()).add(f));
             } catch (KnownResourceException e) {
-                super.errorHandler.accept(e);
+                error(e, path);
             }
 
             // 解析战利品表 （可异常）
@@ -279,7 +279,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             try {
                 lootTable = section.getValue(LOOT, v -> LootTable.fromConfig(v.getAsSection()));
             } catch (KnownResourceException e) {
-                super.errorHandler.accept(e);
+                error(e, path);
             }
 
             CustomFurniture furniture = CustomFurniture.builder()

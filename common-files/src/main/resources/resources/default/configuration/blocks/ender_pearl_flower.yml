@@ -1,7 +1,7 @@
 items:
   default:ender_pearl_flower_seeds:
     data:
-      item-name: <!i><lang:item.default.ender_pearl_flower_seeds>
+      item_name: <!i><lang:item.default.ender_pearl_flower_seeds>
     texture: minecraft:item/custom/ender_pearl_flower_seeds
     behavior:
       type: block_item
@@ -14,19 +14,19 @@ blocks:
         - default:sound/grass
       overrides:
         item: default:ender_pearl_flower_seeds
-        push-reaction: destroy
-        map-color: 24
-        is-randomly-ticking: true
+        push_reaction: destroy
+        map_color: 24
+        is_randomly_ticking: true
     behaviors:
       - type: liquid_flowable_block
       - type: bush_block
-        bottom-blocks:
+        bottom_blocks:
           - minecraft:end_stone
       - type: crop_block
-        grow-speed: 0.25
-        light-requirement: 0
-        is-bone-meal-target: true
-        bone-meal-age-bonus: 1
+        grow_speed: 0.25
+        light_requirement: 0
+        is_bone_meal_target: true
+        bone_meal_age_bonus: 1
     loot:
       template: default:loot_table/seed_crop
       arguments:
@@ -46,9 +46,9 @@ blocks:
             z: <arg:block.block_z> + 0.5
             particle: minecraft:end_rod
             count: 15
-            offset-x: 0.05
-            offset-y: 0.05
-            offset-z: 0.05
+            offset_x: 0.05
+            offset_y: 0.05
+            offset_z: 0.05
             speed: 0.1
           - type: play_sound
             sound: minecraft:entity.enderman.teleport
@@ -71,7 +71,7 @@ blocks:
             x: <arg:block.block_x>
             y: <arg:block.block_y>
             z: <arg:block.block_z>
-            block-state: default:ender_pearl_flower[age=0]
+            block_state: default:ender_pearl_flower[age=0]
           - type: set_count
             add: true
             count: -1
@@ -86,7 +86,7 @@ blocks:
           max: 2
       appearances:
         stage_0:
-          auto-state: lower_tripwire
+          auto_state: lower_tripwire
           models:
             - path: minecraft:block/custom/ender_pearl_flower_stage_0
               generation:
@@ -94,7 +94,7 @@ blocks:
                 textures:
                   cross: minecraft:block/custom/ender_pearl_flower_stage_0
         stage_1:
-          auto-state: higher_tripwire
+          auto_state: higher_tripwire
           models:
             - path: minecraft:block/custom/ender_pearl_flower_stage_1
               generation:
@@ -102,7 +102,7 @@ blocks:
                 textures:
                   cross: minecraft:block/custom/ender_pearl_flower_stage_1
         stage_2:
-          auto-state: sugar_cane
+          auto_state: sugar_cane
           models:
             - path: minecraft:block/custom/ender_pearl_flower_stage_2
               generation:
@@ -116,7 +116,7 @@ blocks:
           appearance: stage_1
         age=2:
           appearance: stage_2
-vanilla-loots:
+vanilla_loots:
   default:ender_pearl_flower_seeds_from_endermite:
     type: entity
     target: minecraft:endermite
@@ -135,9 +135,9 @@ vanilla-loots:
           entries:
             - type: item
               item: default:ender_pearl_flower_seeds
-placed-features:
+placed_features:
   default:ender_pearl_flower:
-    dimension-type:
+    dimension_type:
       - minecraft:the_end
     feature:
       type: 'minecraft:random_patch'

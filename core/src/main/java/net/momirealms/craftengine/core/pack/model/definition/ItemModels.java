@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class ItemModels {
-    private static final Key DEFAULT_MODEL_TYPE = Key.withDefaultNamespace("model");
+    private static final Key DEFAULT_MODEL_TYPE = Key.of("minecraft:model");
     public static final ItemModelType<EmptyItemModel> EMPTY = register(Key.of("empty"), EmptyItemModel.FACTORY, EmptyItemModel.READER);
     public static final ItemModelType<BaseItemModel> MODEL = register(Key.of("model"), BaseItemModel.FACTORY, BaseItemModel.READER);
     public static final ItemModelType<CompositeItemModel> COMPOSITE = register(Key.of("composite"), CompositeItemModel.FACTORY, CompositeItemModel.READER);

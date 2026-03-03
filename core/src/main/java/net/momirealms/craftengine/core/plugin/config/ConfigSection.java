@@ -190,7 +190,7 @@ public final class ConfigSection {
     public ConfigValue getNonNullValue(String key, String argType) {
         Object value = this.value.get(key);
         if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().translate(argType));
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(argType));
         }
         return new ConfigValue(assemblePath(key), value);
     }
@@ -203,7 +203,7 @@ public final class ConfigSection {
                 return new ConfigValue(assemblePath(key), value);
             }
         }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().translate(argType));
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, assemblePath(keys[0]), TranslationManager.instance().translate(argType));
     }
 
     // 获取非空 config value 进行基础转换

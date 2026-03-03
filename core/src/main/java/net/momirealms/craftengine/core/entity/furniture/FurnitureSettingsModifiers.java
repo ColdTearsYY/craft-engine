@@ -22,6 +22,8 @@ public final class FurnitureSettingsModifiers {
 
     private FurnitureSettingsModifiers() {}
 
+    public static void init() {}
+
     public static <M extends FurnitureSettingsModifier> FurnitureSettingsModifierType<M> register(Key id, FurnitureSettingsModifierFactory<M> factory) {
         FurnitureSettingsModifierType<M> type = new FurnitureSettingsModifierType<>(id, factory);
         ((WritableRegistry<FurnitureSettingsModifierType<? extends FurnitureSettingsModifier>>) BuiltInRegistries.FURNITURE_SETTINGS_TYPE)

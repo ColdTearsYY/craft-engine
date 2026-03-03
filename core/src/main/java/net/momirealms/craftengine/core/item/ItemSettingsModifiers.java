@@ -175,6 +175,8 @@ public final class ItemSettingsModifiers {
 
     private ItemSettingsModifiers() {}
 
+    public static void init() {}
+
     public static <M extends ItemSettingsModifier> ItemSettingsModifierType<M> register(Key id, ItemSettingsModifierFactory<M> factory) {
         ItemSettingsModifierType<M> type = new ItemSettingsModifierType<>(id, factory);
         ((WritableRegistry<ItemSettingsModifierType<? extends ItemSettingsModifier>>) BuiltInRegistries.ITEM_SETTINGS_TYPE)

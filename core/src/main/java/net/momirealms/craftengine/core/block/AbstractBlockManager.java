@@ -291,16 +291,16 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 BlockStateWrapper beforeState = createVanillaBlockState(before);
                 BlockStateWrapper afterState = createVanillaBlockState(after);
                 if (beforeState == null) {
-                    super.errorHandler.accept(new KnownResourceException("resource.argument.parser.blockstate", section.path(), before));
+                    error(new KnownResourceException(path, "resource.argument.parser.blockstate", section.path(), before));
                     continue;
                 }
                 if (afterState == null) {
-                    super.errorHandler.accept(new KnownResourceException("resource.argument.parser.blockstate", section.assemblePath(before), after));
+                    error(new KnownResourceException(path, "resource.argument.parser.blockstate", section.assemblePath(before), after));
                     continue;
                 }
                 int previous = AbstractBlockManager.this.blockStateMappings[beforeState.registryId()];
                 if (previous != -1 && previous != afterState.registryId()) {
-                    super.errorHandler.accept(new KnownResourceException("resource.mapping.conflict", section.assemblePath(before), before, after, BlockRegistryMirror.byId(previous).toString()));
+                    error(new KnownResourceException(path, "resource.mapping.conflict", section.assemblePath(before), before, after, BlockRegistryMirror.byId(previous).toString()));
                     continue;
                 }
                 AbstractBlockManager.this.blockStateMappings[beforeState.registryId()] = afterState.registryId();
@@ -445,6 +445,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         private static final String[] VIEW_DISTANCE = new String[]{"view_distance", "view-distance"};
         private static final String[] AABB_EXPANSION = new String[]{"aabb_expansion", "aabb-expansion"};
         private static final String[] RAY_TRACING = new String[]{"ray_tracing", "ray-tracing"};
+        private static final String[] APPEARANCE = new String[]{"appearance", "appearances"};
 
         private void parseCustomBlock(Path path, Key id, ConfigSection section) {
             // 获取共享方块设置 （可异常）
@@ -452,7 +453,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             try {
                 BlockSettings.applyModifiers(settings, section.getSection("settings"));
             } catch (KnownResourceException e) {
-                super.errorHandler.accept(e);
+                error(e, path);
             }
 
             // 读取states区域
@@ -548,7 +549,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 try {
                     CommonFunctions.parseEvents(section.getValue(EVENTS), (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>(4)).add(f));
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                 }
 
                 // 解析战利品表 （可异常）
@@ -556,7 +557,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 try {
                     lootTable = section.getValue("loot", v -> LootTable.fromConfig(v.getAsSection()));
                 } catch (KnownResourceException e) {
-                    super.errorHandler.accept(e);
+                    error(e, path);
                 }
 
                 // 创建自定义方块
@@ -569,7 +570,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                     appearanceConfigs = Map.of("", stateSection);
                 } else {
                     appearanceConfigs = new LinkedHashMap<>(4);
-                    ConfigSection appearanceSection = section.getNonNullSection("appearance");
+                    ConfigSection appearanceSection = stateSection.getNonNullSection(APPEARANCE);
                     for (String appearanceName : appearanceSection.keySet()) {
                         appearanceConfigs.put(appearanceName, appearanceSection.getNonNullSection(appearanceName));
                     }
@@ -672,7 +673,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                                 // 先解析nbt，找到需要修改的方块状态
                                 CompoundTag tag = BlockNbtParser.deserialize(variantProvider, nbt);
                                 if (tag == null) {
-                                    super.errorHandler.accept(new KnownResourceException("resource.block.state.invalid_variant_nbt", variantsSection.path(), nbt));
+                                    error(new KnownResourceException(path, "resource.block.state.invalid_variant_nbt", variantsSection.path(), nbt));
                                     continue;
                                 }
                                 List<ImmutableBlockState> possibleStates = variantProvider.getPossibleStates(tag);
@@ -690,7 +691,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                                 if (appearanceName != null) {
                                     BlockStateAppearance appearance = appearances.get(appearanceName);
                                     if (appearance == null) {
-                                        super.errorHandler.accept(new KnownResourceException("resource.block.state.undefined_appearance", variantSection.assemblePath("appearance"), appearanceName));
+                                        error(new KnownResourceException(path, "resource.block.state.undefined_appearance", variantSection.assemblePath("appearance"), appearanceName));
                                         continue;
                                     }
                                     for (ImmutableBlockState possibleState : possibleStates) {
@@ -708,7 +709,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                     try {
                         blockBehavior = createBlockBehavior(customBlock, section.getValue(BEHAVIOR));
                     } catch (KnownResourceException e) {
-                        super.errorHandler.accept(e);
+                        error(e, path);
                         blockBehavior = new EmptyBlockBehavior(customBlock);
                     }
 
@@ -809,6 +810,8 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             List<JsonObject> variants;
             if (modelOrModels.is(List.class)) {
                 variants = modelOrModels.getAsList(v -> this.parseAppearanceModelSectionAsJson(v.getAsSection()));
+            } else if (modelOrModels.is(Map.class)) {
+                variants = List.of(this.parseAppearanceModelSectionAsJson(modelOrModels.getAsSection()));
             } else {
                 variants = List.of(MiscUtils.init(new JsonObject(), j -> j.addProperty("model", modelOrModels.getAsIdentifier().asMinimalString())));
             }

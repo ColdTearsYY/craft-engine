@@ -69,9 +69,7 @@ public final class ComponentBasedEquipment extends AbstractEquipment implements 
             ComponentBasedEquipment equipment = new ComponentBasedEquipment(id);
             for (String layerTypeName : section.keySet()) {
                 EquipmentLayerType layerType = EquipmentLayerType.byId(layerTypeName);
-                if (layerType == null) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, section.path(), layerTypeName, EnumUtils.toString(EquipmentLayerType.values()));
-                } else {
+                if (layerType != null) {
                     equipment.addLayer(layerType, Layer.fromConfig(layerType, section.getNonNullValue(layerTypeName, ConfigConstants.ARGUMENT_IDENTIFIER)));
                 }
             }
