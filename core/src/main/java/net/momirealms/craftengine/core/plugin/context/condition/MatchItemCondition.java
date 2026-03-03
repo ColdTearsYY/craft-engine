@@ -32,10 +32,11 @@ public final class MatchItemCondition<CTX extends Context> implements Condition<
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, MatchItemCondition<CTX>> {
+        private static final String[] ID = new String[] {"id", "item", "items"};
 
         @Override
         public MatchItemCondition<CTX> create(ConfigSection section) {
-            return new MatchItemCondition<>(section.getNonNullStringList("id", "item"), section.getBoolean("regex"));
+            return new MatchItemCondition<>(section.getNonNullStringList(ID), section.getBoolean("regex"));
         }
     }
 }

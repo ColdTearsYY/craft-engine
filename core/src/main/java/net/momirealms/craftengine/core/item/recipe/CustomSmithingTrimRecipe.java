@@ -10,12 +10,10 @@ import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
-import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -150,18 +148,19 @@ public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
 
     @SuppressWarnings({"DuplicatedCode"})
     public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmithingTrimRecipe<A>> {
+        private static final String[] TEMPLATE_TYPE = new String[]{"template_type", "template-type"};
 
         @SuppressWarnings("unchecked")
         @Override
         public CustomSmithingTrimRecipe<A> readConfig(Key id, ConfigSection section) {
             return new CustomSmithingTrimRecipe<>(id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "template_type", "template-type").getAsIngredient(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "base").getAsIngredient(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "addition").getAsIngredient(),
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
+                    section.getNonNullValue(TEMPLATE_TYPE, ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
+                    section.getNonNullValue("base", ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
+                    section.getNonNullValue("addition", ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
                     VersionHelper.isOrAbove1_21_5() ? section.getNonNullIdentifier("pattern") : null,
-                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
-                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition"))
+                    section.getList(FUNCTIONS, CommonFunctions::fromConfig).toArray(new Function[0]),
+                    MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig))
             );
         }
 

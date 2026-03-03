@@ -3,21 +3,16 @@ package net.momirealms.craftengine.core.pack.conflict.matcher;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.condition.AllOfCondition;
 import net.momirealms.craftengine.core.plugin.context.condition.AnyOfCondition;
 import net.momirealms.craftengine.core.plugin.context.condition.ConditionFactory;
 import net.momirealms.craftengine.core.plugin.context.condition.InvertedCondition;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
-
-import java.util.Map;
 
 public final class PathMatchers {
     public static final PathMatcherType<AnyOfCondition<PathContext>> ANY_OF = register(Key.ce("any_of"), AnyOfCondition.factory(PathMatchers::fromConfig));
@@ -48,7 +43,7 @@ public final class PathMatchers {
         Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
         PathMatcherType<? extends Condition<PathContext>> matcherType = BuiltInRegistries.PATH_MATCHER_TYPE.getValue(key);
         if (matcherType == null) {
-            throw new KnownResourceException("condition.unknown_type", section.assemblePath("type"), type);
+            throw new KnownResourceException("condition.unknown_type", section.assemblePath("type"), key.asString());
         }
         return reverted ? InvertedCondition.inverted(matcherType.factory().create(section)) : matcherType.factory().create(section);
     }

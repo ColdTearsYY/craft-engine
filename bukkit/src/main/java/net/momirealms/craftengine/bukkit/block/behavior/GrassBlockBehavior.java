@@ -184,12 +184,13 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<GrassBlockBehavior> {
+        private static final String[] FEATURE = new String[]{"feature", "placed_feature", "placed-feature"};
 
         @Override
         public GrassBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new GrassBlockBehavior(
                     block,
-                    section.getNonNullIdentifier("feature", "placed_feature", "placed-feature")
+                    section.getNonNullIdentifier(FEATURE)
             );
         }
     }

@@ -2,11 +2,11 @@ package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.furniture.FurnitureDataAccessor;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.World;
@@ -62,6 +62,9 @@ public final class SpawnFurnitureFunction<CTX extends Context> extends AbstractC
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, SpawnFurnitureFunction<CTX>> {
+        private static final String[] VARIANT = new String[]{"variant", "anchor_type", "anchor-type"};
+        private static final String[] PLAY_SOUND = new String[]{"play_sound", "play-sound"};
+        private static final String[] FURNITURE_ID = new String[]{"furniture_id", "furniture-id", "furniture", "id"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -71,14 +74,14 @@ public final class SpawnFurnitureFunction<CTX extends Context> extends AbstractC
         public SpawnFurnitureFunction<CTX> create(ConfigSection section) {
             return new SpawnFurnitureFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.pitch>", "pitch")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.yaw>", "yaw")),
-                    section.getNonNullString("variant", "anchor_type", "anchor-type"),
-                    section.getBoolean(true, "play_sound", "play-sound"),
-                    section.getNonNullIdentifier("furniture_id", "furniture-id", "furniture", "id")
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z),
+                    section.getNumber("pitch", ConfigConstants.POSITION_PITCH),
+                    section.getNumber("yaw", ConfigConstants.POSITION_YAW),
+                    section.getNonNullString(VARIANT),
+                    section.getBoolean(PLAY_SOUND, true),
+                    section.getNonNullIdentifier(FURNITURE_ID)
             );
         }
     }

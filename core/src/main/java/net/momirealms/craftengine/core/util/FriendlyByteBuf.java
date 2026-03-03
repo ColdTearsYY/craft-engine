@@ -39,7 +39,6 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 
 public class FriendlyByteBuf extends ByteBuf {
-
     private final ByteBuf source;
 
     public FriendlyByteBuf(ByteBuf parent) {

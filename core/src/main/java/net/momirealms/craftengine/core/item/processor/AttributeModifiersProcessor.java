@@ -7,7 +7,6 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
-import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
@@ -160,17 +159,17 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
 
         @Override
         public AttributeModifiersProcessor create(ConfigValue value) {
-            List<PreModifier> preModifiers = value.parseAsList(v -> {
+            List<PreModifier> preModifiers = value.getAsList(v -> {
                 ConfigSection section = v.getAsSection();
                 Key nativeType = AttributeModifiersProcessor.getNativeAttributeName(section.getIdentifier("type"));
-                AttributeModifier.Slot slot = section.getEnum(AttributeModifier.Slot.ANY, AttributeModifier.Slot.class, "slot");
-                AttributeModifier.Operation operation = section.getEnum(AttributeModifier.Operation.ADD_VALUE, AttributeModifier.Operation.class, "operation");
+                AttributeModifier.Slot slot = section.getEnum("slot", AttributeModifier.Slot.class, AttributeModifier.Slot.ANY);
+                AttributeModifier.Operation operation = section.getEnum("operation", AttributeModifier.Operation.class, AttributeModifier.Operation.ADD_VALUE);
                 Optional<Key> id = Optional.ofNullable(section.getIdentifier("id"));
-                NumberProvider amount = section.getNonNullValue(ConfigConstants.ARGUMENT_NUMBER, "amount").getAsNumber();
+                NumberProvider amount = section.getNonNullNumber("amount");
                 PreModifier.PreDisplay display = null;
                 if (VersionHelper.isOrAbove1_21_6() && section.containsKey("display")) {
                     ConfigSection displaySection = section.getNonNullSection("display");
-                    AttributeModifier.Display.Type displayType = displaySection.getNonNullEnum(AttributeModifier.Display.Type.class, "type");
+                    AttributeModifier.Display.Type displayType = displaySection.getNonNullEnum("type", AttributeModifier.Display.Type.class);
                     if (displayType == AttributeModifier.Display.Type.OVERRIDE) {
                         display = new PreModifier.PreDisplay(displayType, section.getNonNullString("value"));
                     } else {

@@ -8,7 +8,10 @@ import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.GsonHelper;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 public final class MergeAltasResolution implements Resolution {
     public static final ResolutionFactory<MergeAltasResolution> FACTORY = new Factory();

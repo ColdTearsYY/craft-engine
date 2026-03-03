@@ -12,7 +12,9 @@ public final class MythicMobsSkillFunction<CTX extends Context> extends Abstract
     private final String skill;
     private final float power;
 
-    private MythicMobsSkillFunction(List<Condition<CTX>> predicates, float power, String skill) {
+    private MythicMobsSkillFunction(List<Condition<CTX>> predicates,
+                                    float power,
+                                    String skill) {
         super(predicates);
         this.skill = skill;
         this.power = power;
@@ -39,7 +41,7 @@ public final class MythicMobsSkillFunction<CTX extends Context> extends Abstract
         public MythicMobsSkillFunction<CTX> create(ConfigSection section) {
             return new MythicMobsSkillFunction<>(
                     getPredicates(section),
-                    section.getFloat(1f, "power"),
+                    section.getFloat("power", 1f),
                     section.getNonNullString("skill")
             );
         }

@@ -163,59 +163,6 @@ public final class CraftEngineBlocks {
     }
 
     /**
-     * Place a custom block with given properties
-     *
-     * @param location location
-     * @param blockId block owner id
-     * @param properties properties
-     * @param option update options
-     * @param playSound whether to play place sounds
-     * @return success or not
-     */
-    @SuppressWarnings("removal")
-    @Deprecated(forRemoval = true)
-    public static boolean place(@NotNull Location location,
-                                @NotNull Key blockId,
-                                @NotNull CompoundTag properties,
-                                @NotNull net.momirealms.craftengine.core.block.UpdateOption option,
-                                boolean playSound) {
-        CustomBlock block = byId(blockId);
-        if (block == null) return false;
-        return place(location, block.getBlockState(properties), option, playSound);
-    }
-
-    /**
-     * Places a custom block state at a certain location
-     *
-     * @param location location
-     * @param block block state to place
-     * @param option update options
-     * @param playSound whether to play place sounds
-     * @return success or not
-     */
-    @SuppressWarnings("removal")
-    @Deprecated(forRemoval = true)
-    public static boolean place(@NotNull Location location,
-                                @NotNull ImmutableBlockState block,
-                                @NotNull net.momirealms.craftengine.core.block.UpdateOption option,
-                                boolean playSound) {
-        boolean success;
-        Object worldServer = CraftWorldProxy.INSTANCE.getWorld(location.getWorld());
-        Object blockPos = BlockPosProxy.INSTANCE.newInstance(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-        Object blockState = block.customBlockState().literalObject();
-        Object oldBlockState = BlockGetterProxy.INSTANCE.getBlockState(worldServer, blockPos);
-        success = LevelWriterProxy.INSTANCE.setBlock(worldServer, blockPos, blockState, option.flags());
-        if (success) {
-            BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.onPlace(blockState, worldServer, blockPos, oldBlockState, false);
-            if (playSound) {
-                SoundData data = block.settings().sounds().placeSound();
-                location.getWorld().playSound(location, data.id().toString(), SoundCategory.BLOCKS, data.volume().get(), data.pitch().get());
-            }
-        }
-        return success;
-    }
-
-    /**
      * Removes a block from the world if it's custom
      *
      * @param block block to remove

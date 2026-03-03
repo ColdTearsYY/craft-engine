@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.pack.model.legacy;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,10 +14,10 @@ import java.util.Objects;
 
 public final class LegacyOverridesModel implements Comparable<LegacyOverridesModel> {
     private final Map<String, Object> predicate;
-    private final String model;
+    private final Key model;
     private final int customModelData;
 
-    public LegacyOverridesModel(@Nullable Map<String, Object> predicate, @NotNull String model, int customModelData) {
+    public LegacyOverridesModel(@Nullable Map<String, Object> predicate, @NotNull Key model, int customModelData) {
         this.predicate = predicate == null ? Map.of() : predicate;
         this.model = model;
         this.customModelData = customModelData;
@@ -26,7 +27,7 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
     }
 
     public LegacyOverridesModel(JsonObject json) {
-        this.model = json.get("model").getAsString();
+        this.model = Key.of(json.get("model").getAsString());
         JsonObject predicate = json.getAsJsonObject("predicate");
         if (predicate != null) {
             this.predicate = new HashMap<>();
@@ -61,7 +62,7 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
         return this.predicate != null && !this.predicate.isEmpty();
     }
 
-    public String model() {
+    public Key model() {
         return this.model;
     }
 
@@ -80,7 +81,7 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
             }
             json.add("predicate", predicateJson);
         }
-        json.addProperty("model", this.model);
+        json.addProperty("model", this.model.asMinimalString());
         return json;
     }
 
@@ -93,7 +94,7 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         LegacyOverridesModel that = (LegacyOverridesModel) o;
-        return this.customModelData == that.customModelData && Objects.equals(predicate, that.predicate) && Objects.equals(model, that.model);
+        return this.customModelData == that.customModelData && Objects.equals(this.predicate, that.predicate) && Objects.equals(this.model, that.model);
     }
 
     @Override
@@ -115,13 +116,13 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
 
     @Override
     public int compareTo(@NotNull LegacyOverridesModel o) {
-        if (customModelData != o.customModelData) {
-            return customModelData - o.customModelData;
+        if (this.customModelData != o.customModelData) {
+            return this.customModelData - o.customModelData;
         } else {
-            if (predicate.size() != o.predicate.size()) {
-                return predicate.size() - o.predicate.size();
+            if (this.predicate.size() != o.predicate.size()) {
+                return this.predicate.size() - o.predicate.size();
             }
-            for (Map.Entry<String, Object> entry : predicate.entrySet()) {
+            for (Map.Entry<String, Object> entry : this.predicate.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
                 if (!o.predicate.containsKey(key)) {

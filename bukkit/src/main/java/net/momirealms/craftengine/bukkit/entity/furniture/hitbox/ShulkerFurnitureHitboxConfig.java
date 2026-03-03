@@ -15,7 +15,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.QuaternionUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -35,7 +34,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 public final class ShulkerFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<ShulkerFurnitureHitbox> {
-    public static final Factory FACTORY = new Factory();
+    public static final FurnitureHitBoxConfigFactory<ShulkerFurnitureHitbox> FACTORY = new Factory();
     public final float scale;
     public final byte peek;
     public final boolean interactive;
@@ -303,22 +302,26 @@ public final class ShulkerFurnitureHitboxConfig extends AbstractFurnitureHitBoxC
         }
     }
 
-    public static class Factory implements FurnitureHitBoxConfigFactory<ShulkerFurnitureHitbox> {
+    private static class Factory implements FurnitureHitBoxConfigFactory<ShulkerFurnitureHitbox> {
+        private static final String[] CAN_USE_ITEM_ON = new String[] {"can_use_item_on", "can-use-item-on"};
+        private static final String[] BLOCKS_BUILDING = new String[] {"blocks_building", "blocks-building"};
+        private static final String[] CAN_BE_HIT_BY_PROJECTILE = new String[] {"can_be_hit_by_projectile", "can-be-hit-by-projectile"};
+        private static final String[] INTERACTION_ENTITY = new String[] {"interaction_entity", "interaction-entity"};
 
         @Override
         public ShulkerFurnitureHitboxConfig create(ConfigSection section) {
             return new ShulkerFurnitureHitboxConfig(
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "seats").getAsSeats(),
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getBoolean(true, "can_use_item_on", "can-use-item-on"),
-                    section.getBoolean(true, "blocks_building", "blocks-building"),
-                    section.getBoolean(true, "can_be_hit_by_projectile", "can-be-hit-by-projectile"),
-                    section.getFloat(1f, "scale"),
+                    section.getList("seats", SeatConfig::fromConfig).toArray(new SeatConfig[0]),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean(CAN_USE_ITEM_ON, true),
+                    section.getBoolean(BLOCKS_BUILDING, true),
+                    section.getBoolean(CAN_BE_HIT_BY_PROJECTILE, true),
+                    section.getFloat("scale", 1f),
                     (byte) section.getInt("peek"),
-                    section.getBoolean(true, "interactive"),
-                    section.getBoolean(true, "interaction_entity", "interaction-entity"),
+                    section.getBoolean("interactive", true),
+                    section.getBoolean(INTERACTION_ENTITY, true),
                     section.getBoolean("invisible"),
-                    section.getEnum(Direction.UP, Direction.class, "direction")
+                    section.getEnum("direction", Direction.class, Direction.UP)
             );
         }
     }

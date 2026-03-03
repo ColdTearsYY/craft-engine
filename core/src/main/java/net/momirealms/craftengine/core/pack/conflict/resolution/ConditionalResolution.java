@@ -4,9 +4,6 @@ import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.pack.conflict.matcher.PathMatchers;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
-import net.momirealms.craftengine.core.util.MiscUtils;
-
-import java.util.Map;
 
 public record ConditionalResolution(Condition<PathContext> matcher, Resolution resolution) implements Resolution {
     public static final ResolutionFactory<ConditionalResolution> FACTORY = new Factory();

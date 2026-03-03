@@ -35,7 +35,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-public class DynamicPlayerRenderer implements DynamicBlockEntityRenderer {
+public final class DynamicPlayerRenderer implements DynamicBlockEntityRenderer {
     private static final EnumSet<?> ADD_PLAYER_ACTION = createAction();
     private static final List<Pair<?, ?>> EMPTY_EQUIPMENT = List.of(
             Pair.of(EquipmentSlotProxy.HEAD, ItemStackProxy.EMPTY),

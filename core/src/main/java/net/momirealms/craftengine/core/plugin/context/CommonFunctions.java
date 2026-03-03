@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.plugin.context;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
@@ -8,14 +9,13 @@ import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.EnumUtils;
+import net.momirealms.craftengine.core.util.ExceptionCollector;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public final class CommonFunctions {
     public static final CommonFunctionType<CommandFunction<Context>> COMMAND = register(Key.ce("command"), CommandFunction.factory(CommonConditions::fromConfig));
@@ -73,6 +73,10 @@ public final class CommonFunctions {
         return type;
     }
 
+    public static Function<Context> fromConfig(ConfigValue value) {
+        return fromConfig(value.getAsSection());
+    }
+
     public static Function<Context> fromConfig(ConfigSection section) {
         String type = section.getNonNullString("type");
         Key key = Key.ce(type);
@@ -83,13 +87,10 @@ public final class CommonFunctions {
         return functionType.factory().create(section);
     }
 
-    public static Map<EventTrigger, List<Function<Context>>> parseEvents(ConfigSection section) {
-        ConfigValue eventValue = section.getValue("events", "event");
+    public static void parseEvents(ConfigValue eventValue, BiConsumer<EventTrigger, Function<Context>> consumer) {
         if (eventValue == null) {
-            return Map.of();
+           return;
         }
-
-        EnumMap<EventTrigger, List<Function<Context>>> events = new EnumMap<>(EventTrigger.class);
 
         /*
 
@@ -100,14 +101,20 @@ public final class CommonFunctions {
 
          */
 
+        ExceptionCollector<KnownResourceException> exceptionCollector = new ExceptionCollector<>(KnownResourceException.class);
+
         if (eventValue.is(Map.class)) {
             ConfigSection eventsSection = eventValue.getAsSection();
             for (String eventType : eventsSection.keySet()) {
-                try {
-                    EventTrigger eventTrigger = EventTrigger.byName(eventType);
-                    events.put(eventTrigger, eventsSection.parseSectionList(CommonFunctions::fromConfig, eventType));
-                } catch (IllegalArgumentException e) {
-                    throw new KnownResourceException("event.trigger.unknown_type", eventsSection.path(), eventType, EnumUtils.toString(EventTrigger.values()));
+                EventTrigger eventTrigger = EventTrigger.byId(eventType);
+                if (eventTrigger != null) {
+                    eventsSection.getNonNullValue(eventType, ConfigConstants.ARGUMENT_SECTION).forEach(v -> {
+                        exceptionCollector.runCatching(() -> {
+                            consumer.accept(eventTrigger, CommonFunctions.fromConfig(v));
+                        });
+                    });
+                } else {
+                    exceptionCollector.add(new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, eventsSection.path(), eventType, EnumUtils.toString(EventTrigger.values())));
                 }
             }
         }
@@ -122,26 +129,17 @@ public final class CommonFunctions {
          */
 
         else if (eventValue.is(List.class)) {
-            List<?> eventList = eventValue.getAsList();
-            for (int i = 0; i < eventList.size(); i++) {
-                Object event = eventList.get(i);
-                if (!(event instanceof Map<?,?>)) {
-                    throw new KnownResourceException("resource.argument.parser.section", eventValue.assemblePath(i), event.getClass().getSimpleName());
+            eventValue.forEach(value -> exceptionCollector.runCatching(() -> {
+                ConfigSection innerSection = value.getAsSection();
+                EventTrigger eventTrigger = innerSection.getNonNullEnum("on", EventTrigger.class, EventTrigger::byId);
+                if (innerSection.containsKey("type")) {
+                    consumer.accept(eventTrigger, CommonFunctions.fromConfig(innerSection));
+                } else if (innerSection.containsKey("functions")) {
+                    consumer.accept(eventTrigger, RUN.factory().create(innerSection));
                 }
-                ConfigSection innerSection = ConfigSection.of(eventValue.assemblePath(i), MiscUtils.castToMap(event));
-                String triggerName = innerSection.getNonNullString("on");
-                try {
-                    EventTrigger eventTrigger = EventTrigger.byName(triggerName);
-                    if (innerSection.containsKey("type")) {
-                        events.computeIfAbsent(eventTrigger, k -> new ArrayList<>(4)).add(CommonFunctions.fromConfig(innerSection));
-                    } else if (innerSection.containsKey("functions")) {
-                        events.computeIfAbsent(eventTrigger, k -> new ArrayList<>(4)).add(RUN.factory().create(innerSection));
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new KnownResourceException("event.trigger.unknown_type", innerSection.assemblePath("on"), triggerName, EnumUtils.toString(EventTrigger.values()));
-                }
-            }
+            }));
         }
-        return events;
+
+        exceptionCollector.throwIfPresent();
     }
 }

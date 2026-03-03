@@ -2,10 +2,10 @@ package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
@@ -26,8 +26,14 @@ public final class TeleportFunction<CTX extends Context> extends AbstractConditi
     private final NumberProvider pitch;
     private final NumberProvider yaw;
 
-    private TeleportFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector, @Nullable TextProvider world,
-                            NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider pitch, NumberProvider yaw) {
+    private TeleportFunction(List<Condition<CTX>> predicates,
+                             @Nullable PlayerSelector<CTX> selector,
+                             @Nullable TextProvider world,
+                             NumberProvider x,
+                             NumberProvider y,
+                             NumberProvider z,
+                             NumberProvider pitch,
+                             NumberProvider yaw) {
         super(predicates);
         this.selector = selector;
         this.world = world;
@@ -80,12 +86,12 @@ public final class TeleportFunction<CTX extends Context> extends AbstractConditi
             return new TeleportFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    section.get(o -> TextProviders.fromString(o.toString()), "world"),
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "x"),
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "Y"),
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "z"),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.yaw>", "yaw")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.pitch>", "pitch"))
+                    section.getValue("world", v -> TextProviders.fromString(v.getAsString())),
+                    section.getNonNullNumber("x"),
+                    section.getNonNullNumber("y"),
+                    section.getNonNullNumber("z"),
+                    section.getNumber("pitch", ConfigConstants.POSITION_PITCH),
+                    section.getNumber("yaw", ConfigConstants.POSITION_YAW)
             );
         }
     }

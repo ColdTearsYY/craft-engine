@@ -3,8 +3,7 @@ package net.momirealms.craftengine.core.util;
 import java.lang.reflect.Array;
 import java.util.*;
 
-public class ArrayUtils {
-
+public final class ArrayUtils {
     private ArrayUtils() {}
 
     public static <T> T[] subArray(T[] array, int index) {

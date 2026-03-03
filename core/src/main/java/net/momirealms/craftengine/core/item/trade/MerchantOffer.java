@@ -5,7 +5,7 @@ import net.momirealms.craftengine.core.item.Item;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class MerchantOffer<I> {
+public final class MerchantOffer<I> {
     private Item<I> cost1;
     private Optional<Item<I>> cost2;
     private Item<I> result;
@@ -46,42 +46,42 @@ public class MerchantOffer<I> {
     }
 
     public Item<I> cost1() {
-        return cost1;
+        return this.cost1;
     }
 
     public Optional<Item<I>> cost2() {
-        return cost2;
+        return this.cost2;
     }
 
     public Item<I> result() {
-        return result;
+        return this.result;
     }
 
     public int uses() {
-        return uses;
+        return this.uses;
     }
 
     public int maxUses() {
-        return maxUses;
+        return this.maxUses;
     }
 
     public int specialPrice() {
-        return specialPrice;
+        return this.specialPrice;
     }
 
     public int xp() {
-        return xp;
+        return this.xp;
     }
 
     public float priceMultiplier() {
-        return priceMultiplier;
+        return this.priceMultiplier;
     }
 
     public int demand() {
-        return demand;
+        return this.demand;
     }
 
     public boolean outOfStock() {
-        return outOfStock;
+        return this.outOfStock;
     }
 }

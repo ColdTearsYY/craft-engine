@@ -73,8 +73,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
 
         @Override
         public OverwritableEquippableAssetIdProcessor create(ConfigValue value) {
-            String id = value.toString();
-            return new OverwritableEquippableAssetIdProcessor(Key.of(id));
+            return new OverwritableEquippableAssetIdProcessor(value.getAsIdentifier());
         }
     }
 }

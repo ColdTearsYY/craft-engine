@@ -69,11 +69,12 @@ public final class ExternalSourceProcessor implements ItemProcessor {
     }
 
     private static class Factory implements ItemProcessorFactory<ExternalSourceProcessor> {
+        private static final String[] PLUGIN = new String[]{"plugin", "source"};
 
         @Override
         public ExternalSourceProcessor create(ConfigValue value) {
             ConfigSection section = value.getAsSection();
-            String plugin = section.getNonNullString("plugin", "source");
+            String plugin = section.getNonNullString(PLUGIN);
             String id = section.getNonNullString("id");
             return new ExternalSourceProcessor(id, LazyReference.lazyReference(() -> {
                 ItemSource<?> itemSource = CraftEngine.instance().compatibilityManager().getItemSource(plugin.toLowerCase(Locale.ENGLISH));

@@ -75,14 +75,15 @@ public final class ItemFurnitureElementConfig implements FurnitureElementConfig<
     }
 
     private static class Factory implements FurnitureElementConfigFactory<ItemFurnitureElement> {
+        private static final String[] APPLY_DYED_COLOR = new String[] {"apply_dyed_color", "apply-dyed-color"};
 
         @Override
         public ItemFurnitureElementConfig create(ConfigSection section) {
-            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+            List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
             return new ItemFurnitureElementConfig(
                     section.getNonNullIdentifier("item"),
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getBoolean(true, "apply_dyed_color", "apply-dyed-color"),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean(APPLY_DYED_COLOR, true),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

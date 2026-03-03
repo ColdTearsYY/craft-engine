@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class ItemParameterProvider implements ChainParameterProvider<Item<?>> {
+public final class ItemParameterProvider implements ChainParameterProvider<Item<?>> {
     private static final Map<ContextKey<?>, Function<Item<?>, Object>> CONTEXT_FUNCTIONS = new HashMap<>();
     static {
         CONTEXT_FUNCTIONS.put(DirectContextParameters.ID, Item::id);

@@ -32,7 +32,7 @@ public final class ToLowerCaseTemplateArgument implements TemplateArgument {
         @Override
         public ToLowerCaseTemplateArgument create(ConfigSection section) {
             return new ToLowerCaseTemplateArgument(
-                    section.getNonNullString("value").toLowerCase(section.getOrDefault(o -> TranslationManager.parseLocale(o.toString()), Locale.ROOT, "locale"))
+                    section.getNonNullString("value").toLowerCase(section.getValue("locale", o -> TranslationManager.parseLocale(o.toString()), Locale.ROOT))
             );
         }
     }

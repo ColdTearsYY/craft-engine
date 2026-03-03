@@ -11,7 +11,7 @@ import net.momirealms.craftengine.core.plugin.gui.Inventory;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 
-public class BukkitClick implements Click {
+public final class BukkitClick implements Click {
     private final InventoryClickEvent event;
     private final Inventory inventory;
     private final Gui gui;

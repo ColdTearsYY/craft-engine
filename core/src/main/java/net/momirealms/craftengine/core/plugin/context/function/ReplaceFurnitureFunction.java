@@ -1,11 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -24,9 +24,16 @@ public final class ReplaceFurnitureFunction<CTX extends Context> extends Abstrac
     private final boolean dropLoot;
     private final boolean playSound;
 
-    private ReplaceFurnitureFunction(
-            List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider pitch, NumberProvider yaw, String variant, boolean dropLoot, boolean playSound, Key newFurnitureId
-    ) {
+    private ReplaceFurnitureFunction(List<Condition<CTX>> predicates,
+                                     NumberProvider x,
+                                     NumberProvider y,
+                                     NumberProvider z,
+                                     NumberProvider pitch,
+                                     NumberProvider yaw,
+                                     String variant,
+                                     boolean dropLoot,
+                                     boolean playSound,
+                                     Key newFurnitureId) {
         super(predicates);
         this.newFurnitureId = newFurnitureId;
         this.x = x;
@@ -69,6 +76,10 @@ public final class ReplaceFurnitureFunction<CTX extends Context> extends Abstrac
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, ReplaceFurnitureFunction<CTX>> {
+        private static final String[] VARIANT = new String[] {"variant", "anchor_type", "anchor-type"};
+        private static final String[] DROP_LOOT = new String[] {"drop_loot", "drop-loot"};
+        private static final String[] PLAY_SOUND = new String[] {"play_sound", "play-sound"};
+        private static final String[] FURNITURE_ID = new String[] {"furniture_id", "furniture-id", "furniture", "id"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -76,17 +87,18 @@ public final class ReplaceFurnitureFunction<CTX extends Context> extends Abstrac
 
         @Override
         public ReplaceFurnitureFunction<CTX> create(ConfigSection section) {
+
             return new ReplaceFurnitureFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.z>", "z")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.pitch>", "pitch")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:furniture.yaw>", "yaw")),
-                    section.getNonNullString("variant", "anchor_type", "anchor-type"),
-                    section.getBoolean(true, "drop_loot", "drop-loot"),
-                    section.getBoolean(true, "play_sound", "play-sound"),
-                    section.getNonNullIdentifier("furniture_id", "furniture-id", "furniture", "id")
+                    section.getNumber("x", ConfigConstants.FURNITURE_X),
+                    section.getNumber("y", ConfigConstants.FURNITURE_Y),
+                    section.getNumber("z", ConfigConstants.FURNITURE_Z),
+                    section.getNumber("pitch", ConfigConstants.FURNITURE_PITCH),
+                    section.getNumber("yaw", ConfigConstants.FURNITURE_YAW),
+                    section.getNonNullString(VARIANT),
+                    section.getBoolean(DROP_LOOT, true),
+                    section.getBoolean(PLAY_SOUND, true),
+                    section.getNonNullIdentifier(FURNITURE_ID)
             );
         }
     }

@@ -143,7 +143,7 @@ public final class FaceAttachedHorizontalDirectionalBlockBehavior extends Bukkit
             Tuple<List<Object>, Set<Object>, Set<String>> tuple = DirectionalAttachedBlockBehavior.readTagsAndState(section);
             return new FaceAttachedHorizontalDirectionalBlockBehavior(
                     block,
-                    section.getBoolean(true, "blacklist"),
+                    section.getBoolean("blacklist", true),
                     tuple.left(),
                     tuple.mid(),
                     tuple.right(),

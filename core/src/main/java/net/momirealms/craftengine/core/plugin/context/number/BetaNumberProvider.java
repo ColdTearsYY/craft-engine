@@ -67,14 +67,14 @@ public record BetaNumberProvider(
     private static class Factory implements NumberProviderFactory<BetaNumberProvider> {
         @Override
         public BetaNumberProvider create(ConfigSection section) {
-            double min = section.getDouble(0d, "min");
-            double max = section.getDouble(1d, "max");
+            double min = section.getDouble("min", 0d);
+            double max = section.getDouble("max", 1d);
             if (min >= max) {
                 throw new KnownResourceException("number.less_than", section.path(), "min", "max");
             }
             // α 和 β 的默认值通常设为 2.0 (形成一个平滑的中间高两头低的弧线)
-            double alpha = section.getDouble(2d, "alpha");
-            double beta = section.getDouble(2d, "beta");
+            double alpha = section.getDouble("alpha", 2d);
+            double beta = section.getDouble("beta", 2d);
             return new BetaNumberProvider(min, max, alpha, beta);
         }
     }

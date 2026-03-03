@@ -37,7 +37,7 @@ import org.bukkit.inventory.MerchantRecipe;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BukkitGuiManager implements GuiManager, Listener {
+public final class BukkitGuiManager implements GuiManager, Listener {
     public static final int CRAFT_ENGINE_MAGIC_MERCHANT_NUMBER = 1821981731;
     private static BukkitGuiManager instance;
     private final BukkitCraftEngine plugin;

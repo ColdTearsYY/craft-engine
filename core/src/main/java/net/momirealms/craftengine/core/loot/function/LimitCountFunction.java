@@ -47,9 +47,9 @@ public final class LimitCountFunction<T> extends AbstractLootConditionalFunction
         @Override
         public LootFunction<A> create(ConfigSection section) {
             return new LimitCountFunction<>(
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
-                    section.getValue(ConfigValue::getAsNumber, "min"),
-                    section.getValue(ConfigValue::getAsNumber, "max")
+                    section.getList("conditions", CommonConditions::fromConfig),
+                    section.getValue("min", ConfigValue::getAsNumber),
+                    section.getValue("max", ConfigValue::getAsNumber)
             );
         }
     }

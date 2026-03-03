@@ -5,20 +5,19 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
 import net.momirealms.craftengine.core.util.Key;
 
 public final class ItemModelProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<ItemModelProcessor> FACTORY = new Factory();
-    private final TextProvider data;
+    private final Key data;
 
-    public ItemModelProcessor(TextProvider data) {
+    public ItemModelProcessor(Key data) {
         this.data = data;
     }
 
     @Override
     public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        return item.itemModel(this.data.get(context));
+        return item.itemModel(this.data.asString());
     }
 
     @Override
@@ -30,7 +29,7 @@ public final class ItemModelProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public ItemModelProcessor create(ConfigValue value) {
-            return new ItemModelProcessor(value.getAsTextProvider());
+            return new ItemModelProcessor(value.getAsIdentifier());
         }
     }
 }

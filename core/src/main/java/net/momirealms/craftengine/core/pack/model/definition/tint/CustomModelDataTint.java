@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.pack.model.definition.tint;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 
 import java.util.List;
 
@@ -37,10 +36,12 @@ public final class CustomModelDataTint implements Tint {
     }
 
     private static class Factory implements TintFactory<CustomModelDataTint> {
+        private static final String[] DEFAULT = new String[]{"default", "value"};
+
         @Override
         public CustomModelDataTint create(ConfigSection section) {
             return new CustomModelDataTint(
-                    section.getValue(ConfigValue::getAsTint, "default", "value"),
+                    section.getValue(DEFAULT, Tints::getTintValue),
                     section.getInt("index")
             );
         }

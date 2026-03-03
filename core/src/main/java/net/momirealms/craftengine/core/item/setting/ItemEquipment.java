@@ -5,7 +5,7 @@ import net.momirealms.craftengine.core.util.Tristate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class ItemEquipment {
+public final class ItemEquipment {
     private final Tristate clientBoundModel;
     private final Equipment equipment;
     private final EquipmentData equipmentData;

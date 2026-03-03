@@ -12,7 +12,8 @@ import java.util.function.Predicate;
 public final class IfElseFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final List<Pair<Predicate<CTX>, Function<CTX>>> conditions;
 
-    private IfElseFunction(List<Condition<CTX>> predicates, List<Pair<Predicate<CTX>, Function<CTX>>> conditions) {
+    private IfElseFunction(List<Condition<CTX>> predicates,
+                           List<Pair<Predicate<CTX>, Function<CTX>>> conditions) {
         super(predicates);
         this.conditions = conditions;
     }
@@ -32,6 +33,7 @@ public final class IfElseFunction<CTX extends Context> extends AbstractCondition
     }
 
     private static class Factory<CTX extends Context> extends AbstractFunctionalFactory<CTX, IfElseFunction<CTX>> {
+        private static final String[] RULES = new String[] {"rules", "rule"};
 
         public Factory(java.util.function.Function<ConfigSection, Function<CTX>> functionFactory, java.util.function.Function<ConfigSection, Condition<CTX>> conditionFactory) {
             super(functionFactory, conditionFactory);
@@ -39,11 +41,11 @@ public final class IfElseFunction<CTX extends Context> extends AbstractCondition
 
         @Override
         public IfElseFunction<CTX> create(ConfigSection section) {
-            List<Pair<Predicate<CTX>, Function<CTX>>> branches = section.parseSectionList(s -> {
+            List<Pair<Predicate<CTX>, Function<CTX>>> branches = section.getSectionList(RULES, s -> {
                 List<Condition<CTX>> conditions = getPredicates(s);
                 List<Function<CTX>> functions = getFunctions(s);
                 return new Pair<>(MiscUtils.allOf(conditions), Function.allOf(functions));
-            }, "rules", "rule");
+            });
             return new IfElseFunction<>(getPredicates(section), branches);
         }
     }

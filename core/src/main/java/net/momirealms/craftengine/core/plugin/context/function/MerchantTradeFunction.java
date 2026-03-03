@@ -12,14 +12,13 @@ import net.momirealms.craftengine.core.item.trade.MerchantOffer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +33,10 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
     private final PlayerSelector<CTX> selector;
     private final BiFunction<Player, Context, List<MerchantOffer<?>>> offers;
 
-    private MerchantTradeFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector, String title, BiFunction<Player, Context, List<MerchantOffer<?>>> offers) {
+    private MerchantTradeFunction(List<Condition<CTX>> predicates,
+                                  @Nullable PlayerSelector<CTX> selector,
+                                  String title,
+                                  BiFunction<Player, Context, List<MerchantOffer<?>>> offers) {
         super(predicates);
         this.title = title;
         this.selector = selector;
@@ -60,6 +62,10 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, MerchantTradeFunction<CTX>> {
+        private static final String[] OFFERS = new String[] {"offers", "offer"};
+        private static final String[] COST_1 = new String[] {"cost_1", "cost-1"};
+        private static final String[] COST_2 = new String[] {"cost_2", "cost-2"};
+        private static final String[] EXP = new String[] {"exp", "experience"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -68,13 +74,13 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
         @SuppressWarnings({"unchecked", "rawtypes"})
         @Override
         public MerchantTradeFunction<CTX> create(ConfigSection section) {
-            List<TempOffer> merchantOffers = section.parseSectionList(s -> {
-                TempItem cost1 = s.getNonNull(o -> parseTempItem(o, section.assemblePath("cost_1")), ConfigConstants.ARGUMENT_SECTION, "cost_1", "cost-1");
-                TempItem cost2 = s.get(o -> parseTempItem(o, section.assemblePath("cost_2")), (TempItem) null, "cost_2", "cost-2");
-                TempItem result = s.getNonNull(o -> parseTempItem(o, section.assemblePath("result")), ConfigConstants.ARGUMENT_SECTION, "result");
-                NumberProvider exp = s.get(NumberProviders::fromObject, NumberProviders.direct(0), "exp", "experience");
+            List<TempOffer> merchantOffers = section.getSectionList(OFFERS, s -> {
+                TempItem cost1 = s.getNonNullValue(COST_1, ConfigConstants.ARGUMENT_SECTION, this::parseTempItem);
+                TempItem cost2 = s.getValue(COST_2, this::parseTempItem);
+                TempItem result = s.getNonNullValue("result", ConfigConstants.ARGUMENT_SECTION, this::parseTempItem);
+                NumberProvider exp = s.getNumber(EXP, ConfigConstants.CONSTANT_ZERO);
                 return new TempOffer(cost1, cost2, result, exp);
-            }, "offers", "offer");
+            });
 
             return new MerchantTradeFunction<>(
                     getPredicates(section),
@@ -92,27 +98,32 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
                     });
         }
 
-        private TempItem parseTempItem(Object object, String path) {
-            if (object instanceof Map) {
-                ConfigSection innerSection = ConfigSection.of(path, MiscUtils.castToMap(object));
-                Key itemId = innerSection.getNonNullIdentifier("item", "id");
-                NumberProvider count = Optional.ofNullable(innerSection.get("count", "amount")).map(NumberProviders::fromObject).orElseGet(() -> NumberProviders.direct(1));
+        private static final String[] ITEM = new String[] {"item", "id"};
+        private static final String[] COUNT = new String[] {"count", "amount"};
+        private static final String[] COMPONENT = new String[] {"components", "component"};
+        private static final String[] NBT = new String[] {"nbt", "tags"};
+
+        private TempItem parseTempItem(ConfigValue value) {
+            if (value.is(Map.class)) {
+                ConfigSection section = value.getAsSection();
+                Key itemId = section.getNonNullIdentifier(ITEM);
+                NumberProvider count = section.getNumber(COUNT, ConfigConstants.CONSTANT_ONE);
                 ComponentsProcessor componentsProcessor = null;
                 TagsProcessor tagsProcessor = null;
                 if (VersionHelper.COMPONENT_RELEASE) {
-                    ConfigSection components = innerSection.getSection("components", "component");
+                    ConfigSection components = section.getSection(COMPONENT);
                     if (components != null) {
                         componentsProcessor = new ComponentsProcessor(components.values());
                     }
                 } else {
-                    ConfigSection nbt = innerSection.getSection("nbt", "tags");
+                    ConfigSection nbt = section.getSection(NBT);
                     if (nbt != null) {
                         tagsProcessor = new TagsProcessor(nbt.values());
                     }
                 }
                 return new TempItem(itemId, count, componentsProcessor, tagsProcessor);
             } else {
-                return new TempItem(Key.of(object.toString()), NumberProviders.direct(1), null, null);
+                return new TempItem(value.getAsIdentifier(), ConfigConstants.CONSTANT_ONE, null, null);
             }
         }
 

@@ -54,7 +54,7 @@ import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
-public class RecipeEventListener implements Listener {
+public final class RecipeEventListener implements Listener {
     private final ItemManager<ItemStack> itemManager;
     private final BukkitRecipeManager recipeManager;
     private final BukkitCraftEngine plugin;

@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
 public final class FallingBlockCondition<CTX extends Context> implements Condition<CTX> {
+    public static final FallingBlockCondition<Context> INSTANCE = new FallingBlockCondition<>();
     private FallingBlockCondition() {}
 
     @Override
@@ -19,9 +20,10 @@ public final class FallingBlockCondition<CTX extends Context> implements Conditi
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, FallingBlockCondition<CTX>> {
 
+        @SuppressWarnings("unchecked")
         @Override
         public FallingBlockCondition<CTX> create(ConfigSection arguments) {
-            return new FallingBlockCondition<>();
+            return (FallingBlockCondition<CTX>) INSTANCE;
         }
     }
 }

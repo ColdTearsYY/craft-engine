@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import org.bukkit.command.CommandSender;
 import org.incendo.cloud.Command;
 
-public class TestCommand extends BukkitCommandFeature<CommandSender> {
+public final class TestCommand extends BukkitCommandFeature<CommandSender> {
 
     public TestCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

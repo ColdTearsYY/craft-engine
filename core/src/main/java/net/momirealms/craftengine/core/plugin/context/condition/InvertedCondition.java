@@ -30,10 +30,11 @@ public final class InvertedCondition<CTX extends Context> implements Condition<C
     }
 
     private record Factory<CTX extends Context>(Function<ConfigSection, Condition<CTX>> factory) implements ConditionFactory<CTX, InvertedCondition<CTX>> {
+        private static final String[] TERMS = new String[] {"terms", "term"};
 
         @Override
         public InvertedCondition<CTX> create(ConfigSection section) {
-            List<Condition<CTX>> conditions = section.parseSectionList(this.factory, "terms", "term");
+            List<Condition<CTX>> conditions = section.getSectionList(TERMS, this.factory);
             if (conditions.isEmpty()) {
                 return new InvertedCondition<>((ctx) -> true);
             } else if (conditions.size() == 1) {

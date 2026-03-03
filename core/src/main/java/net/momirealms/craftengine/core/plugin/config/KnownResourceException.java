@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.config;
 
+import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
+
 import java.nio.file.Path;
 
 public final class KnownResourceException extends ResourceException {
@@ -19,6 +21,10 @@ public final class KnownResourceException extends ResourceException {
         this.filePath = filePath;
         this.arguments = arguments;
         this.translationKey = translationKey;
+    }
+
+    public static KnownResourceException missingArgument(String argumentName, String type) {
+        return new KnownResourceException("resource.missing_argument", argumentName, TranslationManager.instance().translate(type));
     }
 
     public String translationKey() {

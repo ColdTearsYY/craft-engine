@@ -7,7 +7,7 @@ import net.momirealms.craftengine.core.util.UniqueKey;
 
 import java.util.Set;
 
-public class IngredientUnlockable {
+public final class IngredientUnlockable {
     private final Recipe<?> recipe;
     private final Requirement[] requirements;
 

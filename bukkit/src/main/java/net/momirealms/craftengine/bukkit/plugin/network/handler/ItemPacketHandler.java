@@ -33,7 +33,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-public class ItemPacketHandler implements EntityPacketHandler {
+public final class ItemPacketHandler implements EntityPacketHandler {
     public static final ItemPacketHandler INSTANCE = new ItemPacketHandler();
 
     @Override

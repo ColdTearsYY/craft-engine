@@ -2,14 +2,9 @@ package net.momirealms.craftengine.core.item.recipe;
 
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.UniqueKey;
 import org.jetbrains.annotations.Nullable;
@@ -170,20 +165,17 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
             return List.of(LoadingStages.TEMPLATE, LoadingStages.ITEM);
         }
 
+        private static final String[] UNLOCK_ON_INGREDIENT_OBTAINED = new String[] {"unlock_on_ingredient_obtained", "unlock-on-ingredient-obtained"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             if (!Config.enableRecipeSystem()) return;
-            if (AbstractRecipeManager.this.byId.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.recipe.duplicate");
-            }
-            boolean unlockOnIngredientObtained = (boolean) section.getOrDefault(Config.unlockOnIngredientObtained(), "unlock-on-ingredient-obtained");
+            boolean unlockOnIngredientObtained = section.getBoolean(UNLOCK_ON_INGREDIENT_OBTAINED, Config.unlockOnIngredientObtained());
             Recipe<T> recipe = RecipeSerializers.fromConfig(id, section);
             try {
                 registerInternalRecipe(id, recipe, unlockOnIngredientObtained);
-            } catch (LocalizedResourceConfigException e) {
-                throw e;
-            } catch (Exception e) {
-                CraftEngine.instance().logger().warn("Failed to register custom recipe " + id, e);
+            } catch (KnownResourceException e) {
+                super.errorHandler.accept(e);
             }
         }
     }

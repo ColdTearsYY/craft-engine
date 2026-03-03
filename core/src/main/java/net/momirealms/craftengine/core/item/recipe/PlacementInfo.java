@@ -5,7 +5,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 
 import java.util.List;
 
-public class PlacementInfo<T> {
+public final class PlacementInfo<T> {
     private final List<Ingredient<T>> ingredients;
     private final IntList slotsToIngredientIndex;
 

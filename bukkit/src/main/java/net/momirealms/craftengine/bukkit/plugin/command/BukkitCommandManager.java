@@ -19,7 +19,7 @@ import org.incendo.cloud.setting.ManagerSetting;
 import java.util.List;
 import java.util.Locale;
 
-public class BukkitCommandManager extends AbstractCommandManager<CommandSender> {
+public final class BukkitCommandManager extends AbstractCommandManager<CommandSender> {
     private final BukkitCraftEngine plugin;
     private final Index<String, CommandFeature<CommandSender>> index;
 

@@ -34,10 +34,11 @@ public final class ExpressionCondition<CTX extends Context> implements Condition
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, ExpressionCondition<CTX>> {
+        private static final String[] EXPR = new String[] {"expression", "expr"};
 
         @Override
         public ExpressionCondition<CTX> create(ConfigSection section) {
-            return new ExpressionCondition<>(TextProviders.fromString(section.getNonNullString("expression", "expr")));
+            return new ExpressionCondition<>(TextProviders.fromString(section.getNonNullString(EXPR)));
         }
     }
 }

@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.stream.LongStream;
 
 public final class DefaultSectionSerializer {
-
     private DefaultSectionSerializer() {}
 
     @Nullable

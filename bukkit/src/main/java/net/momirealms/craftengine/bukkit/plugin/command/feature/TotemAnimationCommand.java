@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class TotemAnimationCommand extends BukkitCommandFeature<CommandSender> {
+public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSender> {
     public static final Object FIX_TOTEM_SOUND_PACKET = ClientboundSoundPacketProxy.INSTANCE.newInstance(HolderProxy.INSTANCE.direct(SoundEventsProxy.TOTEM_USE), SoundSourceProxy.MUSIC, 0, Integer.MIN_VALUE, 0, 0, 0, 0);
 
     public TotemAnimationCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {

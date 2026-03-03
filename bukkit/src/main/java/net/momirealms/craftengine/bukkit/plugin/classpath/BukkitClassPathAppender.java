@@ -8,7 +8,7 @@ import java.net.MalformedURLException;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 
-public class BukkitClassPathAppender implements ClassPathAppender {
+public final class BukkitClassPathAppender implements ClassPathAppender {
     private final URLClassLoaderAccess libraryClassLoaderAccess;
 
     public BukkitClassPathAppender() {

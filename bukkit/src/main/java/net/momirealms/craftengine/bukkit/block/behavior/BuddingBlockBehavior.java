@@ -103,13 +103,14 @@ public final class BuddingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<BuddingBlockBehavior> {
+        private static final String[] GROWTH_CHANCE = new String[] {"growth_chance", "growth-chance"};
 
         @Override
         public BuddingBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new BuddingBlockBehavior(
                     block,
-                    section.getFloat(0.2f, "growth_chance", "growth-chance"),
-                    section.parseList(ConfigValue::getAsIdentifier, "blocks")
+                    section.getFloat(GROWTH_CHANCE, 0.2f),
+                    section.getList("blocks", ConfigValue::getAsIdentifier)
             );
         }
     }

@@ -88,14 +88,17 @@ public final class BouncingBlockBehavior extends BukkitBlockBehavior implements 
     }
 
     private static class Factory implements BlockBehaviorFactory<BouncingBlockBehavior> {
+        private static final String[] BOUNCE_HEIGHT = new String[] {"bounce_height", "bounce-height"};
+        private static final String[] SYNC_PLAYER_POSITION = new String[] {"sync_player_position", "sync-player-position"};
+        private static final String[] FALL_DAMAGE_MULTIPLIER = new String[] {"fall_damage_multiplier", "fall-damage-multiplier"};
 
         @Override
         public BouncingBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new BouncingBlockBehavior(
                     block,
-                    section.getDouble(0.66, "bounce_height", "bounce-height"),
-                    section.getBoolean(true, "sync_player_position", "sync-player-position"),
-                    section.getDouble(0.5, "fall_damage_multiplier", "fall-damage-multiplier")
+                    section.getDouble(BOUNCE_HEIGHT, 0.66),
+                    section.getBoolean(SYNC_PLAYER_POSITION, true),
+                    section.getDouble(FALL_DAMAGE_MULTIPLIER, 0.5)
             );
         }
     }

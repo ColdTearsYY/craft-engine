@@ -31,7 +31,7 @@ import org.bukkit.inventory.ItemStack;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class UniversalItemFactory extends BukkitItemFactory<LegacyItemWrapper> {
+public final class UniversalItemFactory extends BukkitItemFactory<LegacyItemWrapper> {
 
     public UniversalItemFactory(CraftEngine plugin) {
         super(plugin);

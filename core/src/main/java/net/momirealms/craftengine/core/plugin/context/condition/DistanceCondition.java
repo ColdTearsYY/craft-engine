@@ -1,11 +1,12 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
+import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.world.WorldPosition;
 
@@ -59,8 +60,8 @@ public final class DistanceCondition<CTX extends Context> implements Condition<C
         @Override
         public DistanceCondition<CTX> create(ConfigSection section) {
             return new DistanceCondition<>(
-                    NumberProviders.fromObject(section.getOrDefault(0, "min")),
-                    NumberProviders.fromObject(section.getOrDefault(32, "max"))
+                    section.getNumber("min", ConfigConstants.CONSTANT_ZERO),
+                    section.getNumber("max", ConstantNumberProvider.constant(32))
             );
         }
     }

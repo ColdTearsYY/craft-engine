@@ -69,7 +69,7 @@ import org.bukkit.inventory.*;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class ItemEventListener implements Listener {
+public final class ItemEventListener implements Listener {
     private final BukkitCraftEngine plugin;
     private final BukkitItemManager itemManager;
 

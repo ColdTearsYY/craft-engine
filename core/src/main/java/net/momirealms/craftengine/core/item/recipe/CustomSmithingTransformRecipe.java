@@ -14,19 +14,20 @@ import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
-import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.util.ResourceKey;
+import net.momirealms.craftengine.core.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -208,13 +209,16 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
 
     @SuppressWarnings({"DuplicatedCode"})
     public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmithingTransformRecipe<A>> {
+        private static final String[] TEMPLATE_TYPE = new String[]{"template_type", "template-type"};
+        private static final String[] MERGE_COMPONENTS = new String[]{"merge-components", "merge_components"};
+        private static final String[] MERGE_ENCHANTMENTS = new String[]{"merge-enchantments", "merge_enchantments"};
 
         @SuppressWarnings("unchecked")
         @Override
         public CustomSmithingTransformRecipe<A> readConfig(Key id, ConfigSection section) {
-            Ingredient<A> templateIngredient = section.getValue(ConfigValue::getAsIngredient, "template_type", "template-type");
-            Ingredient<A> baseIngredient = section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "base").getAsIngredient();
-            Ingredient<A> additionIngredient = section.getValue(ConfigValue::getAsIngredient, "addition");
+            Ingredient<A> templateIngredient = section.getValue(TEMPLATE_TYPE, super::parseIngredient);
+            Ingredient<A> baseIngredient = section.getNonNullValue("base", ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
+            Ingredient<A> additionIngredient = section.getValue("addition", super::parseIngredient);
             boolean countSupport = false;
             if (/* !countSupport && */ templateIngredient != null && templateIngredient.count() > 1) {
                 countSupport = true;
@@ -226,17 +230,17 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
                 countSupport = true;
             }
             return new CustomSmithingTransformRecipe<>(id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
                     templateIngredient,
                     baseIngredient,
                     additionIngredient,
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "visual_result", "visual-result").getAsCustomRecipeResult(),
-                    section.parseSectionList(ItemDataProcessors::fromConfig, "post_processors", "post-processors"),
-                    section.getBoolean(true, "merge-components", "merge_components"),
-                    section.getBoolean(false, "merge-enchantments", "merge_enchantments"),
-                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
-                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition")),
+                    super.parseResult(section.getNonNullSection("result")),
+                    section.getValue(VISUAL_RESULT, v -> super.parseResult(v.getAsSection())),
+                    section.getList(POST_PROCESSOR, ItemDataProcessors::fromConfig),
+                    section.getBoolean(MERGE_COMPONENTS, true),
+                    section.getBoolean(MERGE_ENCHANTMENTS, false),
+                    section.getList(FUNCTIONS, CommonFunctions::fromConfig).toArray(new Function[0]),
+                    MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig)),
                     countSupport
             );
         }
@@ -268,6 +272,10 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         public static final ItemDataProcessor.Type<MergeEnchantments> MERGE_ENCHANTMENTS = register(Key.ce("merge_enchantments"), MergeEnchantments.FACTORY);
 
         private ItemDataProcessors() {}
+
+        public static ItemDataProcessor fromConfig(ConfigValue value) {
+            return fromConfig(value.getAsSection());
+        }
 
         public static ItemDataProcessor fromConfig(ConfigSection section) {
             String type = section.getNonNullString("type");
@@ -346,10 +354,11 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         }
 
         private static class Factory implements ItemDataProcessor.Factory<KeepCustomData> {
+            private static final String[] TAGS = new String[]{"tags", "paths"};
 
             @Override
             public KeepCustomData create(ConfigSection section) {
-                return new KeepCustomData(section.parseNonEmptyList(v -> v.getAsString().split("\\."), "tags", "paths"));
+                return new KeepCustomData(section.getNonEmptyList(TAGS, v -> v.getAsString().split("\\.")));
             }
         }
     }
@@ -377,7 +386,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
 
             @Override
             public KeepComponents create(ConfigSection section) {
-                return new KeepComponents(section.parseNonEmptyList(ConfigValue::getAsIdentifier, "components").stream().filter(it -> !CUSTOM_DATA.equals(it)).toList());
+                return new KeepComponents(section.getNonEmptyList("components", ConfigValue::getAsIdentifier).stream().filter(it -> !CUSTOM_DATA.equals(it)).toList());
             }
         }
     }
@@ -404,7 +413,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
 
             @Override
             public KeepTags create(ConfigSection section) {
-                return new KeepTags(section.parseNonEmptyList(v -> v.getAsString().split("\\."), "tags"));
+                return new KeepTags(section.getNonEmptyList("tags", v -> v.getAsString().split("\\.")));
             }
         }
     }

@@ -10,7 +10,7 @@ import net.momirealms.craftengine.core.util.ResourceKey;
 
 import java.util.Optional;
 
-public class FurnitureElementConfigs {
+public abstract class FurnitureElementConfigs {
     protected FurnitureElementConfigs() {}
 
     public static <E extends FurnitureElement> FurnitureElementConfigType<E> register(Key key, FurnitureElementConfigFactory<E> factory) {
@@ -25,7 +25,7 @@ public class FurnitureElementConfigs {
         Key type = getOrGuessType(section);
         FurnitureElementConfigType<E> configType = (FurnitureElementConfigType<E>) BuiltInRegistries.FURNITURE_ELEMENT_TYPE.getValue(type);
         if (configType == null) {
-            throw new KnownResourceException("resource.furniture.element.unknown_type", section.assemblePath("type"), section.getString("type"));
+            throw new KnownResourceException("resource.furniture.element.unknown_type", section.assemblePath("type"), type.asString());
         }
         return configType.factory().create(section);
     }

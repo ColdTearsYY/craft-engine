@@ -4,20 +4,22 @@ import net.momirealms.craftengine.core.entity.projectile.ProjectileMeta;
 import net.momirealms.craftengine.core.item.equipment.ComponentBasedEquipment;
 import net.momirealms.craftengine.core.item.equipment.Equipment;
 import net.momirealms.craftengine.core.item.equipment.Equipments;
-import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainder;
+import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainders;
 import net.momirealms.craftengine.core.item.setting.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
-import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.*;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public final class ItemSettingsModifiers {
     public static final ItemSettingsModifierType<ItemSettingsModifier> REPAIRABLE = register(Key.ce("repairable"), value -> {
@@ -56,7 +58,7 @@ public final class ItemSettingsModifiers {
         settings.glowColor(formatter);
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> ANVIL_REPAIR_ITEM = register(Key.ce("anvil_repair_item"), (value -> {
-        List<AnvilRepairItem> anvilRepairItemList = value.parseAsList(it -> {
+        List<AnvilRepairItem> anvilRepairItemList = value.getAsList(it -> {
             ConfigSection section = it.getAsSection();
             return new AnvilRepairItem(
                     section.getStringList("target"),
@@ -75,14 +77,12 @@ public final class ItemSettingsModifiers {
         settings.consumeReplacement(itemId);
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> CRAFT_REMAINING_ITEM = register(Key.ce("craft_remaining_item"), (value -> settings -> {
-        CraftRemainder remainder = value.getAsCraftRemainder();
-        settings.craftRemainder(remainder);
+        settings.craftRemainder(CraftRemainders.fromConfig(value));
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> CRAFT_REMAINDER = register(Key.ce("craft_remainder"), (value -> settings -> {
-        CraftRemainder remainder = value.getAsCraftRemainder();
-        settings.craftRemainder(remainder);
+        settings.craftRemainder(CraftRemainders.fromConfig(value));
     }));
-    public static final ItemSettingsModifierType<ItemSettingsModifier> TAGS = register(Key.ce("tags"), (value -> settings -> settings.tags(new HashSet<>(value.parseAsList(it -> {
+    public static final ItemSettingsModifierType<ItemSettingsModifier> TAGS = register(Key.ce("tags"), (value -> settings -> settings.tags(new HashSet<>(value.getAsList(it -> {
         String asString = it.getAsString();
         if (asString.charAt(0) == '#') {
             return Key.of(asString.substring(1));
@@ -91,10 +91,12 @@ public final class ItemSettingsModifiers {
         }
     })))));
     public static final ItemSettingsModifierType<ItemSettingsModifier> EQUIPPABLE = register(Key.ce("equippable"), (value -> {
-        EquipmentData data = value.getAsEquipmentData();
+        ConfigSection section = value.getAsSection();
+        EquipmentData data = EquipmentData.fromConfig(section);
         if (data.assetId() == null) {
-            throw new IllegalArgumentException("Please move 'equippable' option to 'data' section."); // todo 修改为可翻译
+            throw new KnownResourceException("resource.item.settings.equippable", value.path());
         }
+        // 旧版本兼容写法
         ComponentBasedEquipment componentBasedEquipment = Equipments.COMPONENT.factory().create(data.assetId(), value.getAsSection());
         ((AbstractItemManager<?>) CraftEngine.instance().itemManager()).addOrMergeEquipment(componentBasedEquipment);
         ItemEquipment itemEquipment = new ItemEquipment(Tristate.FALSE, data, componentBasedEquipment);
@@ -102,22 +104,22 @@ public final class ItemSettingsModifiers {
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> EQUIPMENT = register(Key.ce("equipment"), (value -> {
         ConfigSection section = value.getAsSection();
-        Tristate clientBoundModel = section.getValueOrDefault(it -> Tristate.of(it.getAsBoolean()), Tristate.UNDEFINED, "client_bound_model", "client-bound-model");
-        Key assetId = section.getNonNullIdentifier("asset_id", "asset-id");
+        Tristate clientBoundModel = section.getValue(new String[] {"client_bound_model", "client-bound-model"}, it -> Tristate.of(it.getAsBoolean()), Tristate.UNDEFINED);
+        Key assetId = section.getNonNullIdentifier(new String[] {"asset_id", "asset-id"});
         Optional<Equipment> optionalEquipment = CraftEngine.instance().itemManager().getEquipment(assetId);
         if (optionalEquipment.isEmpty()) {
-            throw new LocalizedResourceConfigException("warning.config.item.settings.equipment.invalid_asset_id");
+            throw new KnownResourceException("resource.item.settings.equipment.invalid_asset_id", value.assemblePath("asset_id"), assetId.asString());
         }
         if (VersionHelper.isOrAbove1_21_2() && section.containsKey("slot")) {
             if (optionalEquipment.get() instanceof ComponentBasedEquipment) {
-                EquipmentData data = value.getAsEquipmentData();
+                // 基于组件
+                EquipmentData data = EquipmentData.fromConfig(section);
                 return settings -> settings.equipment(new ItemEquipment(clientBoundModel, data, optionalEquipment.get()));
-            } else { // todo 优化写法
-                // trim based
-                Map<String, Object> copiedArgs = new HashMap<>(section.values());
-                copiedArgs.put("asset_id", Config.sacrificedVanillaArmorType());
-                ConfigValue configValue = new ConfigValue(section.path(), copiedArgs);
-                EquipmentData data = configValue.getAsEquipmentData();
+            } else {
+                // 基于盔甲纹饰
+                ConfigSection copiedSection = section.copy();
+                copiedSection.put("asset_id", Config.sacrificedVanillaArmorType());
+                EquipmentData data = EquipmentData.fromConfig(copiedSection);
                 return settings -> settings.equipment(new ItemEquipment(clientBoundModel, data, optionalEquipment.get()));
             }
         } else {
@@ -137,16 +139,7 @@ public final class ItemSettingsModifiers {
         return settings -> settings.disableVanillaBehavior(bool);
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> PROJECTILE = register(Key.ce("projectile"), (value -> settings -> {
-        ProjectileMeta meta = value.getAsProjectileMeta();
-        settings.projectileMeta(meta);
-    }));
-    public static final ItemSettingsModifierType<ItemSettingsModifier> HELMET = register(Key.ce("helmet"), (value -> {
-        ConfigValue configValue = value.getAsSection().getValue("equip-sound");
-        if (configValue != null) {
-            return settings -> settings.helmet(new Helmet(configValue.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_1)));
-        } else {
-            return settings -> settings.helmet(new Helmet(SoundData.of(Key.of("minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_1)));
-        }
+        settings.projectileMeta(ProjectileMeta.fromConfig(value.getAsSection()));
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> COMPOST_PROBABILITY = register(Key.ce("compost_probability"), (value -> {
         float chance = value.getAsFloat();
@@ -169,15 +162,14 @@ public final class ItemSettingsModifiers {
         settings.fireworkColor(color);
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> FOOD = register(Key.ce("food"), (value -> {
-        FoodData foodData = value.getAsFoodData();
-        return settings -> settings.foodData(foodData);
+        return settings -> settings.foodData(FoodData.fromConfig(value.getAsSection()));
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> INVULNERABLE = register(Key.ce("invulnerable"), (value -> {
-        List<DamageSource> list = value.parseAsList(it -> it.getAsEnum(DamageSource.class));
+        List<DamageSource> list = value.getAsList(it -> it.getAsEnum(DamageSource.class));
         return settings -> settings.invulnerable(list);
     }));
     public static final ItemSettingsModifierType<ItemSettingsModifier> INGREDIENT_SUBSTITUTE = register(Key.ce("ingredient_substitute"), (value -> settings -> {
-        List<Key> list = value.parseAsList(ConfigValue::getAsIdentifier);
+        List<Key> list = value.getAsList(ConfigValue::getAsIdentifier);
         settings.ingredientSubstitutes(list);
     }));
 

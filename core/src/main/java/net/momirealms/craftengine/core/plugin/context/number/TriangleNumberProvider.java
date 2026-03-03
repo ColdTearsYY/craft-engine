@@ -53,7 +53,7 @@ public record TriangleNumberProvider(
             
             // 默认众数在正中间（等腰三角形）
             double defaultMode = (min + max) / 2.0;
-            double mode = section.getDouble(defaultMode, "mode");
+            double mode = section.getDouble("mode", defaultMode);
 
             this.validateParameters(section.path(), min, max, mode);
             return new TriangleNumberProvider(min, max, mode);

@@ -39,7 +39,7 @@ public final class ExplosionDecayFunction<T> extends AbstractLootConditionalFunc
 
         @Override
         public LootFunction<T> create(ConfigSection section) {
-            return new ExplosionDecayFunction<>(section.parseSectionList(CommonConditions::fromConfig, "conditions"));
+            return new ExplosionDecayFunction<>(section.getList("conditions", CommonConditions::fromConfig));
         }
     }
 }

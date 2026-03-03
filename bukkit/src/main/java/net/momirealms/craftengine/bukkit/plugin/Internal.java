@@ -7,7 +7,7 @@ import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Internal
-class Internal {
+final class Internal {
 
     @ReflectionProxy(clazz = BukkitWorldManager.class)
     interface BukkitWorldManagerProxy {

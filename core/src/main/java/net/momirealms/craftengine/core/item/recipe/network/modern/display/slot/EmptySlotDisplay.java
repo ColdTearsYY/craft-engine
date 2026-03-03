@@ -3,7 +3,7 @@ package net.momirealms.craftengine.core.item.recipe.network.modern.display.slot;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 
-public class EmptySlotDisplay<I> implements SlotDisplay<I> {
+public final class EmptySlotDisplay<I> implements SlotDisplay<I> {
     public static final EmptySlotDisplay<?> INSTANCE = new EmptySlotDisplay<>();
 
     @SuppressWarnings("unchecked")

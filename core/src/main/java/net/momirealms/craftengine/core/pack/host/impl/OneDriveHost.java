@@ -5,9 +5,10 @@ import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.GsonHelper;
+import net.momirealms.craftengine.core.util.HashUtils;
+import net.momirealms.craftengine.core.util.Tuple;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.FileNotFoundException;
@@ -226,14 +227,19 @@ public final class OneDriveHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<OneDriveHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] CLIENT_ID = new String[] {"client_id", "client-id"};
+        private static final String[] CLIENT_SECRET = new String[] {"client_secret", "client-secret"};
+        private static final String[] REFRESH_TOKEN = new String[] {"refresh_token", "refresh-token"};
+        private static final String[] UPLOAD_PATH = new String[] {"upload_path", "upload-path"};
 
         @Override
         public OneDriveHost create(ConfigSection section) {
-            boolean useEnv = section.getBoolean("use_environment_variables", "use-environment-variables");
-            String clientId = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_ID") : section.getNonEmptyString("client_id", "client-id");
-            String clientSecret = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_SECRET") : section.getNonEmptyString("client_secret", "client-secret");
-            String refreshToken = useEnv ? System.getenv("CE_ONEDRIVE_REFRESH_TOKEN") : section.getNonEmptyString("refresh_token", "refresh-token");
-            String uploadPath = section.getDefaultedString("resource_pack.zip", "upload_path", "upload-path");
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String clientId = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_ID") : section.getNonEmptyString(CLIENT_ID);
+            String clientSecret = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_SECRET") : section.getNonEmptyString(CLIENT_SECRET);
+            String refreshToken = useEnv ? System.getenv("CE_ONEDRIVE_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
+            String uploadPath = section.getString(UPLOAD_PATH, "resource_pack.zip");
             return new OneDriveHost(clientId, clientSecret, refreshToken, uploadPath, getProxySelector(section.getSection("proxy")));
         }
     }

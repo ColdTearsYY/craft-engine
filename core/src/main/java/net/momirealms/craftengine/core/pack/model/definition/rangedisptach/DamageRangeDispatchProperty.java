@@ -41,7 +41,7 @@ public final class DamageRangeDispatchProperty implements RangeDispatchProperty,
     private static class Factory implements RangeDispatchPropertyFactory<DamageRangeDispatchProperty> {
         @Override
         public DamageRangeDispatchProperty create(ConfigSection section) {
-            return new DamageRangeDispatchProperty(section.getBoolean(true, "normalize"));
+            return new DamageRangeDispatchProperty(section.getBoolean("normalize", true));
         }
     }
 

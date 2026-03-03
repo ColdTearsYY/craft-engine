@@ -8,8 +8,8 @@ import net.momirealms.craftengine.core.plugin.scheduler.RegionExecutor;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.World;
 
-public class BukkitSchedulerAdapter extends AbstractJavaScheduler<World> {
-    protected RegionExecutor<World> sync;
+public final class BukkitSchedulerAdapter extends AbstractJavaScheduler<World> {
+    private final RegionExecutor<World> sync;
 
     public BukkitSchedulerAdapter(BukkitCraftEngine plugin) {
         super(plugin);

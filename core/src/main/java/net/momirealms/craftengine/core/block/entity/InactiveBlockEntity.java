@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.sparrow.nbt.CompoundTag;
 
-public class InactiveBlockEntity extends BlockEntity {
+public final class InactiveBlockEntity extends BlockEntity {
     private final CompoundTag tag;
 
     public InactiveBlockEntity(BlockPos pos,

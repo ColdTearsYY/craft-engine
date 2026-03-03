@@ -6,13 +6,14 @@ import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
 import net.momirealms.craftengine.core.item.recipe.result.PostProcessor;
 import net.momirealms.craftengine.core.item.recipe.result.PostProcessors;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.context.CommonConditions;
-import net.momirealms.craftengine.core.plugin.context.Condition;
-import net.momirealms.craftengine.core.plugin.context.Context;
-import net.momirealms.craftengine.core.plugin.context.condition.AllOfCondition;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.*;
-import org.jetbrains.annotations.NotNull;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.UniqueKey;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -26,11 +27,96 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
             VersionHelper.isOrAbove1_20_5() ?
             new VanillaRecipeReader1_20_5() :
             new VanillaRecipeReader1_20();
+    protected static final String[] SHOW_NOTIFICATIONS = new String[] {"show_notification", "show-notification"};
+    protected static final String[] INGREDIENTS = new String[] {"ingredients", "ingredient"};
+    protected static final String[] EXP = new String[] {"exp", "experience"};
+    protected static final String[] ITEMS = new String[] {"items", "item"};
+    protected static final String[] POST_PROCESSOR = new String[] {"post_processors", "post-processors"};
+    protected static final String[] VISUAL_RESULT = new String[] {"visual_result", "visual-result"};
+    protected static final String[] FUNCTIONS = new String[] {"functions", "function"};
+    protected static final String[] CONDITIONS = new String[] {"conditions", "condition"};
+    protected static final String[] ALWAYS_REBUILD_RESULT = new String[] {"always_rebuild_result", "always-rebuild-result"};
 
     @SuppressWarnings("unchecked")
     protected CustomRecipeResult<T> parseResult(DatapackRecipeResult recipeResult) {
         Item<T> result = (Item<T>) CraftEngine.instance().itemManager().build(recipeResult);
         return new CustomRecipeResult<>(CloneableConstantItem.of(result), recipeResult.count(), null);
+    }
+
+    @SuppressWarnings("unchecked")
+    protected CustomRecipeResult<T> parseResult(ConfigSection section) {
+        Key id = section.getNonNullIdentifier("id");
+        int count = section.getInt("count", 1);
+        Optional<? extends BuildableItem<T>> buildableItem = (Optional<? extends BuildableItem<T>>) CraftEngine.instance().itemManager().getBuildableItem(id);
+        if (buildableItem.isEmpty()) {
+            throw new KnownResourceException("resource.recipe.result.item_not_exist", section.assemblePath("id"), id.asString());
+        }
+        List<PostProcessor> processors = section.getList(POST_PROCESSOR, v -> PostProcessors.fromConfig(v.getAsSection()));
+        return new CustomRecipeResult<>(
+                buildableItem.get(),
+                count,
+                processors.isEmpty() ? null : processors.toArray(new PostProcessor[0])
+        );
+    }
+
+    protected Ingredient<T> parseIngredient(ConfigValue value) {
+        int count = 1;
+        ConfigValue itemsValue;
+        if (value.is(Map.class)) {
+            ConfigSection section = value.getAsSection();
+            count = section.getInt("count", 1);
+            itemsValue = section.getNonNullValue(ITEMS, ConfigConstants.ARGUMENT_LIST);
+        } else {
+            itemsValue = value;
+        }
+        Set<UniqueKey> itemIds = new HashSet<>();
+        Set<UniqueKey> minecraftItemIds = new HashSet<>();
+        List<IngredientElement> elements = new ArrayList<>();
+        ItemManager<T> itemManager = CraftEngine.instance().itemManager();
+        itemsValue.forEach(v -> {
+            String itemOrTag = v.getAsString();
+            if (itemOrTag.charAt(0) == '#') {
+                Key tag = Key.of(itemOrTag.substring(1));
+                IngredientElement.Tag itemTag = IngredientElement.tag(tag);
+                elements.add(itemTag);
+                List<UniqueKey> items = itemManager.itemIdsByTag(tag);
+                if (items.isEmpty()) {
+                    throw new KnownResourceException("resource.recipe.ingredient.invalid_tag", v.path(), itemOrTag);
+                }
+                itemIds.addAll(items);
+                for (UniqueKey uniqueKey : items) {
+                    List<UniqueKey> ingredientSubstitutes = itemManager.getIngredientSubstitutes(uniqueKey.key());
+                    if (!ingredientSubstitutes.isEmpty()) {
+                        itemIds.addAll(ingredientSubstitutes);
+                    }
+                }
+            } else {
+                Key itemId = Key.of(itemOrTag);
+                elements.add(new IngredientElement.Item(itemId));
+                if (itemManager.getBuildableItem(itemId).isEmpty()) {
+                    throw new KnownResourceException("resource.recipe.ingredient.item_not_exist", v.path(), itemOrTag);
+                }
+                itemIds.add(UniqueKey.create(itemId));
+                List<UniqueKey> ingredientSubstitutes = itemManager.getIngredientSubstitutes(itemId);
+                if (!ingredientSubstitutes.isEmpty()) {
+                    itemIds.addAll(ingredientSubstitutes);
+                }
+            }
+        });
+        boolean hasCustomItem = false;
+        for (UniqueKey holder : itemIds) {
+            Optional<CustomItem<T>> optionalCustomItem = itemManager.getCustomItem(holder.key());
+            UniqueKey vanillaItem = holder;
+            if (optionalCustomItem.isPresent()) {
+                CustomItem<T> customItem = optionalCustomItem.get();
+                if (!customItem.isVanillaItem()) {
+                    vanillaItem = UniqueKey.create(customItem.material());
+                    hasCustomItem = true;
+                }
+            }
+            minecraftItemIds.add(vanillaItem);
+        }
+        return Ingredient.of(elements, itemIds, minecraftItemIds, hasCustomItem, count);
     }
 
     @Nullable

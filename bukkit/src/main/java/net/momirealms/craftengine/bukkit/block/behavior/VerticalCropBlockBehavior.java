@@ -83,15 +83,17 @@ public final class VerticalCropBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<VerticalCropBlockBehavior> {
+        private static final String[] MAX_HEIGHT = new String[] {"max_height", "max-height"};
+        private static final String[] GROW_SPEED = new String[] {"grow_speed", "grow-speed"};
 
         @Override
         public VerticalCropBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new VerticalCropBlockBehavior(
                     block,
                     (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
-                    section.getInt(3, "max_height", "max-height"),
-                    section.getFloat(1f, "grow_speed", "grow-speed"),
-                    section.getDefaultedString("up","direction").equalsIgnoreCase("up")
+                    section.getInt(MAX_HEIGHT, 3),
+                    section.getFloat(GROW_SPEED, 1f),
+                    section.getString("direction", "up").equalsIgnoreCase("up")
             );
         }
     }

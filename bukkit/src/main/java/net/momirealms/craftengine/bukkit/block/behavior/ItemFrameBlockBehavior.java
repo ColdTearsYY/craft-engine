@@ -177,6 +177,7 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
     }
 
     private static class Factory implements BlockBehaviorFactory<ItemFrameBlockBehavior> {
+        private static final String[] RENDER_MAP_ITEM = new String[] {"render_map_item", "render-map-item"};
 
         @Override
         public ItemFrameBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -185,16 +186,16 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
             SoundData takeSound = null;
             SoundData rotateSound = null;
             if (soundSection != null) {
-                putSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "put");
-                takeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "take");
-                rotateSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "rotate");
+                putSound = soundSection.getValue("put", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                takeSound = soundSection.getValue("take", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                rotateSound = soundSection.getValue("rotate", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new ItemFrameBlockBehavior(
                     block,
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
                     section.getBoolean("glow"),
                     section.getBoolean("invisible"),
-                    section.getBoolean(true, "render_map_item", "render-map-item"),
+                    section.getBoolean(RENDER_MAP_ITEM, true),
                     putSound,
                     takeSound,
                     rotateSound,

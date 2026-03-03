@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 
@@ -61,7 +60,7 @@ public final class CompositeItemModel implements ItemModel {
 
         @Override
         public CompositeItemModel create(ConfigSection section) {
-            return new CompositeItemModel(section.parseList(ConfigValue::getAsItemModel, "models"));
+            return new CompositeItemModel(section.getList("models", ItemModels::fromConfig));
         }
     }
 

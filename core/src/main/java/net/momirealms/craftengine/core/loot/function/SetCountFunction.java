@@ -31,12 +31,13 @@ public final class SetCountFunction<T> extends AbstractLootConditionalFunction<T
     }
 
     private static class Factory<A> implements LootFunctionFactory<A> {
+        private static final String[] COUNT = new String[] {"count", "amount"};
 
         @Override
         public LootFunction<A> create(ConfigSection section) {
             return new SetCountFunction<>(
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_NUMBER, "count", "amount").getAsNumber(),
+                    section.getList("conditions", CommonConditions::fromConfig),
+                    section.getNonNullValue(COUNT, ConfigConstants.ARGUMENT_NUMBER).getAsNumber(),
                     section.getBoolean("add")
             );
         }

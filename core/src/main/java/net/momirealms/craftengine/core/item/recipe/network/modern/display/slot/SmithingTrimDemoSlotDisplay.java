@@ -9,7 +9,7 @@ import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.NotNull;
 
-public class SmithingTrimDemoSlotDisplay<I> implements SlotDisplay<I> {
+public final class SmithingTrimDemoSlotDisplay<I> implements SlotDisplay<I> {
     private final SlotDisplay<I> base;
     private final SlotDisplay<I> material;
     // 1.21.2-1.21.4
@@ -77,9 +77,9 @@ public class SmithingTrimDemoSlotDisplay<I> implements SlotDisplay<I> {
         @Override
         public @NotNull String toString() {
             return "TrimPattern{" +
-                    "assetId=" + assetId +
-                    ", description=" + description +
-                    ", decal=" + decal +
+                    "assetId=" + this.assetId +
+                    ", description=" + this.description +
+                    ", decal=" + this.decal +
                     '}';
         }
     }

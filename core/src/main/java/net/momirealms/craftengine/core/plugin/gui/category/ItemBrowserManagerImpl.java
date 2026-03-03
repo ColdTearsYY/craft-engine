@@ -122,21 +122,23 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             return List.of(LoadingStages.ITEM);
         }
 
+        private static final String[] ALL_ITEMS = new String[] {"all_items", "all-items"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
-            String name = section.getDefaultedString(id.asString(), "name");
+            String name = section.getString("name", id.asString());
             List<String> members;
-            if (section.getBoolean("all_items", "all-items")) {
+            if (section.getBoolean(ALL_ITEMS)) {
                 ItemManager<?> itemManager = ItemBrowserManagerImpl.this.plugin.itemManager();
                 members = itemManager.loadedItems().keySet().stream().filter(it -> !itemManager.isVanillaItem(it)).map(Key::asString).collect(Collectors.toList());
             } else {
                 members = section.getStringList("list");
             }
-            Key icon = Optional.ofNullable(section.getIdentifier("icon")).orElse(ItemKeys.STONE);
+            Key icon = section.getIdentifier("icon", ItemKeys.STONE);
             int priority = section.getInt("priority");
             List<String> lore = section.getStringList("lore");
             boolean hidden = section.getBoolean("hidden");
-            List<Condition<Context>> conditionList = section.parseSectionList(s -> CommonConditions.fromConfig(s.values()), "conditions", "condition");
+            List<Condition<Context>> conditionList = section.getSectionList("conditions", CommonConditions::fromConfig);
             Category category = new Category(id, name, lore, icon, new ArrayList<>(members), priority, hidden, MiscUtils.allOf(conditionList));
             ItemBrowserManagerImpl.this.byId.put(id, category);
         }

@@ -1,37 +1,15 @@
 package net.momirealms.craftengine.core.plugin.config;
 
-import com.mojang.datafixers.util.Either;
-import net.momirealms.craftengine.core.entity.EquipmentSlot;
-import net.momirealms.craftengine.core.entity.display.Billboard;
-import net.momirealms.craftengine.core.entity.display.ItemDisplayContext;
-import net.momirealms.craftengine.core.entity.projectile.ProjectileMeta;
-import net.momirealms.craftengine.core.entity.seat.SeatConfig;
-import net.momirealms.craftengine.core.item.BuildableItem;
-import net.momirealms.craftengine.core.item.CustomItem;
-import net.momirealms.craftengine.core.item.ItemManager;
-import net.momirealms.craftengine.core.item.recipe.Ingredient;
-import net.momirealms.craftengine.core.item.recipe.IngredientElement;
-import net.momirealms.craftengine.core.item.recipe.remainder.CompositeCraftRemainder;
-import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainder;
-import net.momirealms.craftengine.core.item.recipe.remainder.CraftRemainders;
-import net.momirealms.craftengine.core.item.recipe.remainder.FixedCraftRemainder;
-import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
-import net.momirealms.craftengine.core.item.recipe.result.PostProcessor;
-import net.momirealms.craftengine.core.item.recipe.result.PostProcessors;
-import net.momirealms.craftengine.core.item.setting.EquipmentData;
-import net.momirealms.craftengine.core.item.setting.FoodData;
+import net.momirealms.craftengine.core.block.AbstractBlockManager;
+import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.pack.Identifier;
-import net.momirealms.craftengine.core.pack.model.definition.BaseItemModel;
-import net.momirealms.craftengine.core.pack.model.definition.ItemModel;
-import net.momirealms.craftengine.core.pack.model.definition.ItemModels;
-import net.momirealms.craftengine.core.pack.model.generation.display.DisplayMeta;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.context.number.*;
-import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
-import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
-import net.momirealms.craftengine.core.sound.SoundData;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.Vec3i;
+import net.momirealms.craftengine.core.world.collision.AABB;
+import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -41,6 +19,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public record ConfigValue(String path, @NotNull Object value) {
+
+    public static ConfigValue of(String path, Object value) {
+        return new ConfigValue(path, value);
+    }
 
     public Object value() {
         return this.value;
@@ -66,50 +48,12 @@ public record ConfigValue(String path, @NotNull Object value) {
         return this.value.toString();
     }
 
-    public TextProvider getAsTextProvider() {
-        return TextProviders.fromString(getAsString());
-    }
-
-    public SoundData.SoundValue getAsSoundValue() {
-        if (this.value instanceof Number number) {
-            return SoundData.SoundValue.fixed(number.floatValue());
-        } else {
-            String volumeString = getAsString();
-            if (volumeString.contains("~")) {
-                String[] split = volumeString.split("~", 2);
-                float min;
-                try {
-                    min = Float.parseFloat(split[0]);
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, split[0]);
-                }
-                float max;
-                try {
-                    max = Float.parseFloat(split[1]);
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, split[1]);
-                }
-                return SoundData.SoundValue.ranged(min, max);
-            } else {
-                try {
-                    return SoundData.SoundValue.fixed(Float.parseFloat(volumeString));
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, volumeString);
-                }
-            }
+    public String getAsNonEmptyString() {
+        String value = this.value.toString();
+        if (value.isEmpty()) {
+            throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_STRING_FAILED, this.path);
         }
-    }
-
-    public SoundData getAsSoundData(SoundData.SoundValue volume, SoundData.SoundValue pitch) {
-        if (this.value instanceof Map<?,?>) {
-            ConfigSection section = getAsSection();
-            Key soundId = section.getIdentifier("id");
-            volume = section.getValueOrDefault(ConfigValue::getAsSoundValue, volume, "volume");
-            pitch = section.getValueOrDefault(ConfigValue::getAsSoundValue, pitch, "pitch");
-            return new SoundData(soundId, volume, pitch);
-        } else {
-            return new SoundData(getAsIdentifier(), volume, pitch);
-        }
+        return value;
     }
 
     public int getAsInt() {
@@ -160,88 +104,20 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
-    public <T extends Enum<T>> T getAsEnum(Class<T> clazz) {
-        String enumString = value.toString();
-        try {
-            return Enum.valueOf(clazz, enumString.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, this.path, enumString, EnumUtils.toString(clazz.getEnumConstants()));
-        }
-    }
-
-    public NumberProvider getAsNumber() {
+    public long getAsLong() {
         switch (this.value) {
-            case Number number -> {
-                return ConstantNumberProvider.constant(number.doubleValue());
-            }
-            case Boolean bool -> {
-                return ConstantNumberProvider.constant(bool ? 1 : 0);
-            }
-            case Map<?, ?> ignored -> {
-                return NumberProviders.fromConfig(getAsSection());
-            }
-            default -> {
-                String string = getAsString();
-                if (string.contains("~")) {
-                    String[] split = string.split("~", 2);
-                    double min;
-                    try {
-                        min = Double.parseDouble(split[0]);
-                    } catch (NumberFormatException e) {
-                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, split[0]);
-                    }
-                    double max;
-                    try {
-                        max = Double.parseDouble(split[1]);
-                    } catch (NumberFormatException e) {
-                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, split[1]);
-                    }
-                    return new UniformNumberProvider(ConstantNumberProvider.constant(min), ConstantNumberProvider.constant(max));
-                } else if (string.contains("<") && string.contains(">")) {
-                    return ExpressionNumberProvider.expression(string);
-                } else {
-                    try {
-                        return ConstantNumberProvider.constant(Double.parseDouble(string));
-                    } catch (NumberFormatException e) {
-                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, string);
-                    }
+            case Long l -> { return l; }
+            case Number n -> { return n.longValue(); }
+            case String s -> {
+                try {
+                    return Long.parseLong(s.replace("_", ""));
+                } catch (NumberFormatException e) {
+                    throw new KnownResourceException(ConfigConstants.PARSE_LONG_FAILED, this.path, s);
                 }
             }
+            case Boolean b -> { return b ? 1L : 0L; }
+            default -> throw new KnownResourceException(ConfigConstants.PARSE_LONG_FAILED, this.path, this.value.toString());
         }
-    }
-
-    public SeatConfig getAsSeat() {
-        return SeatConfig.fromString(this.path, getAsString());
-    }
-
-    public SeatConfig[] getAsSeats() {
-        List<String> seatsStr = getAsStringList();
-        List<SeatConfig> seats = new ArrayList<>();
-        for (String seatStr : seatsStr) {
-            seats.add(SeatConfig.fromString(seatStr, getAsString()));
-        }
-        return seats.toArray(new SeatConfig[0]);
-    }
-
-    public Color getAsColor() {
-        if (this.value instanceof Number number) {
-            return Color.fromDecimal(number.intValue());
-        } else {
-            return Color.fromStrings(getAsString().split(",", 4));
-        }
-    }
-
-    public Key getAsIdentifier() {
-        String stringFormat = this.value.toString();
-        if (Identifier.isValid(stringFormat)) {
-            return Key.of(stringFormat);
-        } else {
-            throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, this.path, stringFormat);
-        }
-    }
-
-    public Key getAsKey() {
-        return Key.of(this.value.toString());
     }
 
     public boolean getAsBoolean() {
@@ -258,6 +134,98 @@ public record ConfigValue(String path, @NotNull Object value) {
                 throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.path, s);
             }
             default -> throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.path, this.value.toString());
+        }
+    }
+
+    public <T extends Enum<T>> T getAsEnum(Class<T> clazz) {
+        String enumString = value.toString();
+        try {
+            return Enum.valueOf(clazz, enumString.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, this.path, enumString, EnumUtils.toString(clazz.getEnumConstants()));
+        }
+    }
+
+    public <T extends Enum<T>> T getAsEnum(Class<T> clazz, Function<String, T> custom) {
+        String enumString = value.toString();
+        T enumValue = custom.apply(enumString);
+        if (enumValue == null) {
+            throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, this.path, enumString, EnumUtils.toString(clazz.getEnumConstants()));
+        }
+        return enumValue;
+    }
+
+    public Quaternionf getAsQuaternion() {
+        try {
+            switch (this.value) {
+                case Quaternionf q -> { return q; }
+                case Number n -> {
+                    return QuaternionUtils.toQuaternionf(0, (float) -Math.toRadians(n.floatValue()), 0);
+                }
+                case List<?> list -> {
+                    if (list.size() == 4) {
+                        return new Quaternionf(
+                                Float.parseFloat(list.get(0).toString()),
+                                Float.parseFloat(list.get(1).toString()),
+                                Float.parseFloat(list.get(2).toString()),
+                                Float.parseFloat(list.get(3).toString())
+                        );
+                    } else if (list.size() == 1) {
+                        float v = Float.parseFloat(list.getFirst().toString());
+                        return QuaternionUtils.toQuaternionf(0, (float) -Math.toRadians(v), 0);
+                    }
+                }
+                case String s -> {
+                    String[] split = s.replace("_", "").split(",");
+                    switch (split.length) {
+                        case 4 -> {
+                            return new Quaternionf(Float.parseFloat(split[0]), Float.parseFloat(split[1]), Float.parseFloat(split[2]), Float.parseFloat(split[3]));
+                        }
+                        case 3 -> {
+                            return QuaternionUtils.toQuaternionf((float) Math.toRadians(Float.parseFloat(split[2])), (float) Math.toRadians(Float.parseFloat(split[1])), (float) Math.toRadians(Float.parseFloat(split[0])));
+                        }
+                        case 2 -> {
+                            return QuaternionUtils.toQuaternionf((float) Math.toRadians(Float.parseFloat(split[1])), (float) Math.toRadians(Float.parseFloat(split[0])), 0);
+                        }
+                        case 1 -> {
+                            return QuaternionUtils.toQuaternionf(0, (float) -Math.toRadians(Float.parseFloat(split[0])), 0);
+                        }
+                    }
+                }
+                default -> {}
+            }
+        } catch (Exception ignored) {
+        }
+        throw new KnownResourceException(ConfigConstants.PARSE_QUATERNION_FAILED, this.path, this.value.toString());
+    }
+
+    public Color getAsColor() {
+        if (this.value instanceof Number number) {
+            return Color.fromDecimal(number.intValue());
+        } else {
+            return Color.fromStrings(getAsString().split(",", 4));
+        }
+    }
+
+    public Key getAsKey() {
+        return Key.of(this.value.toString());
+    }
+
+    public Key getAsIdentifier() {
+        String stringFormat = this.value.toString();
+        if (Identifier.isValid(stringFormat)) {
+            return Key.of(stringFormat);
+        } else {
+            throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, this.path, stringFormat);
+        }
+    }
+
+    public Key getAsAssetPath() {
+        String stringFormat = CharacterUtils.replaceBackslashWithSlash(this.value.toString());
+        if (Identifier.isValid(stringFormat)) {
+            return Key.of(stringFormat);
+        } else {
+            throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, this.path, stringFormat);
         }
     }
 
@@ -285,7 +253,7 @@ public record ConfigValue(String path, @NotNull Object value) {
         return List.of(this.value);
     }
 
-    public <T> List<T> parseAsList(Function<ConfigValue, T> convertor) {
+    public <T> List<T> getAsList(Function<ConfigValue, T> convertor) {
         if (this.is(List.class)) {
             List<Object> asList = getAsList();
             List<T> converted = new ArrayList<>(asList.size());
@@ -296,20 +264,6 @@ public record ConfigValue(String path, @NotNull Object value) {
             return converted;
         } else {
             return List.of(convertor.apply(this));
-        }
-    }
-
-    public List<ConfigValue> getAsValueList() {
-        if (this.is(List.class)) {
-            List<Object> asList = getAsList();
-            List<ConfigValue> converted = new ArrayList<>(asList.size());
-            for (int i = 0; i < asList.size(); i++) {
-                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
-                converted.add(innerValue);
-            }
-            return converted;
-        } else {
-            return List.of(this);
         }
     }
 
@@ -337,9 +291,23 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public List<Object> getAsFixedSizeList(int size) {
+        if (this.value instanceof List<?> list) {
+            if (list.size() != size) {
+                throw new KnownResourceException(ConfigConstants.PARSE_FIXED_SIZE_LIST_FAILED, this.path, String.valueOf(size));
+            }
+            return (List<Object>) list;
+        } else if (size == 1) {
+            return List.of(this.value);
+        } else {
+            throw new KnownResourceException(ConfigConstants.PARSE_FIXED_SIZE_LIST_FAILED, this.path, String.valueOf(size));
+        }
+    }
+
     public List<String> getAsStringList() {
         if (this.value instanceof List<?> list) {
-            List<String> listStr = new ArrayList<>();
+            List<String> listStr = new ArrayList<>(list.size());
             for (Object o : list) {
                 listStr.add(o.toString());
             }
@@ -409,61 +377,6 @@ public record ConfigValue(String path, @NotNull Object value) {
         throw new KnownResourceException(ConfigConstants.PARSE_VEC3_FAILED, this.path, this.value.toString());
     }
 
-    public ItemModel getAsItemModel() {
-        if (is(Map.class)) {
-            return ItemModels.fromConfig(getAsSection());
-        } else {
-            return new BaseItemModel(getAsIdentifier(), List.of(), null);
-        }
-    }
-
-    public DisplayMeta getAsDisplayMeta() {
-        ConfigSection section = getAsSection();
-        Vector3f rotation = section.getVector3f(null, "rotation");
-        Vector3f scale = section.getVector3f(null, "scale");
-        Vector3f translation = section.getVector3f(null, "translation");
-        return new DisplayMeta(rotation, scale, translation);
-    }
-
-    public Either<Integer, List<Float>> getAsTint() {
-        if (this.value instanceof Number number) {
-            return Either.left(number.intValue());
-        } else if (this.value instanceof List<?>) {
-            List<String> colorList = getAsStringList();
-            boolean hasDot = false;
-            for (String color : colorList) {
-                if (color.contains(".")) {
-                    hasDot = true;
-                    break;
-                }
-            }
-            List<Float> fList = new ArrayList<>();
-            for (String color : colorList) {
-                if (hasDot) {
-                    fList.add(MiscUtils.clamp(Float.parseFloat(color), 0f, 1f));
-                } else {
-                    fList.add(MiscUtils.clamp(Float.parseFloat(color) / 255f, 0f, 1f));
-                }
-            }
-            return Either.right(fList);
-        } else {
-            return Either.left(getAsColor().color());
-        }
-    }
-
-    public EquipmentData getAsEquipmentData() {
-        ConfigSection section = getAsSection();
-        EquipmentSlot slot = section.getNonNullEnum(EquipmentSlot.class, "slot");
-        Key assetId = section.getIdentifier("asset_id", "asset-id");
-        Key cameraOverlay = section.getIdentifier("camera_overlay", "camera-overlay");
-        boolean dispensable = section.getBoolean(true, "dispensable");
-        boolean swappable = section.getBoolean(true, "swappable");
-        boolean equipOnInteract = section.getBoolean("equip_on_interact", "equip-on-interact");
-        boolean damageOnHurt = section.getBoolean(true, "damage_on_hurt", "damage-on-hurt");
-        boolean canBeSheared = section.getBoolean("can_be_sheared", "can-be-sheared");
-        return new EquipmentData(slot, assetId, dispensable, swappable, damageOnHurt, equipOnInteract, canBeSheared, cameraOverlay);
-    }
-
     public UUID getAsUUID() {
         try {
             return UUID.fromString(this.getAsString());
@@ -472,11 +385,11 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
-    public ConfigValue[] getSplitValues(String regex) {
-        return getSplitValues(regex, 0);
+    public ConfigValue[] splitValues(String regex) {
+        return splitValues(regex, 0);
     }
 
-    public ConfigValue[] getSplitValues(String regex, int limits) {
+    public ConfigValue[] splitValues(String regex, int limits) {
         String[] splits = this.getAsString().split(regex, limits);
         ConfigValue[] values = new ConfigValue[splits.length];
         for (int i = 0; i < splits.length; i++) {
@@ -486,7 +399,7 @@ public record ConfigValue(String path, @NotNull Object value) {
         return values;
     }
 
-    public ConfigValue[] getSplitValuesRestrict(String regex, int limits) {
+    public ConfigValue[] splitValuesRestrict(String regex, int limits) {
         String[] splits = this.getAsString().split(regex, limits);
         if (splits.length != limits) {
             throw new KnownResourceException(ConfigConstants.PARSE_SPLIT_FAILED, this.path, String.valueOf(limits), String.valueOf(splits.length));
@@ -499,118 +412,116 @@ public record ConfigValue(String path, @NotNull Object value) {
         return values;
     }
 
-    public CraftRemainder getAsCraftRemainder() {
-        if (this.is(Map.class)) {
-            return CraftRemainders.fromConfig(getAsSection());
-        } else if (this.is(List.class)) {
-            List<CraftRemainder> list = parseAsList(ConfigValue::getAsCraftRemainder);
-            return new CompositeCraftRemainder(list.toArray(new CraftRemainder[0]));
-        } else {
-            return new FixedCraftRemainder(getAsIdentifier(), ConfigConstants.CONSTANT_ONE);
-        }
-    }
-
-    public ConfigValue nonEmptyList() {
-        if (this.value instanceof List<?> list) {
-            if (list.isEmpty()) {
-                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, this.path);
-            }
-        }
-        return this;
-    }
-
-    public <T> Ingredient<T> getAsIngredient() {
-        int count = 1;
-        ConfigValue itemsValue;
-        if (this.is(Map.class)) {
-            ConfigSection section = getAsSection();
-            count = section.getInt(1, "count");
-            itemsValue = section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "items", "item");
-        } else {
-            itemsValue = this;
-        }
-        Set<UniqueKey> itemIds = new HashSet<>();
-        Set<UniqueKey> minecraftItemIds = new HashSet<>();
-        List<IngredientElement> elements = new ArrayList<>();
-        ItemManager<T> itemManager = CraftEngine.instance().itemManager();
-
-        itemsValue.nonEmptyList().forEach(v -> {
-            String itemOrTag = v.getAsString();
-            if (itemOrTag.charAt(0) == '#') {
-                Key tag = Key.of(itemOrTag.substring(1));
-                IngredientElement.Tag itemTag = IngredientElement.tag(tag);
-                elements.add(itemTag);
-                List<UniqueKey> items = itemManager.itemIdsByTag(tag);
-                if (items.isEmpty()) {
-                    throw new KnownResourceException("resource.recipe.ingredient.invalid_tag", v.path, itemOrTag);
+    public AABB getAsAABB() {
+        try {
+            switch (this.value) {
+                case AABB aabb -> { return aabb; }
+                case Number n -> {
+                    double half = n.doubleValue() / 2.0;
+                    return new AABB(-half, -half, -half, half, half, half);
                 }
-                itemIds.addAll(items);
-                for (UniqueKey uniqueKey : items) {
-                    List<UniqueKey> ingredientSubstitutes = itemManager.getIngredientSubstitutes(uniqueKey.key());
-                    if (!ingredientSubstitutes.isEmpty()) {
-                        itemIds.addAll(ingredientSubstitutes);
+                default -> {
+                    double[] args;
+                    if (this.value instanceof List<?> list) {
+                        args = list.stream().mapToDouble(o -> {
+                            if (o instanceof Number n) return n.doubleValue();
+                            return Double.parseDouble(o.toString().replace("_", ""));
+                        }).toArray();
+                    } else {
+                        String[] split = this.value.toString().replace("_", "").split(",");
+                        args = new double[split.length];
+                        for (int i = 0; i < split.length; i++) {
+                            args[i] = Double.parseDouble(split[i].trim());
+                        }
                     }
-                }
-            } else {
-                Key itemId = Key.of(itemOrTag);
-                elements.add(new IngredientElement.Item(itemId));
-                if (itemManager.getBuildableItem(itemId).isEmpty()) {
-                    throw new KnownResourceException("resource.recipe.ingredient.item_not_exist", v.path, itemOrTag);
-                }
-                itemIds.add(UniqueKey.create(itemId));
-                List<UniqueKey> ingredientSubstitutes = itemManager.getIngredientSubstitutes(itemId);
-                if (!ingredientSubstitutes.isEmpty()) {
-                    itemIds.addAll(ingredientSubstitutes);
+
+                    return switch (args.length) {
+                        case 1 -> {
+                            double h = args[0] / 2.0;
+                            yield new AABB(-h, -h, -h, h, h, h);
+                        }
+                        case 2 -> {
+                            double hX = args[0] / 2.0;
+                            double hY = args[1] / 2.0;
+                            yield new AABB(-hX, -hY, -hX, hX, hY, hX);
+                        }
+                        case 3 -> {
+                            double hX = args[0] / 2.0;
+                            double hY = args[1] / 2.0;
+                            double hZ = args[2] / 2.0;
+                            yield new AABB(-hX, -hY, -hZ, hX, hY, hZ);
+                        }
+                        case 6 -> new AABB(args[0], args[1], args[2], args[3], args[4], args[5]);
+                        default -> throw new IllegalArgumentException();
+                    };
                 }
             }
-        });
-        boolean hasCustomItem = false;
-        for (UniqueKey holder : itemIds) {
-            Optional<CustomItem<T>> optionalCustomItem = itemManager.getCustomItem(holder.key());
-            UniqueKey vanillaItem = holder;
-            if (optionalCustomItem.isPresent()) {
-                CustomItem<T> customItem = optionalCustomItem.get();
-                if (!customItem.isVanillaItem()) {
-                    vanillaItem = UniqueKey.create(customItem.material());
-                    hasCustomItem = true;
-                }
+        } catch (Exception ignored) {
+        }
+        throw new KnownResourceException(ConfigConstants.PARSE_AABB_FAILED, this.path, this.value.toString());
+    }
+
+    public Tag getAsSNBT() {
+        String snbt = getAsString();
+        try {
+            return TagParser.parseTagFully(snbt);
+        } catch (Exception e) {
+            throw new KnownResourceException(ConfigConstants.PARSE_SNBT_FAILED, this.path, snbt, e.getMessage());
+        }
+    }
+
+    // 五种合理情况
+    // minecraft:note_block:10
+    // note_block:10
+    // minecraft:note_block[xxx=xxx]
+    // note_block[xxx=xxx]
+    // minecraft:barrier
+    public BlockStateWrapper getAsBlockState() {
+        String stringFormat = getAsString();
+        String[] split = stringFormat.split(":");
+        if (split.length >= 4) {
+            throw new KnownResourceException(ConfigConstants.PARSE_BLOCK_STATE_FAILED, this.path, stringFormat);
+        }
+        BlockStateWrapper wrapper;
+        // 尝试判断最后一位是不是数字
+        String stateOrId = split[split.length - 1];
+        boolean isId = false;
+        int arrangerIndex = 0;
+        try {
+            arrangerIndex = Integer.parseInt(stateOrId);
+            if (arrangerIndex < 0) {
+                throw new KnownResourceException(ConfigConstants.PARSE_BLOCK_STATE_FAILED, this.path, stringFormat);
             }
-            minecraftItemIds.add(vanillaItem);
+            isId = true;
+        } catch (NumberFormatException ignored) {
         }
-        return Ingredient.of(elements, itemIds, minecraftItemIds, hasCustomItem, count);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> CustomRecipeResult<T> getAsCustomRecipeResult() {
-        ConfigSection section = getAsSection();
-        Key id = section.getNonNullIdentifier("id");
-        int count = section.getInt(1, "count");
-        Optional<BuildableItem<T>> buildableItem = (Optional<BuildableItem<T>>) CraftEngine.instance().itemManager().getBuildableItem(id);
-        if (buildableItem.isEmpty()) {
-            throw new KnownResourceException("resource.recipe.result.item_not_exist", section.assemblePath("id"), id.asString());
+        // 如果末尾是id，则至少长度为2
+        if (isId) {
+            if (split.length == 1) {
+                throw new KnownResourceException(ConfigConstants.PARSE_BLOCK_STATE_FAILED, this.path, stringFormat);
+            }
+            // 获取原版方块的id
+            Key block = split.length == 2 ? Key.of(split[0]) : Key.of(split[0], split[1]);
+            List<BlockStateWrapper> arranger = ((AbstractBlockManager) CraftEngine.instance().blockManager()).blockStateArranger().get(block);
+            if (arranger == null) {
+                throw new KnownResourceException("resource.block.state.unreleased_state", this.path, stringFormat);
+            }
+            if (arrangerIndex >= arranger.size()) {
+                throw new KnownResourceException("resource.block.state.unreleased_state", this.path, stringFormat);
+            }
+            wrapper = arranger.get(arrangerIndex);
+        } else {
+            // 其他情况则是完整的方块
+            BlockStateWrapper packedBlockState = CraftEngine.instance().blockManager().createBlockState(stringFormat);
+            if (packedBlockState == null) {
+                throw new KnownResourceException(ConfigConstants.PARSE_BLOCK_STATE_FAILED, this.path, stringFormat);
+            }
+            wrapper = packedBlockState;
         }
-        List<PostProcessor> processors = section.parseSectionList(PostProcessors::fromConfig, "post_processors", "post-processors");
-        return new CustomRecipeResult<>(
-                buildableItem.get(),
-                count,
-                processors.isEmpty() ? null : processors.toArray(new PostProcessor[0])
-        );
+        return wrapper;
     }
 
-    public ProjectileMeta getAsProjectileMeta() {
-        ConfigSection section = getAsSection();
-        Key customTridentItemId = section.getNonNullIdentifier("item");
-        ItemDisplayContext displayType = section.getEnum(ItemDisplayContext.NONE, ItemDisplayContext.class, "display_transform", "display-transform");
-        Billboard billboard = section.getEnum(Billboard.FIXED, Billboard.class, "billboard");
-        Vector3f translation = section.getVector3f(new Vector3f(0), "translation");
-        Vector3f scale = section.getVector3f(new Vector3f(1), "scale");
-        Quaternionf rotation = section.getQuaternionf(new Quaternionf(), "rotation");
-        double range = section.getDouble(1, "range");
-        return new ProjectileMeta(customTridentItemId, displayType, billboard, scale, translation, rotation, range);
-    }
-
-    public FoodData getAsFoodData() {
-        ConfigSection section = getAsSection();
-        return new FoodData(section.getInt("nutrition"), section.getFloat("saturation"));
+    public NumberProvider getAsNumber() {
+        return NumberProviders.fromConfig(this);
     }
 }

@@ -157,7 +157,7 @@ public final class DirectionalAttachedBlockBehavior extends BukkitBlockBehavior 
                     block,
                     facing,
                     isDirection,
-                    section.getBoolean(true, "blacklist"),
+                    section.getBoolean("blacklist", true),
                     tuple.left(),
                     tuple.mid(),
                     tuple.right()
@@ -167,10 +167,10 @@ public final class DirectionalAttachedBlockBehavior extends BukkitBlockBehavior 
 
     // todo 重构
     public static Tuple<List<Object>, Set<Object>, Set<String>> readTagsAndState(ConfigSection section) {
-        List<Object> mcTags = section.parseList(v -> BlockTags.getOrCreate(v.getAsIdentifier()), "attached_block_tags", "attached-block-tags");
+        List<Object> mcTags = section.getList(new String[] {"attached_block_tags", "attached-block-tags"}, v -> BlockTags.getOrCreate(v.getAsIdentifier()));
         Set<Object> mcBlocks = new HashSet<>();
         Set<String> customBlocks = new HashSet<>();
-        for (String blockStateStr : section.getStringList("attached_blocks", "attached-blocks")) {
+        for (String blockStateStr : section.getStringList(new String[] {"attached_blocks", "attached-blocks"})) {
             int index = blockStateStr.indexOf('[');
             Key blockType = index != -1 ? Key.from(blockStateStr.substring(0, index)) : Key.from(blockStateStr);
             Material material = Registry.MATERIAL.get(new NamespacedKey(blockType.namespace(), blockType.value()));

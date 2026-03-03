@@ -1,8 +1,9 @@
 package net.momirealms.craftengine.core.plugin.config;
 
-import net.momirealms.craftengine.core.pack.Identifier;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.EnumUtils;
+import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.collision.AABB;
 import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
@@ -11,9 +12,8 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 @SuppressWarnings("DuplicatedCode")
 public final class ConfigSection {
@@ -43,6 +43,18 @@ public final class ConfigSection {
 
     public static ConfigSection ofSamePath(ConfigSection section, Map<String, Object> value) {
         return new ConfigSection(section.path, value);
+    }
+
+    public ConfigSection copy() {
+        return new ConfigSection(this.path, new LinkedHashMap<>(this.value));
+    }
+
+    public void put(String key, Object value) {
+        this.value.put(key, value);
+    }
+
+    public ConfigValue toValue() {
+        return new ConfigValue(this.path, this.value);
     }
 
     public String path() {
@@ -82,10 +94,7 @@ public final class ConfigSection {
         return this.value.containsKey(key);
     }
 
-    public boolean containsKey(String first, String... keys) {
-        if (this.value.containsKey(first)) {
-            return true;
-        }
+    public boolean containsKey(String[] keys) {
         for (String key : keys) {
             if (this.value.containsKey(key)) {
                 return true;
@@ -102,37 +111,7 @@ public final class ConfigSection {
         return this.value.keySet();
     }
 
-    public <T> T getValue(Function<ConfigValue, T> convertor, String key) {
-        ConfigValue value = getValue(key);
-        if (value == null) {
-            return null;
-        }
-        return convertor.apply(value);
-    }
-
-    public <T> T getValue(Function<ConfigValue, T> convertor, String first, String... keys) {
-        ConfigValue value = getValue(first, keys);
-        if (value == null) {
-            return null;
-        }
-        return convertor.apply(value);
-    }
-
-    public <T> T getValueOrDefault(Function<ConfigValue, T> convertor, T def, String first, String... keys) {
-        ConfigValue value = getValue(first, keys);
-        if (value == null) {
-            return def;
-        }
-        return convertor.apply(value);
-    }
-
-    public <T> T getValueOrDefault(Function<ConfigValue, T> convertor, T def, String key) {
-        ConfigValue value = getValue(key);
-        if (value == null) {
-            return def;
-        }
-        return convertor.apply(value);
-    }
+    // 获取 config value
 
     public ConfigValue getValue(String key) {
         Object value = this.value.get(key);
@@ -142,22 +121,73 @@ public final class ConfigSection {
         return new ConfigValue(assemblePath(key), value);
     }
 
-    public ConfigValue getValue(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return new ConfigValue(assemblePath(first), firstValue);
-        }
+    public ConfigValue getValue(String[] keys) {
         for (String key : keys) {
-            Object value = this.value.get(key);
+            ConfigValue value = getValue(key);
             if (value != null) {
-                return new ConfigValue(assemblePath(key), value);
+                return value;
             }
         }
         return null;
     }
 
+    // 获取 config value 进行基础转换
+
+    public <T> T getValue(String key, Function<ConfigValue, T> convertor) {
+        ConfigValue value = getValue(key);
+        if (value == null) {
+            return null;
+        }
+        return convertor.apply(value);
+    }
+
+    public <T> T getValue(String[] keys, Function<ConfigValue, T> convertor) {
+        ConfigValue value = getValue(keys);
+        if (value == null) {
+            return null;
+        }
+        return convertor.apply(value);
+    }
+
+    // 获取有默认值的 config value
+
+    public <T> T getValue(String key, Function<ConfigValue, T> convertor, T def) {
+        T value = getValue(key, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def;
+    }
+
+    public <T> T getValue(String[] keys, Function<ConfigValue, T> convertor, T def) {
+        T value = getValue(keys, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def;
+    }
+
+    public <T> T getValue(String key, Function<ConfigValue, T> convertor, Supplier<T> def) {
+        T value = getValue(key, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def.get();
+    }
+
+    public <T> T getValue(String[] keys, Function<ConfigValue, T> convertor, Supplier<T> def) {
+        T value = getValue(keys, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def.get();
+    }
+
+
+    // 获取不为空的 config value
+
     @NotNull
-    public ConfigValue getNonNullValue(String argType, String key) {
+    public ConfigValue getNonNullValue(String key, String argType) {
         Object value = this.value.get(key);
         if (value == null) {
             throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().translate(argType));
@@ -166,21 +196,27 @@ public final class ConfigSection {
     }
 
     @NotNull
-    public ConfigValue getNonNullValue(String argType, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return new ConfigValue(assemblePath(first), firstValue);
-        }
+    public ConfigValue getNonNullValue(String[] keys, String argType) {
         for (String key : keys) {
             Object value = this.value.get(key);
             if (value != null) {
                 return new ConfigValue(assemblePath(key), value);
             }
         }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(first), TranslationManager.instance().translate(argType));
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().translate(argType));
     }
 
-    // --- Basic Getters ---
+    // 获取非空 config value 进行基础转换
+
+    public <T> T getNonNullValue(String key, String argType, Function<ConfigValue, T> convertor) {
+        return convertor.apply(getNonNullValue(key, argType));
+    }
+
+    public <T> T getNonNullValue(String[] keys, String argType, Function<ConfigValue, T> convertor) {
+        return convertor.apply(getNonNullValue(keys, argType));
+    }
+
+    // 基础
 
     @Nullable
     public Object get(String key) {
@@ -188,11 +224,7 @@ public final class ConfigSection {
     }
 
     @Nullable
-    public Object get(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return firstValue;
-        }
+    public Object get(String[] keys) {
         for (String key : keys) {
             Object value = this.value.get(key);
             if (value != null) {
@@ -202,1463 +234,757 @@ public final class ConfigSection {
         return null;
     }
 
-    @Nullable
-    public <T> T get(Function<Object, T> convertor, String key) {
-        Object o = this.value.get(key);
-        if (o == null) {
-            return null;
-        }
-        return convertor.apply(o);
-    }
-
-    @Nullable
-    public <T> T get(Function<Object, T> convertor, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return convertor.apply(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return convertor.apply(value);
-            }
-        }
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> T getOrDefault(T defaultValue, String key) {
+    public Object getOrDefault(String key, Object defaultValue) {
         Object value = this.value.get(key);
         if (value == null) {
             return defaultValue;
         }
-        return (T) value;
+        return value;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T getOrDefault(T defaultValue, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return (T) firstValue;
-        }
+    public Object getOrDefault(String[] keys, Object defaultValue) {
         for (String key : keys) {
             Object value = this.value.get(key);
             if (value != null) {
-                return (T) value;
+                return value;
             }
         }
         return defaultValue;
     }
 
-    public <T> T getOrDefault(Function<Object, T> convertor, T def, String key) {
-        Object o = this.value.get(key);
-        if (o == null) {
-            return def;
-        }
-        return convertor.apply(o);
-    }
-
-    public <T> T getOrDefault(Function<Object, T> convertor, T def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return convertor.apply(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return convertor.apply(value);
-            }
-        }
-        return def;
-    }
-
-    @NotNull
-    public <T> T getNonNull(Function<Object, T> convertor, String argType, String first) {
-        Object firstValue = this.value.get(first);
-        if (firstValue == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, TranslationManager.instance().translate(argType));
-        }
-        return convertor.apply(firstValue);
-    }
-
-    @NotNull
-    public <T> T getNonNull(Function<Object, T> convertor, String argType, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return convertor.apply(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return convertor.apply(value);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, TranslationManager.instance().translate(argType));
-    }
-
-    // --- String Getters ---
+    // 字符串
 
     @NotNull
     public String getNonEmptyString(String key) {
-        return validateString(key, getNonNullString(key));
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsNonEmptyString);
     }
 
     @NotNull
-    public String getNonEmptyString(String first, String... keys) {
-        return validateString(first, getNonNullString(first, keys));
-    }
-
-    private String validateString(String key, String value) {
-        if (value.isEmpty()) {
-            throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_STRING_FAILED, assemblePath(key));
-        }
-        return value;
+    public String getNonEmptyString(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsNonEmptyString);
     }
 
     @NotNull
     public String getNonNullString(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_STRING));
-        }
-        return value.toString();
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsString);
     }
 
     @NotNull
-    public String getNonNullString(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return firstValue.toString();
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return value.toString();
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_STRING));
+    public String getNonNullString(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsString);
     }
 
     @Nullable
     public String getString(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return null;
-        }
-        return value.toString();
+        return getValue(key, ConfigValue::getAsString);
     }
 
     @Nullable
-    public String getString(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return firstValue.toString();
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return value.toString();
-            }
-        }
-        return null;
+    public String getString(String[] keys) {
+        return getValue(keys, ConfigValue::getAsString);
     }
 
-    public String getDefaultedString(String def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return value.toString();
+    public String getString(String key, String def) {
+        return getValue(key, ConfigValue::getAsString, def);
     }
 
-    public String getDefaultedString(String def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return firstValue.toString();
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return value.toString();
-            }
-        }
-        return def;
+    public String getString(String[] keys, String def) {
+        return getValue(keys, ConfigValue::getAsString, def);
     }
 
-    // --- Identifier Getters ---
+    public String getString(String key, Supplier<String> def) {
+        return getValue(key, (Function<ConfigValue, String>) ConfigValue::getAsString, def);
+    }
+
+    public String getString(String[] keys, Supplier<String> def) {
+        return getValue(keys, (Function<ConfigValue, String>) ConfigValue::getAsString, def);
+    }
+
+    // 标识符
 
     @NotNull
     public Key getNonNullIdentifier(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_IDENTIFIER));
-        }
-        return getAsIdentifier(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsIdentifier);
     }
 
     @NotNull
-    public Key getNonNullIdentifier(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsIdentifier(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsIdentifier(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_IDENTIFIER));
-    }
-
-    public Key getIdentifier(Key def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsIdentifier(value, key);
-    }
-
-    public Key getIdentifier(Key def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsIdentifier(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsIdentifier(value, key);
-            }
-        }
-        return def;
+    public Key getNonNullIdentifier(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsIdentifier);
     }
 
     @Nullable
     public Key getIdentifier(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return null;
-        }
-        return getAsIdentifier(value, key);
+        return getValue(key, ConfigValue::getAsIdentifier);
     }
 
     @Nullable
-    public Key getIdentifier(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsIdentifier(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsIdentifier(value, key);
-            }
-        }
-        return null;
+    public Key getIdentifier(String[] keys) {
+        return getValue(keys, ConfigValue::getAsIdentifier);
     }
 
-    private Key getAsIdentifier(Object value, String key) {
-        String stringFormat = value.toString();
-        if (Identifier.isValid(stringFormat)) {
-            return Key.of(stringFormat);
-        } else {
-            throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, this.assemblePath(key), stringFormat);
-        }
+    public Key getIdentifier(String key, Key def) {
+        return getValue(key, ConfigValue::getAsIdentifier, def);
     }
 
-    // --- Enum Getters ---
+    public Key getIdentifier(String[] keys, Key def) {
+        return getValue(keys, ConfigValue::getAsIdentifier, def);
+    }
+
+    public Key getIdentifier(String key, Supplier<Key> def) {
+        return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsIdentifier, def);
+    }
+
+    public Key getIdentifier(String[] keys, Supplier<Key> def) {
+        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsIdentifier, def);
+    }
+
+    // 键
 
     @NotNull
-    public <T extends Enum<T>> T getNonNullEnum(Class<T> clazz, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.ARGUMENT_ENUM, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_ENUM, EnumUtils.toString(clazz.getEnumConstants())));
-        }
-        return getAsEnum(value, clazz, key);
+    public Key getNonNullKey(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsKey);
     }
 
     @NotNull
-    public <T extends Enum<T>> T getNonNullEnum(Class<T> clazz, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsEnum(firstValue, clazz, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsEnum(value, clazz, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.ARGUMENT_ENUM, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_ENUM, EnumUtils.toString(clazz.getEnumConstants())));
+    public Key getNonNullKey(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsKey);
     }
 
     @Nullable
-    public <T extends Enum<T>> T getEnum(Class<T> clazz, String key) {
-        return getEnum(null, clazz, key);
+    public Key getKey(String key) {
+        return getValue(key, ConfigValue::getAsKey);
     }
 
     @Nullable
-    public <T extends Enum<T>> T getEnum(Class<T> clazz, String first, String... keys) {
-        return getEnum(null, clazz, first, keys);
+    public Key getKey(String[] keys) {
+        return getValue(keys, ConfigValue::getAsKey);
     }
 
-    public <T extends Enum<T>> T getEnum(T def, Class<T> clazz, String key) {
+    public Key getKey(String key, Key def) {
+        return getValue(key, ConfigValue::getAsKey, def);
+    }
+
+    public Key getKey(String[] keys, Key def) {
+        return getValue(keys, ConfigValue::getAsKey, def);
+    }
+
+    public Key getKey(String key, Supplier<Key> def) {
+        return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsKey, def);
+    }
+
+    public Key getKey(String[] keys, Supplier<Key> def) {
+        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsKey, def);
+    }
+
+    // 资产标识符
+
+    @NotNull
+    public Key getNonNullAssetPath(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsAssetPath);
+    }
+
+    @NotNull
+    public Key getNonNullAssetPath(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsAssetPath);
+    }
+
+    @Nullable
+    public Key getAssetPath(String key) {
+        return getValue(key, ConfigValue::getAsAssetPath);
+    }
+
+    @Nullable
+    public Key getAssetPath(String[] keys) {
+        return getValue(keys, ConfigValue::getAsAssetPath);
+    }
+
+    public Key getAssetPath(String key, Key def) {
+        return getValue(key, ConfigValue::getAsAssetPath, def);
+    }
+
+    public Key getAssetPath(String[] keys, Key def) {
+        return getValue(keys, ConfigValue::getAsAssetPath, def);
+    }
+
+    public Key getAssetPath(String key, Supplier<Key> def) {
+        return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsAssetPath, def);
+    }
+
+    public Key getAssetPath(String[] keys, Supplier<Key> def) {
+        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsAssetPath, def);
+    }
+
+    // 数值提供器
+
+    @NotNull
+    public NumberProvider getNonNullNumber(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_NUMBER, ConfigValue::getAsNumber);
+    }
+
+    @NotNull
+    public NumberProvider getNonNullNumber(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_NUMBER, ConfigValue::getAsNumber);
+    }
+
+    @Nullable
+    public NumberProvider getNumber(String key) {
+        return getValue(key, ConfigValue::getAsNumber);
+    }
+
+    @Nullable
+    public NumberProvider getNumber(String[] keys) {
+        return getValue(keys, ConfigValue::getAsNumber);
+    }
+
+    public NumberProvider getNumber(String key, NumberProvider def) {
+        return getValue(key, ConfigValue::getAsNumber, def);
+    }
+
+    public NumberProvider getNumber(String[] keys, NumberProvider def) {
+        return getValue(keys, ConfigValue::getAsNumber, def);
+    }
+
+    public NumberProvider getNumber(String key, Supplier<NumberProvider> def) {
+        return getValue(key, (Function<ConfigValue, NumberProvider>) ConfigValue::getAsNumber, def);
+    }
+
+    public NumberProvider getNumber(String[] keys, Supplier<NumberProvider> def) {
+        return getValue(keys, (Function<ConfigValue, NumberProvider>) ConfigValue::getAsNumber, def);
+    }
+
+    // 枚举
+
+    public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass) {
+        return getValue(key, v -> v.getAsEnum(enumClass));
+    }
+
+    public <T extends Enum<T>> T getEnum(String[] keys, Class<T> enumClass) {
+        return getValue(keys, v -> v.getAsEnum(enumClass));
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass));
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass));
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass, Function<String, T> getter) {
         Object value = this.value.get(key);
         if (value == null) {
-            return def;
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().translate(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
         }
-        return getAsEnum(value, clazz, key);
+        return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
     }
 
-    public <T extends Enum<T>> T getEnum(T def, Class<T> clazz, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsEnum(firstValue, clazz, first);
-        }
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass, Function<String, T> getter) {
         for (String key : keys) {
             Object value = this.value.get(key);
             if (value != null) {
-                return getAsEnum(value, clazz, key);
+                return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
             }
         }
-        return def;
-    }
-    
-    private <T extends Enum<T>> T getAsEnum(Object value, Class<T> clazz, String key) {
-        String enumString = value.toString();
-        try {
-            return Enum.valueOf(clazz, enumString.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, assemblePath(key), enumString, EnumUtils.toString(clazz.getEnumConstants()));
-        }
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().translate(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
     }
 
-    // --- Boolean Getters ---
+    public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass, T def) {
+        return getValue(key, v -> v.getAsEnum(enumClass), def);
+    }
+
+    public <T extends Enum<T>> T getEnum(String[] keys, Class<T> enumClass, T def) {
+        return getValue(keys, v -> v.getAsEnum(enumClass), def);
+    }
+
+    public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass, Supplier<T> def) {
+        return getValue(key, (Function<ConfigValue, T>) v -> v.getAsEnum(enumClass), def);
+    }
+
+    public <T extends Enum<T>> T getEnum(String[] keys, Class<T> enumClass, Supplier<T> def) {
+        return getValue(keys, (Function<ConfigValue, T>) v -> v.getAsEnum(enumClass), def);
+    }
+
+    // 布尔值
 
     public boolean getBoolean(String key) {
-        return getBoolean(false, key);
+        return getValue(key, ConfigValue::getAsBoolean, false);
     }
 
-    public boolean getBoolean(String first, String... keys) {
-        return getBoolean(false, first, keys);
-    }
-
-    public boolean getBoolean(boolean def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsBoolean(value, key);
-    }
-
-    public boolean getBoolean(boolean def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsBoolean(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsBoolean(value, key);
-            }
-        }
-        return def;
+    public boolean getBoolean(String[] keys) {
+        return getValue(keys, ConfigValue::getAsBoolean, false);
     }
 
     public boolean getNonNullBoolean(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_BOOLEAN));
-        }
-        return getAsBoolean(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_BOOLEAN, ConfigValue::getAsBoolean);
     }
 
-    public boolean getNonNullBoolean(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsBoolean(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsBoolean(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_BOOLEAN));
+    public boolean getNonNullBoolean(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_BOOLEAN, ConfigValue::getAsBoolean);
     }
 
-    private boolean getAsBoolean(Object obj, String key) {
-        switch (obj) {
-            case null -> { return false; }
-            case Boolean b -> { return b; }
-            case Number n -> {
-                if (n.byteValue() == 0) return false;
-                if (n.byteValue() > 0) return true;
-                throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.assemblePath(key), String.valueOf(n));
-            }
-            case String s -> {
-                if (s.equalsIgnoreCase("true") || s.equalsIgnoreCase("yes") || s.equalsIgnoreCase("on")) return true;
-                if (s.equalsIgnoreCase("false") || s.equalsIgnoreCase("no") || s.equalsIgnoreCase("off")) return false;
-                throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.assemblePath(key), s);
-            }
-            default -> throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.assemblePath(key), obj.toString());
-        }
+    public boolean getBoolean(String key, boolean def) {
+        return getValue(key, ConfigValue::getAsBoolean, def);
     }
 
-    // --- Int Getters ---
+    public boolean getBoolean(String[] keys, boolean def) {
+        return getValue(keys, ConfigValue::getAsBoolean, def);
+    }
+
+    public boolean getBoolean(String key, Supplier<Boolean> def) {
+        return getValue(key, (Function<ConfigValue, Boolean>) ConfigValue::getAsBoolean, def);
+    }
+
+    public boolean getBoolean(String[] keys, Supplier<Boolean> def) {
+        return getValue(keys, (Function<ConfigValue, Boolean>) ConfigValue::getAsBoolean, def);
+    }
+    
+    // 整数
 
     public int getInt(String key) {
-        return getInt(0, key);
+        return getValue(key, ConfigValue::getAsInt, 0);
     }
 
-    public int getInt(String first, String... keys) {
-        return getInt(0, first, keys);
-    }
-
-    public int getInt(int def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsInt(value, key);
-    }
-
-    public int getInt(int def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsInt(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsInt(value, key);
-            }
-        }
-        return def;
+    public int getInt(String[] keys) {
+        return getValue(keys, ConfigValue::getAsInt, 0);
     }
 
     public int getNonNullInt(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_INT));
-        }
-        return getAsInt(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_INT, ConfigValue::getAsInt);
     }
 
-    public int getNonNullInt(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsInt(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsInt(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_INT));
+    public int getNonNullInt(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_INT, ConfigValue::getAsInt);
     }
 
-    private int getAsInt(Object obj, String key) {
-        switch (obj) {
-            case null -> { return 0; }
-            case Integer i -> { return i; }
-            case Number n -> { return n.intValue(); }
-            case String s -> {
-                try {
-                    return Integer.parseInt(s.replace("_", ""));
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.assemblePath(key), s);
-                }
-            }
-            case Boolean b -> { return b ? 1 : 0; }
-            default -> throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.assemblePath(key), obj.toString());
-        }
+    public int getInt(String key, int def) {
+        return getValue(key, ConfigValue::getAsInt, def);
     }
 
-    // --- Long Getters ---
+    public int getInt(String[] keys, int def) {
+        return getValue(keys, ConfigValue::getAsInt, def);
+    }
+
+    public int getInt(String key, Supplier<Integer> def) {
+        return getValue(key, (Function<ConfigValue, Integer>) ConfigValue::getAsInt, def);
+    }
+
+    public int getInt(String[] keys, Supplier<Integer> def) {
+        return getValue(keys, (Function<ConfigValue, Integer>) ConfigValue::getAsInt, def);
+    }
+
+    // 长整型
 
     public long getLong(String key) {
-        return getLong(0L, key);
+        return getValue(key, ConfigValue::getAsLong, 0L);
     }
 
-    public long getLong(String first, String... keys) {
-        return getLong(0L, first, keys);
-    }
-
-    public long getLong(long def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsLong(value, key);
-    }
-
-    public long getLong(long def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsLong(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsLong(value, key);
-            }
-        }
-        return def;
+    public long getLong(String[] keys) {
+        return getValue(keys, ConfigValue::getAsLong, 0L);
     }
 
     public long getNonNullLong(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LONG));
-        }
-        return getAsLong(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LONG, ConfigValue::getAsLong);
     }
 
-    public long getNonNullLong(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsLong(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsLong(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LONG));
+    public long getNonNullLong(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LONG, ConfigValue::getAsLong);
     }
 
-    private long getAsLong(Object obj, String key) {
-        switch (obj) {
-            case null -> { return 0L; }
-            case Long l -> { return l; }
-            case Number n -> { return n.longValue(); }
-            case String s -> {
-                try {
-                    return Long.parseLong(s.replace("_", ""));
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_LONG_FAILED, this.assemblePath(key), s);
-                }
-            }
-            case Boolean b -> { return b ? 1L : 0L; }
-            default -> throw new KnownResourceException(ConfigConstants.PARSE_LONG_FAILED, this.assemblePath(key), obj.toString());
-        }
+    public long getLong(String key, long def) {
+        return getValue(key, ConfigValue::getAsLong, def);
     }
 
-    // --- Float Getters ---
+    public long getLong(String[] keys, long def) {
+        return getValue(keys, ConfigValue::getAsLong, def);
+    }
+
+    public long getLong(String key, Supplier<Long> def) {
+        return getValue(key, (Function<ConfigValue, Long>) ConfigValue::getAsLong, def);
+    }
+
+    public long getLong(String[] keys, Supplier<Long> def) {
+        return getValue(keys, (Function<ConfigValue, Long>) ConfigValue::getAsLong, def);
+    }
+
+    // 浮点数
 
     public float getFloat(String key) {
-        return getFloat(0f, key);
+        return getValue(key, ConfigValue::getAsFloat, 0f);
     }
 
-    public float getFloat(String first, String... keys) {
-        return getFloat(0f, first, keys);
-    }
-
-    public float getFloat(float def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsFloat(value, key);
-    }
-
-    public float getFloat(float def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsFloat(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsFloat(value, key);
-            }
-        }
-        return def;
+    public float getFloat(String[] keys) {
+        return getValue(keys, ConfigValue::getAsFloat, 0f);
     }
 
     public float getNonNullFloat(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_FLOAT));
-        }
-        return getAsFloat(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_FLOAT, ConfigValue::getAsFloat);
     }
 
-    public float getNonNullFloat(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsFloat(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsFloat(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_FLOAT));
+    public float getNonNullFloat(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_FLOAT, ConfigValue::getAsFloat);
     }
 
-    private float getAsFloat(Object obj, String key) {
-        switch (obj) {
-            case null -> { return 0.0f; }
-            case Float f -> { return f; }
-            case Number n -> { return n.floatValue(); }
-            case String s -> {
-                try {
-                    return Float.parseFloat(s.replace("_", ""));
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.assemblePath(key), s);
-                }
-            }
-            case Boolean b -> { return b ? 1.0f : 0.0f; }
-            default -> throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.assemblePath(key), obj.toString());
-        }
+    public float getFloat(String key, float def) {
+        return getValue(key, ConfigValue::getAsFloat, def);
     }
 
-    // --- Double Getters ---
+    public float getFloat(String[] keys, float def) {
+        return getValue(keys, ConfigValue::getAsFloat, def);
+    }
+
+    public float getFloat(String key, Supplier<Float> def) {
+        return getValue(key, (Function<ConfigValue, Float>) ConfigValue::getAsFloat, def);
+    }
+
+    public float getFloat(String[] keys, Supplier<Float> def) {
+        return getValue(keys, (Function<ConfigValue, Float>) ConfigValue::getAsFloat, def);
+    }
+
+    // 双精度浮点数
 
     public double getDouble(String key) {
-        return getDouble(0.0, key);
+        return getValue(key, ConfigValue::getAsDouble, 0.0);
     }
 
-    public double getDouble(String first, String... keys) {
-        return getDouble(0.0, first, keys);
-    }
-
-    public double getDouble(double def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsDouble(value, key);
-    }
-
-    public double getDouble(double def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsDouble(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsDouble(value, key);
-            }
-        }
-        return def;
+    public double getDouble(String[] keys) {
+        return getValue(keys, ConfigValue::getAsDouble, 0.0);
     }
 
     public double getNonNullDouble(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_DOUBLE));
-        }
-        return getAsDouble(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_DOUBLE, ConfigValue::getAsDouble);
     }
 
-    public double getNonNullDouble(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsDouble(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsDouble(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_DOUBLE));
+    public double getNonNullDouble(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_DOUBLE, ConfigValue::getAsDouble);
     }
 
-    private double getAsDouble(Object obj, String key) {
-        switch (obj) {
-            case null -> { return 0.0; }
-            case Double d -> { return d; }
-            case Number n -> { return n.doubleValue(); }
-            case String s -> {
-                try {
-                    return Double.parseDouble(s.replace("_", ""));
-                } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.assemblePath(key), s);
-                }
-            }
-            case Boolean b -> { return b ? 1.0 : 0.0; }
-            default -> throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.assemblePath(key), obj.toString());
-        }
+    public double getDouble(String key, double def) {
+        return getValue(key, ConfigValue::getAsDouble, def);
     }
 
-    // --- Section Getters ---
+    public double getDouble(String[] keys, double def) {
+        return getValue(keys, ConfigValue::getAsDouble, def);
+    }
 
-    @Nullable
+    public double getDouble(String key, Supplier<Double> def) {
+        return getValue(key, (Function<ConfigValue, Double>) ConfigValue::getAsDouble, def);
+    }
+
+    public double getDouble(String[] keys, Supplier<Double> def) {
+        return getValue(keys, (Function<ConfigValue, Double>) ConfigValue::getAsDouble, def);
+    }
+
+    // 配置节点
+
     public ConfigSection getSection(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return null;
-        }
-        return getAsSection(value, key);
+        return getValue(key, ConfigValue::getAsSection);
     }
 
-    @Nullable
-    public ConfigSection getSection(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsSection(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsSection(value, key);
-            }
-        }
-        return null;
+    public ConfigSection getSection(String[] keys) {
+        return getValue(keys, ConfigValue::getAsSection);
     }
 
+    @NotNull
     public ConfigSection getNonNullSection(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_SECTION));
-        }
-        return getAsSection(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_SECTION, ConfigValue::getAsSection);
     }
 
-    public ConfigSection getNonNullSection(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsSection(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsSection(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_SECTION));
+    @NotNull
+    public ConfigSection getNonNullSection(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_SECTION, ConfigValue::getAsSection);
     }
 
-    @SuppressWarnings("unchecked")
-    private ConfigSection getAsSection(Object obj, String key) {
-        if (obj instanceof Map<?, ?> map) {
-            return of(assemblePath(key), (Map<String, Object>) map);
-        }
-        throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, assemblePath(key), obj.getClass().getSimpleName());
-    }
+    // 三维向量 (Float)
 
-    // --- Vec3 Getters ---
-
-    @Nullable
     public Vector3f getVector3f(String key) {
-        return getVector3f(null, key);
+        return getValue(key, ConfigValue::getAsVector3f, ConfigConstants.NORMAL_SCALE);
     }
 
-    @Nullable
-    public Vector3f getVector3f(String first, String... keys) {
-        return getVector3f(null, first, keys);
+    public Vector3f getVector3f(String[] keys) {
+        return getValue(keys, ConfigValue::getAsVector3f, ConfigConstants.NORMAL_SCALE);
     }
 
-    @Nullable
-    public Vector3f getVector3f(Vector3f def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsVector3f(value, key);
-    }
-
-    @Nullable
-    public Vector3f getVector3f(Vector3f def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsVector3f(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsVector3f(value, key);
-            }
-        }
-        return def;
-    }
-
+    @NotNull
     public Vector3f getNonNullVector3f(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_VEC3));
-        }
-        return getAsVector3f(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_VEC3, ConfigValue::getAsVector3f);
     }
 
-    public Vector3f getNonNullVector3f(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsVector3f(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsVector3f(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_VEC3));
+    @NotNull
+    public Vector3f getNonNullVector3f(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_VEC3, ConfigValue::getAsVector3f);
     }
 
-    private Vector3f getAsVector3f(Object obj, String key) {
-        try {
-            switch (obj) {
-                case Vector3f v -> { return v; }
-                case Number n -> { return new Vector3f(n.floatValue()); }
-                case List<?> list -> {
-                    if (list.size() == 3) {
-                        return new Vector3f(
-                                Float.parseFloat(list.get(0).toString()),
-                                Float.parseFloat(list.get(1).toString()),
-                                Float.parseFloat(list.get(2).toString())
-                        );
-                    } else if (list.size() == 1) {
-                        return new Vector3f(Float.parseFloat(list.getFirst().toString()));
-                    }
-                }
-                case String s -> {
-                    String[] split = s.replace("_", "").split(",");
-                    if (split.length == 3) {
-                        return new Vector3f(Float.parseFloat(split[0]), Float.parseFloat(split[1]), Float.parseFloat(split[2]));
-                    } else if (split.length == 1) {
-                        return new Vector3f(Float.parseFloat(split[0]));
-                    }
-                }
-                default -> {}
-            }
-        } catch (Exception ignored) {
-        }
-        throw new KnownResourceException(ConfigConstants.PARSE_VEC3_FAILED, assemblePath(key), obj.toString());
+    public Vector3f getVector3f(String key, Vector3f def) {
+        return getValue(key, ConfigValue::getAsVector3f, def);
     }
 
-    // --- Quaternion Getters ---
-
-    @Nullable
-    public Quaternionf getQuaternionf(String key) {
-        return getQuaternionf((Quaternionf) null, key);
+    public Vector3f getVector3f(String[] keys, Vector3f def) {
+        return getValue(keys, ConfigValue::getAsVector3f, def);
     }
 
-    @Nullable
-    public Quaternionf getQuaternionf(String first, String... keys) {
-        return getQuaternionf(null, first, keys);
+    public Vector3f getVector3f(String key, Supplier<Vector3f> def) {
+        return getValue(key, (Function<ConfigValue, Vector3f>) ConfigValue::getAsVector3f, def);
     }
 
-    @Nullable
-    public Quaternionf getQuaternionf(Quaternionf def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsQuaternionf(value, key);
+    public Vector3f getVector3f(String[] keys, Supplier<Vector3f> def) {
+        return getValue(keys, (Function<ConfigValue, Vector3f>) ConfigValue::getAsVector3f, def);
     }
 
-    @Nullable
-    public Quaternionf getQuaternionf(Quaternionf def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsQuaternionf(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsQuaternionf(value, key);
-            }
-        }
-        return def;
+    // 四元数
+
+    public Quaternionf getQuaternion(String key) {
+        return getValue(key, ConfigValue::getAsQuaternion, ConfigConstants.ZERO_QUATERNION);
     }
 
-    public Quaternionf getNonNullQuaternionf(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_QUATERNION));
-        }
-        return getAsQuaternionf(value, key);
+    public Quaternionf getQuaternion(String[] keys) {
+        return getValue(keys, ConfigValue::getAsQuaternion, ConfigConstants.ZERO_QUATERNION);
     }
 
-    public Quaternionf getNonNullQuaternionf(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsQuaternionf(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsQuaternionf(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_QUATERNION));
+    @NotNull
+    public Quaternionf getNonNullQuaternion(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_QUATERNION, ConfigValue::getAsQuaternion);
     }
 
-    private Quaternionf getAsQuaternionf(Object obj, String key) {
-        try {
-            switch (obj) {
-                case Quaternionf q -> { return q; }
-                case Number n -> {
-                    return QuaternionUtils.toQuaternionf(0, (float) -Math.toRadians(n.floatValue()), 0);
-                }
-                case List<?> list -> {
-                    if (list.size() == 4) {
-                        return new Quaternionf(
-                                Float.parseFloat(list.get(0).toString()),
-                                Float.parseFloat(list.get(1).toString()),
-                                Float.parseFloat(list.get(2).toString()),
-                                Float.parseFloat(list.get(3).toString())
-                        );
-                    } else if (list.size() == 1) {
-                        float v = Float.parseFloat(list.getFirst().toString());
-                        return QuaternionUtils.toQuaternionf(0, (float) -Math.toRadians(v), 0);
-                    }
-                }
-                case String s -> {
-                    String[] split = s.replace("_", "").split(",");
-                    switch (split.length) {
-                        case 4 -> {
-                            return new Quaternionf(Float.parseFloat(split[0]), Float.parseFloat(split[1]), Float.parseFloat(split[2]), Float.parseFloat(split[3]));
-                        }
-                        case 3 -> {
-                            return QuaternionUtils.toQuaternionf((float) Math.toRadians(Float.parseFloat(split[2])), (float) Math.toRadians(Float.parseFloat(split[1])), (float) Math.toRadians(Float.parseFloat(split[0])));
-                        }
-                        case 2 -> {
-                            return QuaternionUtils.toQuaternionf((float) Math.toRadians(Float.parseFloat(split[1])), (float) Math.toRadians(Float.parseFloat(split[0])), 0);
-                        }
-                        case 1 -> {
-                            return QuaternionUtils.toQuaternionf(0, (float) -Math.toRadians(Float.parseFloat(split[0])), 0);
-                        }
-                    }
-                }
-                default -> {}
-            }
-        } catch (Exception ignored) {
-        }
-        throw new KnownResourceException(ConfigConstants.PARSE_QUATERNION_FAILED, assemblePath(key), obj.toString());
+    @NotNull
+    public Quaternionf getNonNullQuaternion(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_QUATERNION, ConfigValue::getAsQuaternion);
     }
 
-    // --- AABB Getters ---
+    public Quaternionf getQuaternion(String key, Quaternionf def) {
+        return getValue(key, ConfigValue::getAsQuaternion, def);
+    }
 
-    @Nullable
+    public Quaternionf getQuaternion(String[] keys, Quaternionf def) {
+        return getValue(keys, ConfigValue::getAsQuaternion, def);
+    }
+
+    public Quaternionf getQuaternion(String key, Supplier<Quaternionf> def) {
+        return getValue(key, (Function<ConfigValue, Quaternionf>) ConfigValue::getAsQuaternion, def);
+    }
+
+    public Quaternionf getQuaternion(String[] keys, Supplier<Quaternionf> def) {
+        return getValue(keys, (Function<ConfigValue, Quaternionf>) ConfigValue::getAsQuaternion, def);
+    }
+
+    // 轴对齐包围盒 (AABB)
+
     public AABB getAABB(String key) {
-        return getAABB(null, key);
+        return getValue(key, ConfigValue::getAsAABB);
     }
 
-    @Nullable
-    public AABB getAABB(String first, String... keys) {
-        return getAABB(null, first, keys);
+    public AABB getAABB(String[] keys) {
+        return getValue(keys, ConfigValue::getAsAABB);
     }
 
-    @Nullable
-    public AABB getAABB(AABB def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsAABB(value, key);
-    }
-
-    @Nullable
-    public AABB getAABB(AABB def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsAABB(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsAABB(value, key);
-            }
-        }
-        return def;
-    }
-
+    @NotNull
     public AABB getNonNullAABB(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_AABB));
-        }
-        return getAsAABB(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_AABB, ConfigValue::getAsAABB);
     }
 
-    public AABB getNonNullAABB(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsAABB(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsAABB(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_AABB));
+    @NotNull
+    public AABB getNonNullAABB(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_AABB, ConfigValue::getAsAABB);
     }
 
-    private AABB getAsAABB(Object obj, String key) {
-        try {
-            switch (obj) {
-                case AABB aabb -> { return aabb; }
-                case Number n -> {
-                    double half = n.doubleValue() / 2.0;
-                    return new AABB(-half, -half, -half, half, half, half);
-                }
-                default -> {
-                    double[] args;
-                    if (obj instanceof List<?> list) {
-                        args = list.stream().mapToDouble(o -> {
-                            if (o instanceof Number n) return n.doubleValue();
-                            return Double.parseDouble(o.toString().replace("_", ""));
-                        }).toArray();
-                    } else {
-                        String[] split = obj.toString().replace("_", "").split(",");
-                        args = new double[split.length];
-                        for (int i = 0; i < split.length; i++) {
-                            args[i] = Double.parseDouble(split[i].trim());
-                        }
-                    }
-
-                    return switch (args.length) {
-                        case 1 -> {
-                            double h = args[0] / 2.0;
-                            yield new AABB(-h, -h, -h, h, h, h);
-                        }
-                        case 2 -> {
-                            double hX = args[0] / 2.0;
-                            double hY = args[1] / 2.0;
-                            yield new AABB(-hX, -hY, -hX, hX, hY, hX);
-                        }
-                        case 3 -> {
-                            double hX = args[0] / 2.0;
-                            double hY = args[1] / 2.0;
-                            double hZ = args[2] / 2.0;
-                            yield new AABB(-hX, -hY, -hZ, hX, hY, hZ);
-                        }
-                        case 6 -> new AABB(args[0], args[1], args[2], args[3], args[4], args[5]);
-                        default -> throw new IllegalArgumentException();
-                    };
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        throw new KnownResourceException(ConfigConstants.PARSE_AABB_FAILED, assemblePath(key), obj.toString());
+    public AABB getAABB(String key, AABB def) {
+        return getValue(key, ConfigValue::getAsAABB, def);
     }
 
-    // --- SNBT Getters ---
-
-    @Nullable
-    public Tag getSNBT(final String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return null;
-        }
-        return getAsSNBT(value, key);
+    public AABB getAABB(String[] keys, AABB def) {
+        return getValue(keys, ConfigValue::getAsAABB, def);
     }
 
-    @Nullable
-    public Tag getSNBT(String first, final String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsSNBT(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsSNBT(value, key);
-            }
-        }
-        return null;
+    public AABB getAABB(String key, Supplier<AABB> def) {
+        return getValue(key, (Function<ConfigValue, AABB>) ConfigValue::getAsAABB, def);
     }
 
+    public AABB getAABB(String[] keys, Supplier<AABB> def) {
+        return getValue(keys, (Function<ConfigValue, AABB>) ConfigValue::getAsAABB, def);
+    }
+
+    // SNBT
+
+    public Tag getSNBT(String key) {
+        return getValue(key, ConfigValue::getAsSNBT);
+    }
+
+    public Tag getSNBT(String[] keys) {
+        return getValue(keys, ConfigValue::getAsSNBT);
+    }
+
+    @NotNull
     public Tag getNonNullSNBT(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_SNBT));
-        }
-        return getAsSNBT(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_SNBT, ConfigValue::getAsSNBT);
     }
 
-    public Tag getNonNullSNBT(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsSNBT(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsSNBT(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_SNBT));
+    @NotNull
+    public Tag getNonNullSNBT(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_SNBT, ConfigValue::getAsSNBT);
     }
 
-    private Tag getAsSNBT(Object obj, String key) {
-        if (obj instanceof Tag tag) {
-            return tag;
-        }
-        String snbt = obj.toString();
-        try {
-            return TagParser.parseTagFully(snbt);
-        } catch (Exception e) {
-            throw new KnownResourceException(ConfigConstants.PARSE_SNBT_FAILED, assemblePath(key), snbt, e.getMessage());
-        }
+    public Tag getSNBT(String key, Tag def) {
+        return getValue(key, ConfigValue::getAsSNBT, def);
     }
 
-    // --- List Getters ---
+    public Tag getSNBT(String[] keys, Tag def) {
+        return getValue(keys, ConfigValue::getAsSNBT, def);
+    }
+
+    public Tag getSNBT(String key, Supplier<Tag> def) {
+        return getValue(key, (Function<ConfigValue, Tag>) ConfigValue::getAsSNBT, def);
+    }
+
+    public Tag getSNBT(String[] keys, Supplier<Tag> def) {
+        return getValue(keys, (Function<ConfigValue, Tag>) ConfigValue::getAsSNBT, def);
+    }
+
+    // 列表
 
     public List<Object> getNonEmptyList(String key) {
-        Object value = this.value.get(key);
-        if (value != null) {
-            return getAsNonEmptyList(value, key);
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsNonEmptyList);
     }
 
-    public List<Object> getNonEmptyList(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsNonEmptyList(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsNonEmptyList(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
-    }
-
-    public List<Object> getList(String key) {
-        return getList(List.of(), key);
-    }
-
-    public List<Object> getList(String first, String... keys) {
-        return getList(List.of(), first, keys);
-    }
-
-    public List<Object> getList(List<Object> def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsList(value, key);
-    }
-
-    public List<Object> getList(List<Object> def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsList(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsList(value, key);
-            }
-        }
-        return def;
+    public List<Object> getNonEmptyList(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsNonEmptyList);
     }
 
     public List<Object> getNonNullList(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
-        }
-        return getAsList(value, key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsList);
     }
 
-    public List<Object> getNonNullList(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsList(firstValue, first);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsList(value, key);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
+    public List<Object> getNonNullList(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsList);
     }
 
-    public List<Float> getNonNullFloatList(String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
-        }
-        return getAsList(value, key, this::getAsFloat);
+    public List<Object> getList(String key) {
+        return getValue(key, ConfigValue::getAsList, List.of());
     }
 
-    public List<Float> getNonNullFloatList(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsList(firstValue, first, this::getAsFloat);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsList(value, first, this::getAsFloat);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
+    public List<Object> getList(String[] keys) {
+        return getValue(keys, ConfigValue::getAsList, List.of());
     }
 
-    @SuppressWarnings("unchecked")
-    private List<Object> getAsList(Object obj, String key) {
-        if (obj instanceof List<?> list) {
-            return (List<Object>) list;
-        }
-        throw new KnownResourceException(ConfigConstants.PARSE_LIST_FAILED, assemblePath(key), obj.getClass().getSimpleName());
+    public List<Object> getList(String key, List<Object> def) {
+        return getValue(key, ConfigValue::getAsList, def);
     }
 
-    @SuppressWarnings("unchecked")
-    private List<Object> getAsNonEmptyList(Object obj, String key) {
-        if (obj instanceof List<?> list) {
-            if (list.isEmpty()) {
-                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, assemblePath(key));
-            }
-            return (List<Object>) list;
-        } else {
-            return List.of(obj);
-        }
+    public List<Object> getList(String[] keys, List<Object> def) {
+        return getValue(keys, ConfigValue::getAsList, def);
     }
 
-    private <T> List<T> getAsList(Object obj, String key, BiFunction<Object, String, T> mapper) {
-        if (obj instanceof List<?> list) {
-            List<T> result = new ArrayList<>(list.size());
-            for (int i = 0; i < list.size(); i++) {
-                result.add(mapper.apply(list.get(i), assemblePath(key, i)));
-            }
-            return result;
-        }
-        throw new KnownResourceException(ConfigConstants.PARSE_LIST_FAILED, assemblePath(key), obj.getClass().getSimpleName());
+    public List<Object> getList(String key, Supplier<List<Object>> def) {
+        return getValue(key, (Function<ConfigValue, List<Object>>) ConfigValue::getAsList, def);
+    }
+
+    public List<Object> getList(String[] keys, Supplier<List<Object>> def) {
+        return getValue(keys, (Function<ConfigValue, List<Object>>) ConfigValue::getAsList, def);
     }
 
     public List<String> getStringList(String key) {
-        return getStringList(List.of(), key);
+        return getValue(key, ConfigValue::getAsStringList, List.of());
     }
 
-    public List<String> getStringList(String first, String... keys) {
-        return getStringList(List.of(), first, keys);
+    public List<String> getStringList(String[] keys) {
+        return getValue(keys, ConfigValue::getAsStringList, List.of());
     }
 
-    public List<String> getStringList(List<String> def, String key) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            return def;
-        }
-        return getAsStringList(value);
+    public List<String> getStringList(String key, List<String> def) {
+        return getValue(key, ConfigValue::getAsStringList, def);
     }
 
-    public List<String> getStringList(List<String> def, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsStringList(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsStringList(value);
-            }
-        }
-        return def;
+    public List<String> getStringList(String[] keys, List<String> def) {
+        return getValue(keys, ConfigValue::getAsStringList, def);
     }
 
     public List<String> getNonNullStringList(String key) {
-        Object value = this.value.get(key);
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsStringList);
+    }
+
+    public List<String> getNonNullStringList(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsStringList);
+    }
+
+    // 杂项
+
+    public <T> List<T> getNonEmptyList(String key, Function<ConfigValue, T> parser) {
+        ConfigValue value = getNonNullValue(key, ConfigConstants.ARGUMENT_LIST);
+        List<Object> list = value.getAsNonEmptyList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> getNonEmptyList(String[] keys, Function<ConfigValue, T> parser) {
+        ConfigValue value = getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST);
+        List<Object> list = value.getAsNonEmptyList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> getList(String key, Function<ConfigValue, T> parser) {
+        ConfigValue value = getValue(key);
         if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, key, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
-        }
-        return getAsStringList(value);
-    }
-
-    public List<String> getNonNullStringList(String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return getAsStringList(firstValue);
-        }
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return getAsStringList(value);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
-    }
-
-    private List<String> getAsStringList(Object value) {
-        switch (value) {
-            case null -> {
-                return List.of();
-            }
-            case List<?> list -> {
-                if (list.isEmpty()) return List.of();
-                return list.stream()
-                        .map(Object::toString)
-                        .toList();
-            }
-            case String s -> {
-                return List.of(s);
-            }
-            default -> {
-                return List.of(value.toString());
-            }
-        }
-    }
-
-    // --- Misc ---
-
-    public <T> List<T> parseNonEmptyList(Function<ConfigValue, T> parser, String key) {
-        List<Object> list = getNonEmptyList(key);
-        List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(this.assemblePath(key, i), list.get(i));
-            result.add(parser.apply(configValue));
-        }
-        return result;
-    }
-
-    public <T> List<T> parseNonEmptyList(Function<ConfigValue, T> parser, String first, String keys) {
-        ConfigValue listValue = getValue(first, keys);
-        if (listValue == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, this.path, first, TranslationManager.instance().translate(ConfigConstants.ARGUMENT_LIST));
-        }
-        List<Object> list = listValue.getAsNonEmptyList();
-        List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(listValue.assemblePath(i), list.get(i));
-            result.add(parser.apply(configValue));
-        }
-        return result;
-    }
-
-    public <T> List<T> parseList(Function<ConfigValue, T> parser, String key) {
-        List<Object> list = getList(key);
-        if (list.isEmpty()) {
             return List.of();
         }
+        List<Object> list = value.getAsList();
         List<T> result = new ArrayList<>(list.size());
         for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(this.assemblePath(key, i), list.get(i));
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
             result.add(parser.apply(configValue));
         }
         return result;
     }
 
-    public <T> List<T> parseList(Function<ConfigValue, T> parser, String first, String... keys) {
-        ConfigValue listValue = getValue(first, keys);
-        if (listValue == null) {
+    public <T> List<T> getList(String[] keys, Function<ConfigValue, T> parser) {
+        ConfigValue value = getValue(keys);
+        if (value == null) {
             return List.of();
         }
-        List<Object> list = listValue.getAsNonEmptyList();
-        if (!list.isEmpty()) {
-            List<T> result = new ArrayList<>(list.size());
-            for (int i = 0; i < list.size(); i++) {
-                ConfigValue configValue = new ConfigValue(listValue.assemblePath(i), list.get(i));
-                result.add(parser.apply(configValue));
-            }
-            return result;
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
         }
-        return List.of();
+        return result;
     }
 
-    public <T> List<T> parseSectionList(Function<ConfigSection, T> parser, String key) {
-        Object target = this.value.get(key);
-        if (target != null) {
-            return parseSectionList(parser, key, target);
+    public <T> List<T> getSectionList(String key, Function<ConfigSection, T> parser) {
+        ConfigValue value = getValue(key);
+        if (value == null) {
+            return List.of();
         }
-        return Collections.emptyList();
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue.getAsSection()));
+        }
+        return result;
     }
 
-    public <T> List<T> parseSectionList(Function<ConfigSection, T> parser, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            return parseSectionList(parser, first, firstValue);
+    public <T> List<T> getSectionList(String[] keys, Function<ConfigSection, T> parser) {
+        ConfigValue value = getValue(keys);
+        if (value == null) {
+            return List.of();
         }
-        for (String key : keys) {
-            Object target = this.value.get(key);
-            if (target != null) {
-                return parseSectionList(parser, key, target);
-            }
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue.getAsSection()));
         }
-        return Collections.emptyList();
-    }
-
-    private <T> List<T> parseSectionList(Function<ConfigSection, T> parser, String key, Object target) {
-        if (target instanceof List<?> list) {
-            for (int i = 0; i < list.size() ; i++) {
-                Object configInList = list.get(i);
-                if (configInList == null) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key, i), "null");
-                }
-                if (!(configInList instanceof Map<?,?>)) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key, i), configInList.getClass().getSimpleName());
-                }
-            }
-            switch (list.size()) {
-                case 0 -> {
-                    return Collections.emptyList();
-                }
-                case 1 -> {
-                    return List.of(parser.apply(ConfigSection.of(this.assemblePath(key, 0), list.getFirst())));
-                }
-                case 2 -> {
-                    return List.of(
-                            parser.apply(ConfigSection.of(this.assemblePath(key, 0), list.getFirst())),
-                            parser.apply(ConfigSection.of(this.assemblePath(key, 1), list.getLast()))
-                    );
-                }
-                default -> {
-                    List<T> result = new ArrayList<>(list.size());
-                    for (int i = 0; i < list.size() ; i++) {
-                        Object configInList = list.get(i);
-                        result.add(parser.apply(ConfigSection.of(this.assemblePath(key, i), configInList)));
-                    }
-                    return result;
-                }
-            }
-        } else if (target instanceof Map<?, ?> map) {
-            return List.of(parser.apply(ConfigSection.of(this.assemblePath(key), MiscUtils.castToMap(map))));
-        } else {
-            throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key), target.getClass().getSimpleName());
-        }
-    }
-
-    public void forEachSection(Consumer<ConfigSection> consumer, String key) {
-        Object value = this.value.get(key);
-        if (value != null) {
-            forEachSection(consumer, key, value);
-        }
-    }
-
-    public void forEachSection(Consumer<ConfigSection> consumer, String first, String... keys) {
-        Object firstValue = this.value.get(first);
-        if (firstValue != null) {
-            forEachSection(consumer, first, firstValue);
-        } else {
-            for (String key : keys) {
-                Object value = this.value.get(key);
-                if (value != null) {
-                    forEachSection(consumer, key, value);
-                }
-            }
-        }
-    }
-
-    private void forEachSection(Consumer<ConfigSection> consumer, String key, Object target) {
-        if (target instanceof List<?> list) {
-            for (int i = 0; i < list.size() ; i++) {
-                Object configInList = list.get(i);
-                if (configInList == null) {
-                    continue;
-                }
-                if (!(configInList instanceof Map<?,?>)) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key, i), configInList.getClass().getSimpleName());
-                }
-                consumer.accept(ConfigSection.of(this.assemblePath(key, i), configInList));
-            }
-        } else if (target instanceof Map<?, ?> map) {
-            consumer.accept(ConfigSection.of(this.assemblePath(key), map));
-        } else {
-            throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.assemblePath(key), target.getClass().getSimpleName());
-        }
+        return result;
     }
 }

@@ -7,7 +7,7 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public class LegacyIngredient<I> {
+public final class LegacyIngredient<I> {
     private final Item<I>[] items;
 
     public LegacyIngredient(Item<I>[] items) {
@@ -15,7 +15,7 @@ public class LegacyIngredient<I> {
     }
 
     public Item<I>[] items() {
-        return items;
+        return this.items;
     }
 
     public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {

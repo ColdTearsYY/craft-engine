@@ -12,6 +12,7 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.item.data.FireworkExplosion;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
@@ -92,17 +93,19 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
     }
 
     private static class Factory implements FurnitureElementConfigFactory<ArmorStandFurnitureElement> {
+        private static final String[] APPLY_DYED_COLOR = new String[] {"apply_dyed_color", "apply-dyed-color"};
+        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
 
         @Override
         public ArmorStandFurnitureElementConfig create(ConfigSection section) {
-            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+            List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
             return new ArmorStandFurnitureElementConfig(
                     section.getNonNullIdentifier("item"),
-                    section.getFloat(1f, "scale"),
-                    section.getVector3f(new Vector3f(0f), "position"),
-                    section.getBoolean(true, "apply_dyed_color", "apply-dyed-color"),
+                    section.getFloat("scale", 1f),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean(APPLY_DYED_COLOR, true),
                     section.getBoolean("small"),
-                    section.getEnum(null, LegacyChatFormatter.class, "glow_color", "glow-color"),
+                    section.getEnum(GLOW_COLOR, LegacyChatFormatter.class),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

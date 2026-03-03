@@ -11,7 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 
-public class DebugFurnitureCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugFurnitureCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugFurnitureCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

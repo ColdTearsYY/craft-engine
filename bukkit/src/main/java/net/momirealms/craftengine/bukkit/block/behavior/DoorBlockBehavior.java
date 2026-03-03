@@ -364,6 +364,8 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     }
 
     private static class Factory implements BlockBehaviorFactory<DoorBlockBehavior> {
+        private static final String[] CAN_OPEN_WITH_HAND = new String[] {"can_open_with_hand", "can-open-with-hand"};
+        private static final String[] CAN_OPEN_BY_WIND_CHARGE = new String[] {"can_open_by_wind_charge", "can-open-by-wind-charge"};
 
         @Override
         public DoorBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -371,8 +373,8 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             SoundData openSound = null;
             SoundData closeSound = null;
             if (soundSection != null) {
-                openSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "open");
-                closeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "close");
+                openSound = soundSection.getValue("open", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                closeSound = soundSection.getValue("close", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new DoorBlockBehavior(
                     block,
@@ -381,8 +383,8 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
                     BlockBehaviorFactory.getProperty(section.path(), block, "hinge", DoorHinge.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class),
-                    section.getBoolean(true, "can_open_with_hand", "can-open-with-hand"),
-                    section.getBoolean(true, "can_open_by_wind_charge", "can-open-by-wind-charge"),
+                    section.getBoolean(CAN_OPEN_WITH_HAND, true),
+                    section.getBoolean(CAN_OPEN_BY_WIND_CHARGE, true),
                     openSound,
                     closeSound
             );

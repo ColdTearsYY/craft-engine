@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class VisualBlockStateAllocator {
+public final class VisualBlockStateAllocator {
     private final Path cacheFilePath;
     private final Map<String, BlockStateWrapper> cachedBlockStates = new LinkedHashMap<>();
     private final Map<String, Pair<AutoStateGroup, CompletableFuture<BlockStateWrapper>>> pendingAllocations = new LinkedHashMap<>();
@@ -132,7 +132,7 @@ public class VisualBlockStateAllocator {
                         this.dirty = true;
                         pair.right().complete(nextCandidate.blockState());
                     } else {
-                        pair.right().completeExceptionally(new StateExhaustedException(group));
+                        pair.right().completeExceptionally(new StateExhaustedException(group, pair.left()));
                     }
                 }
             }
@@ -141,13 +141,19 @@ public class VisualBlockStateAllocator {
 
     public static class StateExhaustedException extends RuntimeException {
         private final AutoStateGroup group;
+        private final String appearance;
 
-        public StateExhaustedException(AutoStateGroup group) {
+        public StateExhaustedException(AutoStateGroup group, String appearance) {
             this.group = group;
+            this.appearance = appearance;
+        }
+
+        public String appearance() {
+            return this.appearance;
         }
 
         public AutoStateGroup group() {
-            return group;
+            return this.group;
         }
     }
 

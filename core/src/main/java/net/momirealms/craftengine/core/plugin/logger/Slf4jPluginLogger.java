@@ -2,7 +2,7 @@ package net.momirealms.craftengine.core.plugin.logger;
 
 import org.slf4j.Logger;
 
-public class Slf4jPluginLogger implements PluginLogger {
+public final class Slf4jPluginLogger implements PluginLogger {
     private final Logger logger;
 
     public Slf4jPluginLogger(Logger logger) {

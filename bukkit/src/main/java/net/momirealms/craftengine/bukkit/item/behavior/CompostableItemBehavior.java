@@ -12,7 +12,6 @@ import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.WorldEvents;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
@@ -80,7 +79,7 @@ public final class CompostableItemBehavior extends ItemBehavior {
     private static class Factory implements ItemBehaviorFactory<CompostableItemBehavior> {
         @Override
         public CompostableItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            return new CompostableItemBehavior(section.getDouble(0.55, "chance"));
+            return new CompostableItemBehavior(section.getDouble("chance", 0.55));
         }
     }
 }

@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.condition.*;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
@@ -45,6 +46,10 @@ public final class CommonConditions {
         ((WritableRegistry<CommonConditionType<?>>) BuiltInRegistries.COMMON_CONDITION_TYPE)
                 .register(ResourceKey.create(Registries.COMMON_CONDITION_TYPE.location(), key), type);
         return type;
+    }
+
+    public static <CTX extends Context> Condition<CTX> fromConfig(ConfigValue value) {
+        return fromConfig(value.getAsSection());
     }
 
     @SuppressWarnings("unchecked")

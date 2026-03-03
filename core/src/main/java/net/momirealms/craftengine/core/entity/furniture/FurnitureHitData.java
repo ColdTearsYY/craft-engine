@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.core.entity.furniture;
 
-public class FurnitureHitData {
+public final class FurnitureHitData {
     private int times;
     private long lastHitTime;
     private int lastHitFurniture;

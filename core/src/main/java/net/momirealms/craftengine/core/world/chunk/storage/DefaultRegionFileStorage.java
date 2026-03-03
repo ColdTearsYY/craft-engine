@@ -205,7 +205,7 @@ public final class DefaultRegionFileStorage implements WorldDataStorage {
 
     @Override
     public synchronized void close() throws IOException {
-        ExceptionCollector<IOException> collector = new ExceptionCollector<>();
+        ExceptionCollector<IOException> collector = new ExceptionCollector<>(IOException.class);
         for (RegionFile regionfile : this.regionCache.values()) {
             try {
                 regionfile.close();

@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugCustomModelDataCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

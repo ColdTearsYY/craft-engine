@@ -19,7 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-public class CommonItemPacketHandler implements EntityPacketHandler {
+public final class CommonItemPacketHandler implements EntityPacketHandler {
     public static final CommonItemPacketHandler INSTANCE = new CommonItemPacketHandler();
     private static long lastWarningTime = 0;
 

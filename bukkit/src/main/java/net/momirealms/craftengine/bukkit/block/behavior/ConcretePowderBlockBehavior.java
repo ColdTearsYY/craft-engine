@@ -132,12 +132,13 @@ public final class ConcretePowderBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<ConcretePowderBlockBehavior> {
+        private static final String[] SOLID_BLOCK = new String[] {"solid_block", "solid-block"};
 
         @Override
         public ConcretePowderBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new ConcretePowderBlockBehavior(
                     block,
-                    section.getNonNullString("solid_block", "solid-block")
+                    section.getNonNullString(SOLID_BLOCK)
             );
         }
     }

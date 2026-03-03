@@ -60,7 +60,7 @@ public abstract class AbstractConditionalFunction<CTX extends Context> implement
 
         protected List<Condition<CTX>> getPredicates(ConfigSection section) {
             if (section == null) return List.of();
-            return section.parseSectionList(this.conditionFactory, "conditions");
+            return section.getSectionList("conditions", this.conditionFactory);
         }
     }
 
@@ -78,7 +78,7 @@ public abstract class AbstractConditionalFunction<CTX extends Context> implement
 
         protected List<Function<CTX>> getFunctions(ConfigSection section) {
             if (section == null) return List.of();
-            return section.parseSectionList(this.functionFactory, "functions");
+            return section.getSectionList("functions", this.functionFactory);
         }
     }
 }

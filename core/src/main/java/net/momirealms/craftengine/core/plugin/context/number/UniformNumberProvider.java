@@ -27,8 +27,8 @@ public record UniformNumberProvider(NumberProvider min, NumberProvider max) impl
         @Override
         public UniformNumberProvider create(ConfigSection section) {
             return new UniformNumberProvider(
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "min"),
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "max")
+                    section.getNonNullNumber("min"),
+                    section.getNonNullNumber("max")
             );
         }
     }

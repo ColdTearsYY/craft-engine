@@ -16,8 +16,10 @@ import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
+import net.momirealms.craftengine.core.plugin.context.Context;
+import net.momirealms.craftengine.core.plugin.context.EventTrigger;
+import net.momirealms.craftengine.core.plugin.context.function.Function;
 import net.momirealms.craftengine.core.plugin.scheduler.SchedulerTask;
-import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.TickersList;
@@ -212,30 +214,51 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             return List.of(LoadingStages.ITEM);
         }
 
+        private static final String[] VARIANT = new String[] {"variant", "variants"};
+        private static final String[] LOOT_SPAWN_OFFSET = new String[] {"loot_spawn_offset", "loot-spawn-offset"};
+        private static final String[] BLUEPRINT = new String[] {"blueprint", "better-model", "model-engine"};
+        private static final String[] ENTITY_CULLING = new String[] {"entity_culling", "entity-culling"};
+        private static final String[] EVENT = new String[] {"events", "event"};
+        private static final String[] LOOT = new String[] {"loots", "loot"};
+        private static final String[] BEHAVIORS = new String[] {"behaviors", "behavior"};
+        private static final String[] VIEW_DISTANCE = new String[] {"view_distance", "view-distance"};
+        private static final String[] AABB_EXPANSION = new String[] {"aabb_expansion", "aabb-expansion"};
+        private static final String[] RAY_TRACING = new String[] {"ray_tracing", "ray-tracing"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
-            ConfigSection variantsSection = section.getNonNullSection("variant", "variants");
+            // 获取家具设置 （可异常）
+            FurnitureSettings settings = FurnitureSettings.of().itemId(id);
+            try {
+                FurnitureSettings.applyModifiers(settings, section.getSection("settings"));
+            } catch (KnownResourceException e) {
+                super.errorHandler.accept(e);
+            }
+
+            // 读取变体配置
+            ConfigSection variantsSection = section.getNonNullSection(VARIANT);
             Map<String, FurnitureVariant> variants = new LinkedHashMap<>();
+
             for (String variant : variantsSection.keySet()) {
                 ConfigSection variantSection = variantsSection.getNonNullSection(variant);
 
                 // 掉落物偏移
-                Vector3f lootSpawnOffset =variantSection.getVector3f(ConfigConstants.ZERO_VECTOR3, "loot_spawn_offset", "loot-spawn-offset");
+                Vector3f lootSpawnOffset =variantSection.getVector3f(LOOT_SPAWN_OFFSET, ConfigConstants.ZERO_VECTOR3);
 
                 // 外部模型
-                String blueprint = variantSection.getString("blueprint", /* 旧版为具体插件，新版使用统一的 blueprint */ "better-model", "model-engine");
+                String blueprint = variantSection.getString(BLUEPRINT);
                 Optional<ExternalModel> externalModel = Optional.ofNullable(blueprint).map(it -> AbstractFurnitureManager.this.plugin.compatibilityManager().createModel(it));
 
                 // 元素与碰撞箱
-                List<FurnitureElementConfig<?>> elements = variantSection.parseSectionList(FurnitureElementConfigs::fromConfig, "elements");
-                List<FurnitureHitBoxConfig<?>> hitboxes = variantSection.parseSectionList(FurnitureHitBoxConfigs::fromConfig, "hitboxes");
+                List<FurnitureElementConfig<?>> elements = variantSection.getList("elements", v -> FurnitureElementConfigs.fromConfig(v.getAsSection()));
+                List<FurnitureHitBoxConfig<?>> hitboxes = variantSection.getList("hitboxes", v -> FurnitureHitBoxConfigs.fromConfig(v.getAsSection()));
                 if (hitboxes.isEmpty() && externalModel.isEmpty()) {
                     hitboxes = List.of(defaultHitBox());
                 }
 
                 variants.put(variant, new FurnitureVariant(
                         variant,
-                        parseCullingData(section.getValue("entity_culling", "entity-culling")),
+                        parseCullingData(section.getValue(ENTITY_CULLING)),
                         elements.toArray(new FurnitureElementConfig[0]),
                         hitboxes.toArray(new FurnitureHitBoxConfig[0]),
                         externalModel,
@@ -243,16 +266,32 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
                 ));
             }
 
+            // 解析事件 （可异常）
+            Map<EventTrigger, List<Function<Context>>> events = new EnumMap<>(EventTrigger.class);
+            try {
+                CommonFunctions.parseEvents(section.getValue(EVENT), (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>()).add(f));
+            } catch (KnownResourceException e) {
+                super.errorHandler.accept(e);
+            }
+
+            // 解析战利品表 （可异常）
+            LootTable<?> lootTable = null;
+            try {
+                lootTable = section.getValue(LOOT, v -> LootTable.fromConfig(v.getAsSection()));
+            } catch (KnownResourceException e) {
+                super.errorHandler.accept(e);
+            }
+
             CustomFurniture furniture = CustomFurniture.builder()
                     .id(id)
-                    .settings(FurnitureSettings.applyModifiers(FurnitureSettings.of().itemId(id), section.getSection("settings")))
+                    .settings(settings)
                     .variants(variants)
-                    .events(CommonFunctions.parseEvents(section))
-                    .lootTable(section.getValue(v -> LootTable.fromConfig(v.getAsSection()), "loot", "loots"))
+                    .events(events)
+                    .lootTable(lootTable)
                     .build();
 
             // TODO 复合行为
-            ConfigSection behaviorSection = section.getSection("behavior", "behaviors");
+            ConfigSection behaviorSection = section.getSection(BEHAVIORS);
             if (behaviorSection != null) {
                 ((CustomFurnitureImpl) furniture).setBehavior(FurnitureBehaviors.fromConfig(furniture,behaviorSection));
             }
@@ -267,9 +306,9 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
                     ConfigSection section = value.getAsSection();
                     return new CullingData(
                             section.getAABB("aabb"),
-                            section.getInt(Config.entityCullingViewDistance(), "view_distance", "view-distance"),
-                            section.getDouble(0.25, "aabb_expansion", "aabb-expansion"),
-                            section.getBoolean(true, "ray_tracing", "ray-tracing")
+                            section.getInt(VIEW_DISTANCE, Config.entityCullingViewDistance()),
+                            section.getDouble(AABB_EXPANSION, 0.25),
+                            section.getBoolean(RAY_TRACING, true)
                     );
                 }
             }

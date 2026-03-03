@@ -27,14 +27,16 @@ public record GaussianNumberProvider(double min, double max, double mean, double
     }
 
     private static class Factory implements NumberProviderFactory<GaussianNumberProvider> {
+        private static final String[] STD_DEV = new String[] {"std_dev", "std-dev"};
+        private static final String[] MAX_ATTEMPTS = new String[] {"max_attempts", "max-attempts"};
 
         @Override
         public GaussianNumberProvider create(ConfigSection section) {
             double min = section.getNonNullDouble("min");
             double max = section.getNonNullDouble("max");
-            double mean = section.getDouble((min + max) / 2.0, "mean");
-            double stdDev = section.getDouble((max - min) / 6.0, "std_dev", "std-dev");
-            int maxAttempts = section.getInt(64, "max_attempts", "max-attempts");
+            double mean = section.getDouble("mean", (min + max) / 2.0);
+            double stdDev = section.getDouble(STD_DEV, (max - min) / 6.0);
+            int maxAttempts = section.getInt(MAX_ATTEMPTS, 64);
             this.validateParameters(section.path(), min, max, stdDev, maxAttempts);
             return new GaussianNumberProvider(min, max, mean, stdDev, maxAttempts);
         }

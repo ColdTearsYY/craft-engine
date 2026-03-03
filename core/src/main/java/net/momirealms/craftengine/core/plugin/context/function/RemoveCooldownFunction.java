@@ -16,7 +16,10 @@ public final class RemoveCooldownFunction<CTX extends Context> extends AbstractC
     private final String id;
     private final boolean all;
 
-    private RemoveCooldownFunction(List<Condition<CTX>> predicates, boolean all, PlayerSelector<CTX> selector, String id) {
+    private RemoveCooldownFunction(List<Condition<CTX>> predicates,
+                                   PlayerSelector<CTX> selector,
+                                   String id,
+                                   boolean all) {
         super(predicates);
         this.selector = selector;
         this.id = id;
@@ -56,16 +59,16 @@ public final class RemoveCooldownFunction<CTX extends Context> extends AbstractC
             if (section.getBoolean("all")) {
                 return new RemoveCooldownFunction<>(
                         getPredicates(section),
-                        true,
                         getPlayerSelector(section),
-                        null
+                        null,
+                        true
                 );
             } else {
                 return new RemoveCooldownFunction<>(
                         getPredicates(section),
-                        false,
                         getPlayerSelector(section),
-                        section.getNonNullString("id")
+                        section.getNonNullString("id"),
+                        false
                 );
             }
         }

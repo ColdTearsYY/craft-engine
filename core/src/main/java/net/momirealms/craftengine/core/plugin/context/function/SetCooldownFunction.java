@@ -18,7 +18,11 @@ public final class SetCooldownFunction<CTX extends Context> extends AbstractCond
     private final String id;
     private final boolean add;
 
-    private SetCooldownFunction(List<Condition<CTX>> predicates, String id, boolean add, PlayerSelector<CTX> selector, TextProvider time) {
+    private SetCooldownFunction(List<Condition<CTX>> predicates,
+                                PlayerSelector<CTX> selector,
+                                boolean add,
+                                String id,
+                                TextProvider time) {
         super(predicates);
         this.time = time;
         this.add = add;
@@ -61,9 +65,9 @@ public final class SetCooldownFunction<CTX extends Context> extends AbstractCond
         public SetCooldownFunction<CTX> create(ConfigSection section) {
             return new SetCooldownFunction<>(
                     getPredicates(section),
-                    section.getNonNullString("id"),
-                    section.getBoolean("add"),
                     getPlayerSelector(section),
+                    section.getBoolean("add"),
+                    section.getNonNullString("id"),
                     TextProviders.fromString(section.getNonNullString("time"))
             );
         }

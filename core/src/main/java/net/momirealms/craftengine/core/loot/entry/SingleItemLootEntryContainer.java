@@ -35,14 +35,15 @@ public class SingleItemLootEntryContainer<T> extends AbstractSingleLootEntryCont
     }
 
     private static class Factory<A> implements LootEntryContainerFactory<A> {
+        private static final String[] ITEM = new String[]{"item", "id"};
 
         @Override
         public LootEntryContainer<A> create(ConfigSection section) {
             return new SingleItemLootEntryContainer<>(
-                    section.getNonNullIdentifier("item", "id"),
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
-                    section.parseSectionList(LootFunctions::fromConfig, "functions"),
-                    section.getInt(1, "weight"),
+                    section.getNonNullIdentifier(ITEM),
+                    section.getList("conditions", CommonConditions::fromConfig),
+                    section.getList("functions", LootFunctions::fromConfig),
+                    section.getInt("weight", 1),
                     section.getInt("quality")
             );
         }

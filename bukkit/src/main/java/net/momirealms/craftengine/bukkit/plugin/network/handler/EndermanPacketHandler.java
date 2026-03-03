@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class EndermanPacketHandler implements EntityPacketHandler {
+public final class EndermanPacketHandler implements EntityPacketHandler {
     public static final EndermanPacketHandler INSTANCE = new EndermanPacketHandler();
 
     @Override

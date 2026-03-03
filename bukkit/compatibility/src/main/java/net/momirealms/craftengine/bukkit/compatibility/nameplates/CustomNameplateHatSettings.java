@@ -6,9 +6,9 @@ import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.CustomItemSettingType;
 import net.momirealms.craftengine.core.item.Item;
-import net.momirealms.craftengine.core.item.ItemSettings;
+import net.momirealms.craftengine.core.item.ItemSettingsModifiers;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.customnameplates.api.CNPlayer;
 import net.momirealms.customnameplates.api.CustomNameplates;
@@ -30,10 +30,7 @@ public final class CustomNameplateHatSettings implements Listener {
     public static final CustomItemSettingType<Double> HAT_HEIGHT = CustomItemSettingType.simple();
 
     public void register() {
-        ItemSettings.Modifiers.registerFactory("hat-height", height -> {
-            double heightD = ResourceConfigUtils.getAsDouble(height, "hat-height");
-            return settings -> settings.addCustomData(HAT_HEIGHT, heightD);
-        });
+        ItemSettingsModifiers.register(Key.ce("hat_height"), value -> settings -> settings.addCustomData(HAT_HEIGHT, value.getAsDouble()));
         Bukkit.getPluginManager().registerEvents(this, BukkitCraftEngine.instance().javaPlugin());
     }
 

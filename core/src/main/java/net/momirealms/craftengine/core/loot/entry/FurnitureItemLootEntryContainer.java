@@ -45,9 +45,9 @@ public final class FurnitureItemLootEntryContainer<T> extends SingleItemLootEntr
         public LootEntryContainer<A> create(ConfigSection section) {
             return new FurnitureItemLootEntryContainer<>(
                     section.getIdentifier("item"),
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
-                    section.parseSectionList(LootFunctions::fromConfig, "functions"),
-                    section.getInt(1, "weight"),
+                    section.getList("conditions", CommonConditions::fromConfig),
+                    section.getList("functions", LootFunctions::fromConfig),
+                    section.getInt("weight", 1),
                     section.getInt("quality")
             );
         }

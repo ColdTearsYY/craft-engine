@@ -3,11 +3,11 @@ package net.momirealms.craftengine.core.plugin.context.function;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootTable;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -22,7 +22,12 @@ public final class DropLootFunction<CTX extends Context> extends AbstractConditi
     private final LootTable<?> lootTable;
     private final boolean toInv;
 
-    private DropLootFunction(List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, LootTable<?> lootTable, boolean toInv) {
+    private DropLootFunction(List<Condition<CTX>> predicates,
+                             NumberProvider x,
+                             NumberProvider y,
+                             NumberProvider z,
+                             LootTable<?> lootTable,
+                             boolean toInv) {
         super(predicates);
         this.x = x;
         this.y = y;
@@ -56,6 +61,8 @@ public final class DropLootFunction<CTX extends Context> extends AbstractConditi
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, DropLootFunction<CTX>> {
+        private static final String[] LOOT = new String[] {"loot", "loots"};
+        private static final String[] TO_INVENTORY = new String[] {"to_inventory", "to-inventory"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -65,11 +72,11 @@ public final class DropLootFunction<CTX extends Context> extends AbstractConditi
         public DropLootFunction<CTX> create(ConfigSection section) {
             return new DropLootFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    LootTable.fromConfig(section.getNonNullSection("loot", "loots")),
-                    section.getBoolean("to_inventory", "to-inventory")
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z),
+                    LootTable.fromConfig(section.getNonNullSection(LOOT)),
+                    section.getBoolean(TO_INVENTORY)
             );
         }
     }

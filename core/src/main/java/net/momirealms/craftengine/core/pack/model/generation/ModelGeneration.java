@@ -43,12 +43,14 @@ public final class ModelGeneration implements Supplier<JsonObject> {
         this.guiLight = guiLight;
     }
 
+    private static final String[] GUI_LIGHT = new String[]{"gui_light", "gui-light"};
+
     public static ModelGeneration of(Key path, ConfigSection section) {
         return builder()
                 .path(path)
                 .parentModelPath(section.getNonNullIdentifier("parent"))
-                .guiLight(section.getEnum(null, GuiLight.class, "gui_light", "gui-light"))
-                .displays(section.getValue(v -> {
+                .guiLight(section.getEnum(GUI_LIGHT, GuiLight.class))
+                .displays(section.getValue("display", v -> {
                     Map<DisplayPosition, DisplayMeta> displays = new EnumMap<>(DisplayPosition.class);
                     ConfigSection displaySection = v.getAsSection();
                     for (String displayType : displaySection.keySet()) {
@@ -58,11 +60,11 @@ public final class ModelGeneration implements Supplier<JsonObject> {
                         } catch (IllegalArgumentException e) {
                             throw new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, displaySection.path(), displayType, EnumUtils.toString(DisplayPosition.values()));
                         }
-                        displays.put(position, displaySection.getValue(ConfigValue::getAsDisplayMeta, displayType));
+                        displays.put(position, displaySection.getValue(displayType, a -> DisplayMeta.fromConfig(a.getAsSection())));
                     }
                     return displays;
-                }, "display"))
-                .texturesOverride(section.getValue(v -> {
+                }))
+                .texturesOverride(section.getValue("textures", v -> {
                     ConfigSection texturesSection = v.getAsSection();
                     Map<String, String> texturesOverride = new LinkedHashMap<>();
                     for (String key : texturesSection.keySet()) {
@@ -76,7 +78,7 @@ public final class ModelGeneration implements Supplier<JsonObject> {
                         }
                     }
                     return texturesOverride;
-                }, "textures"))
+                }))
                 .build();
     }
 

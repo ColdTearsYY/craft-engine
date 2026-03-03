@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.core.block.properties;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.sparrow.nbt.ByteTag;
 import net.momirealms.sparrow.nbt.Tag;
 

@@ -33,7 +33,7 @@ import org.incendo.cloud.suggestion.SuggestionProvider;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
-public class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
+public final class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
 
     public GiveItemCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

@@ -287,19 +287,20 @@ public final class BedBlockBehavior extends BukkitBlockBehavior implements Entit
     }
 
     private static class Factory implements BlockBehaviorFactory<BedBlockBehavior> {
+        private static final String[] SLEEP_OFFSET = new String[] {"sleep_offset", "sleep-offset"};
 
         @Override
         public BedBlockBehavior create(CustomBlock block, ConfigSection section) {
             if (!VersionHelper.isOrAbove1_20_2()) {
                 throw new UnsupportedOperationException("bed_block requires at least 1.20.2");
             }
-            List<SeatConfig> seat = section.parseList(value -> SeatConfig.fromString(value.path(), value.getAsString()), "seat");
-            SeatConfig onlySeat = seat.isEmpty() ? new SeatConfig(new Vector3f(0, 0, 0), 0, true) : seat.getFirst();
+            List<SeatConfig> seat = section.getList("seat", SeatConfig::fromConfig);
+            SeatConfig onlySeat = seat.isEmpty() ? new SeatConfig(ConfigConstants.ZERO_VECTOR3, 0, true) : seat.getFirst();
             return new BedBlockBehavior(
                     block,
                     BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "part", BedPart.class), onlySeat,
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "sleep_offset", "sleep-offset")
+                    section.getVector3f(SLEEP_OFFSET, ConfigConstants.ZERO_VECTOR3)
             );
         }
     }

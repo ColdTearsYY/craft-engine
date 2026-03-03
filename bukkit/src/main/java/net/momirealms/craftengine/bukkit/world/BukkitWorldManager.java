@@ -719,15 +719,20 @@ public final class BukkitWorldManager implements WorldManager, Listener {
             return List.of(LoadingStages.CONFIGURED_FEATURE);
         }
 
+        private static final String[] BIOME = new String[] {"biome", "biomes"};
+        private static final String[] WORLD = new String[] {"world", "worlds"};
+        private static final String[] DIMENSION = new String[] {"dimension", "dimensions"};
+        private static final String[] ENVIRONMENT = new String[] {"environment", "environments", "dimension-type", "dimension-types", "dimension_type", "dimension_types"};
+
         @Override
         protected void parseSection(Pack pack, Path path, Key id, ConfigSection rawSection) {
             ConfigSection section = ConfigSection.ofSamePath(rawSection, processFeatureSection(rawSection.values()));
 
             // 自定义筛选条件
-            Predicate<Key> biomeFilter = parseFilter(section.getStringList("biome", "biomes").stream(), Key::of);
-            Predicate<String> worldFilter = parseFilter(section.getStringList("world", "worlds").stream(), Function.identity());
-            Predicate<Key> environmentFilter = parseFilter(section.getStringList("dimension", "dimensions").stream(), Key::of);
-            Predicate<Key> dimensionTypeFilter = parseFilter(section.getStringList("environment", "environments", "dimension-type", "dimension-types", "dimension_type", "dimension_types").stream(), Key::of);
+            Predicate<Key> biomeFilter = parseFilter(section.getStringList(BIOME).stream(), Key::of);
+            Predicate<String> worldFilter = parseFilter(section.getStringList(WORLD).stream(), Function.identity());
+            Predicate<Key> environmentFilter = parseFilter(section.getStringList(DIMENSION).stream(), Key::of);
+            Predicate<Key> dimensionTypeFilter = parseFilter(section.getStringList(ENVIRONMENT).stream(), Key::of);
 
             // 解析feature
             Object rawFeature = section.get("feature");
@@ -750,11 +755,11 @@ public final class BukkitWorldManager implements WorldManager, Listener {
                 }
             }
             if (configuredFeature == null) {
-                throw new KnownResourceException("resource.missing_argument", section.path(), "feature", TranslationManager.instance().translate(ConfigSection.ARGUMENT_SECTION));
+                throw new KnownResourceException("resource.missing_argument", section.path(), "feature", TranslationManager.instance().translate(ConfigConstants.ARGUMENT_SECTION));
             }
 
             // 解析 placements
-            List<Object> placements = section.parseSectionList((s -> {
+            List<Object> placements = section.getSectionList("placement", (s -> {
                 String type = s.getString("type");
                 if ("biome".equals(type) || "minecraft:biome".equals(type)) {
                     return FastNMS.INSTANCE.createBiomePlacementFilter(biomeFilter);
@@ -771,9 +776,9 @@ public final class BukkitWorldManager implements WorldManager, Listener {
                         throw new KnownResourceException("resource.placed_feature.invalid_placement", s.path(), json.toString(), error);
                     });
                 }
-            }), "placement");
+            }));
             if (placements.isEmpty()) {
-                throw new KnownResourceException("resource.missing_argument", section.path(), "placement", TranslationManager.instance().translate(ConfigSection.ARGUMENT_SECTION));
+                throw new KnownResourceException("resource.missing_argument", section.path(), "placement", TranslationManager.instance().translate(ConfigConstants.ARGUMENT_SECTION));
             }
 
             // 构造 placed feature 实例

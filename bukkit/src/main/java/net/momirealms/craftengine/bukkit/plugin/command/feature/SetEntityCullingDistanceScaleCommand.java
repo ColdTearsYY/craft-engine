@@ -14,7 +14,7 @@ import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.parser.PlayerParser;
 import org.incendo.cloud.parser.standard.DoubleParser;
 
-public class SetEntityCullingDistanceScaleCommand extends BukkitCommandFeature<CommandSender> {
+public final class SetEntityCullingDistanceScaleCommand extends BukkitCommandFeature<CommandSender> {
 
     public SetEntityCullingDistanceScaleCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

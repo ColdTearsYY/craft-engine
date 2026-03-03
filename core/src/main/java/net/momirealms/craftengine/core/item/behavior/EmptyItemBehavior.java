@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.util.Key;
 
 import java.nio.file.Path;
 
-public class EmptyItemBehavior extends ItemBehavior {
+public final class EmptyItemBehavior extends ItemBehavior {
     public static final ItemBehaviorFactory<EmptyItemBehavior> FACTORY = new Factory();
     public static final EmptyItemBehavior INSTANCE = new EmptyItemBehavior();
 

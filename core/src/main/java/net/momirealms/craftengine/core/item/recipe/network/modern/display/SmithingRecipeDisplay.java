@@ -40,11 +40,11 @@ public record SmithingRecipeDisplay<I>(SlotDisplay<I> template, SlotDisplay<I> b
     @Override
     public @NotNull String toString() {
         return "SmithingRecipeDisplay{" +
-                "addition=" + addition +
-                ", template=" + template +
-                ", base=" + base +
-                ", result=" + result +
-                ", craftingStation=" + craftingStation +
+                "addition=" + this.addition +
+                ", template=" + this.template +
+                ", base=" + this.base +
+                ", result=" + this.result +
+                ", craftingStation=" + this.craftingStation +
                 '}';
     }
 }

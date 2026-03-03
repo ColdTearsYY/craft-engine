@@ -1,15 +1,13 @@
 package net.momirealms.craftengine.core.item.recipe.remainder;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
 import java.util.List;
@@ -37,5 +35,16 @@ public final class CraftRemainders {
             throw new KnownResourceException("resource.item.settings.craft_remainder.unknown_type", section.assemblePath("type"), key.asString());
         }
         return craftRemainderType.factory().create(section);
+    }
+
+    public static CraftRemainder fromConfig(ConfigValue value) {
+        if (value.is(Map.class)) {
+            return CraftRemainders.fromConfig(value.getAsSection());
+        } else if (value.is(List.class)) {
+            List<CraftRemainder> list = value.getAsList(CraftRemainders::fromConfig);
+            return new CompositeCraftRemainder(list.toArray(new CraftRemainder[0]));
+        } else {
+            return new FixedCraftRemainder(value.getAsIdentifier(), ConfigConstants.CONSTANT_ONE);
+        }
     }
 }

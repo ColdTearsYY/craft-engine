@@ -16,7 +16,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
 
-public class CrafterEventListener implements Listener {
+public final class CrafterEventListener implements Listener {
     private final ItemManager<ItemStack> itemManager;
     private final BukkitRecipeManager recipeManager;
     private final BukkitCraftEngine plugin;

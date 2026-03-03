@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class BukkitPackManager extends AbstractPackManager implements Listener {
+public final class BukkitPackManager extends AbstractPackManager implements Listener {
     private final BukkitCraftEngine plugin;
 
     public BukkitPackManager(BukkitCraftEngine plugin) {

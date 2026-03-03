@@ -6,7 +6,6 @@ import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheP
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 
 public final class NoteBlockChainUpdateUtils {
-
     private NoteBlockChainUpdateUtils() {}
 
     // TODO 都在一个区块内，应该优化到区块内的方块getter

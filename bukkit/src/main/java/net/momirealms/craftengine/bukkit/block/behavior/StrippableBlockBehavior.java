@@ -37,13 +37,14 @@ public final class StrippableBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<StrippableBlockBehavior> {
+        private static final String[] EXCLUDED_PROPERTIES = new String[] {"excluded_properties", "excluded-properties"};
 
         @Override
         public StrippableBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new StrippableBlockBehavior(
                     block,
                     section.getNonNullString("stripped"),
-                    section.getStringList("excluded_properties", "excluded-properties")
+                    section.getStringList(EXCLUDED_PROPERTIES)
             );
         }
     }

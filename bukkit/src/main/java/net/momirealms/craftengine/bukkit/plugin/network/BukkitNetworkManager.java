@@ -209,7 +209,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-public class BukkitNetworkManager extends AbstractNetworkManager implements Listener {
+public final class BukkitNetworkManager extends AbstractNetworkManager implements Listener {
     private static BukkitNetworkManager instance;
     private final BukkitCraftEngine plugin;
     private final Map<Class<?>, NMSPacketListener> nmsPacketListeners = new IdentityHashMap<>(128);
@@ -1312,6 +1312,7 @@ public class BukkitNetworkManager extends AbstractNetworkManager implements List
         @Override
         public void onPacketSend(NetWorkUser user, NMSPacketEvent event, Object packet) {
             if (!Config.interceptPlayerInfo()) return;
+            // todo 是不是有问题？
             List<Object> entries = ClientboundPlayerInfoUpdatePacketProxy.INSTANCE.getEntries(packet);
             if (entries instanceof MarkedArrayList) {
                 return;

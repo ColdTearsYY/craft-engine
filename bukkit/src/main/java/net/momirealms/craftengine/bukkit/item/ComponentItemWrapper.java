@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ComponentItemWrapper implements ItemWrapper<ItemStack> {
+public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
     private final ItemStack item;
     private final Object handle;
     private ItemType itemType;

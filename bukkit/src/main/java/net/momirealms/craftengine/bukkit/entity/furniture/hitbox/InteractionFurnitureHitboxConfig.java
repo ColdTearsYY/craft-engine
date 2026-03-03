@@ -9,7 +9,6 @@ import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.core.world.collision.AABB;
@@ -20,7 +19,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<InteractionFurnitureHitbox> {
-    public static final Factory FACTORY = new Factory();
+    public static final FurnitureHitBoxConfigFactory<InteractionFurnitureHitbox> FACTORY = new Factory();
     public static final InteractionFurnitureHitboxConfig DEFAULT = new InteractionFurnitureHitboxConfig();
     public final Vector3f size;
     public final boolean responsive;
@@ -83,7 +82,10 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
         return new InteractionFurnitureHitbox(furniture, this);
     }
 
-    public static class Factory implements FurnitureHitBoxConfigFactory<InteractionFurnitureHitbox> {
+    private static class Factory implements FurnitureHitBoxConfigFactory<InteractionFurnitureHitbox> {
+        private static final String[] CAN_USE_ITEM_ON = new String[] {"can_use_item_on", "can-use-item-on"};
+        private static final String[] BLOCKS_BUILDING = new String[] {"blocks_building", "blocks-building"};
+        private static final String[] CAN_BE_HIT_BY_PROJECTILE = new String[] {"can_be_hit_by_projectile", "can-be-hit-by-projectile"};
 
         @Override
         public InteractionFurnitureHitboxConfig create(ConfigSection section) {
@@ -91,22 +93,22 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
             float height;
             ConfigValue optionalScale = section.getValue("scale");
             if (optionalScale != null) {
-                ConfigValue[] split = optionalScale.getSplitValuesRestrict(",", 2);
+                ConfigValue[] split = optionalScale.splitValuesRestrict(",", 2);
                 width = split[0].getAsFloat();
                 height = split[1].getAsFloat();
             } else {
-                width = section.getFloat(1f, "width");
-                height = section.getFloat(1f, "height");
+                width = section.getFloat("width", 1f);
+                height = section.getFloat("height", 1f);
             }
             return new InteractionFurnitureHitboxConfig(
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "seats").getAsSeats(),
-                    section.getValueOrDefault(ConfigValue::getAsVector3f, ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getBoolean(true, "can_use_item_on", "can-use-item-on"),
-                    section.getBoolean(true, "blocks_building", "blocks-building"),
-                    section.getBoolean(true, "can_be_hit_by_projectile", "can-be-hit-by-projectile"),
+                    section.getList("seats", SeatConfig::fromConfig).toArray(new SeatConfig[0]),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean(CAN_USE_ITEM_ON, true),
+                    section.getBoolean(BLOCKS_BUILDING, true),
+                    section.getBoolean(CAN_BE_HIT_BY_PROJECTILE, true),
                     section.getBoolean("invisible"),
                     new Vector3f(width, height, width),
-                    section.getBoolean(true, "interactive")
+                    section.getBoolean("interactive", true)
             );
         }
     }

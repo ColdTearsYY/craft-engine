@@ -4,9 +4,7 @@ import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.condition.ConditionFactory;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.util.CharacterUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 public record ContainsPathMatcher(String path) implements Condition<PathContext> {
     public static final ConditionFactory<PathContext, ContainsPathMatcher> FACTORY = new Factory();

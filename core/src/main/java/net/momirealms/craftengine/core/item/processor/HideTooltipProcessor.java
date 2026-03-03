@@ -232,7 +232,7 @@ public final class HideTooltipProcessor implements ItemProcessor {
 
         @Override
         public HideTooltipProcessor create(ConfigValue value) {
-            return new HideTooltipProcessor(value.parseAsList(ConfigValue::getAsIdentifier));
+            return new HideTooltipProcessor(value.getAsList(ConfigValue::getAsIdentifier));
         }
     }
 }

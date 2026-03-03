@@ -42,11 +42,11 @@ public record ShapedCraftingRecipeDisplay<I>(int width, int height, List<SlotDis
     @Override
     public @NotNull String toString() {
         return "ShapedCraftingRecipeDisplay{" +
-                "craftingStation=" + craftingStation +
-                ", width=" + width +
-                ", height=" + height +
-                ", ingredients=" + ingredients +
-                ", result=" + result +
+                "craftingStation=" + this.craftingStation +
+                ", width=" + this.width +
+                ", height=" + this.height +
+                ", ingredients=" + this.ingredients +
+                ", result=" + this.result +
                 '}';
     }
 }

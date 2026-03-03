@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class DebugAutoStateUsageCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugAutoStateUsageCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugAutoStateUsageCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

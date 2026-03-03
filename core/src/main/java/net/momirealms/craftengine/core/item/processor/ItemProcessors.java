@@ -71,21 +71,19 @@ public final class ItemProcessors {
     }
 
     public static void collectProcessors(ConfigSection dataSection, Consumer<ItemProcessor> callback) {
-        ExceptionCollector<KnownResourceException> errorCollector = new ExceptionCollector<>();
+        ExceptionCollector<KnownResourceException> errorCollector = new ExceptionCollector<>(KnownResourceException.class);
         if (dataSection != null) {
             for (String type : dataSection.keySet()) {
                 ConfigValue value = dataSection.getValue(type);
                 if (value == null) continue;
                 String key = StringUtils.normalizeSettingsType(type);
-                Optional.ofNullable(BuiltInRegistries.ITEM_PROCESSOR_TYPE.getValue(Key.ce(key))).ifPresent(processorType -> {
-                    try {
+                errorCollector.runCatching(() -> {
+                    Optional.ofNullable(BuiltInRegistries.ITEM_PROCESSOR_TYPE.getValue(Key.ce(key))).ifPresent(processorType -> {
                         ItemProcessorFactory<? extends ItemProcessor> factory = processorType.factory();
                         if (factory != null) {
                             callback.accept(factory.create(value));
                         }
-                    } catch (KnownResourceException e) {
-                        errorCollector.add(e);
-                    }
+                    });
                 });
             }
         }

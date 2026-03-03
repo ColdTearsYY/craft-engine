@@ -10,7 +10,6 @@ import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import org.bukkit.inventory.ItemStack;
@@ -22,7 +21,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public final class ItemBlockEntityElementConfig implements BlockEntityElementConfig<ItemBlockEntityElement> {
-    public static final Factory FACTORY = new Factory();
+    public static final BlockEntityElementConfigFactory<ItemBlockEntityElement> FACTORY = new Factory();
     public final Function<Player, List<Object>> lazyMetadataPacket;
     public final Key itemId;
     public final Vector3f position;
@@ -66,11 +65,11 @@ public final class ItemBlockEntityElementConfig implements BlockEntityElementCon
     }
 
     public Vector3f position() {
-        return position;
+        return this.position;
     }
 
     public Key itemId() {
-        return itemId;
+        return this.itemId;
     }
 
     public List<Object> metadataValues(Player player) {
@@ -81,13 +80,13 @@ public final class ItemBlockEntityElementConfig implements BlockEntityElementCon
         return this.position.equals(that.position);
     }
 
-    public static class Factory implements BlockEntityElementConfigFactory<ItemBlockEntityElement> {
+    private static class Factory implements BlockEntityElementConfigFactory<ItemBlockEntityElement> {
 
         @Override
         public ItemBlockEntityElementConfig create(ConfigSection section) {
             return new ItemBlockEntityElementConfig(
                     section.getNonNullIdentifier("item"),
-                    section.getVector3f(ConfigConstants.CENTER_VECTOR3, "position")
+                    section.getVector3f("position", ConfigConstants.CENTER_VECTOR3)
             );
         }
     }

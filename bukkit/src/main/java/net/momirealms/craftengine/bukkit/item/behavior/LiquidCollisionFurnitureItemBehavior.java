@@ -4,7 +4,6 @@ import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurnitureManager
 import net.momirealms.craftengine.bukkit.util.DirectionUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.entity.furniture.AlignmentRule;
-import net.momirealms.craftengine.core.entity.furniture.AnchorType;
 import net.momirealms.craftengine.core.entity.furniture.RotationRule;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
@@ -12,16 +11,11 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockHitResult;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -38,7 +32,9 @@ import net.momirealms.craftengine.proxy.minecraft.world.phys.HitResultProxy;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBehavior {
     public static final ItemBehaviorFactory<LiquidCollisionFurnitureItemBehavior> FACTORY = new Factory();
@@ -97,8 +93,8 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
         @SuppressWarnings("DuplicatedCode")
         @Override
         public LiquidCollisionFurnitureItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            ConfigValue furnitureValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "furniture");
-            ConfigSection rulesSection = section.getValue(ConfigValue::getAsSection, "rules");
+            ConfigValue furnitureValue = section.getNonNullValue("furniture", ConfigConstants.ARGUMENT_SECTION);
+            ConfigSection rulesSection = section.getValue("rules", ConfigValue::getAsSection);
 
             Map<String, Rule> rules = new HashMap<>();
             Key furnitureId;
@@ -115,8 +111,8 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
                                 ConfigSection varSection = placementSection.getNonNullSection(anchorType);
                                 ConfigSection ruleSection = varSection.getSection("rules");
                                 if (ruleSection != null) {
-                                    AlignmentRule alignmentRule = ruleSection.getEnum(AlignmentRule.ANY, AlignmentRule.class, "alignment");
-                                    RotationRule rotationRule = ruleSection.getEnum(RotationRule.ANY, RotationRule.class, "rotation");
+                                    AlignmentRule alignmentRule = ruleSection.getEnum("alignment", AlignmentRule.class, AlignmentRule.ANY);
+                                    RotationRule rotationRule = ruleSection.getEnum("rotation", RotationRule.class, RotationRule.ANY);
                                     rules.put(anchorType, new Rule(alignmentRule, rotationRule));
                                 }
                             }
@@ -129,19 +125,24 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
             if (rulesSection != null) {
                 for (String variant : rulesSection.keySet()) {
                     ConfigSection ruleSection = rulesSection.getNonNullSection(variant);
-                    AlignmentRule alignmentRule = ruleSection.getEnum(AlignmentRule.ANY, AlignmentRule.class, "alignment");
-                    RotationRule rotationRule = ruleSection.getEnum(RotationRule.ANY, RotationRule.class, "rotation");
+                    AlignmentRule alignmentRule = ruleSection.getEnum("alignment", AlignmentRule.class, AlignmentRule.ANY);
+                    RotationRule rotationRule = ruleSection.getEnum("rotation", RotationRule.class, RotationRule.ANY);
                     rules.put(variant, new Rule(alignmentRule, rotationRule));
                 }
             }
             return new LiquidCollisionFurnitureItemBehavior(
                     furnitureId,
                     rules,
-                    section.getBoolean("ignore_placer", "ignore-placer"),
-                    section.getBoolean("ignore_entities", "ignore-entities"),
-                    section.getBoolean(true, "source_only", "source-only"),
-                    section.getStringList("liquid_type", "liquid-type")
+                    section.getBoolean(IGNORE_PLACER),
+                    section.getBoolean(IGNORE_ENTITIES),
+                    section.getBoolean(SOURCE_ONLY, true),
+                    section.getStringList(LIQUID_TYPE)
             );
         }
+
+        private static final String[] IGNORE_PLACER = new String[]{"ignore_placer", "ignore-placer"};
+        private static final String[] IGNORE_ENTITIES = new String[]{"ignore_entities", "ignore-entities"};
+        private static final String[] SOURCE_ONLY = new String[]{"source_only", "source-only"};
+        private static final String[] LIQUID_TYPE = new String[]{"liquid_type", "liquid-type"};
     }
 }

@@ -23,9 +23,11 @@ public final class BlockStateSelectProperty implements SelectProperty {
     }
 
     private static class Factory implements SelectPropertyFactory<BlockStateSelectProperty> {
+        private static final String[] BLOCK_STATE_PROPERTY = new String[] {"block_state_property", "block-state-property"};
+
         @Override
         public BlockStateSelectProperty create(ConfigSection section) {
-            return new BlockStateSelectProperty(section.getNonNullString("block_state_property", "block-state-property"));
+            return new BlockStateSelectProperty(section.getNonNullString(BLOCK_STATE_PROPERTY));
         }
     }
 

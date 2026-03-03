@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.pack.mcmeta.PackVersion;
 
 import java.util.*;
 
-public class MinecraftVersion implements Comparable<MinecraftVersion> {
+public final class MinecraftVersion implements Comparable<MinecraftVersion> {
     private static final Map<Integer, PackVersion> PACK_FORMATS = new HashMap<>();
 
     static {
@@ -130,29 +130,29 @@ public class MinecraftVersion implements Comparable<MinecraftVersion> {
     }
 
     public boolean isAtOrAbove(MinecraftVersion other) {
-        return version >= other.version;
+        return this.version >= other.version;
     }
 
     public boolean isAtOrBelow(MinecraftVersion other) {
-        return version <= other.version;
+        return this.version <= other.version;
     }
 
     public boolean is(MinecraftVersion other) {
-        return version == other.version;
+        return this.version == other.version;
     }
 
     public boolean isBelow(MinecraftVersion other) {
-        return version < other.version;
+        return this.version < other.version;
     }
 
     public boolean isAbove(MinecraftVersion other) {
-        return version > other.version;
+        return this.version > other.version;
     }
 
     @Override
     public boolean equals(Object object) {
         if (!(object instanceof MinecraftVersion that)) return false;
-        return version == that.version;
+        return this.version == that.version;
     }
 
     @Override

@@ -2,7 +2,7 @@ package net.momirealms.craftengine.core.world;
 
 import net.momirealms.craftengine.core.util.MiscUtils;
 
-public class Vec3d implements Position {
+public final class Vec3d implements Position {
     public static final Vec3d ZERO = new Vec3d(0, 0, 0);
     public final double x;
     public final double y;

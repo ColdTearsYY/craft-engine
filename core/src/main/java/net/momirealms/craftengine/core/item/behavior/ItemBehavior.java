@@ -18,5 +18,5 @@ public abstract class ItemBehavior {
         return InteractionResult.PASS;
     }
 
-    public void breakBlock(World world, Player player, BlockPos pos) {}
+    public void onBreakBlock(World world, Player player, BlockPos pos) {}
 }

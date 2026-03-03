@@ -12,7 +12,7 @@ import net.momirealms.craftengine.core.world.chunk.storage.WorldDataStorage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BukkitCEWorld extends CEWorld {
+public final class BukkitCEWorld extends CEWorld {
 
     public BukkitCEWorld(World world, StorageAdaptor adaptor) {
         super(world, adaptor);

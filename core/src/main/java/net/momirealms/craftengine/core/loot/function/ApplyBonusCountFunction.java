@@ -41,7 +41,7 @@ public final class ApplyBonusCountFunction<T> extends AbstractLootConditionalFun
         @Override
         public LootFunction<T> create(ConfigSection section) {
             return new ApplyBonusCountFunction<>(
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
+                    section.getList("conditions", CommonConditions::fromConfig),
                     section.getNonNullIdentifier("enchantment"),
                     Formulas.fromConfig(section.getNonNullSection("formula"))
             );

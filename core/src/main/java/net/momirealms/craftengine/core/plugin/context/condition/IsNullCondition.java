@@ -25,10 +25,11 @@ public final class IsNullCondition<CTX extends Context> implements Condition<CTX
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, IsNullCondition<CTX>> {
+        private static final String[] ARGUMENT = new String[] {"argument", "arg"};
 
         @Override
         public IsNullCondition<CTX> create(ConfigSection section) {
-            return new IsNullCondition<>(ContextKey.chain(section.getNonNullString("argument", "arg")));
+            return new IsNullCondition<>(ContextKey.chain(section.getNonNullString(ARGUMENT)));
         }
     }
 }

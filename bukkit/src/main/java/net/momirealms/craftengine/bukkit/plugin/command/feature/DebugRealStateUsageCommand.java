@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DebugRealStateUsageCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugRealStateUsageCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugRealStateUsageCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-public class ReflectionUtils {
+public final class ReflectionUtils {
     public static final Unsafe UNSAFE;
     public static final MethodHandles.Lookup LOOKUP;
     private static final MethodHandle methodHandle$MethodHandleNatives$refKindIsSetter;

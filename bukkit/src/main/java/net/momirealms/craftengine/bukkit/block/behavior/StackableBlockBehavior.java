@@ -72,14 +72,15 @@ public final class StackableBlockBehavior extends BukkitBlockBehavior implements
     }
 
     private static class Factory implements BlockBehaviorFactory<StackableBlockBehavior> {
+        private static final String[] ITEMS = new String[] {"items", "item"};
 
         @Override
         public StackableBlockBehavior create(CustomBlock block, ConfigSection section) {
-            String propertyName = section.getDefaultedString("amount", "property");
+            String propertyName = section.getString("property", "amount");
             return new StackableBlockBehavior(
                     block,
                     (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, propertyName, Integer.class),
-                    section.parseList(ConfigValue::getAsIdentifier, "items", "item"),
+                    section.getList(ITEMS, ConfigValue::getAsIdentifier),
                     propertyName
             );
         }

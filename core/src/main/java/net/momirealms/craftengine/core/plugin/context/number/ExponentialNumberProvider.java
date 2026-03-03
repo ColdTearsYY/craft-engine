@@ -51,11 +51,12 @@ public record ExponentialNumberProvider(
     }
 
     private static class Factory implements NumberProviderFactory<ExponentialNumberProvider> {
+        private static final String[] MAX_ATTEMPTS = new String[] {"max_attempts", "max-attempts"};
 
         @Override
         public ExponentialNumberProvider create(ConfigSection section) {
-            double min = section.getDouble(0d, "min");
-            double max = section.getDouble(Double.MAX_VALUE, "max");
+            double min = section.getDouble("min", 0d);
+            double max = section.getDouble("max", Double.MAX_VALUE);
             
             // 如果用户没填 lambda，尝试从 mean (均值) 转换
             // 指数分布中: mean = 1/lambda
@@ -67,7 +68,7 @@ public record ExponentialNumberProvider(
                 lambda = section.getNonNullDouble("lambda");
             }
             
-            int maxAttempts = section.getInt(64, "max_attempts", "max-attempts");
+            int maxAttempts = section.getInt(MAX_ATTEMPTS, 64);
             validateParameters(section.path(), min, max, lambda, maxAttempts);
             return new ExponentialNumberProvider(min, max, lambda, maxAttempts);
         }

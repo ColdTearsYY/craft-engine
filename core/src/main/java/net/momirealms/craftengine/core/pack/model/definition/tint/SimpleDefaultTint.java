@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.pack.model.definition.tint;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,11 +36,13 @@ public final class SimpleDefaultTint implements Tint {
     }
 
     private static class Factory implements TintFactory<SimpleDefaultTint> {
+        private static final String[] DEFAULT = new String[]{"default", "value"};
+
         @Override
         public SimpleDefaultTint create(ConfigSection section) {
             return new SimpleDefaultTint(
                     section.getNonNullIdentifier("type"),
-                    section.getValue(ConfigValue::getAsTint, "default", "value")
+                    section.getValue(DEFAULT, Tints::getTintValue)
             );
         }
     }

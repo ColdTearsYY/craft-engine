@@ -132,33 +132,45 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
     }
 
     private static class Factory implements FurnitureElementConfigFactory<TextDisplayFurnitureElement> {
+        private static final String[] SHADOW_RADIUS = new String[] {"shadow_radius", "shadow-radius"};
+        private static final String[] SHADOW_STRENGTH = new String[] {"shadow_strength", "shadow-strength"};
+        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
+        private static final String[] BLOCK_LIGHT = new String[] {"block_light", "block-light"};
+        private static final String[] SKY_LIGHT = new String[] {"sky_light", "sky-light"};
+        private static final String[] VIEW_RANGE = new String[] {"view_range", "view-range"};
+        private static final String[] LINE_WIDTH = new String[] {"line_width", "line-width"};
+        private static final String[] BACKGROUND_COLOR = new String[] {"background_color", "background-color"};
+        private static final String[] TEXT_OPACITY = new String[] {"text_opacity", "text-opacity"};
+        private static final String[] HAS_SHADOW = new String[] {"has_shadow", "has-shadow"};
+        private static final String[] IS_SEE_THROUGH = new String[] {"is_see_through", "is-see-through"};
+        private static final String[] USE_DEFAULT_BACKGROUND_COLOR = new String[] {"use_default_background_color", "use-default-background-color"};
 
         @Override
         public TextDisplayFurnitureElementConfig create(ConfigSection section) {
             ConfigSection brightness = section.getSection("brightness");
-            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+            List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
             return new TextDisplayFurnitureElementConfig(
                     section.getNonNullString("text"),
-                    section.getVector3f(ConfigConstants.NORMAL_SCALE, "scale"),
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "translation"),
-                    section.getFloat(0f, "pitch"),
-                    section.getFloat(0f, "yaw"),
-                    section.getQuaternionf(ConfigConstants.ZERO_QUATERNION, "rotation"),
-                    section.getEnum(Billboard.FIXED, Billboard.class, "billboard"),
-                    section.getFloat(0f, "shadow_radius", "shadow-radius"),
-                    section.getFloat(1f, "shadow_strength", "shadow-strength"),
-                    section.getValue(ConfigValue::getAsColor, "glow_color", "glow-color"),
-                    brightness != null ? brightness.getInt(-1, "block_light", "block-light") : -1,
-                    brightness != null ? brightness.getInt(-1, "sky_light", "sky-light") : -1,
-                    section.getFloat(1f, "view_range", "view-range"),
-                    section.getInt(200, "line_width", "line-width"),
-                    section.getOrDefault(o -> Color.fromStrings(o.toString().split(",")).color(), 0x40000000, "background-color"),
-                    (byte) section.getInt(-1, "opacity","text_opacity", "text-opacity"),
-                    section.getBoolean("shadow", "has_shadow", "has-shadow"),
-                    section.getBoolean("is_see_through", "is-see-through"),
-                    section.getBoolean("use_default_background_color", "use-default-background-color"),
-                    section.getEnum(TextDisplayAlignment.CENTER, TextDisplayAlignment.class, "alignment"),
+                    section.getVector3f("scale", ConfigConstants.NORMAL_SCALE),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getVector3f("translation", ConfigConstants.ZERO_VECTOR3),
+                    section.getFloat("pitch", 0f),
+                    section.getFloat("yaw", 0f),
+                    section.getQuaternion("rotation", ConfigConstants.ZERO_QUATERNION),
+                    section.getEnum("billboard", Billboard.class, Billboard.FIXED),
+                    section.getFloat(SHADOW_RADIUS, 0f),
+                    section.getFloat(SHADOW_STRENGTH, 1f),
+                    section.getValue(GLOW_COLOR, ConfigValue::getAsColor),
+                    brightness != null ? brightness.getInt(BLOCK_LIGHT, -1) : -1,
+                    brightness != null ? brightness.getInt(SKY_LIGHT, -1) : -1,
+                    section.getFloat(VIEW_RANGE, 1f),
+                    section.getInt(LINE_WIDTH, 200),
+                    section.getValue(BACKGROUND_COLOR, o -> o.getAsColor().color(), 0x40000000),
+                    (byte) section.getInt(TEXT_OPACITY, -1),
+                    section.getBoolean(HAS_SHADOW),
+                    section.getBoolean(IS_SEE_THROUGH),
+                    section.getBoolean(USE_DEFAULT_BACKGROUND_COLOR),
+                    section.getEnum("alignment", TextDisplayAlignment.class, TextDisplayAlignment.CENTER),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

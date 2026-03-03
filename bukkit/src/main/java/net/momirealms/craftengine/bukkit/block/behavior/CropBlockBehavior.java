@@ -18,7 +18,6 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.SimpleContext;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
@@ -195,16 +194,20 @@ public final class CropBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<CropBlockBehavior> {
+        private static final String[] GROW_SPEED = new String[]{"grow_speed", "grow-speed"};
+        private static final String[] LIGHT_REQUIREMENT = new String[]{"light_requirement", "light-requirement"};
+        private static final String[] IS_BONE_MEAL_TARGET = new String[]{"is_bone_meal_target", "is-bone-meal-target"};
+        private static final String[] AGE_BONUS = new String[]{"bone_meal_age_bonus", "bone-meal-age-bonus"};
 
         @Override
         public CropBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new CropBlockBehavior(
                     block,
                     BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
-                    section.getFloat(0.125f, "grow_speed", "grow-speed"),
-                    section.getInt(0, "light_requirement", "light-requirement"),
-                    section.getBoolean(true, "is_bone_meal_target", "is-bone-meal-target"),
-                    section.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "bone_meal_age_bonus", "bone-meal-age-bonus")
+                    section.getFloat(GROW_SPEED, 0.125f),
+                    section.getInt(LIGHT_REQUIREMENT),
+                    section.getBoolean(IS_BONE_MEAL_TARGET, true),
+                    section.getNumber(AGE_BONUS, ConfigConstants.CONSTANT_ONE)
             );
         }
     }

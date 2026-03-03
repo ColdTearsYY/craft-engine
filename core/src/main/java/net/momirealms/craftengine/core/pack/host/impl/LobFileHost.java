@@ -5,11 +5,8 @@ import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.GsonHelper;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -265,11 +262,13 @@ public final class LobFileHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<LobFileHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] API_KEY = new String[] {"api_key", "api-key"};
 
         @Override
         public LobFileHost create(ConfigSection section) {
-            boolean useEnv = section.getBoolean("use_environment_variables", "use-environment-variables");
-            String apiKey = useEnv ? System.getenv("CE_LOBFILE_API_KEY") : section.getNonEmptyString("api_key", "api-key");
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String apiKey = useEnv ? System.getenv("CE_LOBFILE_API_KEY") : section.getNonEmptyString(API_KEY);
             return new LobFileHost(apiKey, getProxySelector(section.getSection("proxy")));
         }
     }

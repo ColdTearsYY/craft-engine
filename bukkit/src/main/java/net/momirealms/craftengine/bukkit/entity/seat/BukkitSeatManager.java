@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 
-public class BukkitSeatManager implements SeatManager, Listener {
+public final class BukkitSeatManager implements SeatManager, Listener {
     private static BukkitSeatManager instance;
     public static final NamespacedKey SEAT_KEY = KeyUtils.toNamespacedKey(SeatManager.SEAT_KEY);
     public static final NamespacedKey SEAT_EXTRA_DATA_KEY = KeyUtils.toNamespacedKey(SeatManager.SEAT_EXTRA_DATA_KEY);

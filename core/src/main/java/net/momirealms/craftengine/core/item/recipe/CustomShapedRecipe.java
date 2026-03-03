@@ -11,13 +11,10 @@ import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
-import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -212,11 +209,11 @@ public final class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
         @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
         @Override
         public CustomShapedRecipe<A> readConfig(Key id, ConfigSection section) {
-            List<String> pattern = section.parseNonEmptyList(ConfigValue::getAsString, "pattern");
+            List<String> pattern = section.getNonEmptyList("pattern", ConfigValue::getAsString);
             if (!validatePattern(pattern)) {
                 throw new KnownResourceException("resource.recipe.shaped.invalid_pattern", section.assemblePath("pattern"), pattern.toString());
             }
-            ConfigSection ingredientSection = section.getNonNullSection("ingredients", "ingredient");
+            ConfigSection ingredientSection = section.getNonNullSection(INGREDIENTS);
             Map<Character, Ingredient<A>> ingredients = new HashMap<>();
             boolean hasAdditionalIngredients = false;
             for (String ingredientChar : ingredientSection.keySet()) {
@@ -224,7 +221,7 @@ public final class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
                     throw new KnownResourceException("resource.recipe.shaped.invalid_symbol", ingredientSection.path(), ingredientChar);
                 }
                 char ch = ingredientChar.charAt(0);
-                Ingredient<A> ingredient = ingredientSection.getNonNullValue(ConfigConstants.ARGUMENT_LIST, ingredientChar).getAsIngredient();
+                Ingredient<A> ingredient = ingredientSection.getNonNullValue(ingredientChar, ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
                 ingredients.put(ch, ingredient);
                 if (ingredient.count() > 1) {
                     hasAdditionalIngredients = true;
@@ -232,15 +229,15 @@ public final class CustomShapedRecipe<T> extends CustomCraftingTableRecipe<T> {
             }
             return new CustomShapedRecipe(
                     id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "visual_result", "visual-result").getAsCustomRecipeResult(),
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
+                    super.parseResult(section.getNonNullSection("result")),
+                    section.getValue(VISUAL_RESULT, v -> super.parseResult(v.getAsSection())),
                     section.getString("group"),
-                    section.getEnum(null, CraftingRecipeCategory.class, "category"),
+                    section.getEnum("category", CraftingRecipeCategory.class),
                     new Pattern<>(pattern.toArray(new String[0]), ingredients),
-                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
-                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition")),
-                    section.getBoolean(true, "always_rebuild_result", "always-rebuild-result"),
+                    section.getList(FUNCTIONS, CommonFunctions::fromConfig).toArray(new Function[0]),
+                    MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig)),
+                    section.getBoolean(ALWAYS_REBUILD_RESULT, true),
                     hasAdditionalIngredients
             );
         }

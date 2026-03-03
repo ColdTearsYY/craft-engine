@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.item.recipe.remainder;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 public final class HurtAndBreakRemainder implements CraftRemainder {
     public static final CraftRemainderFactory<HurtAndBreakRemainder> FACTORY = new Factory();
@@ -31,7 +30,7 @@ public final class HurtAndBreakRemainder implements CraftRemainder {
 
         @Override
         public HurtAndBreakRemainder create(ConfigSection section) {
-            return new HurtAndBreakRemainder(section.getInt(1, "damage"));
+            return new HurtAndBreakRemainder(section.getInt("damage", 1));
         }
     }
 }

@@ -105,10 +105,11 @@ public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<ToggleableLampBlockBehavior> {
+        private static final String[] CAN_OPEN_WITH_HAND = new String[] {"can_open_with_hand", "can_toggle_with_hand", "can-open-with-hand", "can-toggle-with-hand"};
 
         @Override
         public ToggleableLampBlockBehavior create(CustomBlock block, ConfigSection section) {
-            boolean canOpenWithHand = section.getBoolean("can_open_with_hand", "can_toggle_with_hand", "can-open-with-hand", "can-toggle-with-hand");
+            boolean canOpenWithHand = section.getBoolean(CAN_OPEN_WITH_HAND);
             return new ToggleableLampBlockBehavior(
                     block,
                     BlockBehaviorFactory.getProperty(section.path(), block, "lit", Boolean.class),

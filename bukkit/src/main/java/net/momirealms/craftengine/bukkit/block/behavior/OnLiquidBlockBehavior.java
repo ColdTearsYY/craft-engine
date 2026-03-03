@@ -31,9 +31,11 @@ public final class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior
     }
 
     private static class Factory implements BlockBehaviorFactory<OnLiquidBlockBehavior> {
+        private static final String[] LIQUID_TYPE = new String[] {"liquid_type", "liquid-type"};
+
         @Override
         public OnLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
-            List<String> liquidTypes = section.getStringList(List.of("water"), "liquid_type", "liquid-type");
+            List<String> liquidTypes = section.getStringList(LIQUID_TYPE, List.of("water"));
             return new OnLiquidBlockBehavior(
                     block,
                     section.getInt("delay"),

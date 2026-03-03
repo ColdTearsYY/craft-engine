@@ -26,10 +26,11 @@ public final class MapTemplateArgument implements TemplateArgument {
     }
 
     private static class Factory implements TemplateArgumentFactory<MapTemplateArgument> {
+        private static final String[] MAP = new String[] {"map", "value"};
 
         @Override
         public MapTemplateArgument create(ConfigSection section) {
-            return new MapTemplateArgument(section.getNonNullSection("map", "value").values());
+            return new MapTemplateArgument(section.getNonNullSection(MAP).values());
         }
     }
 }

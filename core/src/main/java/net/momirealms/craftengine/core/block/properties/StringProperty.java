@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.block.properties;
 import com.google.common.collect.ImmutableMap;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.sparrow.nbt.StringTag;
 import net.momirealms.sparrow.nbt.Tag;
 
@@ -52,13 +51,13 @@ public final class StringProperty extends Property<String> {
     @Override
     public String unpack(Tag tag) {
         if (tag instanceof StringTag stringTag) {
-            return names.get(stringTag.getAsString());
+            return this.names.get(stringTag.getAsString());
         }
         throw new IllegalArgumentException("Invalid string tag: " + tag);
     }
 
     @Override
-    public final int idFor(String value) {
+    public int idFor(String value) {
         int index = indexOf(value);
         if (index == -1) {
             throw new IllegalArgumentException("Invalid value: " + value);
@@ -95,7 +94,7 @@ public final class StringProperty extends Property<String> {
 
         @Override
         public Property<String> create(String name, ConfigSection section) {
-            List<String> values = section.parseNonEmptyList(ConfigValue::getAsString, "values");
+            List<String> values = section.getNonEmptyList("values", ConfigValue::getAsString);
             String defaultValueName = section.getString("default");
             String defaultValue = values.stream()
                     .filter(e -> e.equals(defaultValueName))

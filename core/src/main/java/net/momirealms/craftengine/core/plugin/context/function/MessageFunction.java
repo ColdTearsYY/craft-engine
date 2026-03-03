@@ -15,7 +15,10 @@ public final class MessageFunction<CTX extends Context> extends AbstractConditio
     private final PlayerSelector<CTX> selector;
     private final boolean overlay;
 
-    private MessageFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector, List<String> messages, boolean overlay) {
+    private MessageFunction(List<Condition<CTX>> predicates,
+                            @Nullable PlayerSelector<CTX> selector,
+                            List<String> messages,
+                            boolean overlay) {
         super(predicates);
         this.messages = messages;
         this.selector = selector;
@@ -45,6 +48,7 @@ public final class MessageFunction<CTX extends Context> extends AbstractConditio
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, MessageFunction<CTX>> {
+        private static final String[] MESSAGES = new String[] {"messages", "message"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -55,7 +59,7 @@ public final class MessageFunction<CTX extends Context> extends AbstractConditio
             return new MessageFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    section.getNonNullStringList("messages", "message").stream().map(AdventureHelper::legacyToMiniMessage).toList(),
+                    section.getNonNullStringList(MESSAGES).stream().map(AdventureHelper::legacyToMiniMessage).toList(),
                     section.getBoolean("overlay"));
         }
     }

@@ -3,9 +3,7 @@ package net.momirealms.craftengine.core.block.properties;
 import it.unimi.dsi.fastutil.ints.IntImmutableList;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.sparrow.nbt.IntTag;
 import net.momirealms.sparrow.nbt.NumericTag;
 import net.momirealms.sparrow.nbt.Tag;
@@ -105,14 +103,14 @@ public final class IntegerProperty extends Property<Integer> {
             int max;
             ConfigValue range = section.getValue("range");
             if (range != null) {
-                ConfigValue[] split = range.getSplitValuesRestrict("~", 2);
+                ConfigValue[] split = range.splitValuesRestrict("~", 2);
                 min = split[0].getAsInt();
                 max = split[1].getAsInt();
             } else {
                 min = section.getNonNullInt("min");
                 max = section.getNonNullInt("max");
             }
-            int defaultValue = section.getInt(min, "default");
+            int defaultValue = section.getInt("default", min);
             return IntegerProperty.create(name, min, max, MiscUtils.clamp(defaultValue, min, max));
         }
     }

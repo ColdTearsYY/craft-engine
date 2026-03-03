@@ -22,7 +22,9 @@ public final class RemoveFurnitureFunction<CTX extends Context> extends Abstract
     private final boolean dropLoot;
     private final boolean playSound;
 
-    private RemoveFurnitureFunction(List<Condition<CTX>> predicates, boolean playSound, boolean dropLoot) {
+    private RemoveFurnitureFunction(List<Condition<CTX>> predicates,
+                                    boolean playSound,
+                                    boolean dropLoot) {
         super(predicates);
         this.dropLoot = dropLoot;
         this.playSound = playSound;
@@ -68,6 +70,8 @@ public final class RemoveFurnitureFunction<CTX extends Context> extends Abstract
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, RemoveFurnitureFunction<CTX>> {
+        private static final String[] PLAY_SOUND = new String[] {"play_sound", "play-sound"};
+        private static final String[] DROP_LOOT = new String[] {"drop_loot", "drop-loot"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -77,8 +81,8 @@ public final class RemoveFurnitureFunction<CTX extends Context> extends Abstract
         public RemoveFurnitureFunction<CTX> create(ConfigSection section) {
             return new RemoveFurnitureFunction<>(
                     getPredicates(section),
-                    section.getBoolean(true, "play_sound", "play-sound"),
-                    section.getBoolean(true, "drop_loot", "drop-loot")
+                    section.getBoolean(PLAY_SOUND, true),
+                    section.getBoolean(DROP_LOOT, true)
             );
         }
     }

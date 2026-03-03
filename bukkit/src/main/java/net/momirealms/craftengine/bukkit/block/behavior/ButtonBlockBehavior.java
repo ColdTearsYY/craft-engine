@@ -218,6 +218,8 @@ public final class ButtonBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<ButtonBlockBehavior> {
+        private static final String[] TICKS_TO_STAY_PRESSED = new String[] {"ticks_to_stay_pressed", "ticks-to-stay-pressed"};
+        private static final String[] CAN_BE_ACTIVATED_BY_ARROW = new String[] {"can_be_activated_by_arrows", "can-be-activated-by-arrows"};
 
         @SuppressWarnings("DuplicatedCode")
         @Override
@@ -226,14 +228,14 @@ public final class ButtonBlockBehavior extends BukkitBlockBehavior {
             SoundData buttonClickOnSound = null;
             SoundData buttonClickOffSound = null;
             if (soundSection != null) {
-                buttonClickOnSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "on");
-                buttonClickOffSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "off");
+                buttonClickOnSound = soundSection.getValue("on", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                buttonClickOffSound = soundSection.getValue("off", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new ButtonBlockBehavior(
                     block,
                     BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
-                    section.getInt(30, "ticks_to_stay_pressed", "ticks-to-stay-pressed"),
-                    section.getBoolean(true, "can_be_activated_by_arrows", "can-be-activated-by-arrows"),
+                    section.getInt(TICKS_TO_STAY_PRESSED, 30),
+                    section.getBoolean(CAN_BE_ACTIVATED_BY_ARROW, true),
                     buttonClickOnSound,
                     buttonClickOffSound
             );

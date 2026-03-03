@@ -1,11 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.Key;
 
@@ -16,7 +16,9 @@ public final class ClearItemFunction<CTX extends Context> extends AbstractCondit
     private final Key itemId;
     private final NumberProvider count;
 
-    private ClearItemFunction(List<Condition<CTX>> predicates, Key itemId, NumberProvider count) {
+    private ClearItemFunction(List<Condition<CTX>> predicates,
+                              Key itemId,
+                              NumberProvider count) {
         super(predicates);
         this.itemId = itemId;
         this.count = count;
@@ -37,6 +39,8 @@ public final class ClearItemFunction<CTX extends Context> extends AbstractCondit
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, ClearItemFunction<CTX>> {
+        private static final String[] ID = new String[]{"item", "id"};
+        private static final String[] COUNT = new String[]{"count", "amount"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -46,8 +50,8 @@ public final class ClearItemFunction<CTX extends Context> extends AbstractCondit
         public ClearItemFunction<CTX> create(ConfigSection section) {
             return new ClearItemFunction<>(
                     getPredicates(section),
-                    section.getNonNullIdentifier("id", "item"),
-                    NumberProviders.fromObject(section.getOrDefault(1, "count", "amount"))
+                    section.getNonNullIdentifier(ID),
+                    section.getNumber(COUNT, ConfigConstants.CONSTANT_ONE)
             );
         }
     }

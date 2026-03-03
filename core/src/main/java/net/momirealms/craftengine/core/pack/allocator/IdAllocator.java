@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-public class IdAllocator {
+public final class IdAllocator {
     private final Path cacheFilePath;
     private final BiMap<String, Integer> forcedIdMap = HashBiMap.create(128);
     private final BitSet occupiedIdSet = new BitSet();

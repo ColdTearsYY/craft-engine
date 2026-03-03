@@ -15,7 +15,10 @@ public final class RemovePotionEffectFunction<CTX extends Context> extends Abstr
     private final Key potionEffectType;
     private final boolean all;
 
-    private RemovePotionEffectFunction(List<Condition<CTX>> predicates, boolean all, PlayerSelector<CTX> selector, Key potionEffectType) {
+    private RemovePotionEffectFunction(List<Condition<CTX>> predicates,
+                                       PlayerSelector<CTX> selector,
+                                       boolean all,
+                                       Key potionEffectType) {
         super(predicates);
         this.potionEffectType = potionEffectType;
         this.selector = selector;
@@ -42,6 +45,7 @@ public final class RemovePotionEffectFunction<CTX extends Context> extends Abstr
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, RemovePotionEffectFunction<CTX>> {
+        private static final String[] POTION_EFFECTS = new String[] {"potion_effect", "potion-effect"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -52,15 +56,13 @@ public final class RemovePotionEffectFunction<CTX extends Context> extends Abstr
             if (section.getBoolean("all")) {
                 return new RemovePotionEffectFunction<>(
                         getPredicates(section),
-                        true,
-                        getPlayerSelector(section),
+                        getPlayerSelector(section), true,
                         null);
             } else {
                 return new RemovePotionEffectFunction<>(
                         getPredicates(section),
-                        false,
-                        getPlayerSelector(section),
-                        section.getNonNullIdentifier("potion_effect", "potion-effect")
+                        getPlayerSelector(section), false,
+                        section.getNonNullIdentifier(POTION_EFFECTS)
                 );
             }
         }

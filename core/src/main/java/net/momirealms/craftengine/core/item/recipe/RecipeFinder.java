@@ -2,7 +2,7 @@ package net.momirealms.craftengine.core.item.recipe;
 
 import java.util.List;
 
-public class RecipeFinder<T> {
+public final class RecipeFinder<T> {
     private final StackedContents<UniqueIdItem<T>> stackedContents = new StackedContents<>();
 
     public void addInput(UniqueIdItem<T> item) {

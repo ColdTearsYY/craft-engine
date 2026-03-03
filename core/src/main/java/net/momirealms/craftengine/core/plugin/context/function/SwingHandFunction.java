@@ -13,7 +13,8 @@ import java.util.Optional;
 public final class SwingHandFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final Optional<InteractionHand> hand;
 
-    private SwingHandFunction(List<Condition<CTX>> predicates, Optional<InteractionHand> hand) {
+    private SwingHandFunction(List<Condition<CTX>> predicates,
+                              Optional<InteractionHand> hand) {
         super(predicates);
         this.hand = hand;
     }
@@ -44,7 +45,7 @@ public final class SwingHandFunction<CTX extends Context> extends AbstractCondit
         public SwingHandFunction<CTX> create(ConfigSection section) {
             return new SwingHandFunction<>(
                     getPredicates(section),
-                    Optional.ofNullable(section.getEnum(null, InteractionHand.class, "hand"))
+                    Optional.ofNullable(section.getEnum("hand", InteractionHand.class))
             );
         }
     }

@@ -24,12 +24,13 @@ public final class CropDrops implements Formula {
     }
 
     private static class Factory implements FormulaFactory<CropDrops> {
+        private static final String[] PROBABILITY = new String[] {"probability", "chance"};
 
         @Override
         public CropDrops create(ConfigSection section) {
             return new CropDrops(
-                    section.getInt(1, "extra"),
-                    section.getFloat(0.5f, "probability", "chance")
+                    section.getInt("extra", 1),
+                    section.getFloat(PROBABILITY, 0.5f)
             );
         }
     }

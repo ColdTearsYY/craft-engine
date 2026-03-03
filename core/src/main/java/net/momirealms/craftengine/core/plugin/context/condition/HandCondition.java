@@ -33,7 +33,7 @@ public final class HandCondition<CTX extends Context> implements Condition<CTX> 
 
         @Override
         public HandCondition<CTX> create(ConfigSection section) {
-            return new HandCondition<>(section.getEnum(InteractionHand.MAIN_HAND, InteractionHand.class, "hand"));
+            return new HandCondition<>(section.getEnum("hand", InteractionHand.class, InteractionHand.MAIN_HAND));
         }
     }
 }

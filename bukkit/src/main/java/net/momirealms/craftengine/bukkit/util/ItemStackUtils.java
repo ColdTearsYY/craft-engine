@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 public final class ItemStackUtils {
-
     private ItemStackUtils() {}
 
     @Contract("null -> true")

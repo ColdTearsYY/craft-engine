@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.parser.PlayerParser;
 
-public class UnsetLocaleCommand extends BukkitCommandFeature<CommandSender> {
+public final class UnsetLocaleCommand extends BukkitCommandFeature<CommandSender> {
 
     public UnsetLocaleCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

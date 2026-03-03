@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class ArrayPalette<T> implements Palette<T> {
+public final class ArrayPalette<T> implements Palette<T> {
     private final IndexedIterable<T> idList;
     private final T[] array;
     private final PaletteResizeListener<T> listener;

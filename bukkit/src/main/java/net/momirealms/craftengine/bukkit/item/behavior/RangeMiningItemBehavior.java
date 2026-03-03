@@ -10,14 +10,12 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3i;
 import net.momirealms.craftengine.core.world.World;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
 
 public final class RangeMiningItemBehavior extends ItemBehavior {
     public static final ItemBehaviorFactory<RangeMiningItemBehavior> FACTORY = new Factory();
@@ -34,7 +32,7 @@ public final class RangeMiningItemBehavior extends ItemBehavior {
     }
 
     @Override
-    public void breakBlock(World world, Player player, BlockPos pos) {
+    public void onBreakBlock(World world, Player player, BlockPos pos) {
         BukkitServerPlayer serverPlayer = (BukkitServerPlayer) player;
         if (serverPlayer.isRangeMining()) return;
 
@@ -133,7 +131,7 @@ public final class RangeMiningItemBehavior extends ItemBehavior {
     private static class Factory implements ItemBehaviorFactory<RangeMiningItemBehavior> {
         @Override
         public RangeMiningItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            return new RangeMiningItemBehavior(section.parseList(ConfigValue::getAsVector3i, "range"));
+            return new RangeMiningItemBehavior(section.getList("range", ConfigValue::getAsVector3i));
         }
     }
 }

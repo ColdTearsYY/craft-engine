@@ -8,11 +8,11 @@ import net.momirealms.craftengine.core.loot.function.LootFunction;
 import net.momirealms.craftengine.core.loot.function.LootFunctions;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,17 +33,20 @@ public final class LootTable<T> {
         this.compositeFunction = LootFunctions.compose(functions);
     }
 
+    private static final String[] BONUS_ROLLS = new String[]{"bonus_rolls", "bonus-rolls"};
+
     @NotNull
     public static <T> LootTable<T> fromConfig(@NotNull ConfigSection section) {
-        List<LootPool<T>> lootPools = section.parseSectionList(innerSection -> {
-            NumberProvider rolls = innerSection.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "rolls");
-            NumberProvider bonus_rolls = innerSection.getValueOrDefault(ConfigValue::getAsNumber, ConfigConstants.CONSTANT_ONE, "bonus_rolls", "bonus-rolls");
-            List<Condition<LootContext>> conditions = innerSection.parseSectionList(CommonConditions::fromConfig, "conditions");
-            List<LootEntryContainer<T>> containers = innerSection.parseSectionList(LootEntryContainers::fromConfig, "entries");
-            List<LootFunction<T>> functions = innerSection.parseSectionList(LootFunctions::fromConfig, "functions");
+        List<LootPool<T>> lootPools = section.getList("pools", v -> {
+            ConfigSection innerSection = v.getAsSection();
+            NumberProvider rolls = innerSection.getValue("rolls", NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
+            NumberProvider bonus_rolls = innerSection.getValue(BONUS_ROLLS, NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
+            List<Condition<LootContext>> conditions = innerSection.getList("conditions", CommonConditions::fromConfig);
+            List<LootEntryContainer<T>> containers = innerSection.getList("entries", LootEntryContainers::fromConfig);
+            List<LootFunction<T>> functions = innerSection.getList("functions", LootFunctions::fromConfig);
             return new LootPool<>(containers, conditions, functions, rolls, bonus_rolls);
-        }, "pools");
-        return new LootTable<>(lootPools, section.parseSectionList(LootFunctions::fromConfig, "functions"));
+        });
+        return new LootTable<>(lootPools, section.getList("functions", LootFunctions::fromConfig));
     }
 
     public List<Item<T>> getRandomItems(ContextHolder parameters, World world) {

@@ -11,7 +11,7 @@ import net.momirealms.craftengine.core.util.ResourceKey;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Experimental
-public class FurnitureBehaviors {
+public abstract class FurnitureBehaviors {
     protected FurnitureBehaviors() {}
 
     public static FurnitureBehavior fromConfig(CustomFurniture furniture, ConfigSection section) {
@@ -19,7 +19,7 @@ public class FurnitureBehaviors {
         Key key = Key.ce(type);
         FurnitureBehaviorType<?> furnitureBehaviorType = BuiltInRegistries.FURNITURE_BEHAVIOR_TYPE.getValue(key);
         if (furnitureBehaviorType == null) {
-            throw new KnownResourceException("resource.furniture.behavior.unknown_type", section.assemblePath("type"), type);
+            throw new KnownResourceException("resource.furniture.behavior.unknown_type", section.assemblePath("type"), key.asString());
         }
         return furnitureBehaviorType.factory().create(furniture, section);
     }

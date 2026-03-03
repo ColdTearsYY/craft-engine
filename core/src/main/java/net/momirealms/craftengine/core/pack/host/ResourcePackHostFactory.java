@@ -2,8 +2,6 @@ package net.momirealms.craftengine.core.pack.host;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;

@@ -67,7 +67,7 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
                         return new ProfileProcessor(null, null, texture);
                     }
                 }
-                return new ProfileProcessor(TextProviders.fromString(section.getDefaultedString("<arg:player.name>", "name")), null, null);
+                return new ProfileProcessor(TextProviders.fromString(section.getString("name", "<arg:player.name>")), null, null);
             } else {
                 String guess = value.getAsString();
                 String base64Data = null;

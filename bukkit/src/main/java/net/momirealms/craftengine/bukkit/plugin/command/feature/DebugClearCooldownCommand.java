@@ -9,7 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.parser.PlayerParser;
 
-public class DebugClearCooldownCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugClearCooldownCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugClearCooldownCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

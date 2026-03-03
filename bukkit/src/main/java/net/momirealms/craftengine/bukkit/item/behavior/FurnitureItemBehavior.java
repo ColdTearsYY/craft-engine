@@ -3,7 +3,6 @@ package net.momirealms.craftengine.bukkit.item.behavior;
 import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.api.event.FurnitureAttemptPlaceEvent;
 import net.momirealms.craftengine.bukkit.api.event.FurniturePlaceEvent;
-import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurnitureManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -27,8 +26,6 @@ import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -223,12 +220,14 @@ public class FurnitureItemBehavior extends ItemBehavior {
     }
 
     private static class Factory implements ItemBehaviorFactory<FurnitureItemBehavior> {
+        private static final String[] IGNORE_PLACER = new String[]{"ignore_placer", "ignore-placer"};
+        private static final String[] IGNORE_ENTITIES = new String[]{"ignore_entities", "ignore-entities"};
 
         @SuppressWarnings("DuplicatedCode")
         @Override
         public FurnitureItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            ConfigValue furnitureValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "furniture");
-            ConfigSection rulesSection = section.getValue(ConfigValue::getAsSection, "rules");
+            ConfigValue furnitureValue = section.getNonNullValue("furniture", ConfigConstants.ARGUMENT_SECTION);
+            ConfigSection rulesSection = section.getValue("rules", ConfigValue::getAsSection);
 
             Map<String, Rule> rules = new HashMap<>();
             Key furnitureId;
@@ -245,8 +244,8 @@ public class FurnitureItemBehavior extends ItemBehavior {
                                 ConfigSection varSection = placementSection.getNonNullSection(anchorType);
                                 ConfigSection ruleSection = varSection.getSection("rules");
                                 if (ruleSection != null) {
-                                    AlignmentRule alignmentRule = ruleSection.getEnum(AlignmentRule.ANY, AlignmentRule.class, "alignment");
-                                    RotationRule rotationRule = ruleSection.getEnum(RotationRule.ANY, RotationRule.class, "rotation");
+                                    AlignmentRule alignmentRule = ruleSection.getEnum("alignment", AlignmentRule.class, AlignmentRule.ANY);
+                                    RotationRule rotationRule = ruleSection.getEnum("rotation", RotationRule.class, RotationRule.ANY);
                                     rules.put(anchorType, new Rule(alignmentRule, rotationRule));
                                 }
                             }
@@ -259,16 +258,16 @@ public class FurnitureItemBehavior extends ItemBehavior {
             if (rulesSection != null) {
                 for (String variant : rulesSection.keySet()) {
                     ConfigSection ruleSection = rulesSection.getNonNullSection(variant);
-                    AlignmentRule alignmentRule = ruleSection.getEnum(AlignmentRule.ANY, AlignmentRule.class, "alignment");
-                    RotationRule rotationRule = ruleSection.getEnum(RotationRule.ANY, RotationRule.class, "rotation");
+                    AlignmentRule alignmentRule = ruleSection.getEnum("alignment", AlignmentRule.class, AlignmentRule.ANY);
+                    RotationRule rotationRule = ruleSection.getEnum("rotation", RotationRule.class, RotationRule.ANY);
                     rules.put(variant, new Rule(alignmentRule, rotationRule));
                 }
             }
             return new FurnitureItemBehavior(
                     furnitureId,
                     rules,
-                    section.getBoolean("ignore_placer", "ignore-placer"),
-                    section.getBoolean("ignore_entities", "ignore-entities")  // todo 更好的 predicate
+                    section.getBoolean(IGNORE_PLACER),
+                    section.getBoolean(IGNORE_ENTITIES)  // todo 更好的 predicate
             );
         }
     }

@@ -26,11 +26,13 @@ public final class ConditionTemplateArgument implements TemplateArgument {
     }
 
     private static class Factory extends NestedTemplateArgumentFactory<ConditionTemplateArgument> {
+        private static final String[] ON_TRUE = new String[]{"on_true", "on-true"};
+        private static final String[] ON_FALSE = new String[]{"on_false", "on-false"};
 
         @Override
         public ConditionTemplateArgument create(ConfigSection section) {
-            TemplateArgument onTrue = super.fromObject(section.getValue("on_true", "on-true"));
-            TemplateArgument onFalse = super.fromObject(section.getValue("on_false", "on-false"));
+            TemplateArgument onTrue = TemplateArguments.fromConfig(section.getValue(ON_TRUE));
+            TemplateArgument onFalse = TemplateArguments.fromConfig(section.getValue(ON_FALSE));
             return new ConditionTemplateArgument(section.getBoolean("condition") ? onTrue : onFalse);
         }
     }

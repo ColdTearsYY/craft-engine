@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.loot.entry;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -23,6 +24,10 @@ public final class LootEntryContainers {
         ((WritableRegistry<LootEntryContainerType<?>>) BuiltInRegistries.LOOT_ENTRY_CONTAINER_TYPE)
                 .register(ResourceKey.create(Registries.LOOT_ENTRY_CONTAINER_TYPE.location(), key), type);
         return type;
+    }
+
+    public static <T> LootEntryContainer<T> fromConfig(ConfigValue value) {
+        return fromConfig(value.getAsSection());
     }
 
     @SuppressWarnings("unchecked")

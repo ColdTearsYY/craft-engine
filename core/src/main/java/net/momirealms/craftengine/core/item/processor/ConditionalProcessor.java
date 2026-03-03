@@ -50,7 +50,7 @@ public final class ConditionalProcessor implements ItemProcessor {
         @Override
         public ConditionalProcessor create(ConfigValue value) {
             ConfigSection section = value.getAsSection();
-            List<Condition<Context>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+            List<Condition<Context>> conditions = section.getList("conditions", CommonConditions::fromConfig);
             List<ItemProcessor> modifiers = new ArrayList<>();
             ItemProcessors.collectProcessors(section.getNonNullSection("data"), modifiers::add);
             return new ConditionalProcessor(MiscUtils.allOf(conditions), modifiers.toArray(new ItemProcessor[0]));

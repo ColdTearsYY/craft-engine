@@ -36,7 +36,7 @@ public final class NormalizeRangeDispatchProperty implements RangeDispatchProper
         public NormalizeRangeDispatchProperty create(ConfigSection section) {
             return new NormalizeRangeDispatchProperty(
                     section.getNonNullIdentifier("property"),
-                    section.getBoolean(true, "normalize")
+                    section.getBoolean("normalize", true)
             );
         }
     }

@@ -13,7 +13,8 @@ import java.util.List;
 public final class CloseInventoryFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final PlayerSelector<CTX> selector;
 
-    private CloseInventoryFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector) {
+    private CloseInventoryFunction(List<Condition<CTX>> predicates,
+                                   @Nullable PlayerSelector<CTX> selector) {
         super(predicates);
         this.selector = selector;
     }

@@ -1,10 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.world.ExistingBlock;
@@ -47,15 +48,16 @@ public final class MatchBlockCondition<CTX extends Context> implements Condition
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, MatchBlockCondition<CTX>> {
+        private static final String[] ID = new String[] {"id", "block", "blocks"};
 
         @Override
         public MatchBlockCondition<CTX> create(ConfigSection section) {
             return new MatchBlockCondition<>(
-                    section.getNonNullStringList("id", "block"),
+                    section.getNonEmptyList(ID, ConfigValue::getAsString),
                     section.getBoolean("regex"),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z"))
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z)
             );
         }
     }

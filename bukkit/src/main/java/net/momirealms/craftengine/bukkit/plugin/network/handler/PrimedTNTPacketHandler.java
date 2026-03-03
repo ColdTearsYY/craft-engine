@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class PrimedTNTPacketHandler implements EntityPacketHandler {
+public final class PrimedTNTPacketHandler implements EntityPacketHandler {
     public static final PrimedTNTPacketHandler INSTANCE = new PrimedTNTPacketHandler();
 
     @Override

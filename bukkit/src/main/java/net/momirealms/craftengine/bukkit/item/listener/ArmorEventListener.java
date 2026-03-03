@@ -16,7 +16,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.Map;
 
-public class ArmorEventListener implements Listener {
+public final class ArmorEventListener implements Listener {
 
     // 只有在没有equippable组件的版本才生效，阻止自定义物品放到马上
     // 低版本没有自定义盔甲，所以完全不需要考虑能放置上去的情况

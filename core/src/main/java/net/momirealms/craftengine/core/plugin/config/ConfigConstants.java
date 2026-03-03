@@ -1,6 +1,8 @@
 package net.momirealms.craftengine.core.plugin.config;
 
+import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
+import net.momirealms.craftengine.core.plugin.context.number.ExpressionNumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -11,7 +13,24 @@ public final class ConfigConstants {
     public static final Vector3f CENTER_VECTOR3 = new Vector3f(0.5f);
     public static final Quaternionf ZERO_QUATERNION = new Quaternionf();
     public static final NumberProvider CONSTANT_ZERO = ConstantNumberProvider.constant(0);
+    public static final NumberProvider CONSTANT_HALF = ConstantNumberProvider.constant(0.5);
     public static final NumberProvider CONSTANT_ONE = ConstantNumberProvider.constant(1);
+    public static final NumberProvider CONSTANT_FIVE = ConstantNumberProvider.constant(5);
+    public static final NumberProvider CONSTANT_TEN = ConstantNumberProvider.constant(10);
+    public static final NumberProvider CONSTANT_TWENTY = ConstantNumberProvider.constant(20);
+    public static final NumberProvider CONSTANT_NINETY = ConstantNumberProvider.constant(90);
+    public static final NumberProvider UPDATE_ALL = ConstantNumberProvider.constant(UpdateFlags.UPDATE_ALL);
+    public static final NumberProvider POSITION_X = ExpressionNumberProvider.expression("<arg:position.x>");
+    public static final NumberProvider POSITION_Y = ExpressionNumberProvider.expression("<arg:position.y>");
+    public static final NumberProvider POSITION_Z = ExpressionNumberProvider.expression("<arg:position.z>");
+    public static final NumberProvider POSITION_PITCH = ExpressionNumberProvider.expression("<arg:position.pitch>");
+    public static final NumberProvider POSITION_YAW = ExpressionNumberProvider.expression("<arg:position.yaw>");
+    public static final NumberProvider FURNITURE_X = ExpressionNumberProvider.expression("<arg:furniture.x>");
+    public static final NumberProvider FURNITURE_Y = ExpressionNumberProvider.expression("<arg:furniture.y>");
+    public static final NumberProvider FURNITURE_Z = ExpressionNumberProvider.expression("<arg:furniture.z>");
+    public static final NumberProvider FURNITURE_PITCH = ExpressionNumberProvider.expression("<arg:furniture.pitch>");
+    public static final NumberProvider FURNITURE_YAW = ExpressionNumberProvider.expression("<arg:furniture.yaw>");
+    public static final NumberProvider IS_SNEAKING = ExpressionNumberProvider.expression("<arg:player.is_sneaking>");
     public static final String PARSE_SECTION_FAILED = "resource.argument.parser.section";
     public static final String PARSE_BOOLEAN_FAILED = "resource.argument.parser.boolean";
     public static final String PARSE_INT_FAILED = "resource.argument.parser.int";
@@ -27,11 +46,14 @@ public final class ConfigConstants {
     public static final String PARSE_LIST_FAILED = "resource.argument.parser.list";
     public static final String PARSE_UUID_FAILED = "resource.argument.parser.uuid";
     public static final String PARSE_SPLIT_FAILED = "resource.argument.parser.split";
+    public static final String PARSE_BLOCK_STATE_FAILED = "resource.argument.parser.blockstate";
     public static final String PARSE_NONEMPTY_LIST_FAILED = "resource.argument.parser.nonempty_list";
+    public static final String PARSE_FIXED_SIZE_LIST_FAILED = "resource.argument.parser.fixed_size_list";
     public static final String PARSE_NONEMPTY_STRING_FAILED = "resource.argument.parser.nonempty_string";
     public static final String MISSING_ARGUMENT = "resource.missing_argument";
     public static final String ARGUMENT_SECTION = "resource.argument.type.section";
     public static final String ARGUMENT_STRING = "resource.argument.type.string";
+    public static final String ARGUMENT_BLOCK_STATE = "resource.argument.type.blockstate";
     public static final String ARGUMENT_BOOLEAN = "resource.argument.type.boolean";
     public static final String ARGUMENT_INT = "resource.argument.type.int";
     public static final String ARGUMENT_LONG = "resource.argument.type.long";
@@ -50,8 +72,4 @@ public final class ConfigConstants {
     public static final String ARGUMENT_ANY = "resource.argument.type.any";
 
     private ConfigConstants() {}
-
-
-
-
 }

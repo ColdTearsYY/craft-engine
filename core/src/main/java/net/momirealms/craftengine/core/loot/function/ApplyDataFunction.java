@@ -37,7 +37,7 @@ public final class ApplyDataFunction<T> extends AbstractLootConditionalFunction<
             List<ItemProcessor> modifiers = new ArrayList<>();
             ItemProcessors.collectProcessors(section.getNonNullSection("data"), modifiers::add);
             return new ApplyDataFunction<>(
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
+                    section.getList("conditions", CommonConditions::fromConfig),
                     modifiers.toArray(new ItemProcessor[0])
             );
         }

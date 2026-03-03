@@ -17,7 +17,7 @@ import org.incendo.cloud.bukkit.parser.selector.MultiplePlayerSelectorParser;
 
 import java.util.Collection;
 
-public class SendResourcePackCommand extends BukkitCommandFeature<CommandSender> {
+public final class SendResourcePackCommand extends BukkitCommandFeature<CommandSender> {
 
     public SendResourcePackCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

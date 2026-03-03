@@ -52,12 +52,13 @@ public final class ExpressionTemplateArgument implements TemplateArgument {
     }
 
     private static class Factory implements TemplateArgumentFactory<ExpressionTemplateArgument> {
+        private static final String[] VALUE_TYPE = new String[] {"value_type", "value-type"};
 
         @Override
         public ExpressionTemplateArgument create(ConfigSection section) {
             return new ExpressionTemplateArgument(
-                    section.getDefaultedString("", "expression"),
-                    section.getEnum(ValueType.DOUBLE, ValueType.class, "value_type", "value-type")
+                    section.getNonEmptyString("expression"),
+                    section.getEnum(VALUE_TYPE, ValueType.class, ValueType.DOUBLE)
             );
         }
     }

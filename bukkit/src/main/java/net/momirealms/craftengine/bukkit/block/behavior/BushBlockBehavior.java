@@ -48,16 +48,17 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<BushBlockBehavior> {
+        private static final String[] MAX_HEIGHT = new String[] {"max_height", "max-height"};
 
         @Override
         public BushBlockBehavior create(CustomBlock block, ConfigSection section) {
             Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(section, false);
             return new BushBlockBehavior(
                     block,
-                    section.getInt(0, "delay"),
+                    section.getInt("delay", 0),
                     section.getBoolean("blacklist"),
                     section.getBoolean("stackable"),
-                    section.getInt(0, "max_height", "max-height"),
+                    section.getInt(MAX_HEIGHT),
                     tuple.left(),
                     tuple.mid(),
                     tuple.right()
@@ -67,11 +68,10 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
 
     // todo 重构一下
     public static Tuple<List<Object>, Set<Object>, Set<String>> readTagsAndState(ConfigSection section, boolean aboveOrBelow) {
-        List<Object> mcTags = section.parseList(v -> BlockTags.getOrCreate(v.getAsIdentifier()),
-                (aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags");
+        List<Object> mcTags = section.getList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags"}, v -> BlockTags.getOrCreate(v.getAsIdentifier()));
         Set<Object> mcBlocks = new HashSet<>();
         Set<String> customBlocks = new HashSet<>();
-        for (String blockState : section.getStringList((aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags")) {
+        for (String blockState : section.getStringList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags"})) {
             int index = blockState.indexOf('[');
             Key blockType = index != -1 ? Key.of(blockState.substring(0, index)) : Key.of(blockState);
             Material material = Registry.MATERIAL.get(new NamespacedKey(blockType.namespace(), blockType.value()));

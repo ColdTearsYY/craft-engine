@@ -12,7 +12,6 @@ import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
 public final class LocationUtils {
-
     private LocationUtils() {}
 
     public static Location toLocation(WorldPosition position) {

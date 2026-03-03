@@ -1,14 +1,13 @@
 package net.momirealms.craftengine.core.pack.host;
 
 import net.momirealms.craftengine.core.pack.host.impl.*;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
-
-import java.util.Map;
 
 public final class ResourcePackHosts {
     public static final ResourcePackHostType<NoneHost> NONE = register(Key.ce("none"), NoneHost.FACTORY);
@@ -30,16 +29,13 @@ public final class ResourcePackHosts {
         return type;
     }
 
-    public static ResourcePackHost fromMap(Map<String, Object> map) {
-        String type = (String) map.get("type");
-        if (type == null) {
-            throw new LocalizedException("warning.config.host.missing_type");
-        }
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static ResourcePackHost fromConfig(ConfigSection section) {
+        String type = section.getNonEmptyString("type");
+        Key key = Key.ce(type);
         ResourcePackHostType<? extends ResourcePackHost> hostType = BuiltInRegistries.RESOURCE_PACK_HOST_TYPE.getValue(key);
         if (hostType == null) {
-            throw new LocalizedException("warning.config.host.invalid_type", type);
+            throw new KnownResourceException("host.unknown_type", section.assemblePath("type"), key.asString());
         }
-        return hostType.factory().create(map);
+        return hostType.factory().create(section);
     }
 }

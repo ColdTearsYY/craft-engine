@@ -168,6 +168,8 @@ public final class FenceBlockBehavior extends BukkitBlockBehavior implements IsP
     }
 
     private static class Factory implements BlockBehaviorFactory<FenceBlockBehavior> {
+        private static final String[] CAN_LEASH = new String[]{"can_leash", "can-leash"};
+        private static final String[] CONNECTABLE_BLOCK_TAG = new String[]{"connectable_block_tag", "connectable-block-tag"};
 
         @Override
         public FenceBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -177,8 +179,8 @@ public final class FenceBlockBehavior extends BukkitBlockBehavior implements IsP
                     BlockBehaviorFactory.getProperty(section.path(), block, "east", Boolean.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "south", Boolean.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "west", Boolean.class),
-                    BlockTags.getOrCreate(section.getIdentifier(DEFAULT_CONNECTABLE, "connectable_block_tag", "connectable-block-tag")),
-                    section.getBoolean("can_leash", "can-leash")
+                    BlockTags.getOrCreate(section.getIdentifier(CONNECTABLE_BLOCK_TAG, DEFAULT_CONNECTABLE)),
+                    section.getBoolean(CAN_LEASH)
             );
         }
     }

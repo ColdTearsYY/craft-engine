@@ -1,10 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import org.jetbrains.annotations.Nullable;
 
-// todo 未来或许可设计为可注册的？
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 public enum EventTrigger {
     LEFT_CLICK("attack", "left_click", "hit"),
     RIGHT_CLICK("right_click", "use_on", "use", "use_item_on"),
@@ -15,26 +16,27 @@ public enum EventTrigger {
     STEP("step"),
     FALL("fall"),;
 
-    public static final Map<String, EventTrigger> BY_NAME = new HashMap<>();
-    private final String[] names;
+    private static final Map<String, EventTrigger> BY_ID = new HashMap<>();
+    private final String[] ids;
 
-    EventTrigger(String... names) {
-        this.names = names;
+    EventTrigger(String... ids) {
+        this.ids = ids;
     }
 
-    public String[] names() {
-        return names;
+    public String[] ids() {
+        return this.ids;
     }
 
     static {
         for (EventTrigger trigger : EventTrigger.values()) {
-            for (String name : trigger.names()) {
-                BY_NAME.put(name, trigger);
+            for (String name : trigger.ids()) {
+                BY_ID.put(name, trigger);
             }
         }
     }
 
-    public static EventTrigger byName(String name) {
-        return Optional.ofNullable(BY_NAME.get(name)).orElseThrow(() -> new IllegalArgumentException("Unknown event trigger: " + name));
+    @Nullable
+    public static EventTrigger byId(String id) {
+        return BY_ID.get(id.toLowerCase(Locale.ROOT));
     }
 }

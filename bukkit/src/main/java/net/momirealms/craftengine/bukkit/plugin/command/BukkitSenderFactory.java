@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
-public class BukkitSenderFactory extends SenderFactory<BukkitCraftEngine, CommandSender> {
+public final class BukkitSenderFactory extends SenderFactory<BukkitCraftEngine, CommandSender> {
 
     public BukkitSenderFactory(BukkitCraftEngine plugin) {
         super(plugin);

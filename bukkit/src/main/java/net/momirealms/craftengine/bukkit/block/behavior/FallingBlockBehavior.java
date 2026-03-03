@@ -124,6 +124,8 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<FallingBlockBehavior> {
+        private static final String[] HURT_AMOUNT = new String[] {"hurt_amount", "hurt-amount"};
+        private static final String[] MAX_HURT = new String[] {"max_hurt", "max-hurt"};
 
         @Override
         public FallingBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -131,13 +133,13 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
             SoundData landSound = null;
             SoundData destroySound = null;
             if (soundSection != null) {
-                landSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "land");
-                destroySound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "destroy");
+                landSound = soundSection.getValue("land", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                destroySound = soundSection.getValue("destroy", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new FallingBlockBehavior(
                     block,
-                    section.getFloat(-1f, "hurt_amount", "hurt-amount"),
-                    section.getInt(-1, "max_hurt", "max-hurt"),
+                    section.getFloat(HURT_AMOUNT, -1f),
+                    section.getInt(MAX_HURT, -1),
                     landSound,
                     destroySound
             );

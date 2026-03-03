@@ -10,7 +10,6 @@ import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.incendo.cloud.suggestion.Suggestion;
 
@@ -110,13 +109,15 @@ public abstract class AbstractSoundManager implements SoundManager {
             return List.of(LoadingStages.SOUND);
         }
 
+        private static final String[] COMPARATOR = new String[] {"comparator-output", "comparator_output"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             Key sound = section.getNonNullIdentifier("sound");
-            Component description = AdventureHelper.miniMessage().deserialize(section.getDefaultedString("", "description"));
+            Component description = AdventureHelper.miniMessage().deserialize(section.getString("description", ""));
             float length = section.getNonNullFloat("length");
-            float range = section.getFloat(32f, "range");
-            int comparatorOutput = section.getInt(15, "comparator-output", "comparator_output");
+            float range = section.getFloat("range", 32f);
+            int comparatorOutput = section.getInt(COMPARATOR, 15);
             JukeboxSong song = new JukeboxSong(sound, description, length, comparatorOutput, range);
             AbstractSoundManager.this.songs.put(id, song);
         }
@@ -145,19 +146,19 @@ public abstract class AbstractSoundManager implements SoundManager {
             return List.of(LoadingStages.TEMPLATE);
         }
 
+        private static final String[] SOUNDS = new String[] {"sounds", "sound"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             boolean replace = section.getBoolean("replace");
             String subtitle = section.getString("subtitle");
-            List<Object> soundList = section.getList("sounds", "sound");
-            List<Sound> sounds = new ArrayList<>(soundList.size());
-            for (Object sound : soundList) {
-                if (sound instanceof String soundPath) {
-                    sounds.add(Sound.path(soundPath));
-                } else if (sound instanceof Map) {
-                    sounds.add(Sound.SoundFile.fromMap(MiscUtils.castToMap(sound)));
+            List<Sound> sounds = section.getList(SOUNDS, v -> {
+                if (v.is(Map.class)) {
+                    return Sound.SoundFile.fromConfig(v.getAsSection());
+                } else {
+                    return Sound.path(v.getAsString());
                 }
-            }
+            });
             SoundEvent event = new SoundEvent(id, replace, subtitle, sounds);
             AbstractSoundManager.this.byId.put(id, event);
             AbstractSoundManager.this.byNamespace.computeIfAbsent(id.namespace(), k -> new ArrayList<>()).add(event);

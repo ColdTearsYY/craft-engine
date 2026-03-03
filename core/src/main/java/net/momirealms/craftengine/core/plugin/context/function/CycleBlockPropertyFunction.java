@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.plugin.context.function;
 import com.google.common.collect.Maps;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.UpdateFlags;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -30,16 +31,14 @@ public final class CycleBlockPropertyFunction<CTX extends Context> extends Abstr
     private final NumberProvider z;
     private final NumberProvider updateFlags;
 
-    private CycleBlockPropertyFunction(
-            List<Condition<CTX>> predicates,
-            String property,
-            @Nullable Map<String, String> rules,
-            @Nullable NumberProvider inverse,
-            NumberProvider x,
-            NumberProvider y,
-            NumberProvider z,
-            NumberProvider updateFlags
-    ) {
+    private CycleBlockPropertyFunction(List<Condition<CTX>> predicates,
+                                       String property,
+                                       @Nullable Map<String, String> rules,
+                                       @Nullable NumberProvider inverse,
+                                       NumberProvider x,
+                                       NumberProvider y,
+                                       NumberProvider z,
+                                       NumberProvider updateFlags) {
         super(predicates);
         this.property = property;
         this.rules = rules;
@@ -83,6 +82,7 @@ public final class CycleBlockPropertyFunction<CTX extends Context> extends Abstr
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, CycleBlockPropertyFunction<CTX>> {
+        private static final String[] UPDATE_FLAGS = new String[]{"update_flags", "update-flags"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -99,11 +99,12 @@ public final class CycleBlockPropertyFunction<CTX extends Context> extends Abstr
                     getPredicates(section),
                     section.getNonNullString("property"),
                     rules,
-                    NumberProviders.fromObject(section.getOrDefault("<arg:player.is_sneaking>", "inverse")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    Optional.ofNullable(section.get("update-flags", "update_flags")).map(NumberProviders::fromObject).orElseGet(() -> NumberProviders.direct(UpdateFlags.UPDATE_ALL)));
+                    section.getNumber("inverse", ConfigConstants.IS_SNEAKING),
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z),
+                    section.getNumber(UPDATE_FLAGS, NumberProviders.direct(UpdateFlags.UPDATE_ALL))
+            );
         }
     }
 }

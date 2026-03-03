@@ -31,7 +31,7 @@ public final class PlayerSelectors {
         Key key = Key.ce(type);
         PlayerSelectorType<CTX> selectorType = (PlayerSelectorType<CTX>) BuiltInRegistries.PLAYER_SELECTOR_TYPE.getValue(key);
         if (selectorType == null) {
-            throw new KnownResourceException("player_selector.unknown_type", section.assemblePath("type"), type);
+            throw new KnownResourceException("player_selector.unknown_type", section.assemblePath("type"), key.asString());
         }
         return selectorType.factory().create(section, conditionFactory);
     }

@@ -8,13 +8,14 @@ import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.WorldAccessor;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public final class UnsafeCompositeBlockBehavior extends BukkitBlockBehavior
+public final class UnsafeCompositeBlockBehavior extends BlockBehavior
         implements FallOnBlockBehavior, PlaceLiquidBlockBehavior, IsPathFindableBlockBehavior, CanBeReplacedBlockBehavior {
     private final BlockBehavior[] behaviors;
 
@@ -415,5 +416,16 @@ public final class UnsafeCompositeBlockBehavior extends BukkitBlockBehavior
             }
         }
         return false;
+    }
+
+    @Override
+    public Object pickupBlock(Object thisObj, Object[] args, Callable<Object> superMethod) throws Exception {
+        for (BlockBehavior behavior : this.behaviors) {
+            Object o = behavior.pickupBlock(thisObj, args, superMethod);
+            if (o != null && !ItemStackProxy.INSTANCE.isEmpty(o)) {
+                return o;
+            }
+        }
+        return ItemStackProxy.EMPTY;
     }
 }

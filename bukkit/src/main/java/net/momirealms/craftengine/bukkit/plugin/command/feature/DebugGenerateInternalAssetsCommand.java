@@ -20,7 +20,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class DebugGenerateInternalAssetsCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugGenerateInternalAssetsCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugGenerateInternalAssetsCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

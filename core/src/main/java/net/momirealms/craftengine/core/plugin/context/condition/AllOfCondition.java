@@ -34,10 +34,11 @@ public final class AllOfCondition<CTX extends Context> implements Condition<CTX>
     }
 
     private record Factory<CTX extends Context>(Function<ConfigSection, Condition<CTX>> factory) implements ConditionFactory<CTX, AllOfCondition<CTX>> {
+        private static final String[] TERMS = new String[]{"terms", "term"};
 
         @Override
         public AllOfCondition<CTX> create(ConfigSection section) {
-            List<Condition<CTX>> conditions = section.parseSectionList(this.factory, "terms", "term");
+            List<Condition<CTX>> conditions = section.getSectionList(TERMS, this.factory);
             if (conditions.isEmpty()) {
                 return new AllOfCondition<>((ctx) -> true);
             } else if (conditions.size() == 1) {

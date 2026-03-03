@@ -11,9 +11,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.core.world.collision.AABB;
@@ -27,7 +24,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class CustomFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<CustomFurnitureHitbox> {
-    public static final Factory FACTORY = new Factory();
+    public static final FurnitureHitBoxConfigFactory<CustomFurnitureHitbox> FACTORY = new Factory();
     public final float scale;
     public final Object entityType;
     public final List<Object> cachedValues = new ArrayList<>();
@@ -87,11 +84,15 @@ public final class CustomFurnitureHitboxConfig extends AbstractFurnitureHitBoxCo
         return new CustomFurnitureHitbox(furniture, this);
     }
 
-    public static class Factory implements FurnitureHitBoxConfigFactory<CustomFurnitureHitbox> {
+    private static class Factory implements FurnitureHitBoxConfigFactory<CustomFurnitureHitbox> {
+        private static final String[] ENTITY_TYPE = new String[] {"entity_type", "entity-type"};
+        private static final String[] CAN_USE_ITEM_ON = new String[] {"can_use_item_on", "can-use-item-on"};
+        private static final String[] BLOCKS_BUILDING = new String[] {"blocks_building", "blocks-building"};
+        private static final String[] CAN_BE_HIT_BY_PROJECTILE = new String[] {"can_be_hit_by_projectile", "can-be-hit-by-projectile"};
 
         @Override
         public CustomFurnitureHitboxConfig create(ConfigSection section) {
-            ConfigValue typeValue = section.getNonNullValue(ConfigConstants.ARGUMENT_IDENTIFIER, "entity_type", "entity-type");
+            ConfigValue typeValue = section.getNonNullValue(ENTITY_TYPE, ConfigConstants.ARGUMENT_IDENTIFIER);
             Object nmsEntityType = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ENTITY_TYPE, KeyUtils.toIdentifier(typeValue.getAsIdentifier()));
             if (nmsEntityType == null) {
                 throw new KnownResourceException("resource.furniture.hitbox.custom.invalid_entity_type", typeValue.path(), typeValue.getAsString());
@@ -101,15 +102,15 @@ public final class CustomFurnitureHitboxConfig extends AbstractFurnitureHitBoxCo
             float height = EntityDimensionsProxy.INSTANCE.getHeight(dimensions);
             boolean fixed = EntityDimensionsProxy.INSTANCE.isFixed(dimensions);
             return new CustomFurnitureHitboxConfig(
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "seats").getAsSeats(),
-                    section.getValueOrDefault(ConfigValue::getAsVector3f, ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getBoolean(true, "can_use_item_on", "can-use-item-on"),
-                    section.getBoolean(true, "blocks_building", "blocks-building"),
-                    section.getBoolean(true, "can_be_hit_by_projectile", "can-be-hit-by-projectile"),
+                    section.getList("seats", SeatConfig::fromConfig).toArray(new SeatConfig[0]),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean(CAN_USE_ITEM_ON, true),
+                    section.getBoolean(BLOCKS_BUILDING, true),
+                    section.getBoolean(CAN_BE_HIT_BY_PROJECTILE, true),
                     width,
                     height,
                     fixed,
-                    section.getFloat(1f, "scale"),
+                    section.getFloat("scale", 1f),
                     nmsEntityType
             );
         }

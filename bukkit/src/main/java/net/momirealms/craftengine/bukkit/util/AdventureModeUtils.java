@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.bukkit.util;
 
-
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -15,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 
 @SuppressWarnings("DuplicatedCode")
 public final class AdventureModeUtils {
-
     private AdventureModeUtils() {}
 
     public static boolean canBreak(ItemStack itemStack, Location pos) {

@@ -27,7 +27,6 @@ public abstract class AbstractCustomItem<I> implements CustomItem<I> {
     protected final Map<EventTrigger, List<Function<Context>>> events;
     protected final ItemUpdateConfig updater;
 
-    @SuppressWarnings("unchecked")
     public AbstractCustomItem(boolean isVanillaItem, UniqueKey id, Key material, Key clientBoundMaterial,
                               List<ItemBehavior> behaviors,
                               List<ItemProcessor> modifiers,

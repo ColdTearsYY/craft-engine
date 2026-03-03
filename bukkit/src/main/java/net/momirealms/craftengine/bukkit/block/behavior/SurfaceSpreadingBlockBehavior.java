@@ -106,13 +106,15 @@ public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<SurfaceSpreadingBlockBehavior> {
+        private static final String[] REQUIRED_LIGHT = new String[]{"required_light", "required-light"};
+        private static final String[] BASE_BLOCK = new String[]{"base_block", "base-block"};
 
         @Override
         public SurfaceSpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new SurfaceSpreadingBlockBehavior(
                     block,
-                    section.getInt(0, "required_light", "required-light"),
-                    section.getDefaultedString("minecraft:dirt", "base_block", "base-block"),
+                    section.getInt(REQUIRED_LIGHT, 0),
+                    section.getString(BASE_BLOCK, "minecraft:dirt"),
                     BlockBehaviorFactory.getOptionalProperty(block, "snowy", Boolean.class)
             );
         }

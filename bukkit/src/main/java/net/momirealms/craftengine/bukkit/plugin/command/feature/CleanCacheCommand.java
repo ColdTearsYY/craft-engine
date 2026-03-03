@@ -32,7 +32,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
-public class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
+public final class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
 
     public CleanCacheCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

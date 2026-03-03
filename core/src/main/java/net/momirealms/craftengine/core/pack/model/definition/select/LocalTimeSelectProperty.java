@@ -45,12 +45,14 @@ public final class LocalTimeSelectProperty implements SelectProperty {
     }
 
     private static class Factory implements SelectPropertyFactory<LocalTimeSelectProperty> {
+        private static final String[] TIME_ZONE = new String[] {"time-zone", "time_zone"};
+
         @Override
         public LocalTimeSelectProperty create(ConfigSection section) {
             return new LocalTimeSelectProperty(
                     section.getNonNullString("pattern"),
                     section.getString("locale"),
-                    section.getString("time-zone", "time_zone")
+                    section.getString(TIME_ZONE)
             );
         }
     }

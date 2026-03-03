@@ -36,8 +36,8 @@ public final class AlternativesLootEntryContainer<T> extends AbstractCompositeLo
         @Override
         public LootEntryContainer<A> create(ConfigSection section) {
             return new AlternativesLootEntryContainer<>(
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
-                    section.parseSectionList(LootEntryContainers::fromConfig, "children")
+                    section.getList("conditions", CommonConditions::fromConfig),
+                    section.getList("children", LootEntryContainers::fromConfig)
             );
         }
     }

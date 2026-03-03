@@ -128,7 +128,7 @@ public final class BlockSettingsModifiers {
         return settings -> settings.useShapeForLightOcclusion(use);
     });
     public static final BlockSettingsModifierType<BlockSettingsModifier> TAGS = register(Key.ce("tags"), value -> {
-        List<Key> tags = value.parseAsList(v -> {
+        List<Key> tags = value.getAsList(v -> {
             String tagString = v.getAsString();
             if (tagString.charAt(0) == '#') {
                 return Key.of(tagString.substring(1));

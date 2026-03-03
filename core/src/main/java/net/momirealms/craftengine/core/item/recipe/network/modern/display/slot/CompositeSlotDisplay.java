@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public class CompositeSlotDisplay<I> implements SlotDisplay<I> {
+public final class CompositeSlotDisplay<I> implements SlotDisplay<I> {
     private final List<SlotDisplay<I>> slots;
 
     public CompositeSlotDisplay(List<SlotDisplay<I>> slots) {

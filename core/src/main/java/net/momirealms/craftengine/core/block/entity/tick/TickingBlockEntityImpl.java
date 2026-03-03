@@ -9,7 +9,7 @@ import net.momirealms.craftengine.core.world.chunk.CEChunk;
 
 import java.util.Objects;
 
-public class TickingBlockEntityImpl<T extends BlockEntity> implements TickingBlockEntity {
+public final class TickingBlockEntityImpl<T extends BlockEntity> implements TickingBlockEntity {
     private final T blockEntity;
     private final BlockEntityTicker<T> ticker;
     private final CEChunk chunk;

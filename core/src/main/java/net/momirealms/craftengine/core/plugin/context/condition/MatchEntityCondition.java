@@ -32,11 +32,12 @@ public final class MatchEntityCondition<CTX extends Context> implements Conditio
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, MatchEntityCondition<CTX>> {
+        private static final String[] ID = new String[] {"id", "entity", "entities"};
 
         @Override
         public MatchEntityCondition<CTX> create(ConfigSection section) {
             return new MatchEntityCondition<>(
-                    section.getNonNullStringList("id", "entity"),
+                    section.getNonNullStringList(ID),
                     section.getBoolean("regex")
             );
         }

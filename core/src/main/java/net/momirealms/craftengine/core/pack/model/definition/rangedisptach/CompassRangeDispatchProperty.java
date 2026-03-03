@@ -36,7 +36,7 @@ public final class CompassRangeDispatchProperty implements RangeDispatchProperty
         public CompassRangeDispatchProperty create(ConfigSection section) {
             return new CompassRangeDispatchProperty(
                     section.getNonNullString("target"),
-                    section.getBoolean(true, "wobble")
+                    section.getBoolean("wobble", true)
             );
         }
     }

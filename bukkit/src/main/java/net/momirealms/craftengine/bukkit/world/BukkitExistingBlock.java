@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-public class BukkitExistingBlock implements ExistingBlock {
+public final class BukkitExistingBlock implements ExistingBlock {
     private final Block block;
 
     public BukkitExistingBlock(Block block) {

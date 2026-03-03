@@ -3,12 +3,10 @@ package net.momirealms.craftengine.core.pack.host.impl;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -45,8 +43,8 @@ public final class ExternalHost implements ResourcePackHost {
         @Override
         public ExternalHost create(ConfigSection section) {
             String url = section.getNonEmptyString("url");
-            UUID uuid = section.getValueOrDefault(ConfigValue::getAsUUID, UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)), "uuid");
-            return new ExternalHost(new ResourcePackDownloadData(url, uuid, section.getDefaultedString("", "sha1")));
+            UUID uuid = section.getValue("uuid", ConfigValue::getAsUUID, UUID.nameUUIDFromBytes(url.getBytes(StandardCharsets.UTF_8)));
+            return new ExternalHost(new ResourcePackDownloadData(url, uuid, section.getString("sha1", "")));
         }
     }
 }

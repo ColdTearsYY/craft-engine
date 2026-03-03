@@ -13,7 +13,6 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.CEWorld;
@@ -73,7 +72,7 @@ public final class SeatBlockBehavior extends BukkitBlockBehavior implements Enti
             return new SeatBlockBehavior(
                     block,
                     BlockBehaviorFactory.getOptionalProperty(block, "facing", HorizontalDirection.class),
-                    section.getValueOrDefault(ConfigValue::getAsSeats, new SeatConfig[0], "seats")
+                    section.getList("seats", SeatConfig::fromConfig).toArray(new SeatConfig[0])
             );
         }
     }

@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class SearchUsageAdminCommand extends BukkitCommandFeature<CommandSender> {
+public final class SearchUsageAdminCommand extends BukkitCommandFeature<CommandSender> {
 
     public SearchUsageAdminCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

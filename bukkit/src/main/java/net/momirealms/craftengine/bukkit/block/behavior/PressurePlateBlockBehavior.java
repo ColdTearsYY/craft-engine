@@ -236,6 +236,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<PressurePlateBlockBehavior> {
+        private static final String[] PRESSED_TIME = new String[] {"pressed_time", "pressed-time"};
 
         @Override
         public PressurePlateBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -243,16 +244,16 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
             SoundData onSound = null;
             SoundData offSound = null;
             if (soundSection != null) {
-                onSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "on");
-                offSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "off");
+                onSound = soundSection.getValue("on", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                offSound = soundSection.getValue("off", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new PressurePlateBlockBehavior(
                     block,
                     BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
                     onSound,
                     offSound,
-                    section.getEnum(PressurePlateSensitivity.EVERYTHING, PressurePlateSensitivity.class, "sensitivity"),
-                    section.getInt(20, "pressed_time", "pressed-time")
+                    section.getEnum("sensitivity", PressurePlateSensitivity.class, PressurePlateSensitivity.EVERYTHING),
+                    section.getInt(PRESSED_TIME, 20)
             );
         }
     }

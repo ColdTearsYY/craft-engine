@@ -36,13 +36,14 @@ public final class ChimeBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<ChimeBlockBehavior> {
+        private static final String[] CHIME = new String[] {"chime", "projectile_hit", "projectile-hit"};
 
         @Override
         public ChimeBlockBehavior create(CustomBlock block, ConfigSection section) {
             ConfigSection soundsSection = section.getSection("sounds");
             SoundData hitSound = null;
             if (soundsSection != null) {
-                hitSound = soundsSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1), "chime", "projectile_hit", "projectile-hit");
+                hitSound = soundsSection.getValue(CHIME, v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new ChimeBlockBehavior(block, hitSound);
         }

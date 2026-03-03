@@ -7,13 +7,10 @@ import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -57,6 +54,13 @@ public final class SelfHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<SelfHost> {
+        private static final String[] ONE_TIME_TOKEN = new String[]{"one_time_token", "one-time-token"};
+        private static final String[] DENY_NON_MINECRAFT_REQUEST = new String[]{"deny_non_minecraft_request", "deny-non-minecraft-request"};
+        private static final String[] STRICT_VALIDATION = new String[]{"strict_validation", "strict-validation"};
+        private static final String[] RATE_LIMITING = new String[]{"rate_limiting", "rate-limiting"};
+        private static final String[] QPS_PER_IP = new String[]{"qps_per_ip", "qps-per-ip"};
+        private static final String[] MAX_BANDWIDTH_PER_SECOND = new String[]{"max_bandwidth_per_second", "max-bandwidth-per-second"};
+        private static final String[] MIN_DOWNLOAD_SPEED_PER_PLAYER = new String[]{"min_download_speed_per_player", "min-download-speed-per-player"};
 
         @Override
         public SelfHost create(ConfigSection section) {
@@ -64,13 +68,13 @@ public final class SelfHost implements ResourcePackHost {
 
             // url 拼接
             String ip = section.getNonEmptyString("ip");
-            int port = section.getInt(8163, "port");
+            int port = section.getInt("port", 8163);
             if (port <= 0) {
                 throw new KnownResourceException("number.greater_than", section.assemblePath("port"), "port", "0");
             } else if (port > 65535) {
                 throw new KnownResourceException("number.less_than", section.assemblePath("port"), "port", "65536");
             }
-            String url = section.getDefaultedString("", "url");
+            String url = section.getString("url", "");
             if (!url.isEmpty()) {
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
                     url = "http://" + url;
@@ -79,20 +83,20 @@ public final class SelfHost implements ResourcePackHost {
             }
 
             // 其他参数
-            boolean oneTimeToken = section.getBoolean(true, "one_time_token", "one-time-token");
-            String protocol = section.getDefaultedString("http", "protocol");
-            boolean denyNonMinecraftRequest = section.getBoolean(true, "deny_non_minecraft_request", "deny-non-minecraft-request");
-            boolean strictValidation = section.getBoolean(false, "strict_validation", "strict-validation");
+            boolean oneTimeToken = section.getBoolean(ONE_TIME_TOKEN, true);
+            String protocol = section.getString("protocol", "http");
+            boolean denyNonMinecraftRequest = section.getBoolean(DENY_NON_MINECRAFT_REQUEST, true);
+            boolean strictValidation = section.getBoolean(STRICT_VALIDATION);
 
             // 流量控制
             Bandwidth limit = null;
-            ConfigSection rateLimitingSection = section.getSection("rate_limiting", "rate-limiting");
+            ConfigSection rateLimitingSection = section.getSection(RATE_LIMITING);
             long maxBandwidthUsage = 0L;
             long minDownloadSpeed = 50_000L;
             if (rateLimitingSection != null) {
-                ConfigValue qpsValue = rateLimitingSection.getValue("qps_per_ip", "qps-per-ip");
+                ConfigValue qpsValue = rateLimitingSection.getValue(QPS_PER_IP);
                 if (qpsValue != null) {
-                    ConfigValue[] splitValues = qpsValue.getSplitValuesRestrict("/", 2);
+                    ConfigValue[] splitValues = qpsValue.splitValuesRestrict("/", 2);
                     int maxRequests = splitValues[0].getAsInt();
                     int resetInterval = splitValues[1].getAsInt();
                     limit = Bandwidth.builder()
@@ -100,8 +104,8 @@ public final class SelfHost implements ResourcePackHost {
                             .refillGreedy(maxRequests, Duration.ofSeconds(resetInterval))
                             .build();
                 }
-                maxBandwidthUsage = section.getLong(0, "max_bandwidth_per_second", "max-bandwidth-per-second");
-                minDownloadSpeed = section.getLong(50_000, "min_download_speed_per_player", "min-download-speed-per-player");
+                maxBandwidthUsage = section.getLong(MAX_BANDWIDTH_PER_SECOND, 0);
+                minDownloadSpeed = section.getLong(MIN_DOWNLOAD_SPEED_PER_PLAYER, 50_000);
             }
 
             // 更新单例

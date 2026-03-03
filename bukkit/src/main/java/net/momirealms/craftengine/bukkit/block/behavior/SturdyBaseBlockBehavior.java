@@ -67,14 +67,15 @@ public final class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavi
     }
 
     private static class Factory implements BlockBehaviorFactory<SturdyBaseBlockBehavior> {
+        private static final String[] SUPPORT_TYPES = new String[] {"support_types", "support-types"};
 
         @Override
         public SturdyBaseBlockBehavior create(CustomBlock block, ConfigSection section) {
-            List<String> supportTypes = section.getStringList(List.of("full"), "support_types", "support-types");
+            List<String> supportTypes = section.getStringList(SUPPORT_TYPES, List.of("full"));
             return new SturdyBaseBlockBehavior(
                     block,
-                    section.getInt(0, "delay"),
-                    section.getEnum(Direction.DOWN, Direction.class, "direction"),
+                    section.getInt("delay", 0),
+                    section.getEnum("direction", Direction.class, Direction.DOWN),
                     section.getBoolean("stackable"),
                     supportTypes.contains("full"),
                     supportTypes.contains("rigid"),

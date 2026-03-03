@@ -13,7 +13,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-public class BukkitTeamManager implements TeamManager {
+public final class BukkitTeamManager implements TeamManager {
     private static BukkitTeamManager instance;
     private final BukkitCraftEngine plugin;
     private final Map<LegacyChatFormatter, Object> teamByColor = new EnumMap<>(LegacyChatFormatter.class);

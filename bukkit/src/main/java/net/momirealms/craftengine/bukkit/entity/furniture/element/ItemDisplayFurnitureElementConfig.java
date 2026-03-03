@@ -134,28 +134,36 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
     }
 
     private static class Factory implements FurnitureElementConfigFactory<ItemDisplayFurnitureElement> {
+        private static final String[] DISPLAY_CONTEXT = new String[] {"display_context", "display_transform", "display-context", "display-transform"};
+        private static final String[] SHADOW_RADIUS = new String[] {"shadow_radius", "shadow-radius"};
+        private static final String[] SHADOW_STRENGTH = new String[] {"shadow_strength", "shadow-strength"};
+        private static final String[] APPLY_DYED_COLOR = new String[] {"apply_dyed_color", "apply-dyed-color"};
+        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
+        private static final String[] BLOCK_LIGHT = new String[] {"block_light", "block-light"};
+        private static final String[] SKY_LIGHT = new String[] {"sky_light", "sky-light"};
+        private static final String[] VIEW_RANGE = new String[] {"view_range", "view-range"};
 
         @Override
         public ItemDisplayFurnitureElementConfig create(ConfigSection section) {
             ConfigSection brightness = section.getSection("brightness");
-            List<Condition<PlayerContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+            List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
             return new ItemDisplayFurnitureElementConfig(
                     section.getNonNullIdentifier("item"),
-                    section.getVector3f(ConfigConstants.NORMAL_SCALE, "scale"),
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getVector3f(ConfigConstants.ZERO_VECTOR3, "translation"),
-                    section.getFloat(0f, "pitch"),
-                    section.getFloat(0f, "yaw"),
-                    section.getQuaternionf(ConfigConstants.ZERO_QUATERNION, "rotation"),
-                    section.getEnum(ItemDisplayContext.NONE, ItemDisplayContext.class, "display_context", "display_transform", "display-context", "display-transform"),
-                    section.getEnum(Billboard.FIXED, Billboard.class, "billboard"),
-                    section.getFloat(0f, "shadow_radius", "shadow-radius"),
-                    section.getFloat(1f, "shadow_strength", "shadow-strength"),
-                    section.getBoolean(true, "apply_dyed_color", "apply-dyed-color"),
-                    section.getValue(ConfigValue::getAsColor, "glow_color", "glow-color"),
-                    brightness != null ? brightness.getInt(-1, "block_light", "block-light") : -1,
-                    brightness != null ? brightness.getInt(-1, "sky_light", "sky-light") : -1,
-                    section.getFloat(1f, "view_range", "view-range"),
+                    section.getVector3f("scale", ConfigConstants.NORMAL_SCALE),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getVector3f("translation", ConfigConstants.ZERO_VECTOR3),
+                    section.getFloat("pitch", 0f),
+                    section.getFloat("yaw", 0f),
+                    section.getQuaternion("rotation", ConfigConstants.ZERO_QUATERNION),
+                    section.getEnum(DISPLAY_CONTEXT, ItemDisplayContext.class, ItemDisplayContext.NONE),
+                    section.getEnum("billboard", Billboard.class, Billboard.FIXED),
+                    section.getFloat(SHADOW_RADIUS, 0f),
+                    section.getFloat(SHADOW_STRENGTH, 1f),
+                    section.getBoolean(APPLY_DYED_COLOR, true),
+                    section.getValue(GLOW_COLOR, ConfigValue::getAsColor),
+                    brightness != null ? brightness.getInt(BLOCK_LIGHT, -1) : -1,
+                    brightness != null ? brightness.getInt(SKY_LIGHT, -1) : -1,
+                    section.getFloat(VIEW_RANGE, 1f),
                     MiscUtils.allOf(conditions),
                     !conditions.isEmpty()
             );

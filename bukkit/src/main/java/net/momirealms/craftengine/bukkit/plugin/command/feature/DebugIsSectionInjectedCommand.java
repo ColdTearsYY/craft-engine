@@ -16,7 +16,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 
-public class DebugIsSectionInjectedCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugIsSectionInjectedCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugIsSectionInjectedCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

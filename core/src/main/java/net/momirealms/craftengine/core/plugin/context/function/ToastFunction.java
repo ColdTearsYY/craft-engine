@@ -21,10 +21,10 @@ public final class ToastFunction<CTX extends Context> extends AbstractConditiona
     private final AdvancementType advancementType;
 
     private ToastFunction(List<Condition<CTX>> predicates,
-                         @Nullable PlayerSelector<CTX> selector,
-                         String toast,
-                         java.util.function.Function<Player, Item<?>> icon,
-                         AdvancementType advancementType) {
+                          @Nullable PlayerSelector<CTX> selector,
+                          String toast,
+                          java.util.function.Function<Player, Item<?>> icon,
+                          AdvancementType advancementType) {
         super(predicates);
         this.selector = selector;
         this.toast = toast;
@@ -49,6 +49,9 @@ public final class ToastFunction<CTX extends Context> extends AbstractConditiona
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, ToastFunction<CTX>> {
+        private static final String[] ITEM = new String[] {"item", "icon"};
+        private static final String[] TOAST = new String[] {"toast", "message"};
+        private static final String[] ADVANCEMENT_TYPE = new String[] {"advancement_type", "advancement-type"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -56,13 +59,13 @@ public final class ToastFunction<CTX extends Context> extends AbstractConditiona
 
         @Override
         public ToastFunction<CTX> create(ConfigSection section) {
-            Key item = section.getNonNullIdentifier("item", "icon");
+            Key item = section.getNonNullIdentifier(ITEM);
             return new ToastFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    AdventureHelper.legacyToMiniMessage(section.getNonNullString("toast", "message")),
+                    AdventureHelper.legacyToMiniMessage(section.getNonNullString(TOAST)),
                     player -> CraftEngine.instance().itemManager().createWrappedItem(item, player),
-                    section.getEnum(AdvancementType.GOAL, AdvancementType.class, "advancement_type", "advancement-type")
+                    section.getEnum(ADVANCEMENT_TYPE, AdvancementType.class, AdvancementType.GOAL)
             );
         }
     }

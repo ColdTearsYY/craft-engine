@@ -14,7 +14,7 @@ import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.parser.PlayerParser;
 import org.incendo.cloud.parser.standard.DoubleParser;
 
-public class SetDisplayEntityViewDistanceScaleCommand extends BukkitCommandFeature<CommandSender> {
+public final class SetDisplayEntityViewDistanceScaleCommand extends BukkitCommandFeature<CommandSender> {
 
     public SetDisplayEntityViewDistanceScaleCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

@@ -10,7 +10,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LazyReference;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 
 import java.util.List;
@@ -49,13 +48,15 @@ public final class ResetOperation implements ItemUpdater {
     }
 
     private static class Factory implements ItemUpdaterFactory<ResetOperation> {
+        private static final String[] KEEP_COMPONENTS = new String[] {"keep_components", "keep-components"};
+        private static final String[] KEEP_TAGS = new String[] {"keep_tags", "keep-tags"};
 
         @Override
         public ResetOperation create(Key item, ConfigSection section) {
             return new ResetOperation(
                     LazyReference.lazyReference(() -> CraftEngine.instance().itemManager().getCustomItem(item).orElseThrow()),
-                    section.parseList(ConfigValue::getAsIdentifier, "keep_components", "keep-components"),
-                    section.parseList(v -> v.getAsString().split("\\."), "keep_tags", "keep-tags")
+                    section.getList(KEEP_COMPONENTS, ConfigValue::getAsIdentifier),
+                    section.getList(KEEP_TAGS, v -> v.getAsString().split("\\."))
             );
         }
     }

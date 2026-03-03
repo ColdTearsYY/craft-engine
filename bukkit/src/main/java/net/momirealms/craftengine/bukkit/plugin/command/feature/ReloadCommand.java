@@ -12,7 +12,7 @@ import org.incendo.cloud.parser.standard.EnumParser;
 
 import java.util.Optional;
 
-public class ReloadCommand extends BukkitCommandFeature<CommandSender> {
+public final class ReloadCommand extends BukkitCommandFeature<CommandSender> {
     public static boolean RELOAD_PACK_FLAG = false;
 
     public ReloadCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {

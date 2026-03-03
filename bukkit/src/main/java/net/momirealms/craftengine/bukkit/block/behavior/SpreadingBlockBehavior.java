@@ -36,12 +36,13 @@ public final class SpreadingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<SpreadingBlockBehavior> {
+        private static final String[] TARGET_BLOCK = new String[] {"target_block", "target-block"};
 
         @Override
         public SpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new SpreadingBlockBehavior(
                     block,
-                    section.getNonNullString("target_block", "target-block")
+                    section.getNonNullString(TARGET_BLOCK)
             );
         }
     }

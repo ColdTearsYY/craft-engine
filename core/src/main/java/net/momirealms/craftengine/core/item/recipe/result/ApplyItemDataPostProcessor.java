@@ -5,13 +5,11 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.processor.ItemProcessor;
 import net.momirealms.craftengine.core.item.processor.ItemProcessors;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-public class ApplyItemDataPostProcessor implements PostProcessor {
+public final class ApplyItemDataPostProcessor implements PostProcessor {
     public static final PostProcessorFactory<ApplyItemDataPostProcessor> FACTORY = new Factory();
     private final ItemProcessor[] modifiers;
 

@@ -6,5 +6,4 @@ import net.momirealms.craftengine.core.util.Key;
 public interface CraftRemainder {
 
     <T> Item<T> remainder(Key recipeId, Item<T> item);
-
 }

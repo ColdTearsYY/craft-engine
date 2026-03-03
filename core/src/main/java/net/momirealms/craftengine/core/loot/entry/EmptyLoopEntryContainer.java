@@ -24,8 +24,8 @@ public final class EmptyLoopEntryContainer<T> extends AbstractSingleLootEntryCon
         @Override
         public LootEntryContainer<A> create(ConfigSection section) {
             return new EmptyLoopEntryContainer<>(
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions"),
-                    section.getInt(1, "weight"),
+                    section.getList("conditions", CommonConditions::fromConfig),
+                    section.getInt("weight", 1),
                     section.getInt("quality")
             );
         }

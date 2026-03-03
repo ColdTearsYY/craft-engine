@@ -15,7 +15,7 @@ import net.momirealms.sparrow.nbt.Tag;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 
-public class BukkitPlatform implements Platform {
+public final class BukkitPlatform implements Platform {
     private final BukkitCraftEngine plugin;
 
     public BukkitPlatform(BukkitCraftEngine plugin) {

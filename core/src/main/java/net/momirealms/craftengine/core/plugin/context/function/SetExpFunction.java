@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 
 import java.util.List;
@@ -16,7 +15,10 @@ public final class SetExpFunction<CTX extends Context> extends AbstractCondition
     private final NumberProvider count;
     private final BiConsumer<Player, Integer> operation;
 
-    private SetExpFunction(List<Condition<CTX>> predicates, PlayerSelector<CTX> selector, NumberProvider count, BiConsumer<Player, Integer> operation) {
+    private SetExpFunction(List<Condition<CTX>> predicates,
+                           PlayerSelector<CTX> selector,
+                           NumberProvider count,
+                           BiConsumer<Player, Integer> operation) {
         super(predicates);
         this.selector = selector;
         this.count = count;
@@ -41,6 +43,7 @@ public final class SetExpFunction<CTX extends Context> extends AbstractCondition
                 player.setExperiencePoints(experience);
             }
         };
+        private static final String[] EXP = new String[] {"exp", "count", "value"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -51,7 +54,7 @@ public final class SetExpFunction<CTX extends Context> extends AbstractCondition
             return new SetExpFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    NumberProviders.fromObject(section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "count", "value", "exp")),
+                    section.getNonNullNumber(EXP),
                     section.getBoolean("add") ? ADD_POINTS : SET_POINTS
             );
         }

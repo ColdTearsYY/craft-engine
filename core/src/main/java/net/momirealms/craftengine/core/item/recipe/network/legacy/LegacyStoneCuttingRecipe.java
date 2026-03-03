@@ -7,7 +7,7 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public class LegacyStoneCuttingRecipe<I> implements LegacyRecipe<I> {
+public final class LegacyStoneCuttingRecipe<I> implements LegacyRecipe<I> {
     private Item<I> result;
     private final String group;
     private final LegacyIngredient<I> ingredient;

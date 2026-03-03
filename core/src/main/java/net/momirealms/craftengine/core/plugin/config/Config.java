@@ -13,13 +13,13 @@ import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings;
 import dev.dejvokep.boostedyaml.utils.format.NodeRole;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.entity.furniture.ColliderType;
+import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.pack.AbstractPackManager;
 import net.momirealms.craftengine.core.pack.conflict.resolution.ConditionalResolution;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.PluginProperties;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.plugin.logger.filter.DisconnectLogFilter;
 import net.momirealms.craftengine.core.util.*;
@@ -205,7 +205,7 @@ public final class Config {
     private boolean item$always_use_item_model;
     private boolean item$always_use_custom_model_data;
     private boolean item$always_generate_model_overrides;
-    private String item$default_material = "";
+    private Key item$default_material = ItemKeys.NETHER_BRICK;
     private boolean item$default_drop_display$enable = false;
     private String item$default_drop_display$format = null;
     private boolean item$data_fixer_upper$enable = true;
@@ -380,10 +380,10 @@ public final class Config {
         resource_pack$protection$incorrect_crc = config.getBoolean("resource-pack.protection.incorrect-crc", false);
         resource_pack$protection$fake_file_size = config.getBoolean("resource-pack.protection.fake-file-size", false);
         resource_pack$protection$obfuscation$namespace$amount = config.getInt("resource-pack.protection.obfuscation.namespace.amount", 32);
-        resource_pack$protection$obfuscation$namespace$length = NumberProviders.fromObject(config.get("resource-pack.protection.obfuscation.namespace.length", 2));
-        resource_pack$protection$obfuscation$overlay$length = NumberProviders.fromObject(config.get("resource-pack.protection.obfuscation.overlay.length", 4));
-        resource_pack$protection$obfuscation$path$depth = NumberProviders.fromObject(config.get("resource-pack.protection.obfuscation.path.depth", 4));
-        resource_pack$protection$obfuscation$path$length = NumberProviders.fromObject(config.get("resource-pack.protection.obfuscation.path.length", 2));
+        resource_pack$protection$obfuscation$namespace$length = NumberProviders.fromConfig(ConfigValue.of("resource-pack.protection.obfuscation.namespace.length", config.get("resource-pack.protection.obfuscation.namespace.length", 2)));
+        resource_pack$protection$obfuscation$overlay$length = NumberProviders.fromConfig(ConfigValue.of("resource-pack.protection.obfuscation.overlay.length", config.get("resource-pack.protection.obfuscation.overlay.length", 4)));
+        resource_pack$protection$obfuscation$path$depth = NumberProviders.fromConfig(ConfigValue.of("resource-pack.protection.obfuscation.path.depth", config.get("resource-pack.protection.obfuscation.path.depth", 4)));
+        resource_pack$protection$obfuscation$path$length = NumberProviders.fromConfig(ConfigValue.of("resource-pack.protection.obfuscation.path.length", config.get("resource-pack.protection.obfuscation.path.length", 2)));
         resource_pack$protection$obfuscation$path$block_source = config.getString("resource-pack.protection.obfuscation.path.block-source", "obf_block");
         resource_pack$protection$obfuscation$path$item_source = config.getString("resource-pack.protection.obfuscation.path.block-source", "obf_item");
         resource_pack$protection$obfuscation$path$anti_unzip = config.getBoolean("resource-pack.protection.obfuscation.path.anti-unzip", false);
@@ -417,11 +417,14 @@ public final class Config {
         }
 
         try {
-            resource_pack$duplicated_files_handler = config.getMapList("resource-pack.duplicated-files-handler").stream().map(it -> {
-                Map<String, Object> args = MiscUtils.castToMap(it, false);
-                return ConditionalResolution.FACTORY.create(args);
-            }).toList();
-        } catch (LocalizedResourceConfigException e) {
+            List<?> list = config.getList("resource-pack.duplicated-files-handler");
+            List<ConditionalResolution> resolutions = new ArrayList<>();
+            for (int i = 0; i < list.size(); i++) {
+                ConditionalResolution.FACTORY.create(ConfigSection.of("resource-pack.duplicated-files-handler[" + i + "]", MiscUtils.castToMap(list.get(i))));
+            }
+            resource_pack$duplicated_files_handler = resolutions;
+        } catch (KnownResourceException e) {
+            // todo 改进错误提示
             TranslationManager.instance().log(e.node(), e.arguments());
             resource_pack$duplicated_files_handler = List.of();
         } catch (Exception e) {
@@ -501,7 +504,7 @@ public final class Config {
         item$always_use_item_model = config.getBoolean("item.always-use-item-model", true) && VersionHelper.isOrAbove1_21_2();
         item$always_generate_model_overrides = config.getBoolean("item.always-generate-model-overrides", false);
         item$always_use_custom_model_data = item$always_generate_model_overrides || (config.getBoolean("item.always-use-custom-model-data", false) && VersionHelper.isOrAbove1_21_2());
-        item$default_material = config.getString("item.default-material", "");
+        item$default_material = Key.of(config.getString("item.default-material", "nether_brick"));
         item$default_drop_display$enable = config.getBoolean("item.default-drop-display.enable", false);
         item$default_drop_display$format = item$default_drop_display$enable ? config.getString("item.default-drop-display.format", "<arg:count>x <name>"): null;
         item$data_fixer_upper$enable = config.getBoolean("item.data-fixer-upper.enable", true);
@@ -1225,7 +1228,7 @@ public final class Config {
         return instance.light_system$async_update;
     }
 
-    public static String defaultMaterial() {
+    public static Key defaultMaterial() {
         return instance.item$default_material;
     }
 

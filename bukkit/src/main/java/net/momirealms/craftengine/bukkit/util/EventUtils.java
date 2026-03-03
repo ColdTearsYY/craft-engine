@@ -5,7 +5,6 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 
 public final class EventUtils {
-
     private EventUtils() {}
 
     public static void fireAndForget(Event event) {

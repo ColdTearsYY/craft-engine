@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.loot.function;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootContext;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
@@ -53,13 +54,17 @@ public final class LootFunctions {
         };
     }
 
+    public static <T> LootFunction<T> fromConfig(ConfigValue value) {
+        return fromConfig(value.getAsSection());
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> LootFunction<T> fromConfig(ConfigSection section) {
         String type = section.getNonNullString("type");
         Key key = Key.ce(type);
         LootFunctionType<T> functionType = (LootFunctionType<T>) BuiltInRegistries.LOOT_FUNCTION_TYPE.getValue(key);
         if (functionType == null) {
-            throw new KnownResourceException("loot.function.unknown_type", section.assemblePath("type"), type);
+            throw new KnownResourceException("loot.function.unknown_type", section.assemblePath("type"), key.asString());
         }
         return functionType.factory().create(section);
     }

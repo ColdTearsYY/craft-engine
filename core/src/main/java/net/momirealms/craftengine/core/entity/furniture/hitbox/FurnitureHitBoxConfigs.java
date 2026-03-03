@@ -8,7 +8,7 @@ import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
-public class FurnitureHitBoxConfigs {
+public abstract class FurnitureHitBoxConfigs {
     protected FurnitureHitBoxConfigs() {}
 
     public static <H extends FurnitureHitBox> FurnitureHitboxConfigType<H> register(Key key, FurnitureHitBoxConfigFactory<H> factory) {
@@ -20,11 +20,11 @@ public class FurnitureHitBoxConfigs {
 
     @SuppressWarnings("unchecked")
     public static <H extends FurnitureHitBox> FurnitureHitBoxConfig<H> fromConfig(ConfigSection section) {
-        String typeName = section.getDefaultedString("interaction", "type");
+        String typeName = section.getString("type", "interaction");
         Key type = Key.ce(typeName);
         FurnitureHitboxConfigType<H> configType = (FurnitureHitboxConfigType<H>) BuiltInRegistries.FURNITURE_HITBOX_TYPE.getValue(type);
         if (configType == null) {
-            throw new KnownResourceException("resource.furniture.hitbox.unknown_type", section.assemblePath("type"), typeName);
+            throw new KnownResourceException("resource.furniture.hitbox.unknown_type", section.assemblePath("type"), type.asString());
         }
         return configType.factory().create(section);
     }

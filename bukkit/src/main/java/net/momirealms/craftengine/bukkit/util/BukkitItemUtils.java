@@ -6,7 +6,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.item.ItemsProxy;
 import org.bukkit.inventory.ItemStack;
 
 public final class BukkitItemUtils {
-
     private BukkitItemUtils() {}
 
     public static boolean isDebugStick(Item<ItemStack> item) {

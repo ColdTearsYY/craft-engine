@@ -11,7 +11,7 @@ import net.momirealms.craftengine.proxy.minecraft.network.protocol.login.Clientb
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacketProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.status.ClientboundStatusResponsePacketProxy;
 
-public class PacketIds1_20 implements PacketIds {
+public final class PacketIds1_20 implements PacketIds {
 
     @Override
     public int clientboundBlockUpdatePacket() {

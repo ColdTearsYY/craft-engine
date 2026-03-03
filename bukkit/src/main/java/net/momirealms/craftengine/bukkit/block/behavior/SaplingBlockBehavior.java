@@ -210,15 +210,18 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<SaplingBlockBehavior> {
+        private static final String[] FEATURE = new String[]{"feature", "configured_feature", "configured-feature"};
+        private static final String[] SUCCESS_CHANCE = new String[]{"bone_meal_success_chance", "bone-meal-success-chance"};
+        private static final String[] GROW_SPEED = new String[]{"grow_speed", "grow-speed"};
 
         @Override
         public SaplingBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new SaplingBlockBehavior(
                     block,
-                    section.getNonNullIdentifier("feature", "configured_feature", "configured-feature"),
+                    section.getNonNullIdentifier(FEATURE),
                     (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "stage", Integer.class),
-                    section.getDouble(0.45d, "bone_meal_success_chance", "bone-meal-success-chance"),
-                    section.getFloat(1.0f / 7.0f, "grow_speed", "grow-speed")
+                    section.getDouble(SUCCESS_CHANCE, 0.45d),
+                    section.getFloat(GROW_SPEED, 1.0f / 7.0f)
             );
         }
     }

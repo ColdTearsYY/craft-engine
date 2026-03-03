@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class MinecartPacketHandler implements EntityPacketHandler {
+public final class MinecartPacketHandler implements EntityPacketHandler {
     public static final MinecartPacketHandler INSTANCE = new MinecartPacketHandler();
     private static final BlockStateHandler BLOCK_STATE_HANDLER = VersionHelper.isOrAbove1_21_5() ? BlockStateHandler_1_21_5.INSTANCE : BlockStateHandler_1_20.INSTANCE;
 

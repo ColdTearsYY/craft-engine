@@ -35,7 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("DuplicatedCode")
-public class BukkitFurniture extends Furniture {
+public final class BukkitFurniture extends Furniture {
     private final AtomicBoolean isMoving = new AtomicBoolean(false);
     private final WeakReference<ItemDisplay> metaEntity;
     private Location location;

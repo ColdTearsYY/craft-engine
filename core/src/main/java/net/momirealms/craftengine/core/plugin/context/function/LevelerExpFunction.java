@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 
@@ -17,7 +16,11 @@ public final class LevelerExpFunction<CTX extends Context> extends AbstractCondi
     private final String leveler;
     private final String plugin;
 
-    private LevelerExpFunction(List<Condition<CTX>> predicates, String leveler, String plugin, PlayerSelector<CTX> selector, NumberProvider count) {
+    private LevelerExpFunction(List<Condition<CTX>> predicates,
+                               PlayerSelector<CTX> selector,
+                               String plugin,
+                               NumberProvider count,
+                               String leveler) {
         super(predicates);
         this.count = count;
         this.leveler = leveler;
@@ -44,6 +47,8 @@ public final class LevelerExpFunction<CTX extends Context> extends AbstractCondi
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, LevelerExpFunction<CTX>> {
+        private static final String[] LEVELER = new String[] {"leveler", "skill", "job"};
+        private static final String[] COUNT = new String[] {"count", "exp", "amount"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -53,10 +58,7 @@ public final class LevelerExpFunction<CTX extends Context> extends AbstractCondi
         public LevelerExpFunction<CTX> create(ConfigSection section) {
             return new LevelerExpFunction<>(
                     getPredicates(section),
-                    section.getNonNullString("leveler", "skill", "job"),
-                    section.getNonNullString("plugin"),
-                    getPlayerSelector(section),
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "count", "exp", "amount")
+                    getPlayerSelector(section), section.getNonNullString("plugin"), section.getNonNullNumber(COUNT), section.getNonNullString(LEVELER)
             );
         }
     }

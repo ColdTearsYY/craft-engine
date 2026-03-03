@@ -4,7 +4,7 @@ import org.joml.Vector3f;
 
 import java.util.Arrays;
 
-public class Color {
+public final class Color {
     private static final int BIT_MASK = 0xff;
     private static final byte DEFAULT_ALPHA = (byte) 255;
     private final int color;

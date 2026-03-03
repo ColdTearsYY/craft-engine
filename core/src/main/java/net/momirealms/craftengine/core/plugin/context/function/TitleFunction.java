@@ -1,10 +1,10 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 import net.momirealms.craftengine.core.util.AdventureHelper;
@@ -20,8 +20,13 @@ public final class TitleFunction<CTX extends Context> extends AbstractConditiona
     private final NumberProvider stay;
     private final NumberProvider fadeOut;
 
-    private TitleFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector,
-                         String main, String sub, NumberProvider fadeIn, NumberProvider stay, NumberProvider fadeOut) {
+    private TitleFunction(List<Condition<CTX>> predicates,
+                          @Nullable PlayerSelector<CTX> selector,
+                          String main,
+                          String sub,
+                          NumberProvider fadeIn,
+                          NumberProvider stay,
+                          NumberProvider fadeOut) {
         super(predicates);
         this.selector = selector;
         this.main = main;
@@ -56,6 +61,8 @@ public final class TitleFunction<CTX extends Context> extends AbstractConditiona
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, TitleFunction<CTX>> {
+        private static final String[] FADE_IN = new String[] {"fade_in", "fade-in"};
+        private static final String[] FADE_OUT = new String[] {"fade_out", "fade-out"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -66,11 +73,11 @@ public final class TitleFunction<CTX extends Context> extends AbstractConditiona
             return new TitleFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    section.getDefaultedString("", "title"),
-                    section.getDefaultedString("", "subtitle"),
-                    NumberProviders.fromObject(section.getOrDefault(10, "fade_in", "fade-in")),
-                    NumberProviders.fromObject(section.getOrDefault(20, "stay")),
-                    NumberProviders.fromObject(section.getOrDefault(5, "fade_out", "fade-out"))
+                    section.getString("title", ""),
+                    section.getString("subtitle", ""),
+                    section.getNumber(FADE_IN, ConfigConstants.CONSTANT_TEN),
+                    section.getNumber("stay", ConfigConstants.CONSTANT_TWENTY),
+                    section.getNumber(FADE_OUT, ConfigConstants.CONSTANT_FIVE)
             );
         }
     }

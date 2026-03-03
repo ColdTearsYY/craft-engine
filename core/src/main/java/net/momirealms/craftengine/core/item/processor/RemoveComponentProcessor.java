@@ -47,7 +47,7 @@ public final class RemoveComponentProcessor implements ItemProcessor {
 
         @Override
         public RemoveComponentProcessor create(ConfigValue value) {
-            return new RemoveComponentProcessor(value.parseAsList(ConfigValue::getAsIdentifier));
+            return new RemoveComponentProcessor(value.getAsList(ConfigValue::getAsIdentifier));
         }
     }
 }

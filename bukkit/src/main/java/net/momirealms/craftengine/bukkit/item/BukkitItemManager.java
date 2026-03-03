@@ -59,7 +59,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 @SuppressWarnings("unchecked")
-public class BukkitItemManager extends AbstractItemManager<ItemStack> {
+public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
     static {
         registerVanillaItemExtraBehavior(FlintAndSteelItemBehavior.INSTANCE, ItemKeys.FLINT_AND_STEEL);
         registerVanillaItemExtraBehavior(AxeItemBehavior.INSTANCE, ItemKeys.AXES);

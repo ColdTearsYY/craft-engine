@@ -41,11 +41,13 @@ public final class TrimBasedEquipment extends AbstractEquipment {
     }
 
     private static class Factory implements EquipmentFactory<TrimBasedEquipment> {
+        private static final String[] HUMANOID = new String[] {"humanoid", "layer0"};
+        private static final String[] HUMANOID_LEGGINGS = new String[] {"humanoid_leggings", "humanoid-leggings", "layer1"};
 
         @Override
         public TrimBasedEquipment create(Key id, ConfigSection section) {
-            Key humanoidId = section.getIdentifier("humanoid", "layer0");
-            Key humanoidLeggingsId = section.getIdentifier("humanoid-leggings", "layer1");
+            Key humanoidId = section.getIdentifier(HUMANOID);
+            Key humanoidLeggingsId = section.getIdentifier(HUMANOID_LEGGINGS);
             return new TrimBasedEquipment(id, humanoidId, humanoidLeggingsId);
         }
     }

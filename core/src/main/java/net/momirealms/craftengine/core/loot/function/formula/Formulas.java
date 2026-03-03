@@ -26,7 +26,7 @@ public final class Formulas {
         Key key = Key.ce(type);
         FormulaType<? extends Formula> formulaType = BuiltInRegistries.FORMULA_TYPE.getValue(key);
         if (formulaType == null) {
-            throw new KnownResourceException("loot.function.formula.unknown_type", section.assemblePath("type"), type);
+            throw new KnownResourceException("loot.function.formula.unknown_type", section.assemblePath("type"), key.asString());
         }
         return formulaType.factory().create(section);
     }

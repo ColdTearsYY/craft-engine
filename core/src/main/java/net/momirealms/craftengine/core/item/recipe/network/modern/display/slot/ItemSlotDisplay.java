@@ -3,7 +3,7 @@ package net.momirealms.craftengine.core.item.recipe.network.modern.display.slot;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 
-public class ItemSlotDisplay<I> implements SlotDisplay<I> {
+public final class ItemSlotDisplay<I> implements SlotDisplay<I> {
     private final int item;
 
     public ItemSlotDisplay(int item) {
@@ -22,13 +22,13 @@ public class ItemSlotDisplay<I> implements SlotDisplay<I> {
     }
 
     public int item() {
-        return item;
+        return this.item;
     }
 
     @Override
     public String toString() {
         return "ItemSlotDisplay{" +
-                "item=" + item +
+                "item=" + this.item +
                 '}';
     }
 }

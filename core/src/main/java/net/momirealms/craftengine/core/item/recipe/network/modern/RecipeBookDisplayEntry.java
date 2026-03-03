@@ -40,11 +40,11 @@ public record RecipeBookDisplayEntry<I>(RecipeDisplayId displayId, RecipeDisplay
     @Override
     public @NotNull String toString() {
         return "RecipeBookDisplayEntry{" +
-                "category=" + category +
-                ", displayId=" + displayId +
-                ", display=" + display +
-                ", group=" + group +
-                ", ingredients=" + ingredients +
+                "category=" + this.category +
+                ", displayId=" + this.displayId +
+                ", display=" + this.display +
+                ", group=" + this.group +
+                ", ingredients=" + this.ingredients +
                 '}';
     }
 

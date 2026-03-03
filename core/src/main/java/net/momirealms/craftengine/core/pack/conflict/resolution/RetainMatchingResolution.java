@@ -5,12 +5,10 @@ import net.momirealms.craftengine.core.pack.conflict.matcher.PathMatchers;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
-import net.momirealms.craftengine.core.util.MiscUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
 
 public record RetainMatchingResolution(Condition<PathContext> matcher) implements Resolution {
     public static final ResolutionFactory<RetainMatchingResolution> FACTORY = new Factory();

@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
@@ -41,20 +42,20 @@ public final class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavi
     }
 
     private static class Factory implements BlockBehaviorFactory<NearLiquidBlockBehavior> {
+        private static final String[] LIQUID_TYPE = new String[] {"liquid_type", "liquid-type"};
 
         @Override
         public NearLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
-            List<String> liquidTypes = section.getStringList(List.of("water"), "liquid_type", "liquid-type");
-            List<String> positionsToCheck = section.getStringList(List.of("0,-1,0"), "positions");
-            BlockPos[] pos = new BlockPos[positionsToCheck.size()];
-            for (int i = 0; i < pos.length; i++) {
-                String[] split = positionsToCheck.get(i).split(",", 3);
-                pos[i] = new BlockPos(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-            }
+            List<String> liquidTypes = section.getStringList(LIQUID_TYPE, List.of("water"));
+            List<String> positionsToCheck = section.getStringList("positions", List.of("0,-1,0"));
+            BlockPos[] positions = section.getList("positions", v -> {
+                ConfigValue[] configValues = v.splitValuesRestrict(",", 3);
+                return new BlockPos(configValues[0].getAsInt(), configValues[1].getAsInt(), configValues[2].getAsInt());
+            }).toArray(BlockPos[]::new);
             return new NearLiquidBlockBehavior(
                     block,
                     section.getInt("delay"),
-                    pos,
+                    positions,
                     section.getBoolean("stackable"),
                     liquidTypes.contains("water"),
                     liquidTypes.contains("lava")

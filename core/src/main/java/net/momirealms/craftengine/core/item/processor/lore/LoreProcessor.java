@@ -12,11 +12,17 @@ import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.AdventureHelper;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.util.MutableInt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
@@ -71,6 +77,8 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
         };
     }
 
+    String[] SPLIT_LINES = new String[] {"split_lines", "split-lines"};
+
     private static @NotNull List<LoreModificationHolder> getLoreModificationHolders(ConfigValue configValue) {
         MutableInt lastPriority = new MutableInt(0);
         List<LoreModificationHolder> modifications = new ArrayList<>();
@@ -78,10 +86,10 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
             if (v.is(Map.class)) {
                 ConfigSection section = v.getAsSection();
                 String[] contents = section.getStringList("content").toArray(String[]::new);
-                LoreModification.Operation operation = section.getEnum(LoreModification.Operation.APPEND, LoreModification.Operation.class, "operation");
-                int priority = section.getInt(lastPriority.intValue(), "priority");
-                boolean split = section.getBoolean("split", "split_lines", "split-lines");
-                List<Condition<ItemBuildContext>> conditions = section.parseSectionList(CommonConditions::fromConfig, "conditions");
+                LoreModification.Operation operation = section.getEnum("operation", LoreModification.Operation.class, LoreModification.Operation.APPEND);
+                int priority = section.getInt("priority", lastPriority.intValue());
+                boolean split = section.getBoolean(SPLIT_LINES);
+                List<Condition<ItemBuildContext>> conditions = section.getList("conditions", a -> CommonConditions.fromConfig(a.getAsSection()));
                 modifications.add(new LoreModificationHolder(new LoreModification(operation, split,
                         Arrays.stream(contents)
                                 .map(AdventureHelper::legacyToMiniMessage)

@@ -9,9 +9,9 @@ import net.momirealms.craftengine.core.item.setting.*;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.util.*;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -98,8 +98,10 @@ public final class ItemSettings {
     }
 
     public static ItemSettings fromConfig(@Nullable ConfigSection section) {
-        if (section == null) return ItemSettings.of();
-        return applyModifiers(ItemSettings.of(), section);
+        ItemSettings itemSettings = ItemSettings.of();
+        if (section == null) return itemSettings;
+        applyModifiers(itemSettings, section);
+        return itemSettings;
     }
 
     public static ItemSettings ofFullCopy(ItemSettings settings) {
@@ -133,16 +135,21 @@ public final class ItemSettings {
         return newSettings;
     }
 
-    public static ItemSettings applyModifiers(ItemSettings settings, @NotNull ConfigSection section) {
-        for (String type : section.keySet()) {
-            ConfigValue value = section.getValue(type);
-            if (value == null) continue;
-            String key = StringUtils.normalizeSettingsType(type);
-            Optional.ofNullable(BuiltInRegistries.ITEM_SETTINGS_TYPE.getValue(Key.ce(key)))
-                    .ifPresent(modifierType ->
-                            modifierType.factory().create(value).apply(settings));
+    public static void applyModifiers(ItemSettings settings, ConfigSection section) {
+        ExceptionCollector<KnownResourceException> collector = new ExceptionCollector<>(KnownResourceException.class);
+        if (section != null) {
+            for (String type : section.keySet()) {
+                ConfigValue value = section.getValue(type);
+                if (value == null) continue;
+                String key = StringUtils.normalizeSettingsType(type);
+                collector.runCatching(() -> {
+                    Optional.ofNullable(BuiltInRegistries.ITEM_SETTINGS_TYPE.getValue(Key.ce(key)))
+                            .ifPresent(modifierType ->
+                                    modifierType.factory().create(value).apply(settings));
+                });
+            }
         }
-        return settings;
+        collector.throwIfPresent();
     }
 
     @SuppressWarnings("unchecked")
@@ -396,29 +403,5 @@ public final class ItemSettings {
     public ItemSettings triggerAdvancement(boolean triggerAdvancement) {
         this.triggerAdvancement = triggerAdvancement;
         return this;
-    }
-
-    @FunctionalInterface
-    public interface Modifier {
-
-        void apply(ItemSettings settings);
-
-        @FunctionalInterface
-        interface Factory {
-
-            ItemSettings.Modifier createModifier(Object value);
-        }
-    }
-
-    public static class Modifiers {
-        private static final Map<String, ItemSettings.Modifier.Factory> FACTORIES = new HashMap<>();
-
-        static {
-
-        }
-
-        public static void registerFactory(String id, ItemSettings.Modifier.Factory factory) {
-            FACTORIES.put(id, factory);
-        }
     }
 }

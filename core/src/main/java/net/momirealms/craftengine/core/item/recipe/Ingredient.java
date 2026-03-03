@@ -5,7 +5,7 @@ import net.momirealms.craftengine.core.util.UniqueKey;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class Ingredient<T> implements Predicate<UniqueIdItem<T>>, StackedContents.IngredientInfo<UniqueIdItem<T>> {
+public final class Ingredient<T> implements Predicate<UniqueIdItem<T>>, StackedContents.IngredientInfo<UniqueIdItem<T>> {
     private final List<IngredientElement> elements;
     // 自定义物品与原版物品混合的列表
     private final List<UniqueKey> items;

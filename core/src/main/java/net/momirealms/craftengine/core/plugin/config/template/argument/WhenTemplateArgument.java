@@ -31,13 +31,13 @@ public final class WhenTemplateArgument implements TemplateArgument {
         public WhenTemplateArgument create(ConfigSection section) {
             String source = section.getString("source");
             if (source == null) {
-                return new WhenTemplateArgument(super.fromObject(section.getValue("fallback")));
+                return new WhenTemplateArgument(TemplateArguments.fromConfig(section.getValue("fallback")));
             }
             ConfigSection whenSection = section.getNonNullSection("when");
             if (whenSection.containsKey(source)) {
-                return new WhenTemplateArgument(super.fromObject(whenSection.getValue(source)));
+                return new WhenTemplateArgument(TemplateArguments.fromConfig(whenSection.getValue(source)));
             }
-            return new WhenTemplateArgument(super.fromObject(section.getValue("fallback")));
+            return new WhenTemplateArgument(TemplateArguments.fromConfig(section.getValue("fallback")));
         }
     }
 }

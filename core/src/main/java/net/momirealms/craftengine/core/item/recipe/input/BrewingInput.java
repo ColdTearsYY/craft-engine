@@ -12,10 +12,10 @@ public final class BrewingInput<T> implements RecipeInput {
     }
 
     public UniqueIdItem<T> container() {
-        return container;
+        return this.container;
     }
 
     public UniqueIdItem<T> ingredient() {
-        return ingredient;
+        return this.ingredient;
     }
 }

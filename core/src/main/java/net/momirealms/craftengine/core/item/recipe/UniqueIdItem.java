@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.UniqueKey;
 import org.jetbrains.annotations.NotNull;
 
-public class UniqueIdItem<T> {
+public final class UniqueIdItem<T> {
     private final Item<T> rawItem;
     private final UniqueKey uniqueId;
 

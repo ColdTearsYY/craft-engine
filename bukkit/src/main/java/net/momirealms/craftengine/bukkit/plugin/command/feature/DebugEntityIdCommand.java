@@ -15,7 +15,7 @@ import org.incendo.cloud.CommandManager;
 import org.incendo.cloud.bukkit.parser.WorldParser;
 import org.incendo.cloud.parser.standard.IntegerParser;
 
-public class DebugEntityIdCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugEntityIdCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugEntityIdCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

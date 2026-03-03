@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class BukkitWorld implements World {
+public final class BukkitWorld implements World {
     private final WeakReference<org.bukkit.World> world;
     private final UUID uuid;
     private CEWorld ceWorld;

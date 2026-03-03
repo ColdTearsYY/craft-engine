@@ -1,10 +1,10 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 
@@ -37,12 +37,13 @@ public final class RandomCondition<CTX extends Context> implements Condition<CTX
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, RandomCondition<CTX>> {
+        private static final String[] USE_LAST = new String[] {"use-last", "use_last"};
 
         @Override
         public RandomCondition<CTX> create(ConfigSection section) {
             return new RandomCondition<>(
-                    NumberProviders.fromObject(section.getOrDefault(0.5f, "value")),
-                    section.getBoolean("use-last", "use_last")
+                    section.getNumber("value", ConfigConstants.CONSTANT_HALF),
+                    section.getBoolean(USE_LAST)
             );
         }
     }

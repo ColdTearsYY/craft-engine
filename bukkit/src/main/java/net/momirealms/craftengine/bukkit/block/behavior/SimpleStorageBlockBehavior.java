@@ -165,6 +165,9 @@ public final class SimpleStorageBlockBehavior extends BukkitBlockBehavior implem
     }
 
     private static class Factory implements BlockBehaviorFactory<SimpleStorageBlockBehavior> {
+        private static final String[] HAS_SIGNAL = new String[]{"has_signal", "has-signal"};
+        private static final String[] ALLOW_INPUT = new String[]{"allow_input", "allow-input"};
+        private static final String[] ALLOW_OUTPUT = new String[]{"allow_output", "allow-output"};
 
         @Override
         public SimpleStorageBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -172,18 +175,18 @@ public final class SimpleStorageBlockBehavior extends BukkitBlockBehavior implem
             SoundData openSound = null;
             SoundData closeSound = null;
             if (soundSection != null) {
-                openSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1), "open");
-                closeSound = soundSection.getValue(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1), "close");
+                openSound = soundSection.getValue("open", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1));
+                closeSound = soundSection.getValue("close", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1));
             }
             return new SimpleStorageBlockBehavior(
                     block,
-                    section.getDefaultedString("<lang:container.chest>", "title"),
-                    section.getInt(1, "rows"),
+                    section.getString("title", "<lang:container.chest>"),
+                    section.getInt("rows", 1),
                     openSound,
                     closeSound,
-                    section.getBoolean(true, "has_signal", "has-signal"),
-                    section.getBoolean(true, "allow_input", "allow-input"),
-                    section.getBoolean(true, "allow_output", "allow-output"),
+                    section.getBoolean(HAS_SIGNAL, true),
+                    section.getBoolean(ALLOW_INPUT, true),
+                    section.getBoolean(ALLOW_OUTPUT, true),
                     BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class)
             );
         }

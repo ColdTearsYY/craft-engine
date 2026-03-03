@@ -42,7 +42,6 @@ import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.locale.LangData;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.sound.AbstractSoundManager;
@@ -201,7 +200,7 @@ public abstract class AbstractPackManager implements PackManager {
         for (int i = 0; i < 256; i++) {
             VANILLA_TEXTURES.add(Key.of("minecraft", "font/unicode_page_" + String.format("%02x", i)));
         }
-        VANILLA_TEXTURES.add(Util.MISSING_NO);
+        VANILLA_TEXTURES.add(MISSING_NO);
         loadInternalList("internal/textures/processed.json", VANILLA_TEXTURES::add);
         loadInternalList("internal/sounds/processed.json", VANILLA_SOUNDS::add);
 
@@ -286,29 +285,17 @@ public abstract class AbstractPackManager implements PackManager {
     @Override
     public void load() {
         Object hostingObj = Config.instance().settings().get("resource-pack.delivery.hosting");
-        Map<String, Object> arguments;
-        if (hostingObj instanceof Map<?,?>) {
-            arguments = MiscUtils.castToMap(hostingObj, false);
-        } else if (hostingObj instanceof List<?> list && !list.isEmpty()) {
-            arguments = MiscUtils.castToMap(list.getFirst(), false);
-        } else {
-            this.resourcePackHost = NoneHost.INSTANCE;
-            return;
-        }
-        try {
-            // we might add multiple host methods in future versions
-            this.resourcePackHost = ResourcePackHosts.fromMap(arguments);
-        } catch (LocalizedException e) {
-            if (e instanceof LocalizedResourceConfigException exception) {
-                exception.setPath(plugin.dataFolderPath().resolve("config.yml"));
-                e.setArgument(1, "hosting");
+        ConfigValue configValue = new ConfigValue("resource-pack.delivery.hosting", hostingObj);
+        ResourceConfigUtils.runCatching(this.plugin.dataFolderPath().resolve("config.yml"), "resource-pack.delivery.hosting", () -> {
+            List<ResourcePackHost> hosts = configValue.getAsList(v -> ResourcePackHosts.fromConfig(v.getAsSection()));
+            if (hosts.isEmpty()) {
+                this.resourcePackHost = NoneHost.INSTANCE;
+            } else {
+                this.resourcePackHost = hosts.getFirst();
             }
-            TranslationManager.instance().log(e.node(), e.arguments());
-            this.resourcePackHost = NoneHost.INSTANCE;
-        } catch (Throwable e) {
-            this.plugin.logger().warn("Failed to load resource pack host", e);
-            this.resourcePackHost = NoneHost.INSTANCE;
-        }
+        }, e -> {
+            // todo 转移到config里
+        });
     }
 
     @Override
@@ -2099,9 +2086,9 @@ public abstract class AbstractPackManager implements PackManager {
                         }
                     }
 
-                    itemAtlasToAdd.remove(Util.MISSING_NO);
-                    itemAtlasToRemove.remove(Util.MISSING_NO);
-                    blockAtlasToAdd.remove(Util.MISSING_NO);
+                    itemAtlasToAdd.remove(MISSING_NO);
+                    itemAtlasToRemove.remove(MISSING_NO);
+                    blockAtlasToAdd.remove(MISSING_NO);
 
                     JsonObject fixedItemAtlas = null;
                     if (!itemAtlasToAdd.isEmpty() || !itemAtlasToRemove.isEmpty()) {
@@ -2176,7 +2163,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                 }
 
-                blockAtlasToAdd.remove(Util.MISSING_NO);
+                blockAtlasToAdd.remove(MISSING_NO);
 
                 if (Config.fixTextureAtlas()) {
                     JsonObject fixedBlockAtlas = null;
@@ -3183,7 +3170,7 @@ public abstract class AbstractPackManager implements PackManager {
                     firstBaseModel = legacyOverridesModels.getFirst();
                 }
 
-                itemJson.addProperty("parent", firstBaseModel.model());
+                itemJson.addProperty("parent", firstBaseModel.model().asMinimalString());
                 if (!overrideJsons.isEmpty()) {
                     JsonArray overrides = new JsonArray();
                     for (JsonObject override : overrideJsons) {

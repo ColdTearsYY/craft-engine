@@ -24,7 +24,7 @@ import org.joml.Vector3f;
 
 import java.util.UUID;
 
-public class DynamicItemFrameRenderer implements DynamicBlockEntityRenderer {
+public final class DynamicItemFrameRenderer implements DynamicBlockEntityRenderer {
     public final ItemFrameBlockEntity blockEntity;
     public final Object cachedSpawnPacket;
     public final Object cachedDespawnPacket;

@@ -19,7 +19,7 @@ import net.momirealms.craftengine.proxy.minecraft.network.syncher.SynchedEntityD
 import java.util.List;
 import java.util.Map;
 
-public class TextDisplayPacketHandler implements EntityPacketHandler {
+public final class TextDisplayPacketHandler implements EntityPacketHandler {
     public static final TextDisplayPacketHandler INSTANCE = new TextDisplayPacketHandler();
 
     @Override

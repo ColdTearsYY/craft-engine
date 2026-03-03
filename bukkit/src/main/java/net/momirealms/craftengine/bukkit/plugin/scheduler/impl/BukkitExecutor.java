@@ -8,7 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
-public class BukkitExecutor implements RegionExecutor<World> {
+public final class BukkitExecutor implements RegionExecutor<World> {
     private final BukkitCraftEngine plugin;
 
     public BukkitExecutor(BukkitCraftEngine plugin) {

@@ -35,7 +35,7 @@ public final class EquippableProcessor implements SimpleNetworkItemProcessor {
 
         @Override
         public EquippableProcessor create(ConfigValue value) {
-            return new EquippableProcessor(value.getAsEquipmentData());
+            return new EquippableProcessor(EquipmentData.fromConfig(value.getAsSection()));
         }
     }
 }

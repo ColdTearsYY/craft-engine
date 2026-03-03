@@ -61,14 +61,15 @@ public final class SelfIncreaseIntTemplateArgument implements TemplateArgument {
     }
 
     private static class Factory implements TemplateArgumentFactory<SelfIncreaseIntTemplateArgument> {
+        private static final String[] STEP_INTERVAL = new String[]{"step_interval", "step-interval"};
 
         @Override
         public SelfIncreaseIntTemplateArgument create(ConfigSection section) {
             return new SelfIncreaseIntTemplateArgument(
                     section.getNonNullInt("from"),
                     section.getNonNullInt("to"),
-                    section.getInt(1, "step"),
-                    section.getInt(1, "step_interval", "step-interval")
+                    section.getInt("step", 1),
+                    section.getInt(STEP_INTERVAL, 1)
             );
         }
     }

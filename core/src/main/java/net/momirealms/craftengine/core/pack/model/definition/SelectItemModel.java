@@ -124,19 +124,21 @@ public final class SelectItemModel implements ItemModel {
         @Override
         public SelectItemModel create(ConfigSection section) {
             SelectProperty property = SelectProperties.fromConfig(section);
-            ItemModel fallbackModel = section.getValue(ConfigValue::getAsItemModel, "fallback");
+            ItemModel fallbackModel = section.getValue("fallback", ItemModels::fromConfig);
             Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap = new HashMap<>();
-            section.forEachSection(entry -> {
-                List<JsonElement> when = entry.parseNonEmptyList(v -> GsonHelper.get().toJsonTree(v.value()), "when");
+            ConfigValue cases = section.getNonNullValue("cases", ConfigConstants.ARGUMENT_LIST);
+            cases.forEach(value -> {
+                ConfigSection entry = value.getAsSection();
+                List<JsonElement> when = entry.getNonEmptyList("when", v -> GsonHelper.get().toJsonTree(v.value()));
                 Either<JsonElement, List<JsonElement>> either;
                 if (when.size() == 1) {
                     either = Either.left(when.getFirst());
                 } else {
                     either = Either.right(when);
                 }
-                ItemModel model = section.getNonNullValue(ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, "model").getAsItemModel();
+                ItemModel model = section.getNonNullValue("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig);
                 whenMap.put(either, model);
-            }, "cases");
+            });
             return new SelectItemModel(
                     property,
                     whenMap,

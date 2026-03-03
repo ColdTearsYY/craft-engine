@@ -332,11 +332,13 @@ public abstract class AbstractFontManager implements FontManager {
             return List.of(LoadingStages.IMAGE);
         }
 
+        private static final String[] CONTENT = new String[] {"content", "format"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             String permission = section.getString("permission");
             List<String> keywords = section.getNonNullStringList("keywords");
-            Object rawContent = section.getOrDefault("<white><arg:emoji></white>", "content", "format");
+            Object rawContent = section.getOrDefault(CONTENT, "<white><arg:emoji></white>");
             String content;
             if (rawContent instanceof List<?> list) {
                 content = list.stream().map(Object::toString).collect(Collectors.joining());
@@ -432,6 +434,11 @@ public abstract class AbstractFontManager implements FontManager {
             });
         }
 
+        private static final String[] CHAR = new String[] {"char", "chars"};
+        private static final String[] HEIGHT = new String[] {"height", "scale", "scale_ratio"};
+        private static final String[] ASCENT = new String[] {"ascent", "y_position"};
+        private static final String[] GRID_SIZE = new String[] {"grid_size", "grid-size"};
+
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             // 引用类型的
@@ -446,13 +453,13 @@ public abstract class AbstractFontManager implements FontManager {
                     try {
                         row = Integer.parseInt(param[2]);
                     } catch (NumberFormatException e) {
-                        throw new KnownResourceException(ConfigSection.PARSE_INT_FAILED, section.assemblePath("ref"), param[2]);
+                        throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, section.assemblePath("ref"), param[2]);
                     }
                     if (param.length == 4) {
                         try {
                             col = Integer.parseInt(param[3]);
                         } catch (NumberFormatException e) {
-                            throw new KnownResourceException(ConfigSection.PARSE_INT_FAILED, section.assemblePath("ref"), param[3]);
+                            throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, section.assemblePath("ref"), param[3]);
                         }
                     }
                     refId = Key.of(param[0], param[1]);
@@ -493,11 +500,11 @@ public abstract class AbstractFontManager implements FontManager {
             String file = section.getNonNullString("file");
             String identifier = MiscUtils.make(CharacterUtils.replaceBackslashWithSlash(file), s -> s.endsWith(".png") ? s : s + ".png");
             if (!Identifier.isValid(identifier)) {
-                throw new KnownResourceException(ConfigSection.PARSE_IDENTIFIER_FAILED, section.assemblePath("file"), file);
+                throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, section.assemblePath("file"), file);
             }
-            String fontName = section.getDefaultedString(pack.namespace()+ ":default", "font");
+            String fontName = section.getString("font", pack.namespace()+ ":default");
             if (!Identifier.isValid(fontName)) {
-                throw new KnownResourceException(ConfigSection.PARSE_IDENTIFIER_FAILED, section.assemblePath("font"), fontName);
+                throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, section.assemblePath("font"), fontName);
             }
 
             Key fontId = Key.withDefaultNamespace(fontName, id.namespace());
@@ -507,10 +514,10 @@ public abstract class AbstractFontManager implements FontManager {
             int rows;
             int columns;
             List<CompletableFuture<Integer>> futureCodepoints = new ArrayList<>();
-            Object charsObj = section.get("chars", "char");
+            Object charsObj = section.get(CHAR);
             // 没有设置 chars 自动分配
             if (charsObj == null) {
-                String gridSize = section.getString("grid_size", "grid-size");
+                String gridSize = section.getString(GRID_SIZE);
                 if (gridSize != null) {
                     String[] split = gridSize.split(",");
                     if (split.length != 2) {
@@ -627,8 +634,7 @@ public abstract class AbstractFontManager implements FontManager {
                         }
                     }
 
-                    int height = section.getInt(Integer.MAX_VALUE, "height", "scale_ratio");
-                    if (height == Integer.MAX_VALUE) {
+                    int height = section.getInt(HEIGHT, () -> {
                         Key namespacedPath = Key.of(identifier);
                         Path targetImagePath = pack.resourcePackFolder()
                                 .resolve("assets")
@@ -638,18 +644,16 @@ public abstract class AbstractFontManager implements FontManager {
                         if (Files.exists(targetImagePath)) {
                             try (InputStream in = Files.newInputStream(targetImagePath)) {
                                 BufferedImage image = ImageIO.read(in);
-                                height = image.getHeight() / codepointGrid.length;
+                                return image.getHeight() / codepointGrid.length;
                             } catch (IOException e) {
-                                AbstractFontManager.this.plugin.logger().warn("Failed to load image " + targetImagePath, e);
-                                return;
+                                throw new RuntimeException("Could not read image " + targetImagePath, e);
                             }
-                        } else {
-                            // 会自动触发缺少参数错误
-                            section.getNonNullInt("height");
                         }
-                    }
+                        // 会自动触发缺少参数错误
+                        return section.getNonNullInt("height");
+                    });
 
-                    int ascent = section.getInt(height - 1, "ascent", "y_position");
+                    int ascent = section.getInt(ASCENT, height - 1);
                     if (height < ascent) {
                         throw new KnownResourceException("resource.image.height_ascent_conflict", section.path(), String.valueOf(height), String.valueOf(ascent));
                     }

@@ -19,7 +19,7 @@ import org.incendo.cloud.Command;
 
 import java.util.*;
 
-public class DebugItemDataCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugItemDataCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugItemDataCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

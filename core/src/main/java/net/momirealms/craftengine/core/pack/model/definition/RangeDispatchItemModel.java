@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.Range
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
@@ -106,14 +107,16 @@ public final class RangeDispatchItemModel implements ItemModel {
         @Override
         public RangeDispatchItemModel create(ConfigSection section) {
             RangeDispatchProperty property = RangeDispatchProperties.fromConfig(section);
-            float scale = section.getFloat(1.0f, "scale");
-            ItemModel fallbackModel = section.getValue(ConfigValue::getAsItemModel, "fallback");
+            float scale = section.getFloat("scale", 1.0f);
+            ItemModel fallbackModel = section.getValue("fallback", ItemModels::fromConfig);
             Map<Float, ItemModel> entryMap = new TreeMap<>();
-            section.forEachSection(entry -> {
+            ConfigValue entries = section.getNonNullValue("entries", ConfigConstants.ARGUMENT_LIST);
+            entries.forEach(value -> {
+                ConfigSection entry = value.getAsSection();
                 float threshold = entry.getNonNullFloat("threshold");
-                ItemModel model = entry.getValueOrDefault(ConfigValue::getAsItemModel, fallbackModel, "model");
+                ItemModel model = entry.getValue("model", ItemModels::fromConfig, fallbackModel);
                 entryMap.put(threshold, model);
-            }, "entries");
+            });
             return new RangeDispatchItemModel(
                     property,
                     scale,

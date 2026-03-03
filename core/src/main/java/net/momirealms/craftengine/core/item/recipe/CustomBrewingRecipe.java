@@ -75,10 +75,10 @@ public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
         public CustomBrewingRecipe<A> readConfig(Key id, ConfigSection section) {
             return new CustomBrewingRecipe<>(
                     id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredient", "ingredients").getAsIngredient(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "container").getAsIngredient()
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
+                    section.getNonNullValue(INGREDIENTS, ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
+                    super.parseResult(section.getNonNullSection("result")),
+                    section.getNonNullValue("container", ConfigConstants.ARGUMENT_LIST, super::parseIngredient)
             );
         }
 

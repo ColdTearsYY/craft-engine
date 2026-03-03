@@ -76,10 +76,11 @@ public final class BaseItemModel implements ItemModel {
     }
 
     private static class Factory implements ItemModelFactory<BaseItemModel> {
+        private static final String[] PATH = new String[] {"path", "model"};
 
         @Override
         public BaseItemModel create(ConfigSection section) {
-            Key modelPath = section.getNonNullIdentifier("path", "model");
+            Key modelPath = section.getNonNullIdentifier(PATH);
             ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
@@ -87,7 +88,7 @@ public final class BaseItemModel implements ItemModel {
             }
             return new BaseItemModel(
                     modelPath,
-                    section.parseSectionList(Tints::fromConfig, "tints"),
+                    section.getList("tints", Tints::fromConfig),
                     modelGeneration
             );
         }

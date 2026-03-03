@@ -34,7 +34,7 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-public class ClearItemCommand extends BukkitCommandFeature<CommandSender> {
+public final class ClearItemCommand extends BukkitCommandFeature<CommandSender> {
 
     public ClearItemCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

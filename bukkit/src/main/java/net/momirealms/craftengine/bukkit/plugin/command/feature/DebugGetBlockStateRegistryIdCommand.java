@@ -14,7 +14,7 @@ import org.bukkit.command.CommandSender;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.parser.standard.StringParser;
 
-public class DebugGetBlockStateRegistryIdCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugGetBlockStateRegistryIdCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugGetBlockStateRegistryIdCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

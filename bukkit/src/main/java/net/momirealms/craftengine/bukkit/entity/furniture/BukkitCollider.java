@@ -5,7 +5,7 @@ import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.core.entity.furniture.Collider;
 import net.momirealms.craftengine.core.entity.furniture.ColliderType;
 
-public class BukkitCollider implements Collider {
+public final class BukkitCollider implements Collider {
     private final CollisionEntity collisionEntity;
 
     public BukkitCollider(Object world, Object aabb, double x, double y, double z, boolean canProjectileHit, boolean canCollide, boolean blocksBuilding) {

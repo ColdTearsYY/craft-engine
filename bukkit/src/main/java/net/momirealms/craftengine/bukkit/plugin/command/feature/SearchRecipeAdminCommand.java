@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class SearchRecipeAdminCommand extends BukkitCommandFeature<CommandSender> {
+public final class SearchRecipeAdminCommand extends BukkitCommandFeature<CommandSender> {
 
     public SearchRecipeAdminCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

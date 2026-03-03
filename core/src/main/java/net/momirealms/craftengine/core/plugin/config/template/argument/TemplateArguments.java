@@ -1,12 +1,16 @@
 package net.momirealms.craftengine.core.plugin.config.template.argument;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
+
+import java.util.List;
+import java.util.Map;
 
 public final class TemplateArguments {
     public static final TemplateArgumentType<PlainStringTemplateArgument> PLAIN = register(Key.ce("plain"), PlainStringTemplateArgument.FACTORY);
@@ -30,6 +34,19 @@ public final class TemplateArguments {
         return type;
     }
 
+    public static TemplateArgument fromConfig(ConfigValue value) {
+        if (value == null) {
+            return NullTemplateArgument.INSTANCE;
+        }
+        if (value.is(List.class)) {
+            return ListTemplateArgument.list(value.getAsList());
+        } else if (value.is(Map.class)) {
+            return TemplateArguments.fromConfig(value.getAsSection());
+        } else {
+            return ObjectTemplateArgument.object(value.value());
+        }
+    }
+
     public static TemplateArgument fromConfig(ConfigSection section) {
         Object type = section.get("type");
         if (!(type instanceof String type0) || section.containsKey("__skip_template_argument__")) {
@@ -38,7 +55,7 @@ public final class TemplateArguments {
             Key key = Key.ce(type0);
             TemplateArgumentType<? extends TemplateArgument> argumentType = BuiltInRegistries.TEMPLATE_ARGUMENT_TYPE.getValue(key);
             if (argumentType == null) {
-                throw new KnownResourceException("resource.template.unknown_argument_type", section.assemblePath("type"), type0);
+                throw new KnownResourceException("resource.template.unknown_argument_type", section.assemblePath("type"), key.asString());
             }
             return argumentType.factory().create(section);
         }

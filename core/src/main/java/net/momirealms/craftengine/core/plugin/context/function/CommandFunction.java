@@ -21,8 +21,12 @@ public final class CommandFunction<CTX extends Context> extends AbstractConditio
     private final boolean asEvent;
     private final boolean asOp;
 
-    private CommandFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector, List<TextProvider> command,
-                           boolean asPlayer, boolean asEvent, boolean asOp) {
+    private CommandFunction(List<Condition<CTX>> predicates,
+                            @Nullable PlayerSelector<CTX> selector,
+                            List<TextProvider> command,
+                            boolean asPlayer,
+                            boolean asEvent,
+                            boolean asOp) {
         super(predicates);
         this.command = command;
         this.selector = selector;
@@ -64,6 +68,10 @@ public final class CommandFunction<CTX extends Context> extends AbstractConditio
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, CommandFunction<CTX>> {
+        private static final String[] COMMAND = new String[]{"command", "commands"};
+        private static final String[] AS_PLAYER = new String[]{"as_player", "as-player"};
+        private static final String[] AS_EVENT = new String[]{"as_event", "as-event"};
+        private static final String[] AS_OP = new String[]{"as_op", "as-op"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -74,10 +82,10 @@ public final class CommandFunction<CTX extends Context> extends AbstractConditio
             return new CommandFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    section.getNonNullStringList("command", "commands").stream().map(TextProviders::fromString).toList(),
-                    section.getBoolean("as_player", "as-player"),
-                    section.getBoolean("as_event", "as-event"),
-                    section.getBoolean("as_op", "as-op")
+                    section.getNonEmptyList(COMMAND, v -> TextProviders.fromString(v.getAsString())),
+                    section.getBoolean(AS_PLAYER),
+                    section.getBoolean(AS_EVENT),
+                    section.getBoolean(AS_OP)
             );
         }
     }

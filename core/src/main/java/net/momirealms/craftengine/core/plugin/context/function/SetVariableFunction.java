@@ -7,7 +7,6 @@ import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.ContextKey;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
 import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
 
@@ -18,7 +17,10 @@ public final class SetVariableFunction<CTX extends Context> extends AbstractCond
     private final String variableName;
     private final boolean asInt;
 
-    private SetVariableFunction(List<Condition<CTX>> predicates, String variableName, Either<TextProvider, NumberProvider> either, boolean asInt) {
+    private SetVariableFunction(List<Condition<CTX>> predicates,
+                                String variableName,
+                                Either<TextProvider, NumberProvider> either,
+                                boolean asInt) {
         super(predicates);
         this.either = either;
         this.variableName = variableName;
@@ -38,6 +40,8 @@ public final class SetVariableFunction<CTX extends Context> extends AbstractCond
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, SetVariableFunction<CTX>> {
+        private static final String[] AS_INT = new String[]{"as_int", "as-int"};
+        private static final String[] NAME = new String[]{"name", "var"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -45,13 +49,13 @@ public final class SetVariableFunction<CTX extends Context> extends AbstractCond
 
         @Override
         public SetVariableFunction<CTX> create(ConfigSection section) {
-            String variableName = section.getNonNullString("name", "var");
+            String variableName = section.getNonNullString(NAME);
             if (section.containsKey("number")) {
                 return new SetVariableFunction<>(
                         getPredicates(section),
                         variableName,
-                        Either.right(NumberProviders.fromObject(section.get("number"))),
-                        section.getBoolean("as_int", "as-int")
+                        Either.right(section.getNumber("number")),
+                        section.getBoolean(AS_INT)
                 );
             } else {
                 String text = section.getNonNullString("text");

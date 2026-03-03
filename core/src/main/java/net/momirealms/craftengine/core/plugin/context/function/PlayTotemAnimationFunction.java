@@ -5,11 +5,11 @@ import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Key;
@@ -29,15 +29,13 @@ public final class PlayTotemAnimationFunction<CTX extends Context> extends Abstr
     private final NumberProvider pitch;
     private final boolean silent;
 
-    private PlayTotemAnimationFunction(
-            List<Condition<CTX>> predicates,
-            PlayerSelector<CTX> selector,
-            Key item,
-            @Nullable Key sound,
-            NumberProvider volume,
-            NumberProvider pitch,
-            boolean silent
-    ) {
+    private PlayTotemAnimationFunction(List<Condition<CTX>> predicates,
+                                       PlayerSelector<CTX> selector,
+                                       Key item,
+                                       @Nullable Key sound,
+                                       NumberProvider volume,
+                                       NumberProvider pitch,
+                                       boolean silent) {
         super(predicates);
         this.selector = selector;
         this.item = item;
@@ -87,8 +85,8 @@ public final class PlayTotemAnimationFunction<CTX extends Context> extends Abstr
                     getPlayerSelector(section),
                     section.getNonNullIdentifier("item"),
                     section.getIdentifier("sound"),
-                    NumberProviders.fromObject(section.getOrDefault(1f, "volume")),
-                    NumberProviders.fromObject(section.getOrDefault(1f, "pitch")),
+                    section.getNumber("volume", ConfigConstants.CONSTANT_ONE),
+                    section.getNumber("pitch", ConfigConstants.CONSTANT_ONE),
                     section.getBoolean("silent")
             );
         }

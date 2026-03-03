@@ -2,11 +2,15 @@ package net.momirealms.craftengine.core.block;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.util.*;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public final class BlockSettings {
     boolean isRandomlyTicking;
@@ -50,26 +54,33 @@ public final class BlockSettings {
     }
 
     public static BlockSettings fromConfig(ConfigSection section) {
-        if (section == null) return BlockSettings.of();
-        return applyModifiers(BlockSettings.of(), section);
+        BlockSettings blockSettings = BlockSettings.of();
+        if (section == null) return blockSettings;
+        applyModifiers(blockSettings, section);
+        return blockSettings;
     }
 
-    public static BlockSettings ofFullCopy(BlockSettings settings, ConfigSection section) {
-        return applyModifiers(ofFullCopy(settings), section);
+    public static BlockSettings ofFullCopyAndApply(BlockSettings settings, ConfigSection section) {
+        BlockSettings copied = ofFullCopy(settings);
+        applyModifiers(copied, section);
+        return copied;
     }
 
-    public static BlockSettings applyModifiers(BlockSettings settings, ConfigSection section) {
+    public static void applyModifiers(BlockSettings settings, ConfigSection section) {
+        ExceptionCollector<KnownResourceException> collector = new ExceptionCollector<>(KnownResourceException.class);
         if (section != null) {
             for (String type : section.keySet()) {
                 ConfigValue value = section.getValue(type);
                 if (value == null) continue;
                 String key = StringUtils.normalizeSettingsType(type);
-                Optional.ofNullable(BuiltInRegistries.BLOCK_SETTINGS_TYPE.getValue(Key.ce(key)))
-                        .ifPresent(modifierType ->
-                                modifierType.factory().create(value).apply(settings));
+                collector.runCatching(() -> {
+                    Optional.ofNullable(BuiltInRegistries.BLOCK_SETTINGS_TYPE.getValue(Key.ce(key)))
+                            .ifPresent(modifierType ->
+                                    modifierType.factory().create(value).apply(settings));
+                });
             }
         }
-        return settings;
+        collector.throwIfPresent();
     }
 
     public static BlockSettings ofFullCopy(BlockSettings settings) {

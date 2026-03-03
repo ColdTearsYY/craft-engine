@@ -37,7 +37,7 @@ public final class HangingBlockBehavior extends BushBlockBehavior {
             Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(section, true);
             return new HangingBlockBehavior(
                     block,
-                    section.getInt(0, "delay"),
+                    section.getInt("delay", 0),
                     section.getBoolean("blacklist"),
                     section.getBoolean("stackable"),
                     tuple.left(),

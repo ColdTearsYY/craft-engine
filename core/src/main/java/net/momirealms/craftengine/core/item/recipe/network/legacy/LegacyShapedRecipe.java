@@ -12,7 +12,7 @@ import java.util.function.Function;
 
 @ApiStatus.Obsolete
 @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
-public class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
+public final class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
     private final int width;
     private final int height;
     private final List<LegacyIngredient<I>> ingredients;
@@ -85,7 +85,7 @@ public class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
             buf.writeVarInt(this.width);
             buf.writeVarInt(this.height);
             buf.writeUtf(this.group);
-            buf.writeVarInt(category.ordinal());
+            buf.writeVarInt(this.category.ordinal());
         }
         for (LegacyIngredient ingredient : this.ingredients) {
             ingredient.write(buf, writer);

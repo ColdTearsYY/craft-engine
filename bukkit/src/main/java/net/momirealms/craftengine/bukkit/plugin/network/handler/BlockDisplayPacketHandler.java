@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class BlockDisplayPacketHandler implements EntityPacketHandler {
+public final class BlockDisplayPacketHandler implements EntityPacketHandler {
     public static final BlockDisplayPacketHandler INSTANCE = new BlockDisplayPacketHandler();
 
     @Override

@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.bukkit.util;
 
-
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;

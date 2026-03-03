@@ -28,7 +28,7 @@ public final class PlainStringTemplateArgument implements TemplateArgument {
     private static class Factory implements TemplateArgumentFactory<PlainStringTemplateArgument> {
         @Override
         public PlainStringTemplateArgument create(ConfigSection section) {
-            return new PlainStringTemplateArgument(section.getDefaultedString("", "value"));
+            return new PlainStringTemplateArgument(section.getString("value", ""));
         }
     }
 }

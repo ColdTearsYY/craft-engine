@@ -32,11 +32,13 @@ public final class HasComponentConditionProperty implements ConditionProperty {
     }
 
     private static class Factory implements ConditionPropertyFactory<HasComponentConditionProperty> {
+        private static final String[] IGNORE_DEFAULT = new String[]{"ignore_default", "ignore-default"};
+
         @Override
         public HasComponentConditionProperty create(ConfigSection section) {
             return new HasComponentConditionProperty(
                     section.getNonNullString("component"),
-                    section.getBoolean("ignore_default", "ignore-default")
+                    section.getBoolean(IGNORE_DEFAULT)
             );
         }
     }

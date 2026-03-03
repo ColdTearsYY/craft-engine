@@ -5,7 +5,7 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 
 import java.util.function.Function;
 
-public class ItemStackSlotDisplay<I> implements SlotDisplay<I> {
+public final class ItemStackSlotDisplay<I> implements SlotDisplay<I> {
     private Item<I> item;
 
     public ItemStackSlotDisplay(Item<I> item) {
@@ -20,7 +20,7 @@ public class ItemStackSlotDisplay<I> implements SlotDisplay<I> {
     @Override
     public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
         buf.writeVarInt(3);
-        writer.accept(buf, item);
+        writer.accept(buf, this.item);
     }
 
     @Override

@@ -1,10 +1,10 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 import net.momirealms.craftengine.core.util.Key;
@@ -19,7 +19,13 @@ public final class PotionEffectFunction<CTX extends Context> extends AbstractCon
     private final boolean ambient;
     private final boolean particles;
 
-    private PotionEffectFunction(List<Condition<CTX>> predicates, NumberProvider duration, NumberProvider amplifier, boolean ambient, boolean particles, PlayerSelector<CTX> selector, Key potionEffectType) {
+    private PotionEffectFunction(List<Condition<CTX>> predicates,
+                                 PlayerSelector<CTX> selector,
+                                 NumberProvider amplifier,
+                                 boolean ambient,
+                                 boolean particles,
+                                 Key potionEffectType,
+                                 NumberProvider duration) {
         super(predicates);
         this.potionEffectType = potionEffectType;
         this.duration = duration;
@@ -48,6 +54,7 @@ public final class PotionEffectFunction<CTX extends Context> extends AbstractCon
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, PotionEffectFunction<CTX>> {
+        private static final String[] POTION_EFFECTS = new String[] {"potion_effect", "potion-effect"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -57,12 +64,11 @@ public final class PotionEffectFunction<CTX extends Context> extends AbstractCon
         public PotionEffectFunction<CTX> create(ConfigSection section) {
             return new PotionEffectFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault(20, "duration")),
-                    NumberProviders.fromObject(section.getOrDefault(0, "amplifier")),
-                    section.getBoolean("ambient"),
-                    section.getBoolean(true, "particles"),
                     getPlayerSelector(section),
-                    section.getNonNullIdentifier("potion_effect", "potion-effect")
+                    section.getNumber("amplifier", ConfigConstants.CONSTANT_ZERO),
+                    section.getBoolean("ambient"), section.getBoolean("particles", true),
+                    section.getNonNullIdentifier(POTION_EFFECTS),
+                    section.getNumber("duration", ConfigConstants.CONSTANT_TWENTY)
             );
         }
     }

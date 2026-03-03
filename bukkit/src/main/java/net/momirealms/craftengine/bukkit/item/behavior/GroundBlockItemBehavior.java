@@ -8,7 +8,6 @@ import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -40,7 +39,7 @@ public final class GroundBlockItemBehavior extends BlockItemBehavior {
     private static class Factory implements ItemBehaviorFactory<GroundBlockItemBehavior> {
         @Override
         public GroundBlockItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            ConfigValue blockValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "block");
+            ConfigValue blockValue = section.getNonNullValue("block", ConfigConstants.ARGUMENT_SECTION);
             if (blockValue.is(Map.class)) {
                 BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, key, blockValue.getAsSection()));
                 return new GroundBlockItemBehavior(key);

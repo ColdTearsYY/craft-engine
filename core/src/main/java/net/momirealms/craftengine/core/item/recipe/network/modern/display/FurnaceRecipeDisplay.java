@@ -42,12 +42,12 @@ public record FurnaceRecipeDisplay<I>(SlotDisplay<I> ingredient, SlotDisplay<I> 
     @Override
     public @NotNull String toString() {
         return "FurnaceRecipeDisplay{" +
-                "craftingStation=" + craftingStation +
-                ", ingredient=" + ingredient +
-                ", fuel=" + fuel +
-                ", result=" + result +
-                ", duration=" + duration +
-                ", experience=" + experience +
+                "craftingStation=" + this.craftingStation +
+                ", ingredient=" + this.ingredient +
+                ", fuel=" + this.fuel +
+                ", result=" + this.result +
+                ", duration=" + this.duration +
+                ", experience=" + this.experience +
                 '}';
     }
 }

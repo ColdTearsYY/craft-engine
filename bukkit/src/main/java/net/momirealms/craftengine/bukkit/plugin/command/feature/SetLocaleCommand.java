@@ -23,7 +23,7 @@ import org.incendo.cloud.suggestion.SuggestionProvider;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-public class SetLocaleCommand extends BukkitCommandFeature<CommandSender> {
+public final class SetLocaleCommand extends BukkitCommandFeature<CommandSender> {
 
     public SetLocaleCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

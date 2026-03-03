@@ -35,6 +35,7 @@ public final class WhenFunction<CTX extends Context> extends AbstractConditional
     }
 
     private static class Factory<CTX extends Context> extends AbstractFunctionalFactory<CTX, WhenFunction<CTX>> {
+        private static final String[] CASES = new String[]{"cases", "case"};
 
         public Factory(java.util.function.Function<ConfigSection, Function<CTX>> functionFactory, java.util.function.Function<ConfigSection, Condition<CTX>> conditionFactory) {
             super(functionFactory, conditionFactory);
@@ -43,11 +44,11 @@ public final class WhenFunction<CTX extends Context> extends AbstractConditional
         @Override
         public WhenFunction<CTX> create(ConfigSection section) {
             TextProvider source = TextProviders.fromString(section.getNonNullString("source"));
-            List<Pair<List<String>, Function<CTX>>> pairs = section.parseSectionList(s -> {
+            List<Pair<List<String>, Function<CTX>>> pairs = section.getSectionList(CASES, s -> {
                 List<String> when = s.getStringList("when");
                 List<Function<CTX>> functions = getFunctions(s);
                 return Pair.of(when, Function.allOf(functions));
-            }, "cases", "case");
+            });
             Map<String, Function<CTX>> whenMap = new HashMap<>();
             for (Pair<List<String>, Function<CTX>> pair : pairs) {
                 for (String when : pair.left()) {
@@ -58,7 +59,7 @@ public final class WhenFunction<CTX extends Context> extends AbstractConditional
                     getPredicates(section),
                     source,
                     whenMap,
-                    Function.allOf(section.parseSectionList(super.functionFactory, "fallback"))
+                    Function.allOf(section.getSectionList("fallback", super.functionFactory))
             );
         }
     }

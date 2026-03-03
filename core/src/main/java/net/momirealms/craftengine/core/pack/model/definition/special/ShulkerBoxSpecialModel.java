@@ -59,7 +59,7 @@ public final class ShulkerBoxSpecialModel implements SpecialModel {
             return new ShulkerBoxSpecialModel(
                     section.getNonNullIdentifier("texture").asMinimalString(),
                     MiscUtils.clamp(section.getFloat("openness"), 0f, 1f),
-                    section.getEnum(Direction.class, "orientation")
+                    section.getEnum("orientation", Direction.class)
             );
         }
     }

@@ -148,7 +148,7 @@ public final class BlockEventListener implements Listener {
                     return;
                 }
                 for (ItemBehavior behavior : customItem.behaviors()) {
-                    behavior.breakBlock(world, serverPlayer, blockPos);
+                    behavior.onBreakBlock(world, serverPlayer, blockPos);
                 }
             }
         }

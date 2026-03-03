@@ -34,9 +34,9 @@ public record StonecutterRecipeDisplay<I>(SlotDisplay<I> input, SlotDisplay<I> r
     @Override
     public @NotNull String toString() {
         return "StonecutterRecipeDisplay{" +
-                "craftingStation=" + craftingStation +
-                ", input=" + input +
-                ", result=" + result +
+                "craftingStation=" + this.craftingStation +
+                ", input=" + this.input +
+                ", result=" + this.result +
                 '}';
     }
 }

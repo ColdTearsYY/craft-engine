@@ -38,9 +38,9 @@ public record ShapelessCraftingRecipeDisplay<I>(List<SlotDisplay<I>> ingredients
     @Override
     public @NotNull String toString() {
         return "ShapelessCraftingRecipeDisplay{" +
-                "craftingStation=" + craftingStation +
-                ", ingredients=" + ingredients +
-                ", result=" + result +
+                "craftingStation=" + this.craftingStation +
+                ", ingredients=" + this.ingredients +
+                ", result=" + this.result +
                 '}';
     }
 }

@@ -138,6 +138,8 @@ public final class SkewNormalNumberProvider implements NumberProvider {
     }
 
     private static class Factory implements NumberProviderFactory<SkewNormalNumberProvider> {
+        private static final String[] STD_DEV = new String[] {"std_dev", "std-dev"};
+        private static final String[] MAX_ATTEMPTS = new String[] {"max_attempts", "max-attempts"};
 
         @Override
         public SkewNormalNumberProvider create(ConfigSection section) {
@@ -145,12 +147,12 @@ public final class SkewNormalNumberProvider implements NumberProvider {
             double max = section.getNonNullDouble("max");
 
             double defaultMean = (min + max) / 2.0;
-            double mean = section.getDouble(defaultMean, "mean");
+            double mean = section.getDouble("mean", defaultMean);
 
             double defaultStdDev = (max - min) / 6.0;
-            double stdDev = section.getDouble(defaultStdDev, "std_dev", "std-dev");
+            double stdDev = section.getDouble(STD_DEV, defaultStdDev);
             double skewness = section.getDouble("skewness");
-            int maxAttempts = section.getInt(64, "max_attempts", "max-attempts");
+            int maxAttempts = section.getInt(MAX_ATTEMPTS, 64);
             this.validateParameters(section.path(), min, max, stdDev, maxAttempts, skewness);
             return new SkewNormalNumberProvider(min, max, mean, stdDev, skewness, maxAttempts);
         }

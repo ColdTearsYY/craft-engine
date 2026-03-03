@@ -18,16 +18,16 @@ public final class SmithingInput<T> implements RecipeInput {
 
     @NotNull
     public UniqueIdItem<T> base() {
-        return base;
+        return this.base;
     }
 
     @NotNull
     public UniqueIdItem<T> template() {
-        return template;
+        return this.template;
     }
 
     @NotNull
     public UniqueIdItem<T> addition() {
-        return addition;
+        return this.addition;
     }
 }

@@ -1,19 +1,13 @@
 package net.momirealms.craftengine.core.item.setting;
 
-public class FoodData {
-    private final int nutrition;
-    private final float saturation;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
-    public FoodData(int nutrition, float saturation) {
-        this.nutrition = nutrition;
-        this.saturation = saturation;
-    }
+public record FoodData(int nutrition, float saturation) {
 
-    public int nutrition() {
-        return nutrition;
-    }
-
-    public float saturation() {
-        return saturation;
+    public static FoodData fromConfig(ConfigSection section) {
+        return new FoodData(
+                section.getInt("nutrition"),
+                section.getFloat("saturation")
+        );
     }
 }

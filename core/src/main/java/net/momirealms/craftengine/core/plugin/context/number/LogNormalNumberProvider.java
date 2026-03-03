@@ -97,6 +97,8 @@ public record LogNormalNumberProvider(
     }
 
     private static class Factory implements NumberProviderFactory<LogNormalNumberProvider> {
+        private static final String[] STD_DEV = new String[] {"std_dev", "std-dev"};
+        private static final String[] MAX_ATTEMPTS = new String[] {"max_attempts", "max-attempts"};
 
         @Override
         public LogNormalNumberProvider create(ConfigSection section) {
@@ -112,9 +114,9 @@ public record LogNormalNumberProvider(
 
             // 优先检查用户是否直接配置了 mean (真实均值) 和 std-dev (真实标准差)
             // 这对用户来说比配置 location/scale 直观得多
-            if (section.containsKey("mean") && section.containsKey("std_dev", "std-dev")) {
+            if (section.containsKey("mean") && section.containsKey(STD_DEV)) {
                 double realMean = section.getNonNullDouble("mean");
-                double realStdDev = section.getNonNullDouble("std_dev", "std-dev");
+                double realStdDev = section.getNonNullDouble(STD_DEV);
 
                 // 将真实均值/方差转换为对数正态分布参数 μ 和 σ
                 // μ = ln(mean^2 / sqrt(mean^2 + var))
@@ -136,11 +138,11 @@ public record LogNormalNumberProvider(
                 double defaultLocation = (logMin + logMax) / 2.0;
                 double defaultScale = (logMax - logMin) / 6.0;
 
-                location = section.getDouble(defaultLocation, "location");
-                scale = section.getDouble(defaultScale, "scale");
+                location = section.getDouble("location", defaultLocation);
+                scale = section.getDouble("scale", defaultScale);
             }
 
-            int maxAttempts = section.getInt(64, "max_attempts", "max-attempts");
+            int maxAttempts = section.getInt(MAX_ATTEMPTS, 64);
             this.validateParameters(section.path(), min, max, scale, maxAttempts);
             return new LogNormalNumberProvider(min, max, location, scale, maxAttempts);
         }

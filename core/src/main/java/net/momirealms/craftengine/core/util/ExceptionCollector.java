@@ -2,9 +2,14 @@ package net.momirealms.craftengine.core.util;
 
 import org.jetbrains.annotations.Nullable;
 
-public class ExceptionCollector<T extends Throwable> {
+public final class ExceptionCollector<T extends Throwable> {
+    private final Class<T> exceptionClass;
     @Nullable
     private T result;
+
+    public ExceptionCollector(Class<T> exceptionClass) {
+        this.exceptionClass = exceptionClass;
+    }
 
     public void add(T throwable) {
         if (this.result == null) {
@@ -23,6 +28,18 @@ public class ExceptionCollector<T extends Throwable> {
     public void addAndThrow(T throwable) throws T {
         this.add(throwable);
         this.throwIfPresent();
+    }
+
+    public void runCatching(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (Throwable t) {
+            if (this.exceptionClass.isInstance(t)) {
+                this.add(this.exceptionClass.cast(t));
+            } else {
+                ThrowableUtils.sneakyThrow(t);
+            }
+        }
     }
 }
 

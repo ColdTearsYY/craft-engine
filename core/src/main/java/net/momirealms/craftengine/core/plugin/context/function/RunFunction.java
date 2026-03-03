@@ -1,11 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -64,10 +64,10 @@ public final class RunFunction<CTX extends Context> extends AbstractConditionalF
 
         @Override
         public RunFunction<CTX> create(ConfigSection section) {
-            List<Function<CTX>> functions = section.parseSectionList(this.functionFactory, "functions");
+            List<Function<CTX>> functions = section.getSectionList("functions", this.functionFactory);
             return new RunFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault(0, "delay")),
+                    section.getNumber("delay", ConfigConstants.CONSTANT_ZERO),
                     functions
             );
         }

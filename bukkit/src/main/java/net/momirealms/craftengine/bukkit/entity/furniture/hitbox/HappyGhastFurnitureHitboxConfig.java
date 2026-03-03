@@ -8,8 +8,6 @@ import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxCo
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.core.world.collision.AABB;
@@ -20,7 +18,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<HappyGhastFurnitureHitbox> {
-    public static final Factory FACTORY = new Factory();
+    public static final FurnitureHitBoxConfigFactory<HappyGhastFurnitureHitbox> FACTORY = new Factory();
     public final double scale;
     public final boolean hardCollision;
     public final List<Object> cachedValues = new ArrayList<>(3);
@@ -65,18 +63,22 @@ public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitB
         }
     }
 
-    public static class Factory implements FurnitureHitBoxConfigFactory<HappyGhastFurnitureHitbox> {
+    private static class Factory implements FurnitureHitBoxConfigFactory<HappyGhastFurnitureHitbox> {
+        private static final String[] CAN_USE_ITEM_ON = new String[] {"can_use_item_on", "can-use-item-on"};
+        private static final String[] BLOCKS_BUILDING = new String[] {"blocks_building", "blocks-building"};
+        private static final String[] CAN_BE_HIT_BY_PROJECTILE = new String[] {"can_be_hit_by_projectile", "can-be-hit-by-projectile"};
+        private static final String[] HARD_COLLISION = new String[] {"hard_collision", "hard-collision"};
 
         @Override
         public FurnitureHitBoxConfig<HappyGhastFurnitureHitbox> create(ConfigSection section) {
             return new HappyGhastFurnitureHitboxConfig(
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "seats").getAsSeats(),
-                    section.getValueOrDefault(ConfigValue::getAsVector3f, ConfigConstants.ZERO_VECTOR3, "position"),
-                    section.getBoolean(true, "can_use_item_on", "can-use-item-on"),
-                    section.getBoolean(true, "blocks_building", "blocks-building"),
-                    section.getBoolean(true, "can_be_hit_by_projectile", "can-be-hit-by-projectile"),
-                    section.getDouble(1d, "scale"),
-                    section.getBoolean(true, "hard_collision", "hard-collision")
+                    section.getList("seats", SeatConfig::fromConfig).toArray(new SeatConfig[0]),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean(CAN_USE_ITEM_ON, true),
+                    section.getBoolean(BLOCKS_BUILDING, true),
+                    section.getBoolean(CAN_BE_HIT_BY_PROJECTILE, true),
+                    section.getDouble("scale", 1d),
+                    section.getBoolean(HARD_COLLISION, true)
             );
         }
     }

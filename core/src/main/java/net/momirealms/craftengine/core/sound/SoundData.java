@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.sound;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 
@@ -14,6 +16,19 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
         return new SoundData(id, volume, pitch);
     }
 
+    public static SoundData fromConfig(ConfigValue value, SoundData.SoundValue volume, SoundData.SoundValue pitch) {
+        Key soundId;
+        if (value.is(Map.class)) {
+            ConfigSection section = value.getAsSection();
+            soundId = section.getAssetPath("id");
+            volume = section.getValue("volume", SoundValue::fromConfig, volume);
+            pitch = section.getValue("pitch", SoundValue::fromConfig, pitch);
+        } else {
+            soundId = value.getAsAssetPath();
+        }
+        return new SoundData(soundId, volume, pitch);
+    }
+
     public interface SoundValue extends Supplier<Float> {
         Map<Float, SoundValue> FIXED = new HashMap<>();
         SoundValue FIXED_1 = new Fixed(1f);
@@ -22,6 +37,20 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
         SoundValue FIXED_0_15 = new Fixed(0.15f);
         SoundValue FIXED_0_5 = new Fixed(0.5f);
         SoundValue RANGED_0_9_1 = new Ranged(0.9f, 1f);
+
+        static SoundValue fromConfig(ConfigValue config) {
+            if (config.is(Number.class)) {
+                return fixed(config.getAsFloat());
+            } else {
+                String stringFormat = config.getAsString();
+                if (stringFormat.contains("~")) {
+                    ConfigValue[] split = config.splitValuesRestrict("~", 2);
+                    return ranged(split[0].getAsFloat(), split[1].getAsFloat());
+                } else {
+                    return fixed(config.getAsFloat());
+                }
+            }
+        }
 
         static SoundValue fixed(float value) {
             return FIXED.computeIfAbsent(value, v -> new Fixed(value));

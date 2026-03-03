@@ -7,7 +7,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
-public class VersionHelper {
+public final class VersionHelper {
+    private VersionHelper() {}
+
     public static final boolean IS_RUNNING_IN_DEV = Boolean.getBoolean("net.momirealms.craftengine.dev");
     public static final boolean PREMIUM = true;
     public static final MinecraftVersion MINECRAFT_VERSION;

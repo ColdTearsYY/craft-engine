@@ -1,8 +1,9 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
@@ -49,38 +50,41 @@ public final class NumberProviders {
         return providerType.factory().create(section);
     }
 
-    @SuppressWarnings("unchecked")
-    public static NumberProvider fromObject(Object object) {
-        switch (object) {
-            case null -> throw new LocalizedResourceConfigException("warning.config.number.missing_argument");
+    public static NumberProvider fromConfig(ConfigValue value) {
+        switch (value.value()) {
             case Number number -> {
-                return new ConstantNumberProvider(number.floatValue());
+                return ConstantNumberProvider.constant(number.doubleValue());
             }
             case Boolean bool -> {
-                return new ConstantNumberProvider(bool ? 1 : 0);
+                return ConstantNumberProvider.constant(bool ? 1 : 0);
             }
-            case Map<?, ?> map -> {
-                return fromConfig((Map<String, Object>) map);
+            case Map<?, ?> ignored -> {
+                return NumberProviders.fromConfig(value.getAsSection());
             }
             default -> {
-                String string = object.toString();
+                String string = value.getAsString();
                 if (string.contains("~")) {
-                    int first = string.indexOf('~');
-                    int second = string.indexOf('~', first + 1);
-                    if (second == -1) {
-                        NumberProvider min = fromObject(string.substring(0, first));
-                        NumberProvider max = fromObject(string.substring(first + 1));
-                        return new UniformNumberProvider(min, max);
-                    } else {
-                        throw new LocalizedResourceConfigException("warning.config.number.invalid_format", string);
+                    String[] split = string.split("~", 2);
+                    double min;
+                    try {
+                        min = Double.parseDouble(split[0]);
+                    } catch (NumberFormatException e) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, value.path(), split[0]);
                     }
-                } else if (string.contains("<") && string.contains(">") && string.contains(":")) {
-                    return new ExpressionNumberProvider(string);
+                    double max;
+                    try {
+                        max = Double.parseDouble(split[1]);
+                    } catch (NumberFormatException e) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, value.path(), split[1]);
+                    }
+                    return new UniformNumberProvider(ConstantNumberProvider.constant(min), ConstantNumberProvider.constant(max));
+                } else if (string.contains("<") && string.contains(">")) {
+                    return ExpressionNumberProvider.expression(string);
                 } else {
                     try {
-                        return new ConstantNumberProvider(Float.parseFloat(string));
+                        return ConstantNumberProvider.constant(Double.parseDouble(string));
                     } catch (NumberFormatException e) {
-                        throw new LocalizedResourceConfigException("warning.config.number.invalid_format", e, string);
+                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, value.path(), string);
                     }
                 }
             }

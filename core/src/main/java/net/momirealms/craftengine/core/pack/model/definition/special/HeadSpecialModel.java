@@ -56,7 +56,7 @@ public final class HeadSpecialModel implements SpecialModel {
         public HeadSpecialModel create(ConfigSection section) {
             return new HeadSpecialModel(
                     section.getNonNullString("kind"),
-                    section.getValue(v -> v.getAsIdentifier().asMinimalString(), "texture"),
+                    section.getValue("texture", v -> v.getAsIdentifier().asMinimalString()),
                     section.getFloat("animation")
             );
         }

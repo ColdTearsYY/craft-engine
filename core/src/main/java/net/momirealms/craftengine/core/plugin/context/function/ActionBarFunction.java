@@ -14,7 +14,9 @@ public final class ActionBarFunction<CTX extends Context> extends AbstractCondit
     private final String message;
     private final PlayerSelector<CTX> selector;
 
-    private ActionBarFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector, String message) {
+    private ActionBarFunction(List<Condition<CTX>> predicates,
+                              @Nullable PlayerSelector<CTX> selector,
+                              String message) {
         super(predicates);
         this.message = message;
         this.selector = selector;
@@ -39,6 +41,7 @@ public final class ActionBarFunction<CTX extends Context> extends AbstractCondit
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, ActionBarFunction<CTX>> {
+        private static final String[] ACTIONBAR = new String[] {"actionbar", "message"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -49,7 +52,7 @@ public final class ActionBarFunction<CTX extends Context> extends AbstractCondit
             return new ActionBarFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    AdventureHelper.legacyToMiniMessage(section.getNonNullString("actionbar", "message"))
+                    AdventureHelper.legacyToMiniMessage(section.getNonNullString(ACTIONBAR))
             );
         }
     }

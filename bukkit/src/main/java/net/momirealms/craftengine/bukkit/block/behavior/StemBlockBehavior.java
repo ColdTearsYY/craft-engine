@@ -136,6 +136,8 @@ public final class StemBlockBehavior extends BukkitBlockBehavior implements IsPa
     }
 
     private static class Factory implements BlockBehaviorFactory<StemBlockBehavior> {
+        private static final String[] ATTACHED_STEM = new String[]{"attached_stem", "attached-stem"};
+        private static final String[] LIGHT_REQUIREMENT = new String[]{"light_requirement", "light-requirement"};
 
         @Override
         public StemBlockBehavior create(CustomBlock block, ConfigSection section) {
@@ -143,8 +145,8 @@ public final class StemBlockBehavior extends BukkitBlockBehavior implements IsPa
                     block,
                     (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
                     section.getNonNullIdentifier("fruit"),
-                    section.getNonNullIdentifier("attached_stem", "attached-stem"),
-                    section.getInt(0, "light_requirement", "light-requirement"),
+                    section.getNonNullIdentifier(ATTACHED_STEM),
+                    section.getInt(LIGHT_REQUIREMENT, 0),
                     null,
                     null
             );

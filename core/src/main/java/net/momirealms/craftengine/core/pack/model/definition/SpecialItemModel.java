@@ -62,10 +62,11 @@ public final class SpecialItemModel implements ItemModel {
     }
 
     private static class Factory implements ItemModelFactory<SpecialItemModel> {
+        private static final String[] BASE = new String[] {"base", "path"};
 
         @Override
         public SpecialItemModel create(ConfigSection section) {
-            Key base = section.getNonNullIdentifier("base", "path");
+            Key base = section.getNonNullIdentifier(BASE);
             ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {

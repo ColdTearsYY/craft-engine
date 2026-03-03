@@ -19,7 +19,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-public class BukkitCustomItem extends AbstractCustomItem<ItemStack> {
+public final class BukkitCustomItem extends AbstractCustomItem<ItemStack> {
     private final Object item;
     private final Object clientItem;
 

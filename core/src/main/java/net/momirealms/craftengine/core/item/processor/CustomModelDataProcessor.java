@@ -6,6 +6,7 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.Key;
 
 public final class CustomModelDataProcessor implements SimpleNetworkItemProcessor {
@@ -41,7 +42,7 @@ public final class CustomModelDataProcessor implements SimpleNetworkItemProcesso
 
         @Override
         public CustomModelDataProcessor create(ConfigValue value) {
-            return new CustomModelDataProcessor(value.getAsNumber());
+            return new CustomModelDataProcessor(NumberProviders.fromConfig(value));
         }
     }
 }

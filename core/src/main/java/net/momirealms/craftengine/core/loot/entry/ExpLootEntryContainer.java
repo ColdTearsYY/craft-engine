@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.core.loot.entry;
 
 import net.momirealms.craftengine.core.loot.LootContext;
-import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
@@ -32,12 +31,13 @@ public final class ExpLootEntryContainer<T> extends AbstractLootEntryContainer<T
     }
 
     private static class Factory<A> implements LootEntryContainerFactory<A> {
+        private static final String[] COUNT = new String[] {"count", "amount", "exp"};
 
         @Override
         public LootEntryContainer<A> create(ConfigSection section) {
             return new ExpLootEntryContainer<>(
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_NUMBER, "count").getAsNumber(),
-                    section.parseSectionList(CommonConditions::fromConfig, "conditions")
+                    section.getNonNullNumber(COUNT),
+                    section.getList("conditions", CommonConditions::fromConfig)
             );
         }
     }

@@ -11,7 +11,6 @@ import net.momirealms.craftengine.proxy.minecraft.server.MinecraftServerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlockProxy;
 
 public final class RegistryUtils {
-
     private RegistryUtils() {}
 
     public static int currentBlockRegistrySize() {

@@ -17,7 +17,7 @@ import org.incendo.cloud.CommandManager;
 
 import java.util.List;
 
-public class SearchUsagePlayerCommand extends BukkitCommandFeature<CommandSender> {
+public final class SearchUsagePlayerCommand extends BukkitCommandFeature<CommandSender> {
 
     public SearchUsagePlayerCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

@@ -4,11 +4,11 @@ import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
 import java.util.List;
@@ -41,16 +41,17 @@ public final class DamageItemFunction<CTX extends Context> extends AbstractCondi
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, DamageItemFunction<CTX>> {
+        private static final String[] AMOUNT = new String[] {"amount", "damage"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public DamageItemFunction<CTX> create(ConfigSection arguments) {
+        public DamageItemFunction<CTX> create(ConfigSection section) {
             return new DamageItemFunction<>(
-                    getPredicates(arguments),
-                    NumberProviders.fromObject(arguments.getOrDefault(1, "amount", "damage"))
+                    getPredicates(section),
+                    section.getNumber(AMOUNT, ConfigConstants.CONSTANT_ONE)
             );
         }
     }

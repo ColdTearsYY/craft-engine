@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 
@@ -18,7 +17,10 @@ public final class SetLevelFunction<CTX extends Context> extends AbstractConditi
     private final NumberProvider count;
     private final BiConsumer<Player, Integer> operation;
 
-    private SetLevelFunction(List<Condition<CTX>> predicates, PlayerSelector<CTX> selector, NumberProvider count, BiConsumer<Player, Integer> operation) {
+    private SetLevelFunction(List<Condition<CTX>> predicates,
+                             PlayerSelector<CTX> selector,
+                             NumberProvider count,
+                             BiConsumer<Player, Integer> operation) {
         super(predicates);
         this.selector = selector;
         this.count = count;
@@ -44,6 +46,7 @@ public final class SetLevelFunction<CTX extends Context> extends AbstractConditi
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, SetLevelFunction<CTX>> {
         private static final BiConsumer<Player, Integer> ADD_LEVELS = Player::giveExperienceLevels;
         private static final BiConsumer<Player, Integer> SET_LEVELS = Player::setExperienceLevels;
+        private static final String[] LEVEL = new String[]{"level", "count"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -54,7 +57,7 @@ public final class SetLevelFunction<CTX extends Context> extends AbstractConditi
             return new SetLevelFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    NumberProviders.fromObject(section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "count")),
+                    section.getNonNullNumber(LEVEL),
                     section.getBoolean("add") ? ADD_LEVELS : SET_LEVELS
             );
         }

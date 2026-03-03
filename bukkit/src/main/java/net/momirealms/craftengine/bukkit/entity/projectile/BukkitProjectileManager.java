@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class BukkitProjectileManager implements Listener, ProjectileManager {
+public final class BukkitProjectileManager implements Listener, ProjectileManager {
     private static BukkitProjectileManager instance;
     private final BukkitCraftEngine plugin;
     // 会被netty线程访问

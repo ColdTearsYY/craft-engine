@@ -79,23 +79,23 @@ public final class CraftingInput<T> implements RecipeInput, Iterable<UniqueIdIte
     }
 
     public int ingredientCount() {
-        return ingredientCount;
+        return this.ingredientCount;
     }
 
     public int width() {
-        return width;
+        return this.width;
     }
 
     public int height() {
-        return height;
+        return this.height;
     }
 
     public int size() {
-        return items.size();
+        return this.items.size();
     }
 
     public UniqueIdItem<T> getItem(int x, int y) {
-        return this.items.get(x + y * width);
+        return this.items.get(x + y * this.width);
     }
 
     public UniqueIdItem<T> getItem(int index) {

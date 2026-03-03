@@ -81,6 +81,7 @@ public final class ItemKeys {
     public static final Key LEATHER_BOOTS = Key.of("minecraft:leather_boots");
     public static final Key LEATHER_HORSE_ARMOR = Key.of("minecraft:leather_horse_armor");
     public static final Key WOLF_ARMOR = Key.of("minecraft:wolf_armor");
+    public static final Key NETHER_BRICK = Key.of("minecraft:nether_brick");
 
     public static final Key[] AXES = new Key[] {WOODEN_AXE, COPPER_AXE, STONE_AXE, IRON_AXE, GOLDEN_AXE, DIAMOND_AXE, NETHERITE_AXE};
 

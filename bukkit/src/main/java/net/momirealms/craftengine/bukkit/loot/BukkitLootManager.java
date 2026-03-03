@@ -43,7 +43,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 // note: block listeners are in BlockEventListener to reduce performance cost
-public class BukkitLootManager extends AbstractLootManager implements Listener {
+public final class BukkitLootManager extends AbstractLootManager implements Listener {
     private final BukkitCraftEngine plugin;
     private final LootParser vanillaLootParser;
     private EntityProvider[] entitySources;
@@ -164,8 +164,8 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
             } catch (IllegalArgumentException e) {
                 throw new LocalizedResourceConfigException("warning.config.loot.invalid_type", type, EnumUtils.toString(VanillaLoot.Type.values()));
             }
-            boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault(false, "override"), "override");
-            List<String> targets = MiscUtils.getAsStringList(section.getOrDefault(List.of(), "target"));
+            boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault("override", false), "override");
+            List<String> targets = MiscUtils.getAsStringList(section.getOrDefault("target", List.of()));
             LootTable<?> lootTable = LootTable.fromConfig(section.getNonNullSection("loot"));
             switch (typeEnum) {
                 case BLOCK -> {

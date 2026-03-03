@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public class LegacyShapelessRecipe<I> implements LegacyRecipe<I> {
+public final class LegacyShapelessRecipe<I> implements LegacyRecipe<I> {
     private final List<LegacyIngredient<I>> ingredients;
     private Item<I> result;
     private final String group;

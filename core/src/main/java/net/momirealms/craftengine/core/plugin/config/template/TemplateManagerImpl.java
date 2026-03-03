@@ -44,7 +44,7 @@ public final class TemplateManagerImpl implements TemplateManager {
     }
 
     public final class TemplateParser extends IdValueConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"templates", "template"};
+        public static final String[] CONFIG_SECTION_NAME = new String[]{"templates", "template"};
 
         @Override
         public String[] sectionId() {
@@ -82,7 +82,7 @@ public final class TemplateManagerImpl implements TemplateManager {
                 ResourceConfigUtils.runCatching(
                         path,
                         currentNode,
-                        () -> parseValue(cached.pack(), filePath, id, new ConfigValue(key, currentNode, entry.getValue())),
+                        () -> parseValue(cached.pack(), filePath, id, ConfigValue.of(currentNode, entry.getValue())),
                         super.errorHandler
                 );
             }
@@ -142,7 +142,7 @@ public final class TemplateManagerImpl implements TemplateManager {
                 // 先获取第一个模板的类型
                 Object firstTemplate = processedTemplates.getFirst();
                 // 如果是map，应当深度合并
-                if (firstTemplate instanceof Map<?,?>) {
+                if (firstTemplate instanceof Map<?, ?>) {
                     Map<String, Object> results = new LinkedHashMap<>();
                     for (Object processedTemplate : processedTemplates) {
                         if (processedTemplate instanceof Map<?, ?> map) {
@@ -184,9 +184,9 @@ public final class TemplateManagerImpl implements TemplateManager {
                 }
             } else {
                 // 模板为空啦，如果是map，则合并
-                if (processingResult.overrides() instanceof Map<?,?> overrides) {
+                if (processingResult.overrides() instanceof Map<?, ?> overrides) {
                     Map<String, Object> output = new LinkedHashMap<>(MiscUtils.castToMap(overrides, false));
-                    if (processingResult.merges() instanceof Map<?,?> merges) {
+                    if (processingResult.merges() instanceof Map<?, ?> merges) {
                         MiscUtils.deepMergeMaps(output, MiscUtils.castToMap(merges, false));
                     }
                     return output;
@@ -331,7 +331,7 @@ public final class TemplateManagerImpl implements TemplateManager {
     // 合并参数
     @SuppressWarnings("unchecked")
     private Map<String, TemplateArgument> mergeArguments(@NotNull Map<ArgumentString, Object> childArguments,
-                                                        @NotNull Map<String, TemplateArgument> parentArguments) {
+                                                         @NotNull Map<String, TemplateArgument> parentArguments) {
         Map<String, TemplateArgument> result = new LinkedHashMap<>(parentArguments);
         for (Map.Entry<ArgumentString, Object> argumentEntry : childArguments.entrySet()) {
             Object placeholderObj = argumentEntry.getKey().get(result);
@@ -341,8 +341,10 @@ public final class TemplateManagerImpl implements TemplateManager {
             if (result.containsKey(placeholder)) continue;
             Object processedPlaceholderValue = processUnknownValue(argumentEntry.getValue(), result);
             switch (processedPlaceholderValue) {
-                case Map<?, ?> map -> result.put(placeholder, TemplateArguments.fromConfig(MiscUtils.castToMap(map)));
-                case List<?> listArgument -> result.put(placeholder, ListTemplateArgument.list((List<Object>) listArgument));
+                // todo 要改啊
+                case Map<?, ?> map -> result.put(placeholder, TemplateArguments.fromConfig(ConfigSection.of("", map)));
+                case List<?> listArgument ->
+                        result.put(placeholder, ListTemplateArgument.list((List<Object>) listArgument));
                 case null -> result.put(placeholder, NullTemplateArgument.INSTANCE);
                 default -> result.put(placeholder, ObjectTemplateArgument.object(processedPlaceholderValue));
             }
@@ -355,5 +357,6 @@ public final class TemplateManagerImpl implements TemplateManager {
             Object overrides,
             Object merges,
             Map<String, TemplateArgument> arguments
-    ) {}
+    ) {
+    }
 }

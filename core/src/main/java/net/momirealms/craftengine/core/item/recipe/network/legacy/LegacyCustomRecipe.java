@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Obsolete
-public class LegacyCustomRecipe<I> implements LegacyRecipe<I> {
+public final class LegacyCustomRecipe<I> implements LegacyRecipe<I> {
     private final CraftingRecipeCategory category;
 
     public LegacyCustomRecipe(CraftingRecipeCategory category) {

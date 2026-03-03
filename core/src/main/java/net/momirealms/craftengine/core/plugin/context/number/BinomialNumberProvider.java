@@ -36,8 +36,8 @@ public record BinomialNumberProvider(NumberProvider trials, NumberProvider succe
         @Override
         public BinomialNumberProvider create(ConfigSection section) {
             return new BinomialNumberProvider(
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "extra"),
-                    section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "probability")
+                    section.getNonNullNumber("extra"),
+                    section.getNonNullNumber("probability")
             );
         }
     }

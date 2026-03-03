@@ -14,6 +14,6 @@ public abstract class AbstractGroupedRecipe<T> extends AbstractFixedResultRecipe
 
     @Nullable
     public String group() {
-        return group;
+        return this.group;
     }
 }

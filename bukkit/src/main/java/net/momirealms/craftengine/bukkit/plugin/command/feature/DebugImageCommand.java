@@ -28,7 +28,7 @@ import org.incendo.cloud.suggestion.SuggestionProvider;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class DebugImageCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugImageCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugImageCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

@@ -58,10 +58,10 @@ public final class CustomStoneCuttingRecipe<T> extends AbstractGroupedRecipe<T> 
         @Override
         public CustomStoneCuttingRecipe<A> readConfig(Key id, ConfigSection section) {
             return new CustomStoneCuttingRecipe<>(id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
+                    super.parseResult(section.getNonNullSection("result")),
                     section.getString("group"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredient", "ingredients").getAsIngredient()
+                    section.getNonNullValue(INGREDIENTS, ConfigConstants.ARGUMENT_LIST, super::parseIngredient)
             );
         }
 

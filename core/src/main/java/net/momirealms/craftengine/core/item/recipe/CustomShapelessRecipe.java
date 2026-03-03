@@ -9,12 +9,10 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
-import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -121,19 +119,19 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
         public CustomShapelessRecipe<A> readConfig(Key id, ConfigSection section) {
             List<Ingredient<A>> ingredients;
             boolean hasAdditionalInput = false;
-            ConfigValue ingredientsValue = section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredients", "ingredient");
+            ConfigValue ingredientsValue = section.getNonNullValue(INGREDIENTS, ConfigConstants.ARGUMENT_LIST);
             if (ingredientsValue.is(Map.class)) {
                 ingredients = new ArrayList<>();
                 ConfigSection ingredientSection = ingredientsValue.getAsSection();
                 for (String key : ingredientSection.keySet()) {
-                    Ingredient<A> value = ingredientSection.getNonNullValue(ConfigConstants.ARGUMENT_LIST, key).getAsIngredient();
+                    Ingredient<A> value = ingredientSection.getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
                     ingredients.add(value);
                     if (value.count() > 1) {
                         hasAdditionalInput = true;
                     }
                 }
             } else if (ingredientsValue.is(List.class)) {
-                ingredients = ingredientsValue.parseAsList(ConfigValue::getAsIngredient);
+                ingredients = ingredientsValue.getAsList(super::parseIngredient);
                 for (Ingredient<A> ingredient : ingredients) {
                     if (ingredient.count() > 1) {
                         hasAdditionalInput = true;
@@ -141,7 +139,7 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
                     }
                 }
             } else {
-                Ingredient<A> ingredient = ingredientsValue.getAsIngredient();
+                Ingredient<A> ingredient = super.parseIngredient(ingredientsValue);
                 ingredients = List.of(ingredient);
                 if (ingredient.count() > 1) {
                     hasAdditionalInput = true;
@@ -153,15 +151,15 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
             }
             return new CustomShapelessRecipe(
                     id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "visual_result", "visual-result").getAsCustomRecipeResult(),
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
+                    super.parseResult(section.getNonNullSection("result")),
+                    section.getValue(VISUAL_RESULT, v -> super.parseResult(v.getAsSection())),
                     section.getString("group"),
-                    section.getEnum(null, CraftingRecipeCategory.class, "category"),
+                    section.getEnum("category", CraftingRecipeCategory.class),
                     ingredients,
-                    section.parseSectionList(CommonFunctions::fromConfig, "functions", "function").toArray(new Function[0]),
-                    MiscUtils.allOf(section.parseSectionList(CommonConditions::fromConfig, "conditions", "condition")),
-                    section.getBoolean(true, "always_rebuild_result", "always-rebuild-result"),
+                    section.getList(FUNCTIONS, CommonFunctions::fromConfig).toArray(new Function[0]),
+                    MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig)),
+                    section.getBoolean(ALWAYS_REBUILD_RESULT, true),
                     hasAdditionalInput
             );
         }

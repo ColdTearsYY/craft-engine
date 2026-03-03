@@ -4,12 +4,9 @@ import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.HashUtils;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -168,16 +165,20 @@ public final class GitLabHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<GitLabHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] GITLAB_URL = new String[] {"gitlab_url", "gitlab-url"};
+        private static final String[] ACCESS_TOKEN = new String[] {"access_token", "access-token"};
+        private static final String[] PROJECT_ID = new String[] {"project_id", "project-id"};
 
         @Override
         public GitLabHost create(ConfigSection section) {
-            boolean useEnv = section.getBoolean("use_environment_variables", "use-environment-variables");
-            String gitlabUrl = section.getNonEmptyString("gitlab_url", "gitlab-url");
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String gitlabUrl = section.getNonEmptyString(GITLAB_URL);
             if (gitlabUrl.endsWith("/")) {
                 gitlabUrl = gitlabUrl.substring(0, gitlabUrl.length() - 1);
             }
-            String accessToken = useEnv ? System.getenv("CE_GITLAB_ACCESS_TOKEN") : section.getNonEmptyString("access_token", "access-token");
-            String projectId = section.getNonEmptyString("project_id", "project-id");
+            String accessToken = useEnv ? System.getenv("CE_GITLAB_ACCESS_TOKEN") : section.getNonEmptyString(ACCESS_TOKEN);
+            String projectId = section.getNonEmptyString(PROJECT_ID);
             projectId = URLEncoder.encode(projectId, StandardCharsets.UTF_8).replace("/", "%2F");
             ProxySelector proxy = getProxySelector(section.getSection("proxy"));
             return new GitLabHost(gitlabUrl, accessToken, projectId, proxy);

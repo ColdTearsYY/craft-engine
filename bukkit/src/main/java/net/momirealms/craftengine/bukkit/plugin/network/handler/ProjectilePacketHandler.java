@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class ProjectilePacketHandler implements EntityPacketHandler {
+public final class ProjectilePacketHandler implements EntityPacketHandler {
     private final int entityId;
     private final BukkitCustomProjectile projectile;
 

@@ -29,10 +29,11 @@ public final class MatchFurnitureVariantCondition<CTX extends Context> implement
     }
 
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, MatchFurnitureVariantCondition<CTX>> {
+        private static final String[] VARIANTS = new String[] {"variant", "variants"};
 
         @Override
         public MatchFurnitureVariantCondition<CTX> create(ConfigSection section) {
-            return new MatchFurnitureVariantCondition<>(section.getNonNullStringList("variant", "variants"));
+            return new MatchFurnitureVariantCondition<>(section.getNonNullStringList(VARIANTS));
         }
     }
 }

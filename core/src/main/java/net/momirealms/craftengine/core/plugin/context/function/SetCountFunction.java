@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
 import java.util.List;
@@ -15,7 +14,9 @@ public final class SetCountFunction<CTX extends Context> extends AbstractConditi
     private final NumberProvider count;
     private final boolean add;
 
-    private SetCountFunction(List<Condition<CTX>> predicates, boolean add, NumberProvider count) {
+    private SetCountFunction(List<Condition<CTX>> predicates,
+                             boolean add,
+                             NumberProvider count) {
         super(predicates);
         this.count = count;
         this.add = add;
@@ -39,6 +40,7 @@ public final class SetCountFunction<CTX extends Context> extends AbstractConditi
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, SetCountFunction<CTX>> {
+        private static final String[] COUNT = new String[] {"count", "amount"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -49,7 +51,7 @@ public final class SetCountFunction<CTX extends Context> extends AbstractConditi
             return new SetCountFunction<>(
                     getPredicates(section),
                     section.getBoolean("add"),
-                    NumberProviders.fromObject(section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "count", "amount"))
+                    section.getNonNullNumber(COUNT)
             );
         }
     }

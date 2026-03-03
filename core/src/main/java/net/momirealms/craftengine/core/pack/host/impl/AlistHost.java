@@ -6,9 +6,10 @@ import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.GsonHelper;
+import net.momirealms.craftengine.core.util.HashUtils;
+import net.momirealms.craftengine.core.util.Pair;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -283,18 +284,23 @@ public final class AlistHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<AlistHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] API_URL = new String[] {"api_url", "api-url"};
+        private static final String[] JWT_TOKEN_EXPIRATION = new String[] {"jwt_token_expiration", "jwt-token-expiration"};
+        private static final String[] UPLOAD_PATH = new String[] {"upload_path", "upload-path"};
+        private static final String[] DISABLE_UPLOAD = new String[] {"disable_upload", "disable-upload"};
 
         @Override
         public AlistHost create(ConfigSection section) {
-            boolean useEnv = section.getBoolean("use_environment_variables", "use-environment-variables");
-            String apiUrl = section.getNonEmptyString("api_url", "api-url");
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String apiUrl = section.getNonEmptyString(API_URL);
             String userName = useEnv ? System.getenv("CE_ALIST_USERNAME") : section.getNonEmptyString("username");
             String password = useEnv ? System.getenv("CE_ALIST_PASSWORD") : section.getNonEmptyString("password");
-            String filePassword = useEnv ? System.getenv("CE_ALIST_FILE_PASSWORD") : section.getDefaultedString("", "file_password");
+            String filePassword = useEnv ? System.getenv("CE_ALIST_FILE_PASSWORD") : section.getString("file_password", "");
             String otpCode = section.getString("otp_code", "otp-code");
-            Duration jwtTokenExpiration = Duration.ofHours(section.getInt(48, "jwt_token_expiration", "jwt-token-expiration"));
-            String uploadPath = section.getNonEmptyString("upload_path", "upload-path");
-            boolean disableUpload = section.getBoolean("disable_upload", "disable-upload");
+            Duration jwtTokenExpiration = Duration.ofHours(section.getInt(JWT_TOKEN_EXPIRATION, 48));
+            String uploadPath = section.getNonEmptyString(UPLOAD_PATH);
+            boolean disableUpload = section.getBoolean(DISABLE_UPLOAD);
             return new AlistHost(apiUrl, userName, password, filePassword, otpCode, jwtTokenExpiration, uploadPath, disableUpload, getProxySelector(section.getSection("proxy")));
         }
     }

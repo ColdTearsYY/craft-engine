@@ -23,10 +23,11 @@ public final class ListTemplateArgument implements TemplateArgument {
     }
 
     private static class Factory implements TemplateArgumentFactory<ListTemplateArgument> {
+        private static final String[] LIST = new String[] {"list", "value"};
 
         @Override
         public ListTemplateArgument create(ConfigSection section) {
-            return new ListTemplateArgument(section.getNonNullList("list", "value"));
+            return new ListTemplateArgument(section.getNonNullList(LIST));
         }
     }
 }

@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-public class ItemFramePacketHandler implements EntityPacketHandler {
+public final class ItemFramePacketHandler implements EntityPacketHandler {
     public static final ItemFramePacketHandler INSTANCE = new ItemFramePacketHandler();
 
     @Override

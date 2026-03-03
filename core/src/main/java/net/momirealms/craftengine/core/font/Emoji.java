@@ -4,7 +4,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class Emoji {
+public final class Emoji {
     private final String content;
     private final String permission;
     private final String image;

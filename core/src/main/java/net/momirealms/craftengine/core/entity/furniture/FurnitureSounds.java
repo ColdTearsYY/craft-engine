@@ -21,9 +21,9 @@ public final class FurnitureSounds {
     public static FurnitureSounds fromConfig(ConfigSection section) {
         if (section == null) return EMPTY;
         return new FurnitureSounds(
-                section.getValueOrDefault(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8), EMPTY_SOUND, "break"),
-                section.getValueOrDefault(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8), EMPTY_SOUND, "place"),
-                section.getValueOrDefault(v -> v.getAsSoundData(SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_5), EMPTY_SOUND, "hit")
+                section.getValue("break", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8), EMPTY_SOUND),
+                section.getValue("place", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_8), EMPTY_SOUND),
+                section.getValue("hit", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_0_5), EMPTY_SOUND)
         );
     }
 

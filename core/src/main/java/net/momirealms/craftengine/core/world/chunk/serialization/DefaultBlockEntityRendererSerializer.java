@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class DefaultBlockEntityRendererSerializer {
-
     private DefaultBlockEntityRendererSerializer() {}
 
     public static List<BlockPos> deserialize(ChunkPos chunkPos, ListTag blockEntitiesTag) {

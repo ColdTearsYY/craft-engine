@@ -21,7 +21,7 @@ import org.incendo.cloud.Command;
 
 import java.util.Set;
 
-public class DebugTargetBlockCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugTargetBlockCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugTargetBlockCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

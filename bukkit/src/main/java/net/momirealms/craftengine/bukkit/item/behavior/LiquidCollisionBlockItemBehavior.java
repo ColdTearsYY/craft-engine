@@ -13,10 +13,8 @@ import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockHitResult;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -76,10 +74,12 @@ public final class LiquidCollisionBlockItemBehavior extends BlockItemBehavior {
     }
 
     private static class Factory implements ItemBehaviorFactory<LiquidCollisionBlockItemBehavior> {
+        private static final String[] Y_OFFSET = new String[]{"y_offset", "y-offset"};
+
         @Override
         public LiquidCollisionBlockItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
-            int offset = section.getInt(1, "y_offset", "y-offset");
-            ConfigValue blockValue = section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "block");
+            int offset = section.getInt(Y_OFFSET, 1);
+            ConfigValue blockValue = section.getNonNullValue("block", ConfigConstants.ARGUMENT_SECTION);
             if (blockValue.is(Map.class)) {
                 BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, key, blockValue.getAsSection()));
                 return new LiquidCollisionBlockItemBehavior(key, offset);

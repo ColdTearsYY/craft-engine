@@ -8,11 +8,9 @@ import net.momirealms.craftengine.core.item.updater.ItemUpdater;
 import net.momirealms.craftengine.core.item.updater.ItemUpdaterFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public final class ApplyDataOperation implements ItemUpdater {
     public static final ItemUpdaterFactory<ApplyDataOperation> FACTORY = new Factory();

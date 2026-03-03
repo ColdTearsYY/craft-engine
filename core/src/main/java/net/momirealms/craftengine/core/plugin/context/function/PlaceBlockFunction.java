@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.plugin.context.function;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -24,7 +25,12 @@ public final class PlaceBlockFunction<CTX extends Context> extends AbstractCondi
     private final NumberProvider z;
     private final NumberProvider updateFlags;
 
-    private PlaceBlockFunction(List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider updateFlags, LazyReference<BlockStateWrapper> lazyBlockState) {
+    private PlaceBlockFunction(List<Condition<CTX>> predicates,
+                               NumberProvider x,
+                               NumberProvider y,
+                               NumberProvider z,
+                               NumberProvider updateFlags,
+                               LazyReference<BlockStateWrapper> lazyBlockState) {
         super(predicates);
         this.lazyBlockState = lazyBlockState;
         this.x = x;
@@ -47,6 +53,8 @@ public final class PlaceBlockFunction<CTX extends Context> extends AbstractCondi
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, PlaceBlockFunction<CTX>> {
+        private static final String[] BLOCK_STATE = new String[] {"block_state", "block-state"};
+        private static final String[] UPDATE_FLAGS = new String[] {"update_flags", "update-flags"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -54,13 +62,13 @@ public final class PlaceBlockFunction<CTX extends Context> extends AbstractCondi
 
         @Override
         public PlaceBlockFunction<CTX> create(ConfigSection section) {
-            String state = section.getNonNullString("block_state", "block-state");
+            String state = section.getNonEmptyString(BLOCK_STATE);
             return new PlaceBlockFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    Optional.ofNullable(section.get("update_flags", "update-flags")).map(NumberProviders::fromObject).orElseGet(() -> NumberProviders.direct(UpdateFlags.UPDATE_ALL)),
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z),
+                    section.getNumber(UPDATE_FLAGS, NumberProviders.direct(UpdateFlags.UPDATE_ALL)),
                     LazyReference.lazyReference(() -> CraftEngine.instance().blockManager().createBlockState(state))
             );
         }

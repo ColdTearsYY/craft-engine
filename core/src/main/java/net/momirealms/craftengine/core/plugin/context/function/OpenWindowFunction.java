@@ -17,7 +17,10 @@ public final class OpenWindowFunction<CTX extends Context> extends AbstractCondi
     private final GuiType guiType;
     private final String optionalTitle;
 
-    private OpenWindowFunction(List<Condition<CTX>> predicates, @Nullable PlayerSelector<CTX> selector, GuiType guiType, String optionalTitle) {
+    private OpenWindowFunction(List<Condition<CTX>> predicates,
+                               @Nullable PlayerSelector<CTX> selector,
+                               GuiType guiType,
+                               String optionalTitle) {
         super(predicates);
         this.selector = selector;
         this.guiType = guiType;
@@ -49,6 +52,7 @@ public final class OpenWindowFunction<CTX extends Context> extends AbstractCondi
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, OpenWindowFunction<CTX>> {
+        private static final String[] GUI_TYPE = new String[] {"gui_type", "gui-type"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -60,7 +64,7 @@ public final class OpenWindowFunction<CTX extends Context> extends AbstractCondi
             return new OpenWindowFunction<>(
                     getPredicates(section),
                     getPlayerSelector(section),
-                    section.getNonNullEnum(GuiType.class, "gui_type", "gui-type"),
+                    section.getNonNullEnum(GUI_TYPE, GuiType.class),
                     title == null ? null : AdventureHelper.legacyToMiniMessage(title)
             );
         }

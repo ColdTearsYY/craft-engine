@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 
-public class ItemBrowserPlayerCommand extends BukkitCommandFeature<CommandSender> {
+public final class ItemBrowserPlayerCommand extends BukkitCommandFeature<CommandSender> {
 
     public ItemBrowserPlayerCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

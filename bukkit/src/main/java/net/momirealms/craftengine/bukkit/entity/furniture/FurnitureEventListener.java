@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class FurnitureEventListener implements Listener {
+public final class FurnitureEventListener implements Listener {
     private final BukkitFurnitureManager manager;
     private final BukkitWorldManager worldManager;
 

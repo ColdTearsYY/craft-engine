@@ -50,6 +50,7 @@ public final class FoodProcessor implements SimpleNetworkItemProcessor {
     }
 
     private static class Factory implements ItemProcessorFactory<FoodProcessor> {
+        private static final String[] CAN_ALWAYS_EAT = new String[]{"can_always_eat", "can-always-eat"};
 
         @Override
         public FoodProcessor create(ConfigValue value) {
@@ -57,7 +58,7 @@ public final class FoodProcessor implements SimpleNetworkItemProcessor {
             return new FoodProcessor(
                     section.getInt("nutrition"),
                     section.getFloat("saturation"),
-                    section.getBoolean("can_always_eat", "can-always-eat")
+                    section.getBoolean(CAN_ALWAYS_EAT)
             );
         }
     }

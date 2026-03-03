@@ -47,7 +47,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 // todo 在folia上替换recipe map使其线程安全
-public class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> {
+public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> {
     private static BukkitRecipeManager instance;
 
     private static final Consumer<Key> MINECRAFT_RECIPE_REMOVER = VersionHelper.isOrAbove1_21_2() ?

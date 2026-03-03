@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigExce
 
 import java.util.stream.IntStream;
 
-public class CharacterUtils {
+public final class CharacterUtils {
     private CharacterUtils() {}
 
     public static char[] decodeUnicodeToChars(String unicodeString) {

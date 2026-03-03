@@ -70,13 +70,15 @@ public final class ConditionItemModel implements ItemModel {
     }
 
     private static class Factory implements ItemModelFactory<ConditionItemModel> {
+        private static final String[] ON_TRUE = new String[] {"on_true", "on-true"};
+        private static final String[] ON_FALSE = new String[] {"on_false", "on-false"};
 
         @Override
         public ConditionItemModel create(ConfigSection section) {
             return new ConditionItemModel(
                     ConditionProperties.fromConfig(section),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, "on_true", "on-true").getAsItemModel(),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, "on_false", "on-false").getAsItemModel()
+                    section.getNonNullValue(ON_TRUE, ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig),
+                    section.getNonNullValue(ON_FALSE, ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig)
             );
         }
     }

@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import net.momirealms.craftengine.core.util.Key;
 
-public class TagSlotDisplay<I> implements SlotDisplay<I> {
+public final class TagSlotDisplay<I> implements SlotDisplay<I> {
     private final Key tag;
 
     public TagSlotDisplay(Key tag) {
@@ -24,7 +24,7 @@ public class TagSlotDisplay<I> implements SlotDisplay<I> {
     @Override
     public String toString() {
         return "TagSlotDisplay{" +
-                "tag=" + tag +
+                "tag=" + this.tag +
                 '}';
     }
 }

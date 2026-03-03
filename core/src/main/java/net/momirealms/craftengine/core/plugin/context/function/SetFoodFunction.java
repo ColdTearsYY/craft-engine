@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
@@ -16,7 +17,10 @@ public final class SetFoodFunction<CTX extends Context> extends AbstractConditio
     private final NumberProvider count;
     private final boolean add;
 
-    private SetFoodFunction(List<Condition<CTX>> predicates, boolean add, PlayerSelector<CTX> selector, NumberProvider count) {
+    private SetFoodFunction(List<Condition<CTX>> predicates,
+                            PlayerSelector<CTX> selector,
+                            boolean add,
+                            NumberProvider count) {
         super(predicates);
         this.count = count;
         this.add = add;
@@ -50,9 +54,8 @@ public final class SetFoodFunction<CTX extends Context> extends AbstractConditio
         public SetFoodFunction<CTX> create(ConfigSection section) {
             return new SetFoodFunction<>(
                     getPredicates(section),
-                    section.getBoolean("add"),
-                    getPlayerSelector(section),
-                    NumberProviders.fromObject(section.getNonNull(NumberProviders::fromObject, ConfigSection.ARGUMENT_NUMBER, "food"))
+                    getPlayerSelector(section), section.getBoolean("add"),
+                    section.getNonNullValue("food", ConfigConstants.ARGUMENT_NUMBER, NumberProviders::fromConfig)
             );
         }
     }

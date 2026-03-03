@@ -20,7 +20,7 @@ import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.Optional;
 
-public class ComponentItemType implements ItemType {
+public final class ComponentItemType implements ItemType {
     private final Object item;
 
     public ComponentItemType(Object item) {

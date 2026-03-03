@@ -1,13 +1,12 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
-import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.MiscUtils;
@@ -29,7 +28,13 @@ public final class TransformBlockFunction<CTX extends Context> extends AbstractC
     private final NumberProvider z;
     private final NumberProvider updateFlags;
 
-    private TransformBlockFunction(List<Condition<CTX>> predicates, CompoundTag properties, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider updateFlags, LazyReference<BlockStateWrapper> lazyBlockState) {
+    private TransformBlockFunction(List<Condition<CTX>> predicates,
+                                   CompoundTag properties,
+                                   NumberProvider x,
+                                   NumberProvider y,
+                                   NumberProvider z,
+                                   NumberProvider updateFlags,
+                                   LazyReference<BlockStateWrapper> lazyBlockState) {
         super(predicates);
         this.properties = properties;
         this.x = x;
@@ -67,6 +72,7 @@ public final class TransformBlockFunction<CTX extends Context> extends AbstractC
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, TransformBlockFunction<CTX>> {
+        private static final String[] UPDATE_FLAGS = new String[] {"update_flags", "update-flags"};
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -85,10 +91,10 @@ public final class TransformBlockFunction<CTX extends Context> extends AbstractC
             return new TransformBlockFunction<>(
                     getPredicates(section),
                     properties,
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    Optional.ofNullable(section.get("update_flags", "update-flags")).map(NumberProviders::fromObject).orElse(NumberProviders.direct(UpdateFlags.UPDATE_ALL)),
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z),
+                    section.getNumber(UPDATE_FLAGS, ConfigConstants.UPDATE_ALL),
                     LazyReference.lazyReference(() -> CraftEngine.instance().blockManager().createBlockState(block))
             );
         }

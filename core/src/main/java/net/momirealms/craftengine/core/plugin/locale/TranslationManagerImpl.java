@@ -13,7 +13,6 @@ import net.momirealms.craftengine.core.plugin.text.minimessage.ImageTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.IndexedArgumentTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.ShiftTag;
 import net.momirealms.craftengine.core.util.AdventureHelper;
-import net.momirealms.craftengine.core.util.ExceptionCollector;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -333,28 +332,26 @@ public final class TranslationManagerImpl implements TranslationManager {
         @Override
         protected void parseSection(Pack pack, Path path, ConfigSection section) {
             Map<String, Object> locales = section.values();
-            ExceptionCollector<ResourceException> collector = new ExceptionCollector<>();
             for (Map.Entry<String, Object> entry : locales.entrySet()) {
                 String langId = entry.getKey();
                 Locale locale = TranslationManager.parseLocale(langId);
                 if (locale == null) {
-                    collector.add(new KnownResourceException("resource.lang.unknown_locale", section.assemblePath(langId), langId));
+                    super.errorHandler.accept(new KnownResourceException("resource.lang.unknown_locale", section.path(), langId));
                     continue;
                 }
                 Object langData = entry.getValue();
                 if (!(langData instanceof Map<?,?> map)) {
-                    collector.add(new KnownResourceException(ConfigSection.PARSE_SECTION_FAILED, section.assemblePath(langId), langData.getClass().getSimpleName()));
+                    super.errorHandler.accept(new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, section.assemblePath(langId), langData.getClass().getSimpleName()));
                     continue;
                 }
                 Map<String, String> bundle = new HashMap<>();
-                loadLangKeyDeeply("", MiscUtils.castToMap(map, false), (key, value) -> {
+                loadLangKeyDeeply("", MiscUtils.castToMap(map), (key, value) -> {
                     bundle.put(key, value);
                     TranslationManagerImpl.this.translationKeys.add(key);
                 });
                 this.count += bundle.size();
                 TranslationManagerImpl.this.registry.registerAll(locale, bundle);
             }
-            collector.throwIfPresent();
         }
     }
 
@@ -394,20 +391,13 @@ public final class TranslationManagerImpl implements TranslationManager {
         @Override
         protected void parseSection(Pack pack, Path path, ConfigSection section) {
             Map<String, Object> locales = section.values();
-            ExceptionCollector<ResourceException> collector = new ExceptionCollector<>();
-            for (Map.Entry<String, Object> entry : locales.entrySet()) {
-                String langId = entry.getKey();
-                Object langData = entry.getValue();
-                if (!(langData instanceof Map<?,?> map)) {
-                    collector.add(new KnownResourceException(ConfigSection.PARSE_SECTION_FAILED, section.assemblePath(langId), langData.getClass().getSimpleName()));
-                    continue;
-                }
+            for (String langId : locales.keySet()) {
+                ConfigSection langSection = section.getNonNullSection(langId);
                 Map<String, String> sectionData = new HashMap<>();
-                loadLangKeyDeeply("", MiscUtils.castToMap(map, false), (key, value) -> sectionData.put(key, LANG_FORMATTER.apply(value)));
+                loadLangKeyDeeply("", langSection.values(), (key, value) -> sectionData.put(key, LANG_FORMATTER.apply(value)));
                 this.count += sectionData.size();
                 TranslationManagerImpl.this.addClientTranslation(langId, sectionData);
             }
-            collector.throwIfPresent();
         }
     }
 

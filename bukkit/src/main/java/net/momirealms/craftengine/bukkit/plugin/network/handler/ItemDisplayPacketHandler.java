@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-public class ItemDisplayPacketHandler implements EntityPacketHandler {
+public final class ItemDisplayPacketHandler implements EntityPacketHandler {
     public static final ItemDisplayPacketHandler INSTANCE = new ItemDisplayPacketHandler();
 
     @Override

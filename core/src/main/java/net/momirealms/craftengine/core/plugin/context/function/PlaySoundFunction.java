@@ -1,11 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 import net.momirealms.craftengine.core.sound.SoundSource;
@@ -27,9 +27,15 @@ public final class PlaySoundFunction<CTX extends Context> extends AbstractCondit
     private final SoundSource source;
     private final PlayerSelector<CTX> selector;
 
-    private PlaySoundFunction(
-            List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider volume, NumberProvider pitch, SoundSource source, PlayerSelector<CTX> selector, Key soundEvent
-    ) {
+    private PlaySoundFunction(List<Condition<CTX>> predicates,
+                              PlayerSelector<CTX> selector,
+                              NumberProvider x,
+                              NumberProvider y,
+                              NumberProvider z,
+                              NumberProvider volume,
+                              NumberProvider pitch,
+                              SoundSource source,
+                              Key soundEvent) {
         super(predicates);
         this.soundEvent = soundEvent;
         this.x = x;
@@ -71,13 +77,12 @@ public final class PlaySoundFunction<CTX extends Context> extends AbstractCondit
         public PlaySoundFunction<CTX> create(ConfigSection section) {
             return new PlaySoundFunction<>(
                     getPredicates(section),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.x>", "x")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.y>", "y")),
-                    NumberProviders.fromObject(section.getOrDefault("<arg:position.z>", "z")),
-                    NumberProviders.fromObject(section.getOrDefault(1, "volume")),
-                    NumberProviders.fromObject(section.getOrDefault(1, "pitch")),
-                    section.getEnum(SoundSource.MASTER, SoundSource.class, "source"),
-                    getPlayerSelector(section),
+                    getPlayerSelector(section), section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_X),
+                    section.getNumber("z", ConfigConstants.POSITION_X),
+                    section.getNumber("volume", ConfigConstants.CONSTANT_ONE),
+                    section.getNumber("pitch", ConfigConstants.CONSTANT_ONE),
+                    section.getEnum("source", SoundSource.class, SoundSource.MASTER),
                     section.getNonNullIdentifier("sound")
             );
         }

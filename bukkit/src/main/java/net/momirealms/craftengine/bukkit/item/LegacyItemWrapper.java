@@ -17,7 +17,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-public class LegacyItemWrapper implements ItemWrapper<ItemStack> {
+public final class LegacyItemWrapper implements ItemWrapper<ItemStack> {
     private final Object nmsStack;
     private final ItemStack itemStack;
     private ItemType itemType;
@@ -29,7 +29,7 @@ public class LegacyItemWrapper implements ItemWrapper<ItemStack> {
 
     public ItemType itemType() {
         if (this.itemType == null) {
-            this.itemType = new ComponentItemType(ItemStackProxy.INSTANCE.getItem(this.getLiteralObject()));
+            this.itemType = new LegacyItemType(ItemStackProxy.INSTANCE.getItem(this.getLiteralObject()));
         }
         return this.itemType;
     }

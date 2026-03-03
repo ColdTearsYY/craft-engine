@@ -10,7 +10,7 @@ import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.data.MultiplePlayerSelector;
 import org.incendo.cloud.bukkit.parser.selector.MultiplePlayerSelectorParser;
 
-public class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandSender> {
+public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandSender> {
 
     public ItemBrowserAdminCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

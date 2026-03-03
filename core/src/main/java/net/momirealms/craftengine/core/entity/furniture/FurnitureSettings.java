@@ -2,8 +2,10 @@ package net.momirealms.craftengine.core.entity.furniture;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.util.CustomDataType;
+import net.momirealms.craftengine.core.util.ExceptionCollector;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.StringUtils;
 import org.jetbrains.annotations.Nullable;
@@ -26,21 +28,27 @@ public final class FurnitureSettings {
     }
 
     public static FurnitureSettings fromConfig(ConfigSection section) {
-        return applyModifiers(FurnitureSettings.of(), section);
+        FurnitureSettings furnitureSettings = FurnitureSettings.of();
+        if (section == null) return furnitureSettings;
+        applyModifiers(furnitureSettings, section);
+        return furnitureSettings;
     }
 
-    public static FurnitureSettings applyModifiers(FurnitureSettings settings, ConfigSection section) {
+    public static void applyModifiers(FurnitureSettings settings, ConfigSection section) {
+        ExceptionCollector<KnownResourceException> collector = new ExceptionCollector<>(KnownResourceException.class);
         if (section != null) {
             for (String type : section.keySet()) {
                 ConfigValue value = section.getValue(type);
                 if (value == null) continue;
                 String key = StringUtils.normalizeSettingsType(type);
-                Optional.ofNullable(BuiltInRegistries.FURNITURE_SETTINGS_TYPE.getValue(Key.ce(key)))
-                        .ifPresent(modifierType ->
-                                modifierType.factory().create(value).apply(settings));
+                collector.runCatching(() -> {
+                    Optional.ofNullable(BuiltInRegistries.FURNITURE_SETTINGS_TYPE.getValue(Key.ce(key)))
+                            .ifPresent(modifierType ->
+                                    modifierType.factory().create(value).apply(settings));
+                });
             }
         }
-        return settings;
+        collector.throwIfPresent();
     }
 
     public static FurnitureSettings ofFullCopy(FurnitureSettings settings) {

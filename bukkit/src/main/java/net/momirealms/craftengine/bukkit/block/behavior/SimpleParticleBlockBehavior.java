@@ -44,13 +44,15 @@ public final class SimpleParticleBlockBehavior extends BukkitBlockBehavior imple
     }
 
     private static class Factory implements BlockBehaviorFactory<SimpleParticleBlockBehavior> {
+        private static final String[] PARTICLES = new String[] {"particles", "particle"};
+        private static final String[] TICK_INTERVAL = new String[] {"tick_interval", "tick-interval"};
 
         @Override
         public SimpleParticleBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new SimpleParticleBlockBehavior(
                     block,
-                    section.parseSectionList(ParticleConfig::fromConfig$blockEntity, "particles", "particle").toArray(new ParticleConfig[0]),
-                    section.getInt(10, "tick_interval", "tick-interval")
+                    section.getSectionList(PARTICLES, ParticleConfig::fromConfig$blockEntity).toArray(new ParticleConfig[0]),
+                    section.getInt(TICK_INTERVAL, 10)
             );
         }
     }

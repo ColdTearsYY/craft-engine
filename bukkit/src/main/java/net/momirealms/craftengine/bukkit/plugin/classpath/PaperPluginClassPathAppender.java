@@ -10,7 +10,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.Optional;
 
-public class PaperPluginClassPathAppender implements ClassPathAppender {
+public final class PaperPluginClassPathAppender implements ClassPathAppender {
     public static final Class<?> clazz$PaperPluginClassLoader = ReflectionUtils.getClazz(
             "io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader"
     );

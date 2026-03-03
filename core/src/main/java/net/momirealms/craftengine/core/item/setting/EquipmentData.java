@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.item.setting;
 
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.sparrow.nbt.CompoundTag;
@@ -41,6 +42,24 @@ public final class EquipmentData {
         this.equipOnInteract = equipOnInteract;
         this.canBeSheared = canBeSheared;
         this.cameraOverlay = cameraOverlay;
+    }
+
+    private static final String[] ASSET_ID = new String[] {"asset_id", "asset-id"};
+    private static final String[] CAMERA_OVERLAY = new String[] {"camera_overlay", "camera-overlay"};
+    private static final String[] EQUIP_ON_INTERACT = new String[] {"equip_on_interact", "equip-on-interact"};
+    private static final String[] DAMAGE_ON_HURT = new String[] {"damage_on_hurt", "damage-on-hurt"};
+    private static final String[] CAN_BE_SHEARED = new String[] {"can_be_sheared", "can-be-sheared"};
+
+    public static EquipmentData fromConfig(@NotNull final ConfigSection section) {
+        EquipmentSlot slot = section.getNonNullEnum("slot", EquipmentSlot.class);
+        Key assetId = section.getIdentifier(ASSET_ID);
+        Key cameraOverlay = section.getIdentifier(CAMERA_OVERLAY);
+        boolean dispensable = section.getBoolean("dispensable", true);
+        boolean swappable = section.getBoolean("swappable", true);
+        boolean equipOnInteract = section.getBoolean(EQUIP_ON_INTERACT);
+        boolean damageOnHurt = section.getBoolean(DAMAGE_ON_HURT, true);
+        boolean canBeSheared = section.getBoolean(CAN_BE_SHEARED);
+        return new EquipmentData(slot, assetId, dispensable, swappable, damageOnHurt, equipOnInteract, canBeSheared, cameraOverlay);
     }
 
     public EquipmentSlot slot() {

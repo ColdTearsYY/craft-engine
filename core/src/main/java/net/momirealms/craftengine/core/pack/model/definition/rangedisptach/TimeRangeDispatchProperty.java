@@ -36,7 +36,7 @@ public final class TimeRangeDispatchProperty implements RangeDispatchProperty {
         public TimeRangeDispatchProperty create(ConfigSection section) {
             return new TimeRangeDispatchProperty(
                     section.getNonNullString("source"),
-                    section.getBoolean(true, "wobble")
+                    section.getBoolean("wobble", true)
             );
         }
     }

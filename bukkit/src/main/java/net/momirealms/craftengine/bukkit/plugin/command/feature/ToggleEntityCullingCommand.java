@@ -18,7 +18,7 @@ import org.incendo.cloud.parser.standard.BooleanParser;
 
 import java.util.Optional;
 
-public class ToggleEntityCullingCommand extends BukkitCommandFeature<CommandSender> {
+public final class ToggleEntityCullingCommand extends BukkitCommandFeature<CommandSender> {
 
     public ToggleEntityCullingCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

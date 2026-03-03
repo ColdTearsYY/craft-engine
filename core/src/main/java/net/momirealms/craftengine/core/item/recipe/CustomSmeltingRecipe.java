@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.NotNull;
 
 public final class CustomSmeltingRecipe<T> extends CustomCookingRecipe<T> {
@@ -39,13 +38,13 @@ public final class CustomSmeltingRecipe<T> extends CustomCookingRecipe<T> {
         public CustomSmeltingRecipe<A> readConfig(Key id, ConfigSection section) {
             return new CustomSmeltingRecipe(
                     id,
-                    section.getBoolean(true, "show_notification", "show-notification"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_SECTION, "result").getAsCustomRecipeResult(),
+                    section.getBoolean(SHOW_NOTIFICATIONS, true),
+                    super.parseResult(section.getNonNullSection("result")),
                     section.getString("group"),
-                    section.getEnum(null, CookingRecipeCategory.class, "category"),
-                    section.getNonNullValue(ConfigConstants.ARGUMENT_LIST, "ingredient", "ingredients").getAsIngredient(),
-                    section.getInt(80, "time"),
-                    section.getFloat("exp", "experience")
+                    section.getEnum("category", CookingRecipeCategory.class),
+                    section.getNonNullValue(INGREDIENTS, ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
+                    section.getInt("time", 80),
+                    section.getFloat(EXP)
             );
         }
 

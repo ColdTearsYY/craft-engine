@@ -62,15 +62,15 @@ public final class Overlay {
     }
 
     public PackVersion minVersion() {
-        return minVersion;
+        return this.minVersion;
     }
 
     public PackVersion maxVersion() {
-        return maxVersion;
+        return this.maxVersion;
     }
 
     public String directory() {
-        return directory;
+        return this.directory;
     }
 
     public boolean test(MinecraftVersion version) {

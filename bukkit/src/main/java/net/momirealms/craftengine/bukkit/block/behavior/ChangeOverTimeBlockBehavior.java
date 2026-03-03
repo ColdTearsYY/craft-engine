@@ -57,14 +57,17 @@ public final class ChangeOverTimeBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<ChangeOverTimeBlockBehavior> {
+        private static final String[] CHANGE_SPEED = new String[] {"change_speed", "change-speed"};
+        private static final String[] NEXT_BLOCK = new String[] {"next_block", "next-block"};
+        private static final String[] EXCLUDED_PROPERTIES = new String[] {"excluded_properties", "excluded-properties"};
 
         @Override
         public ChangeOverTimeBlockBehavior create(CustomBlock block, ConfigSection section) {
             return new ChangeOverTimeBlockBehavior(
                     block,
-                    section.getFloat(0.057F, "change_speed", "change-speed"),
-                    section.getNonNullString("next_block", "next-block"),
-                    section.getStringList("excluded_properties", "excluded-properties")
+                    section.getFloat(CHANGE_SPEED, 0.057F),
+                    section.getNonEmptyString(NEXT_BLOCK),
+                    section.getStringList(EXCLUDED_PROPERTIES)
             );
         }
     }
