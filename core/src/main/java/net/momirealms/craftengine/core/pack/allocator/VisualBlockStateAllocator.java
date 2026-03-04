@@ -5,10 +5,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import net.momirealms.craftengine.core.block.AutoStateGroup;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
+import net.momirealms.craftengine.core.util.CompletableFutures;
 import net.momirealms.craftengine.core.util.FileUtils;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Pair;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,8 +28,8 @@ public final class VisualBlockStateAllocator {
     private final List<Pair<String, CompletableFuture<BlockStateWrapper>>>[] pendingAllocationFutures = new List[AutoStateGroup.values().length];
     private final BlockStateCandidate[] candidates;
     private final Function<String, BlockStateWrapper> factory;
+    private final List<CompletableFuture<?>> combinedFutures = new ArrayList<>();
     private final Set<BlockStateWrapper> forcedStates = new HashSet<>();
-
     private boolean dirty;
     private long lastModified;
 
@@ -43,6 +45,15 @@ public final class VisualBlockStateAllocator {
         }
         this.pendingAllocations.clear();
         this.forcedStates.clear();
+        this.combinedFutures.clear();
+    }
+
+    public CompletableFuture<Void> combinedFuture() {
+        return CompletableFutures.allOf(this.combinedFutures);
+    }
+
+    public synchronized void addCombinedFuture(@Nullable CompletableFuture<?> future) {
+        this.combinedFutures.add(future);
     }
 
     public boolean isForcedState(final BlockStateWrapper state) {
@@ -54,7 +65,7 @@ public final class VisualBlockStateAllocator {
         return Collections.unmodifiableMap(this.cachedBlockStates);
     }
 
-    public CompletableFuture<BlockStateWrapper> assignFixedBlockState(String name, BlockStateWrapper state) {
+    public synchronized CompletableFuture<BlockStateWrapper> assignFixedBlockState(String name, BlockStateWrapper state) {
         this.cachedBlockStates.remove(name);
         this.forcedStates.add(state);
         BlockStateCandidate candidate = this.candidates[state.registryId()];
@@ -64,7 +75,7 @@ public final class VisualBlockStateAllocator {
         return CompletableFuture.completedFuture(state);
     }
 
-    public CompletableFuture<BlockStateWrapper> requestAutoState(String name, AutoStateGroup group) {
+    public synchronized CompletableFuture<BlockStateWrapper> requestAutoState(String name, AutoStateGroup group) {
         if (this.pendingAllocations.containsKey(name)) {
             return this.pendingAllocations.get(name).right();
         }

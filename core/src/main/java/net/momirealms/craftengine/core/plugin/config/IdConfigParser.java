@@ -5,12 +5,13 @@ import net.momirealms.craftengine.core.util.Key;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class IdConfigParser extends AbstractConfigParser {
     protected final Map<Key, Path> loadedConfigs;
 
     protected IdConfigParser() {
-        this.loadedConfigs = this.checkDuplicated() ? new HashMap<>(128, 0.5f) : Map.of();
+        this.loadedConfigs = this.checkDuplicated() ? (async() ? new ConcurrentHashMap<>(128, 0.5f) : new HashMap<>(128, 0.5f)) : Map.of();
     }
 
     protected boolean checkDuplicated() {

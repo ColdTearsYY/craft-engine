@@ -77,7 +77,7 @@ public final class LiquidCollisionBlockItemBehavior extends BlockItemBehavior {
         private static final String[] Y_OFFSET = new String[]{"y_offset", "y-offset"};
 
         @Override
-        public LiquidCollisionBlockItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+        public LiquidCollisionBlockItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
             int offset = section.getInt(Y_OFFSET, 1);
             ConfigValue blockValue = section.getNonNullValue("block", ConfigConstants.ARGUMENT_SECTION);
             if (blockValue.is(Map.class)) {

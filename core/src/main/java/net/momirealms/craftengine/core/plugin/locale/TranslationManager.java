@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.locale;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.translation.Translator;
 import net.momirealms.craftengine.core.plugin.Manageable;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
@@ -53,11 +54,11 @@ public interface TranslationManager extends Manageable {
 
     String miniMessageTranslation(String key, @Nullable Locale locale);
 
-    default Component render(Component component) {
+    default Component render(TranslatableComponent component) {
         return render(component, null);
     }
 
-    Component render(Component component, @Nullable Locale locale);
+    Component render(TranslatableComponent component, @Nullable Locale locale);
 
     static @Nullable Locale parseLocale(@Nullable String locale) {
         return locale == null || locale.isEmpty() ? null : Translator.parseLocale(locale);

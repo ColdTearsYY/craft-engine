@@ -37,4 +37,8 @@ public interface ConfigParser {
     default boolean silentIfNotExists() {
         return true;
     }
+
+    default boolean async() {
+        return false;
+    }
 }

@@ -212,7 +212,7 @@ public record ConfigValue(String path, @NotNull Object value) {
     }
 
     public Key getAsIdentifier() {
-        String stringFormat = this.value.toString();
+        String stringFormat = this.value.toString().toLowerCase(Locale.ROOT);
         if (Identifier.isValid(stringFormat)) {
             return Key.of(stringFormat);
         } else {
@@ -221,7 +221,7 @@ public record ConfigValue(String path, @NotNull Object value) {
     }
 
     public Key getAsAssetPath() {
-        String stringFormat = CharacterUtils.replaceBackslashWithSlash(this.value.toString());
+        String stringFormat = CharacterUtils.replaceBackslashWithSlash(this.value.toString().toLowerCase(Locale.ROOT));
         if (Identifier.isValid(stringFormat)) {
             return Key.of(stringFormat);
         } else {
@@ -267,18 +267,6 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
-    public void forEach(Consumer<ConfigValue> consumer) {
-        if (this.is(List.class)) {
-            List<Object> asList = getAsList();
-            for (int i = 0; i < asList.size(); i++) {
-                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
-                consumer.accept(innerValue);
-            }
-        } else {
-            consumer.accept(this);
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public List<Object> getAsNonEmptyList() {
         if (this.value instanceof List<?> list) {
@@ -288,6 +276,35 @@ public record ConfigValue(String path, @NotNull Object value) {
             return (List<Object>) list;
         } else {
             return List.of(this.value);
+        }
+    }
+
+    public <T> List<T> getAsNonEmptyList(Function<ConfigValue, T> convertor) {
+        if (this.value instanceof List<?> list) {
+            List<Object> asList = getAsList();
+            if (list.isEmpty()) {
+                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, this.path);
+            }
+            List<T> converted = new ArrayList<>(asList.size());
+            for (int i = 0; i < asList.size(); i++) {
+                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+                converted.add(convertor.apply(innerValue));
+            }
+            return converted;
+        } else {
+            return List.of(convertor.apply(this));
+        }
+    }
+
+    public void forEach(Consumer<ConfigValue> consumer) {
+        if (this.is(List.class)) {
+            List<Object> asList = getAsList();
+            for (int i = 0; i < asList.size(); i++) {
+                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+                consumer.accept(innerValue);
+            }
+        } else {
+            consumer.accept(this);
         }
     }
 

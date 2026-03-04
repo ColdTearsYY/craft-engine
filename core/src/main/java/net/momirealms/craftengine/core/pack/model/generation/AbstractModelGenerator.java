@@ -5,12 +5,12 @@ import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.util.Key;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractModelGenerator implements ModelGenerator {
     protected final CraftEngine plugin;
-    protected final Map<Key, ModelGeneration> modelsToGenerate = new HashMap<>();
+    protected final Map<Key, ModelGeneration> modelsToGenerate = new ConcurrentHashMap<>();
 
     public AbstractModelGenerator(CraftEngine plugin) {
         this.plugin = plugin;
@@ -27,10 +27,11 @@ public abstract class AbstractModelGenerator implements ModelGenerator {
     }
 
     public void prepareModelGeneration(ModelGeneration model) {
-        ModelGeneration conflict = this.modelsToGenerate.get(model.path());
-        if (conflict != null && !conflict.equals(model)) {
-            throw new KnownResourceException("resource.model.generation_conflict", model.path().asString());
-        }
-        this.modelsToGenerate.put(model.path(), model);
+        this.modelsToGenerate.compute(model.path(), (k, conflict) -> {
+            if (conflict != null && !conflict.equals(model)) {
+                throw new KnownResourceException("resource.model.generation_conflict", model.path().asString());
+            }
+            return model;
+        });
     }
 }

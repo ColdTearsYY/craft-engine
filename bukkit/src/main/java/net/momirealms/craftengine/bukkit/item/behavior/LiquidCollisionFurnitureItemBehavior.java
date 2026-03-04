@@ -92,7 +92,7 @@ public final class LiquidCollisionFurnitureItemBehavior extends FurnitureItemBeh
 
         @SuppressWarnings("DuplicatedCode")
         @Override
-        public LiquidCollisionFurnitureItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+        public LiquidCollisionFurnitureItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
             ConfigValue furnitureValue = section.getNonNullValue("furniture", ConfigConstants.ARGUMENT_SECTION);
             ConfigSection rulesSection = section.getValue("rules", ConfigValue::getAsSection);
 

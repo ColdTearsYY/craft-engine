@@ -130,7 +130,7 @@ public final class RangeMiningItemBehavior extends ItemBehavior {
 
     private static class Factory implements ItemBehaviorFactory<RangeMiningItemBehavior> {
         @Override
-        public RangeMiningItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+        public RangeMiningItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
             return new RangeMiningItemBehavior(section.getList("range", ConfigValue::getAsVector3i));
         }
     }

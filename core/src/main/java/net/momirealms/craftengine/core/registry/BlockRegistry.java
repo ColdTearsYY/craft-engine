@@ -6,10 +6,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
-public class DynamicBoundRegistry<T> extends AbstractMappedRegistry<T> {
+public final class BlockRegistry<T> extends AbstractMappedRegistry<T> {
 
-    public DynamicBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
-        super(key, expectedSize);
+    public BlockRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
+        super(key, expectedSize, true);
     }
 
     @Override

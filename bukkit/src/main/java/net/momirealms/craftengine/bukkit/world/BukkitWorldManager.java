@@ -57,6 +57,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -74,22 +75,20 @@ public final class BukkitWorldManager implements WorldManager, Listener {
     private UUID lastWorldUUID = null;
     private CEWorld lastWorld = null;
     // parsers
-    private final ConfigParser configuredFeatureParser;
-    private final ConfigParser placedFeatureParser;
+    private final ConfigParser configuredFeatureParser = new ConfiguredFeatureParser();
+    private final ConfigParser placedFeatureParser = new PlacedFeatureParser();
     // features
-    private final Map<Key, Object> configuredFeatures;
-    private List<ConditionalFeature> placedFeatures;
+    private final Map<Key, Object> configuredFeatures  = new ConcurrentHashMap<>();
+    private List<ConditionalFeature> placedFeatures = List.of();
     public long lastReloadFeatureTime;
 
     public BukkitWorldManager(BukkitCraftEngine plugin) {
-        if (instance != null) { throw new IllegalStateException(); }
+        if (instance != null) {
+            throw new IllegalStateException();
+        }
         this.plugin = plugin;
         this.worlds = ConcurrentUUID2ReferenceChainedHashTable.createWithCapacity(10, 0.5f);
         this.storageAdaptor = new DefaultStorageAdaptor();
-        this.configuredFeatureParser = new ConfiguredFeatureParser();
-        this.placedFeatureParser = new PlacedFeatureParser();
-        this.configuredFeatures = new HashMap<>();
-        this.placedFeatures = List.of();
         instance = this;
     }
 
@@ -672,6 +671,11 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         }
 
         @Override
+        public boolean async() {
+            return true;
+        }
+
+        @Override
         public LoadingStage loadingStage() {
             return LoadingStages.CONFIGURED_FEATURE;
         }
@@ -696,17 +700,24 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"placed-feature", "placed-features", "placed_feature", "placed_features"};
         private final AtomicInteger id = new AtomicInteger();
         private List<ConditionalFeature> tempFeatures = null;
+        private List<ConditionalFeature> backendFeatures = null;
 
         @Override
         public void preProcess() {
-            this.tempFeatures = new ArrayList<>();
+            this.backendFeatures = new ArrayList<>();
+            this.tempFeatures = Collections.synchronizedList(this.backendFeatures);
             this.id.set(0);
         }
 
         @Override
         public void postProcess() {
-            BukkitWorldManager.this.placedFeatures = this.tempFeatures;
+            BukkitWorldManager.this.placedFeatures = this.backendFeatures;
             BukkitWorldManager.this.lastReloadFeatureTime = System.currentTimeMillis();
+        }
+
+        @Override
+        public boolean async() {
+            return true;
         }
 
         @Override

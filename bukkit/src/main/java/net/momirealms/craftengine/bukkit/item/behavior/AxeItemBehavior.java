@@ -117,7 +117,7 @@ public final class AxeItemBehavior extends ItemBehavior {
 
     private static class Factory implements ItemBehaviorFactory<AxeItemBehavior> {
         @Override
-        public AxeItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+        public AxeItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
             return INSTANCE;
         }
     }

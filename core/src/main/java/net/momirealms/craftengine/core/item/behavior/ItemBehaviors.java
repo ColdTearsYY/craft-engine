@@ -23,13 +23,13 @@ public abstract class ItemBehaviors {
         return type;
     }
 
-    public static ItemBehavior fromConfig(Pack pack, Path path, String node, Key id, ConfigSection section) {
+    public static ItemBehavior fromConfig(Pack pack, Path path, Key id, ConfigSection section) {
         String type = section.getNonEmptyString("type");
         Key key = Key.ce(type);
         ItemBehaviorType<? extends ItemBehavior> behaviorType = BuiltInRegistries.ITEM_BEHAVIOR_TYPE.getValue(key);
         if (behaviorType == null) {
             throw new KnownResourceException("resource.item.behavior.unknown_type", section.assemblePath("type"), key.asString());
         }
-        return behaviorType.factory().create(pack, path, node, id, section);
+        return behaviorType.factory().create(pack, path, id, section);
     }
 }

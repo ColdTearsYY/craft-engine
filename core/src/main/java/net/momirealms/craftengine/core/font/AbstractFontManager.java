@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,13 +36,13 @@ import java.util.stream.Collectors;
 public abstract class AbstractFontManager implements FontManager {
     private final CraftEngine plugin;
     // namespace:font font
-    private final Map<Key, Font> fonts = new HashMap<>();
+    private final Map<Key, Font> fonts = new ConcurrentHashMap<>();
     // namespace:id emoji
-    private final Map<Key, Emoji> emojis = new HashMap<>();
+    private final Map<Key, Emoji> emojis = new ConcurrentHashMap<>();
     // namespace:id image
-    private final Map<Key, BitmapImage> bitmapImages = new HashMap<>();
-    private final Map<Key, Image> images = new HashMap<>();
-    private final Map<String, Image> imagesByValue = new HashMap<>();
+    private final Map<Key, BitmapImage> bitmapImages = new ConcurrentHashMap<>();
+    private final Map<Key, Image> images = new ConcurrentHashMap<>();
+    private final Map<String, Image> imagesByValue = new ConcurrentHashMap<>();
     private final Set<Integer> illegalChars = new HashSet<>();
     private final ConfigParser imageParser;
     private final ConfigParser emojiParser;
@@ -52,7 +53,7 @@ public abstract class AbstractFontManager implements FontManager {
     protected List<Emoji> emojiList;
     protected List<String> allEmojiSuggestions;
     // Cached command suggestions
-    protected final List<Suggestion> cachedImagesSuggestions = new ArrayList<>();
+    protected final List<Suggestion> cachedImagesSuggestions = Collections.synchronizedList(new ArrayList<>());
 
     public AbstractFontManager(CraftEngine plugin) {
         this.plugin = plugin;
@@ -305,7 +306,7 @@ public abstract class AbstractFontManager implements FontManager {
         return Collections.unmodifiableCollection(this.cachedImagesSuggestions);
     }
 
-    private Font getOrCreateFont(Key key) {
+    private synchronized Font getOrCreateFont(Key key) {
         return this.fonts.computeIfAbsent(key, Font::new);
     }
 
@@ -335,6 +336,11 @@ public abstract class AbstractFontManager implements FontManager {
         private static final String[] CONTENT = new String[] {"content", "format"};
 
         @Override
+        public boolean async() {
+            return true;
+        }
+
+        @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             String permission = section.getString("permission");
             List<String> keywords = section.getNonNullStringList("keywords");
@@ -347,32 +353,28 @@ public abstract class AbstractFontManager implements FontManager {
             }
             String image = null;
             // 其实 emoji 里的 image 并非刚需
-            if (section.containsKey("image")) {
-                String rawImage = section.getNonNullString("image");
-                String[] split = rawImage.split(":", 4);
+            ConfigValue imageValue = section.getValue("image");
+            if (imageValue != null) {
+                ConfigValue[] split = imageValue.splitValues(":", 4);
                 if (split.length == 2) {
-                    Key imageId = new Key(split[0], split[1]);
+                    Key imageId = new Key(split[0].getAsString(), split[1].getAsString());
                     Optional<Image> bitmapImage = imageById(imageId);
                     if (bitmapImage.isPresent() && bitmapImage.get() != DummyImage.INSTANCE) {
                         image = bitmapImage.get().miniMessageAt(0, 0);
                     } else {
-                        throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), rawImage);
+                        throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
                     }
                 } else if (split.length == 4) {
-                    Key imageId = new Key(split[0], split[1]);
+                    Key imageId = new Key(split[0].getAsString(), split[1].getAsString());
                     Optional<Image> bitmapImage = imageById(imageId);
                     if (bitmapImage.isPresent() && bitmapImage.get() != DummyImage.INSTANCE) {
-                        try {
-                            image = bitmapImage.get().miniMessageAt(Integer.parseInt(split[2]), Integer.parseInt(split[3]));
-                        } catch (ArrayIndexOutOfBoundsException | NumberFormatException ignored) {
-                            throw new KnownResourceException("resource.emoji.invalid_image_format", section.assemblePath("image"), rawImage);
-                        }
+                        image = bitmapImage.get().miniMessageAt(split[2].getAsInt(), split[3].getAsInt());
                     } else {
-                        throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), rawImage);
+                        throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
                     }
                 }
                 if (image == null) {
-                    throw new KnownResourceException("resource.emoji.invalid_image_format", section.assemblePath("image"), rawImage);
+                    throw new KnownResourceException("resource.emoji.invalid_image_format", section.assemblePath("image"), imageValue.getAsString());
                 }
             }
             Emoji emoji = new Emoji(content, permission, image, keywords);
@@ -382,7 +384,7 @@ public abstract class AbstractFontManager implements FontManager {
 
     private final class ImageParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"images", "image"};
-        private final Map<Key, IdAllocator> idAllocators = new HashMap<>();
+        private final Map<Key, IdAllocator> idAllocators = new ConcurrentHashMap<>();
 
         @Override
         public String[] sectionId() {
@@ -407,7 +409,9 @@ public abstract class AbstractFontManager implements FontManager {
         @Override
         public void postProcess() {
             for (Map.Entry<Key, IdAllocator> entry : this.idAllocators.entrySet()) {
-                entry.getValue().processPendingAllocations();
+                IdAllocator allocator = entry.getValue();
+                allocator.processPendingAllocations();
+                allocator.combinedFuture().join();
                 try {
                     entry.getValue().saveToCache();
                 } catch (IOException e) {
@@ -491,6 +495,7 @@ public abstract class AbstractFontManager implements FontManager {
                         return DummyImage.INSTANCE;
                     }), row, col);
                 }
+
                 AbstractFontManager.this.images.put(id, referenceImage);
                 AbstractFontManager.this.imagesByValue.put(id.value(), referenceImage);
                 AbstractFontManager.this.cachedImagesSuggestions.add(Suggestion.suggestion(id.asString()));
@@ -508,7 +513,6 @@ public abstract class AbstractFontManager implements FontManager {
             }
 
             Key fontId = Key.withDefaultNamespace(fontName, id.namespace());
-            Font font = getOrCreateFont(fontId);
             IdAllocator allocator = getOrCreateIdAllocator(fontId);
 
             int rows;
@@ -601,7 +605,7 @@ public abstract class AbstractFontManager implements FontManager {
                 }
             }
 
-            CompletableFutures.allOf(futureCodepoints).whenComplete((v, t) -> {
+            CompletableFutures.allOf(futureCodepoints).whenCompleteAsync((v, t) -> {
                 ResourceConfigUtils.runCatching(path, section.path(), () -> {
                     if (t != null) {
                         if (t instanceof CompletionException e) {
@@ -659,6 +663,7 @@ public abstract class AbstractFontManager implements FontManager {
                     }
 
                     BitmapImage bitmapImage = new BitmapImage(id, fontId, height, ascent, identifier, codepointGrid);
+                    Font font = getOrCreateFont(fontId);
                     for (int[] y : codepointGrid) {
                         for (int x : y) {
                             font.addBitmapImage(x, bitmapImage);
@@ -671,7 +676,7 @@ public abstract class AbstractFontManager implements FontManager {
                     AbstractFontManager.this.cachedImagesSuggestions.add(Suggestion.suggestion(id.asString()));
 
                 }, super.errorHandler);
-            });
+            }, AbstractFontManager.this.plugin.scheduler().async());
         }
     }
 }

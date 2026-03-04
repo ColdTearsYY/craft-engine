@@ -13,9 +13,13 @@ import java.util.List;
 
 public final class CustomStoneCuttingRecipe<T> extends AbstractGroupedRecipe<T> {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
-    protected final Ingredient<T> ingredient;
+    private final Ingredient<T> ingredient;
 
-    public CustomStoneCuttingRecipe(Key id, boolean showNotification, CustomRecipeResult<T> result, String group, Ingredient<T> ingredient) {
+    public CustomStoneCuttingRecipe(Key id,
+                                    boolean showNotification,
+                                    CustomRecipeResult<T> result,
+                                    String group,
+                                    Ingredient<T> ingredient) {
         super(id, showNotification, result, group);
         this.ingredient = ingredient;
     }

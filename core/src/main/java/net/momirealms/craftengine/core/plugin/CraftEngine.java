@@ -2,7 +2,9 @@ package net.momirealms.craftengine.core.plugin;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.advancement.AdvancementManager;
-import net.momirealms.craftengine.core.block.*;
+import net.momirealms.craftengine.core.block.AbstractBlockManager;
+import net.momirealms.craftengine.core.block.BlockManager;
+import net.momirealms.craftengine.core.block.BlockSettingsModifiers;
 import net.momirealms.craftengine.core.entity.culling.EntityCullingManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifiers;
@@ -240,7 +242,7 @@ public abstract class CraftEngine implements Plugin {
                         this.packManager.loadResources(p -> p.loadingStage() != LoadingStages.RECIPE);
                     }
                     this.packManager.clearResourceConfigs();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     this.logger().warn("Failed to load resources folder", e);
                 }
                 // 执行延迟任务

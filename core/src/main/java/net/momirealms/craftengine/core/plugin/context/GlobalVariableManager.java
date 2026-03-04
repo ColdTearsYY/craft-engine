@@ -65,10 +65,7 @@ public final class GlobalVariableManager implements Manageable {
 
         @Override
         public void parseValue(Pack pack, Path filePath, Key id, ConfigValue value) throws LocalizedException {
-            Object object = value.value();
-            if (object != null) {
-                GlobalVariableManager.this.globalVariables.put(id.value(), object.toString());
-            }
+            GlobalVariableManager.this.globalVariables.put(id.value(), value.getAsString());
         }
 
         @Override

@@ -57,7 +57,7 @@ public final class DebugAutoStateUsageCommand extends BukkitCommandFeature<Comma
                     if (candidates.isEmpty()) return;
                     int i = 0;
                     plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text(stateGroup.id() + ": "));
-                    VisualBlockStateAllocator allocator = blockManager.blockParser().visualBlockStateAllocator();
+                    VisualBlockStateAllocator allocator = blockManager.visualBlockStateAllocator();
                     Map<String, BlockStateWrapper> cachedStates = allocator.cachedBlockStates();
                     Map<BlockStateWrapper, String> reversed = new HashMap<>(cachedStates.size());
                     for (Map.Entry<String, BlockStateWrapper> entry : cachedStates.entrySet()) {

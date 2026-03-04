@@ -12,12 +12,7 @@ import org.bukkit.Vibration;
 import org.bukkit.World;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public final class ParticleUtils {
-    private static final Map<Key, Particle> CACHE = new HashMap<>();
-
     private ParticleUtils() {}
 
     public static Particle getParticle(String particle) {
@@ -35,11 +30,9 @@ public final class ParticleUtils {
 
     @Nullable
     public static Particle getParticle(Key particle) {
-        return CACHE.computeIfAbsent(particle, k -> {
-            Object nmsParticle = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.PARTICLE_TYPE, KeyUtils.toIdentifier(particle));
-            if (nmsParticle == null) return null;
-            return CraftParticleProxy.INSTANCE.minecraftToBukkit(nmsParticle);
-        });
+        Object nmsParticle = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.PARTICLE_TYPE, KeyUtils.toIdentifier(particle));
+        if (nmsParticle == null) return null;
+        return CraftParticleProxy.INSTANCE.minecraftToBukkit(nmsParticle);
     }
 
     public static final Particle HAPPY_VILLAGER = getParticle("HAPPY_VILLAGER");

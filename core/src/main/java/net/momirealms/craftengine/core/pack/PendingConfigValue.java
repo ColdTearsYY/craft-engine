@@ -1,21 +1,21 @@
 package net.momirealms.craftengine.core.pack;
 
-import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
 import java.nio.file.Path;
 
-public final class PendingConfigSection {
+public final class PendingConfigValue {
     public final Pack pack;
     public final Path path;
     public final Key id;
-    public final ConfigSection section;
+    public final ConfigValue value;
 
-    public PendingConfigSection(Pack pack, Path path, Key id, ConfigSection section) {
+    public PendingConfigValue(Pack pack, Path path, Key id, ConfigValue value) {
         this.pack = pack;
         this.path = path;
         this.id = id;
-        this.section = section;
+        this.value = value;
     }
 
     public Pack pack() {
@@ -30,7 +30,7 @@ public final class PendingConfigSection {
         return id;
     }
 
-    public ConfigSection section() {
-        return section;
+    public ConfigValue value() {
+        return value;
     }
 }

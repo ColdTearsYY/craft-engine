@@ -55,10 +55,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class BukkitBlockManager extends AbstractBlockManager {
     public static final Set<Object> CLIENT_SIDE_NOTE_BLOCKS = new HashSet<>(2048, 0.6f);
-    private static final Object BLOCK_POS$ZERO = LocationUtils.toBlockPos(0,0,0);
     private static final Object ALWAYS_FALSE = FastNMS.INSTANCE.createAlwaysStatePredicate(false);
     private static final Object ALWAYS_TRUE = FastNMS.INSTANCE.createAlwaysStatePredicate(true);
     private static BukkitBlockManager instance;
@@ -66,9 +66,9 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     // 事件监听器
     private final BlockEventListener blockEventListener;
     // 用于缓存string形式的方块状态到原版方块状态
-    private final Map<String, BlockStateWrapper> blockStateCache = new HashMap<>(1024);
+    private final Map<String, BlockStateWrapper> blockStateCache = new ConcurrentHashMap<>(1024);
     // 用于临时存储可燃烧自定义方块的列表
-    private final List<DelegatingBlock> burnableBlocks = new ArrayList<>();
+    private final List<DelegatingBlock> burnableBlocks = Collections.synchronizedList(new ArrayList<>(32));
     // 可燃烧的方块
     private Map<Object, Integer> igniteOdds;
     private Map<Object, Integer> burnOdds;
@@ -91,7 +91,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
         this.plugin = plugin;
         this.blockEventListener = new BlockEventListener(plugin, this);
         this.registerServerSideCustomBlocks(Config.serverSideBlocks());
-        EmptyBlock.initialize();
+        EmptyBlock.init();
         instance = this;
     }
 
@@ -237,8 +237,8 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     }
 
     private void initFireBlock() {
-        this.igniteOdds = FireBlockProxy.INSTANCE.getIgniteOdds(BlocksProxy.FIRE);
-        this.burnOdds = FireBlockProxy.INSTANCE.getBurnOdds(BlocksProxy.FIRE);
+        this.igniteOdds = Collections.synchronizedMap(FireBlockProxy.INSTANCE.getIgniteOdds(BlocksProxy.FIRE));
+        this.burnOdds = Collections.synchronizedMap(FireBlockProxy.INSTANCE.getBurnOdds(BlocksProxy.FIRE));
     }
 
     @Override
@@ -402,7 +402,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
         if (!BlockStateUtils.isOcclude(blockState)) {
             return false;
         }
-        return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isCollisionShapeFullBlock(blockState, EmptyBlockGetterProxy.GETTER_INSTANCE, BLOCK_POS$ZERO);
+        return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isCollisionShapeFullBlock(blockState, EmptyBlockGetterProxy.GETTER_INSTANCE, BlockPosProxy.ZERO);
     }
 
     private void findViewBlockingVanillaBlocks() {

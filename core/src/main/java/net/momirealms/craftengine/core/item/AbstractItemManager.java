@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -49,14 +50,14 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
 
     private final ItemParser itemParser;
     private final EquipmentParser equipmentParser;
-    protected final Map<Key, CustomItem<I>> customItemsById = new LinkedHashMap<>();
+    protected final Map<Key, CustomItem<I>> customItemsById = new HashMap<>();
     protected final Map<String, CustomItem<I>> customItemsByPath = new HashMap<>();
     protected final Map<Key, List<UniqueKey>> customItemTags = new HashMap<>();
-    protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new HashMap<>();
-    protected final Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2 = new HashMap<>();
-    protected final Map<Key, TreeSet<LegacyOverridesModel>> legacyOverrides = new HashMap<>();
-    protected final Map<Key, TreeMap<Integer, ModernItemModel>> modernOverrides = new HashMap<>();
-    protected final Map<Key, Equipment> equipments = new HashMap<>();
+    protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new ConcurrentHashMap<>();
+    protected final Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2 = new ConcurrentHashMap<>();
+    protected final Map<Key, TreeSet<LegacyOverridesModel>> legacyOverrides = new ConcurrentHashMap<>();
+    protected final Map<Key, TreeMap<Integer, ModernItemModel>> modernOverrides = new ConcurrentHashMap<>();
+    protected final Map<Key, Equipment> equipments = new ConcurrentHashMap<>();
     // Cached command suggestions
     protected final List<Suggestion> cachedCustomItemSuggestions = new ArrayList<>();
     protected final List<Suggestion> cachedAllItemSuggestions = new ArrayList<>();
@@ -73,14 +74,6 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         this.itemParser = new ItemParser();
         this.equipmentParser = new EquipmentParser();
         ItemProcessors.init();
-    }
-
-    public ItemParser itemParser() {
-        return itemParser;
-    }
-
-    public EquipmentParser equipmentParser() {
-        return equipmentParser;
     }
 
     protected static void registerVanillaItemExtraBehavior(ItemBehavior behavior, Key... items) {
@@ -330,6 +323,11 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         }
 
         @Override
+        public boolean async() {
+            return true;
+        }
+
+        @Override
         public LoadingStage loadingStage() {
             return LoadingStages.EQUIPMENT;
         }
@@ -356,9 +354,11 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         }
     }
 
-    public class ItemParser extends IdSectionConfigParser {
+    private final class ItemParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"items", "item"};
         private final Map<Key, IdAllocator> idAllocators = new HashMap<>();
+        private final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
+        private final List<CustomItem<I>> customItems = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         public int count() {
@@ -382,6 +382,11 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         }
 
         @Override
+        public boolean async() {
+            return true;
+        }
+
+        @Override
         public LoadingStage loadingStage() {
             return LoadingStages.ITEM;
         }
@@ -391,10 +396,6 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
             return List.of(LoadingStages.EQUIPMENT);
         }
 
-        public Map<Key, IdAllocator> idAllocators() {
-            return this.idAllocators;
-        }
-
         @Override
         public String[] sectionId() {
             return CONFIG_SECTION_NAME;
@@ -402,25 +403,40 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
 
         @Override
         public void preProcess() {
-            this.idAllocators.clear();
+            if (!this.idAllocators.isEmpty()) {
+                this.idAllocators.clear();
+            }
+            if (!this.futures.isEmpty()) {
+                this.futures.clear();
+            }
+            if (!this.customItems.isEmpty()) {
+                this.customItems.clear();
+            }
         }
 
         @Override
         public void postProcess() {
             for (Map.Entry<Key, IdAllocator> entry : this.idAllocators.entrySet()) {
-                entry.getValue().processPendingAllocations();
+                IdAllocator idAllocator = entry.getValue();
+                idAllocator.processPendingAllocations();
                 try {
-                    entry.getValue().saveToCache();
+                    idAllocator.saveToCache();
                 } catch (IOException e) {
                     AbstractItemManager.this.plugin.logger().warn("Error while saving custom model data allocation for material " + entry.getKey().asString(), e);
                 }
             }
+            CompletableFutures.allOf(this.futures).join();
+            for (CustomItem<I> customItem : this.customItems) {
+                addCustomItem(customItem);
+            }
+            this.futures.clear();
+            this.customItems.clear();
         }
 
         // 创建或获取已有的自动分配器
-        private IdAllocator getOrCreateIdAllocator(Key key) {
+        private synchronized IdAllocator getOrCreateIdAllocator(Key key) {
             return this.idAllocators.computeIfAbsent(key, k -> {
-                IdAllocator newAllocator = new IdAllocator(plugin.dataFolderPath().resolve("cache").resolve("custom-model-data").resolve(k.value() + ".json"));
+                IdAllocator newAllocator = new IdAllocator(AbstractItemManager.this.plugin.dataFolderPath().resolve("cache").resolve("custom-model-data").resolve(k.value() + ".json"));
                 newAllocator.reset(Config.customModelDataStartingValue(k), 16_777_216);
                 try {
                     newAllocator.loadFromCache();
@@ -442,6 +458,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         private static final String[] EVENTS = new String[] {"events", "event"};
         private static final String[] BEHAVIORS = new String[] {"behaviors", "behavior"};
         private static final String[] LEGACY_MODEL = new String[] {"legacy_model", "legacy-model"};
+        private static final String[] OVERSIZED_IN_GUI = new String[] {"oversized_in_gui", "oversized-in-gui"};
+        private static final String[] HAND_ANIMATION_ON_SWAP = new String[] {"hand_animation_on_swap", "hand-animation-on-swap"};
+        private static final String[] SWAP_ANIMATION_SCALE = new String[] {"swap_animation_scale", "swap-animation-scale"};
 
         @Override
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
@@ -470,7 +489,11 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                             throw new KnownResourceException("number.no_greater_than", customModelDataValue.path(), "custom_model_data", "16777216");
                         }
                         forceCustomModelData = true;
-                        customModelDataFuture = getOrCreateIdAllocator(clientBoundMaterial).assignFixedId(id.asString(), customModelData);
+                        if (section.containsKey(MODEL_KEYS)) {
+                            customModelDataFuture = getOrCreateIdAllocator(clientBoundMaterial).assignFixedId(id.asString(), customModelData);
+                        } else {
+                            customModelDataFuture = CompletableFuture.completedFuture(customModelData);
+                        }
                     } else {
                         // 视为未分配
                         forceCustomModelData = false;
@@ -496,7 +519,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
             }
 
             // 当模型值完成分配的时候
-            customModelDataFuture.whenComplete((cmd, throwable) -> ResourceConfigUtils.runCatching(path, section.path(), () -> {
+            this.futures.add(customModelDataFuture.whenCompleteAsync((cmd, throwable) -> ResourceConfigUtils.runCatching(path, section.path(), () -> {
                 int customModelData;
                 if (throwable != null) {
                     // 检测custom model data 冲突
@@ -509,8 +532,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                     // custom model data 已被用尽，不太可能
                     else if (throwable instanceof IdAllocator.IdExhaustedException) {
                         throw new KnownResourceException("resource.item.custom_model_data_exhausted", section.path(), clientBoundMaterial.asString());
-                    }
-                    else {
+                    } else {
                         // 未知错误
                         ThrowableUtils.sneakyThrow(throwable);
                         customModelData = cmd;
@@ -539,7 +561,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 }
 
                 // 是否使用客户端侧模型
-                boolean clientBoundModel = VersionHelper.PREMIUM && section.getBoolean(CLIENT_BOUND_MODEL,Config.globalClientboundModel());
+                boolean clientBoundModel = VersionHelper.PREMIUM && section.getBoolean(CLIENT_BOUND_MODEL, Config.globalClientboundModel());
 
                 CustomItem.Builder<I> itemBuilder = createPlatformItemBuilder(uniqueId, material, clientBoundMaterial);
 
@@ -603,11 +625,14 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 }
 
                 if (customModelData > 0 && (hasModelSection || forceCustomModelData)) {
-                    if (clientBoundModel) itemBuilder.clientBoundDataModifier(new OverwritableCustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
-                    else itemBuilder.dataModifier(new CustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
+                    if (clientBoundModel)
+                        itemBuilder.clientBoundDataModifier(new OverwritableCustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
+                    else
+                        itemBuilder.dataModifier(new CustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
                 }
                 if (itemModel != null && (hasModelSection || forceItemModel)) {
-                    if (clientBoundModel) itemBuilder.clientBoundDataModifier(new OverwritableItemModelProcessor(itemModel));
+                    if (clientBoundModel)
+                        itemBuilder.clientBoundDataModifier(new OverwritableItemModelProcessor(itemModel));
                     else itemBuilder.dataModifier(new ItemModelProcessor(itemModel));
                 }
 
@@ -651,7 +676,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 // todo 重构
                 List<ItemBehavior> behaviors;
                 try {
-                    behaviors = section.getList(BEHAVIORS, v -> ItemBehaviors.fromConfig(pack, path, section.path(), id, v.getAsSection()));
+                    behaviors = section.getList(BEHAVIORS, v -> ItemBehaviors.fromConfig(pack, path, id, v.getAsSection()));
                 } catch (KnownResourceException e) {
                     error(e, path);
                     behaviors = Collections.emptyList();
@@ -687,7 +712,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         .build();
 
                 // 添加到缓存
-                addCustomItem(customItem);
+                this.customItems.add(customItem);
 
                 // 如果有类别，则添加
                 if (section.containsKey("category")) {
@@ -712,9 +737,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 }
 
                 // 新版格式
-                ItemModel modernModel = null;
+                ItemModel modernModel;
                 // 旧版格式
-                TreeSet<LegacyOverridesModel> legacyOverridesModels = null;
+                TreeSet<LegacyOverridesModel> legacyOverridesModels;
                 // 如果需要支持新版item model 或者用户需要旧版本兼容，但是没配置legacy-model
                 if (isModernFormatRequired() || (needsLegacyCompatibility() && legacyModelSection == null)) {
                     // 1.21.4+必须要配置model区域，如果不需要高版本兼容，则可以只写legacy-model
@@ -725,6 +750,8 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                     for (ModelGeneration generation : modernModel.modelsToGenerate()) {
                         prepareModelGeneration(generation);
                     }
+                } else {
+                    modernModel = null;
                 }
                 // 如果需要旧版本兼容
                 if (needsLegacyCompatibility()) {
@@ -741,6 +768,8 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                             throw new KnownResourceException("resource.item.model_definition.downgrade_failure", section.path());
                         }
                     }
+                } else {
+                    legacyOverridesModels = null;
                 }
 
                 boolean hasLegacyModel = legacyOverridesModels != null && !legacyOverridesModels.isEmpty();
@@ -756,18 +785,30 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         Key finalBaseModel = isVanillaItemModel ? itemModel : clientBoundMaterial;
                         // 添加新版item model
                         if (isModernFormatRequired() && hasModernModel) {
-                            TreeMap<Integer, ModernItemModel> map = AbstractItemManager.this.modernOverrides.computeIfAbsent(finalBaseModel, k -> new TreeMap<>());
-                            map.put(customModelData, new ModernItemModel(
-                                    modernModel,
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("oversized-in-gui", true), "oversized-in-gui"),
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("hand-animation-on-swap", true), "hand-animation-on-swap"),
-                                    ResourceConfigUtils.getAsFloat(section.getOrDefault("swap-animation-scale", 1f), "swap-animation-scale")
-                            ));
+                            AbstractItemManager.this.modernOverrides.compute(finalBaseModel, (k, v) -> {
+                                TreeMap<Integer, ModernItemModel> map = v;
+                                if (map == null) {
+                                    map = new TreeMap<>();
+                                }
+                                map.put(customModelData, new ModernItemModel(
+                                        modernModel,
+                                        section.getBoolean(OVERSIZED_IN_GUI, true),
+                                        section.getBoolean(HAND_ANIMATION_ON_SWAP, true),
+                                        section.getFloat(SWAP_ANIMATION_SCALE, 1f)
+                                ));
+                                return map;
+                            });
                         }
                         // 添加旧版 overrides
                         if (needsLegacyCompatibility() && hasLegacyModel) {
-                            TreeSet<LegacyOverridesModel> lom = AbstractItemManager.this.legacyOverrides.computeIfAbsent(finalBaseModel, k -> new TreeSet<>());
-                            lom.addAll(legacyOverridesModels);
+                            AbstractItemManager.this.legacyOverrides.compute(finalBaseModel, (k, v) -> {
+                                TreeSet<LegacyOverridesModel> set = v;
+                                if (set == null) {
+                                    set = new TreeSet<>();
+                                }
+                                set.addAll(legacyOverridesModels);
+                                return set;
+                            });
                         }
                     } else if (isVanillaItemModel) {
                         throw new KnownResourceException("resource.item.occupied_vanilla_item_model", section.assemblePath("item_model"), itemModel.asString());
@@ -784,8 +825,14 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                             ));
                         }
                         if (needsItemModelCompatibility() && needsLegacyCompatibility() && hasLegacyModel) {
-                            TreeSet<LegacyOverridesModel> lom = AbstractItemManager.this.modernItemModels1_21_2.computeIfAbsent(itemModel, k -> new TreeSet<>());
-                            lom.addAll(legacyOverridesModels);
+                            AbstractItemManager.this.modernItemModels1_21_2.compute(itemModel, (k, v) -> {
+                                TreeSet<LegacyOverridesModel> set = v;
+                                if (set == null) {
+                                    set = new TreeSet<>();
+                                }
+                                set.addAll(legacyOverridesModels);
+                                return set;
+                            });
                         }
                     }
                 } else {
@@ -799,7 +846,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         ));
                     }
                 }
-            }, super.errorHandler));
+            }, super.errorHandler), AbstractItemManager.this.plugin.scheduler().async()));
         }
     }
 

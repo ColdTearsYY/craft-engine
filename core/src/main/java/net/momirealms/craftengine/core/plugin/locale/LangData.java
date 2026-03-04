@@ -12,7 +12,7 @@ import java.util.function.Function;
 
 public class LangData {
     private static final Map<String, Function<String, List<String>>> LANG_KEY_PROCESSORS = new HashMap<>();
-    public Map<String, String> translations = new LinkedHashMap<>();
+    public Map<String, String> translations = new LinkedHashMap<>(64);
 
     static {
         LANG_KEY_PROCESSORS.put("block_name", (id) -> {
@@ -39,19 +39,21 @@ public class LangData {
         Map<String, String> temp = new LinkedHashMap<>(Math.max(10, this.translations.size()));
         for (Map.Entry<String, String> entry : this.translations.entrySet()) {
             String key = entry.getKey();
-            String[] split = key.split(":", 2);
-            if (split.length == 2) {
-                Optional.ofNullable(LANG_KEY_PROCESSORS.get(split[0]))
-                        .ifPresentOrElse(processor -> {
+            if (key.contains(":")) {
+                String[] split = key.split(":", 2);
+                if (split.length == 2) {
+                    Optional.ofNullable(LANG_KEY_PROCESSORS.get(split[0]))
+                            .ifPresentOrElse(processor -> {
                                     for (String result : processor.apply(split[1])) {
                                         temp.put(result, entry.getValue());
                                     }
                                 },
-                                () -> CraftEngine.instance().logger().warn("Unknown lang type: " + key)
-                        );
-            } else {
-                temp.put(key, entry.getValue());
+                                () -> temp.put(key, entry.getValue())
+                            );
+                    continue;
+                }
             }
+            temp.put(key, entry.getValue());
         }
         this.translations = temp;
     }
@@ -71,18 +73,7 @@ public class LangData {
 
     @Override
     public String toString() {
-        return "LangData{" + translations + "}";
-    }
-
-    public static void merge(Map<String, LangData> target, Map<String, LangData> source) {
-        source.forEach((key, value) -> {
-            LangData copy = new LangData();
-            copy.addTranslations(value.translations);
-            target.merge(key, copy, (existing, newData) -> {
-                existing.addTranslations(newData.translations);
-                return existing;
-            });
-        });
+        return "LangData{" + this.translations + "}";
     }
 
     private static String stateToRealBlockId(ImmutableBlockState state) {

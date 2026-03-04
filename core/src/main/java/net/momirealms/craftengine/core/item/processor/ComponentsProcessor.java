@@ -54,7 +54,7 @@ public final class ComponentsProcessor implements ItemProcessor {
                 }
                 item.setComponent(DataComponentKeys.CUSTOM_DATA, tag);
             } else {
-                item.setComponent(DataComponentKeys.CUSTOM_DATA, this.customData);
+                item.setComponent(DataComponentKeys.CUSTOM_DATA, this.customData.function.apply(context));
             }
         }
         return item;
@@ -62,7 +62,7 @@ public final class ComponentsProcessor implements ItemProcessor {
 
     @Override
     public <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
-        for (DynamicComponentProvider argument : arguments) {
+        for (DynamicComponentProvider argument : this.arguments) {
             String componentType = argument.type.asString();
             Tag previous = item.getSparrowNBTComponent(componentType);
             if (previous != null) {

@@ -23,6 +23,7 @@ import net.momirealms.craftengine.core.util.*;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("DuplicatedCode")
@@ -34,18 +35,19 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
     private static final Set<String> RIGHT_CLICK = Set.of("RIGHT", SHIFT_RIGHT);
     private static final Set<String> MIDDLE_CLICK = Set.of("MIDDLE");
     private static final Set<String> DOUBLE_CLICK = Set.of("DOUBLE_CLICK");
+    private static ItemBrowserManagerImpl instance;
     private final CraftEngine plugin;
-    private final Map<Key, Category> byId;
-    private final TreeSet<Category> categoryOnMainPage;
-    private final Map<Key, List<Key>> externalMembers;
-    private final ConfigParser categoryParser;
+    private final Map<Key, Category> byId = new ConcurrentHashMap<>(32);
+    private final TreeSet<Category> categoryOnMainPage = new TreeSet<>();
+    private final Map<Key, List<Key>> externalMembers = new HashMap<>();
+    private final ConfigParser categoryParser = new CategoryParser();
 
     public ItemBrowserManagerImpl(CraftEngine plugin) {
+        if (instance != null) {
+            throw new IllegalStateException();
+        }
+        instance = this;
         this.plugin = plugin;
-        this.byId = new HashMap<>();
-        this.externalMembers = new HashMap<>();
-        this.categoryOnMainPage = new TreeSet<>();
-        this.categoryParser = new CategoryParser();
     }
 
     @Override
@@ -79,7 +81,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
     }
 
     @Override
-    public void addExternalCategoryMember(Key item, List<Key> category) {
+    public synchronized void addExternalCategoryMember(Key item, List<Key> category) {
         List<Key> categories = this.externalMembers.computeIfAbsent(item, k -> new ArrayList<>());
         categories.addAll(category);
     }

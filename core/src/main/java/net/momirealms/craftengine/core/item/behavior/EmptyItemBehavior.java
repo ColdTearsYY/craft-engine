@@ -15,7 +15,7 @@ public final class EmptyItemBehavior extends ItemBehavior {
     private static class Factory implements ItemBehaviorFactory<EmptyItemBehavior> {
 
         @Override
-        public EmptyItemBehavior create(Pack pack, Path path, String node, Key id, ConfigSection section) {
+        public EmptyItemBehavior create(Pack pack, Path path, Key id, ConfigSection section) {
             return INSTANCE;
         }
     }

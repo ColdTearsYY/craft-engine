@@ -29,13 +29,14 @@ import org.joml.Vector3f;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractFurnitureManager implements FurnitureManager {
-    protected final Map<Key, CustomFurniture> byId = new HashMap<>();
-    private final CraftEngine plugin;
-    private final FurnitureParser furnitureParser;
+    protected final Map<Key, CustomFurniture> byId = new ConcurrentHashMap<>();
+    protected final CraftEngine plugin;
+    protected final IdSectionConfigParser furnitureParser;
     // Cached command suggestions
-    private final List<Suggestion> cachedSuggestions = new ArrayList<>();
+    protected final List<Suggestion> cachedSuggestions = new ArrayList<>();
 
     protected final Int2ObjectOpenHashMap<TickingFurniture> syncTickers = new Int2ObjectOpenHashMap<>(256, 0.5f);
     protected final Int2ObjectOpenHashMap<TickingFurniture> asyncTickers = new Int2ObjectOpenHashMap<>(256, 0.5f);
@@ -55,7 +56,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
     }
 
     @Override
-    public FurnitureParser parser() {
+    public IdSectionConfigParser parser() {
         return this.furnitureParser;
     }
 
@@ -170,29 +171,8 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
 
     protected abstract FurnitureHitBoxConfig<?> defaultHitBox();
 
-    public final class FurnitureParser extends IdSectionConfigParser {
+    private final class FurnitureParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] { "furniture" };
-        private final List<PendingConfigSection> pendingConfigSections = new ArrayList<>();
-
-        public void addPendingConfigSection(PendingConfigSection section) {
-            this.pendingConfigSections.add(section);
-        }
-
-        @SuppressWarnings("DuplicatedCode")
-        @Override
-        public void preProcess() {
-            if (!this.pendingConfigSections.isEmpty()) {
-                for (PendingConfigSection section : this.pendingConfigSections) {
-                    ResourceConfigUtils.runCatching(
-                            section.path(),
-                            section.section().path(),
-                            () -> parseSection(section.pack(), section.path(), section.id(), section.section()),
-                            super.errorHandler
-                    );
-                }
-                this.pendingConfigSections.clear();
-            }
-        }
 
         @Override
         public String[] sectionId() {
@@ -210,11 +190,16 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
         }
 
         @Override
+        public boolean async() {
+            return true;
+        }
+
+        @Override
         public List<LoadingStage> dependencies() {
             return List.of(LoadingStages.ITEM);
         }
 
-        private static final String[] VARIANT = new String[] {"variant", "variants"};
+        private static final String[] VARIANT = new String[] {"variant", "variants", "placement"};
         private static final String[] LOOT_SPAWN_OFFSET = new String[] {"loot_spawn_offset", "loot-spawn-offset"};
         private static final String[] BLUEPRINT = new String[] {"blueprint", "better-model", "model-engine"};
         private static final String[] ENTITY_CULLING = new String[] {"entity_culling", "entity-culling"};

@@ -49,7 +49,7 @@ public final class DebugVisualStateUsageCommand extends BukkitCommandFeature<Com
                     int i = 0;
                     Component block = Component.text(baseBlockId + ": ");
                     plugin().senderFactory().wrap(context.sender()).sendMessage(block);
-                    VisualBlockStateAllocator allocator = blockManager.blockParser().visualBlockStateAllocator();
+                    VisualBlockStateAllocator allocator = blockManager.visualBlockStateAllocator();
                     Map<String, BlockStateWrapper> cachedStates = allocator.cachedBlockStates();
                     Map<BlockStateWrapper, String> reversed = new HashMap<>(cachedStates.size());
                     for (Map.Entry<String, BlockStateWrapper> entry : cachedStates.entrySet()) {

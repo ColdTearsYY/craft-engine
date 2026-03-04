@@ -2,8 +2,11 @@ package net.momirealms.craftengine.core.plugin.config;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.core.pack.CachedConfigSection;
+import net.momirealms.craftengine.core.plugin.CraftEngine;
 
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 public abstract class AbstractConfigParser implements ConfigParser {
@@ -17,14 +20,6 @@ public abstract class AbstractConfigParser implements ConfigParser {
     @Override
     public void addConfig(CachedConfigSection section) {
         this.configStorage.add(section);
-    }
-
-    @Override
-    public void loadAll() {
-        Object[] elements = this.configStorage.elements();
-        for (int i = 0, size = this.configStorage.size(); i < size; i++) {
-            parseSection((CachedConfigSection) elements[i]);
-        }
     }
 
     @Override
@@ -49,6 +44,4 @@ public abstract class AbstractConfigParser implements ConfigParser {
     public Consumer<ResourceException> errorHandler() {
         return this.errorHandler;
     }
-
-    protected abstract void parseSection(CachedConfigSection section);
 }

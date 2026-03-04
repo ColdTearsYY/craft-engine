@@ -81,7 +81,7 @@ public final class CleanCacheCommand extends BukkitCommandFeature<CommandSender>
                 ids.add(state.visualBlockState());
             }
         }
-        VisualBlockStateAllocator visualBlockStateAllocator = instance.blockParser().visualBlockStateAllocator();
+        VisualBlockStateAllocator visualBlockStateAllocator = instance.visualBlockStateAllocator();
         List<String> removed = visualBlockStateAllocator.cleanupUnusedIds(i -> !ids.contains(i));
         try {
             visualBlockStateAllocator.saveToCache();
@@ -102,7 +102,7 @@ public final class CleanCacheCommand extends BukkitCommandFeature<CommandSender>
                 ids.add(state.toString());
             }
         }
-        IdAllocator idAllocator = instance.blockParser().internalIdAllocator();
+        IdAllocator idAllocator = instance.internalIdAllocator();
         List<String> removed = idAllocator.cleanupUnusedIds(i -> !ids.contains(i));
         try {
             idAllocator.saveToCache();

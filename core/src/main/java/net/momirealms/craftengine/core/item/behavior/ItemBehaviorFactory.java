@@ -8,5 +8,5 @@ import java.nio.file.Path;
 
 public interface ItemBehaviorFactory<T extends ItemBehavior> {
 
-    T create(Pack pack, Path path, String node, Key id, ConfigSection section);
+    T create(Pack pack, Path path, Key id, ConfigSection section);
 }

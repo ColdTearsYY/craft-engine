@@ -37,7 +37,7 @@ public final class WallBlockItemBehavior extends BlockItemBehavior {
 
     private static class Factory implements ItemBehaviorFactory<WallBlockItemBehavior> {
         @Override
-        public WallBlockItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+        public WallBlockItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
             ConfigValue blockValue = section.getNonNullValue("block", ConfigConstants.ARGUMENT_SECTION);
             if (blockValue.is(Map.class)) {
                 BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, key, blockValue.getAsSection()));

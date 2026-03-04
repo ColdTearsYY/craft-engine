@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.core.pack;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.jimfs.Configuration;
@@ -63,10 +62,7 @@ import java.nio.file.*;
 import java.nio.file.FileSystem;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
@@ -742,7 +738,7 @@ public abstract class AbstractPackManager implements PackManager {
 
     private void loadResourceConfigs(Predicate<ConfigParser> predicate) {
         LoadingPyramid pyramid = new LoadingPyramid();
-        Map<Path, List<ResourceException>> errorByPath = new HashMap<>();
+        Map<Path, List<ResourceException>> errorByPath = new ConcurrentHashMap<>();
         for (ConfigParser parser : this.parsers) {
             if (!predicate.test(parser)) {
                 continue;
@@ -751,12 +747,12 @@ public abstract class AbstractPackManager implements PackManager {
                 long t1 = System.nanoTime();
                 parser.setErrorHandler(e -> {
                     // 处理当前异常
-                    errorByPath.computeIfAbsent(e.filePath(), k -> new ArrayList<>(4)).add(e);
+                    errorByPath.computeIfAbsent(e.filePath(), k -> Collections.synchronizedList(new ArrayList<>(4))).add(e);
                     // 递归处理cause链
                     Throwable cause = e.getCause();
                     while (cause != null) {
                         if (cause instanceof ResourceException innerE) {
-                            errorByPath.computeIfAbsent(innerE.filePath(), k -> new ArrayList<>(4)).add(innerE);
+                            errorByPath.computeIfAbsent(innerE.filePath(), k -> Collections.synchronizedList(new ArrayList<>(4))).add(innerE);
                         }
                         cause = cause.getCause();
                     }
@@ -781,9 +777,14 @@ public abstract class AbstractPackManager implements PackManager {
                 this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detected", path.toString(), String.valueOf(issues.size())));
                 for (int i = 0; i < issues.size(); i++) {
                     ResourceException issue = issues.get(i);
-                    this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+                    if (issue instanceof KnownResourceException) {
+                        this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+                    } else {
+                        this.plugin.logger().severe(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), ""), issue);
+                    }
                 }
             } else {
+                // todo 异常
                 this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detected", "null", String.valueOf(issues.size())));
                 for (int i = 0; i < issues.size(); i++) {
                     ResourceException issue = issues.get(i);

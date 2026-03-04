@@ -28,7 +28,7 @@ public final class Font {
         return this.idToCodepoint.get(codepoint);
     }
 
-    public void addBitmapImage(int codepoint, BitmapImage image) {
+    public synchronized void addBitmapImage(int codepoint, BitmapImage image) {
         this.idToCodepoint.put(codepoint, image);
     }
 

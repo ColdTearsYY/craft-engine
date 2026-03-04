@@ -32,7 +32,7 @@ public final class DebugRealStateUsageCommand extends BukkitCommandFeature<Comma
                     BukkitBlockManager blockManager = plugin().blockManager();
                     plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text("Serverside block state usage:"));
                     List<Component> batch = new ArrayList<>(100);
-                    IdAllocator idAllocator = blockManager.blockParser().internalIdAllocator();
+                    IdAllocator idAllocator = blockManager.internalIdAllocator();
                     Map<String, Integer> cachedIds = idAllocator.cachedIdMap();
                     Map<Integer, String> reversedCachedIds = new HashMap<>(cachedIds.size());
                     for (Map.Entry<String, Integer> entry : cachedIds.entrySet()) {

@@ -1,15 +1,10 @@
 package net.momirealms.craftengine.core.plugin.config.template;
 
-import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.config.IdValueConfigParser;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.config.template.argument.*;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
@@ -17,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class TemplateManagerImpl implements TemplateManager {
     private static final ArgumentString TEMPLATE = ArgumentString.Literal.literal("template");
@@ -26,7 +22,7 @@ public final class TemplateManagerImpl implements TemplateManager {
     private static final ArgumentString MERGES = ArgumentString.Literal.literal("merges");
     private final static Set<ArgumentString> NON_TEMPLATE_ARGUMENTS = new HashSet<>(Set.of(TEMPLATE, TEMPLATES, ARGUMENTS, OVERRIDES, MERGES));
 
-    private final Map<Key, Object> templates = new HashMap<>(256, 0.5f);
+    private final Map<Key, Object> templates = new ConcurrentHashMap<>(256, 0.5f);
     private final TemplateParser templateParser;
 
     TemplateManagerImpl() {
@@ -66,26 +62,15 @@ public final class TemplateManagerImpl implements TemplateManager {
             TemplateManagerImpl.this.templates.put(id, preprocessUnknownValue(value.value()));
         }
 
+        @Override
+        public boolean async() {
+            return true;
+        }
+
         // 覆写父类逻辑，禁止应用模板
         @Override
-        protected void parseSection(CachedConfigSection cached) {
-            ConfigSection config = cached.config();
-            Path path = cached.filePath();
-            for (Map.Entry<String, Object> entry : config.values().entrySet()) {
-                String key = entry.getKey();
-                Key id = Key.withDefaultNamespace(key, cached.pack().namespace());
-                String currentNode = config.assemblePath(key);
-                Path filePath = cached.filePath();
-                if (this.checkDuplicated() && isDuplicate(id, filePath, currentNode)) {
-                    return;
-                }
-                ResourceConfigUtils.runCatching(
-                        path,
-                        currentNode,
-                        () -> parseValue(cached.pack(), filePath, id, ConfigValue.of(currentNode, entry.getValue())),
-                        super.errorHandler
-                );
-            }
+        protected Object createConfigValue(Key id, Object value) {
+            return value;
         }
     }
 
@@ -274,8 +259,9 @@ public final class TemplateManagerImpl implements TemplateManager {
             // 如果模板id被用了参数，则应先应用参数后再查询模板
             Object actualTemplate = templateId.get(parentArguments);
             if (actualTemplate == null) continue; // 忽略被null掉的模板
+            // todo 重构
             Object template = Optional.ofNullable(((TemplateManagerImpl) INSTANCE).templates.get(Key.of(actualTemplate.toString())))
-                    .orElseThrow(() -> new LocalizedResourceConfigException("warning.config.template.invalid", actualTemplate.toString()));
+                    .orElseThrow(() -> new KnownResourceException("resource.template.invalid_template", "", actualTemplate.toString()));
             Object processedTemplate = processUnknownValue(template, arguments);
             if (processedTemplate != null) templateList.add(processedTemplate);
         }

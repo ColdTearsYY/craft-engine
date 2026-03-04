@@ -126,9 +126,14 @@ public final class BukkitLootManager extends AbstractLootManager implements List
         return this.vanillaLootParser;
     }
 
-    public class LootParser extends IdSectionConfigParser {
+    private final class LootParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"loots", "loot", "vanilla-loots", "vanilla-loot"};
         private int count;
+
+        @Override
+        public boolean async() {
+            return true;
+        }
 
         @Override
         public String[] sectionId() {

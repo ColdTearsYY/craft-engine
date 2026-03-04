@@ -18,7 +18,10 @@ public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
     private final Ingredient<T> ingredient;
 
     public CustomBrewingRecipe(@NotNull Key id,
-                               boolean showNotification, @NotNull Ingredient<T> ingredient, @NotNull CustomRecipeResult<T> result, @NotNull Ingredient<T> container) {
+                               boolean showNotification,
+                               @NotNull Ingredient<T> ingredient,
+                               @NotNull CustomRecipeResult<T> result,
+                               @NotNull Ingredient<T> container) {
         super(id, showNotification, result);
         this.container = container;
         this.ingredient = ingredient;

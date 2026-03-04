@@ -78,7 +78,7 @@ public final class CompostableItemBehavior extends ItemBehavior {
 
     private static class Factory implements ItemBehaviorFactory<CompostableItemBehavior> {
         @Override
-        public CompostableItemBehavior create(Pack pack, Path path, String node, Key key, ConfigSection section) {
+        public CompostableItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
             return new CompostableItemBehavior(section.getDouble("chance", 0.55));
         }
     }

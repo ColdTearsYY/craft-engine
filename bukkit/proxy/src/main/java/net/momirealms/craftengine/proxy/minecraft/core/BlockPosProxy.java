@@ -11,6 +11,7 @@ import net.momirealms.sparrow.reflection.proxy.annotation.Type;
 public interface BlockPosProxy extends Vec3iProxy {
     BlockPosProxy INSTANCE = ASMProxyFactory.create(BlockPosProxy.class);
     Class<?> CLASS = SparrowClass.find("net.minecraft.core.BlockPos");
+    Object ZERO = INSTANCE.newInstance(0, 0, 0);
 
     @ConstructorInvoker
     Object newInstance(int x, int y, int z);

@@ -76,7 +76,7 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
 public final class BuiltInRegistries {
-    public static final Registry<CustomBlock> BLOCK = createDynamicBoundRegistry(Registries.BLOCK, 512);
+    public static final Registry<CustomBlock> BLOCK = new BlockRegistry<>(Registries.BLOCK, 512);
     public static final Registry<BlockBehaviorType<? extends BlockBehavior>> BLOCK_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.BLOCK_BEHAVIOR_TYPE, 64);
     public static final Registry<ItemProcessorType<? extends ItemProcessor>> ITEM_PROCESSOR_TYPE = createConstantBoundRegistry(Registries.ITEM_PROCESSOR_TYPE, 64);
     public static final Registry<ItemBehaviorType<? extends ItemBehavior>> ITEM_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.ITEM_BEHAVIOR_TYPE, 64);
@@ -122,9 +122,5 @@ public final class BuiltInRegistries {
 
     private static <T> Registry<T> createConstantBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
         return new ConstantBoundRegistry<>(key, expectedSize);
-    }
-
-    private static <T> Registry<T> createDynamicBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
-        return new DynamicBoundRegistry<>(key, expectedSize);
     }
 }

@@ -15,6 +15,7 @@ import org.joml.Vector3f;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -399,6 +400,19 @@ public final class ResourceConfigUtils {
     public static boolean runCatching(Path filePath, String node, Runnable runnable, Consumer<ResourceException> collector) {
         try {
             runnable.run();
+            return true;
+        } catch (KnownResourceException e) {
+            e.setFilePath(filePath);
+            collector.accept(e);
+        } catch (Throwable t) {
+            collector.accept(new UnknownResourceException(filePath, node, t));
+        }
+        return false;
+    }
+
+    public static boolean runCatching(Path filePath, String node, Executor executor, Runnable runnable, Consumer<ResourceException> collector) {
+        try {
+            executor.execute(runnable);
             return true;
         } catch (KnownResourceException e) {
             e.setFilePath(filePath);
