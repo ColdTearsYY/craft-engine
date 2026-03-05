@@ -819,9 +819,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                         if (isModernFormatRequired() && hasModernModel) {
                             AbstractItemManager.this.modernItemModels1_21_4.put(itemModel, new ModernItemModel(
                                     modernModel,
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("oversized-in-gui", true), "oversized-in-gui"),
-                                    ResourceConfigUtils.getAsBoolean(section.getOrDefault("hand-animation-on-swap", true), "hand-animation-on-swap"),
-                                    ResourceConfigUtils.getAsFloat(section.getOrDefault("swap-animation-scale", 1f), "swap-animation-scale")
+                                    section.getBoolean(OVERSIZED_IN_GUI, true),
+                                    section.getBoolean(HAND_ANIMATION_ON_SWAP, true),
+                                    section.getFloat(SWAP_ANIMATION_SCALE, 1f)
                             ));
                         }
                         if (needsItemModelCompatibility() && needsLegacyCompatibility() && hasLegacyModel) {
@@ -840,9 +840,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                     if (isModernFormatRequired()) {
                         AbstractItemManager.this.modernItemModels1_21_4.put(id, new ModernItemModel(
                                 modernModel,
-                                ResourceConfigUtils.getAsBoolean(section.getOrDefault("oversized-in-gui", true), "oversized-in-gui"),
-                                ResourceConfigUtils.getAsBoolean(section.getOrDefault("hand-animation-on-swap", true), "hand-animation-on-swap"),
-                                ResourceConfigUtils.getAsFloat(section.getOrDefault("swap-animation-scale", 1f), "swap-animation-scale")
+                                section.getBoolean(OVERSIZED_IN_GUI, true),
+                                section.getBoolean(HAND_ANIMATION_ON_SWAP, true),
+                                section.getFloat(SWAP_ANIMATION_SCALE, 1f)
                         ));
                     }
                 }
