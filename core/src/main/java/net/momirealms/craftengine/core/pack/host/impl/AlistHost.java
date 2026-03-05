@@ -294,9 +294,9 @@ public final class AlistHost implements ResourcePackHost {
         public AlistHost create(ConfigSection section) {
             boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
             String apiUrl = section.getNonEmptyString(API_URL);
-            String userName = useEnv ? System.getenv("CE_ALIST_USERNAME") : section.getNonEmptyString("username");
-            String password = useEnv ? System.getenv("CE_ALIST_PASSWORD") : section.getNonEmptyString("password");
-            String filePassword = useEnv ? System.getenv("CE_ALIST_FILE_PASSWORD") : section.getString("file_password", "");
+            String userName = useEnv ? getNonNullEnvironmentVariable(section, "CE_ALIST_USERNAME") : section.getNonEmptyString("username");
+            String password = useEnv ? getNonNullEnvironmentVariable(section, "CE_ALIST_PASSWORD") : section.getNonEmptyString("password");
+            String filePassword = useEnv ? getNonNullEnvironmentVariable(section, "CE_ALIST_FILE_PASSWORD") : section.getString("file_password", "");
             String otpCode = section.getString("otp_code", "otp-code");
             Duration jwtTokenExpiration = Duration.ofHours(section.getInt(JWT_TOKEN_EXPIRATION, 48));
             String uploadPath = section.getNonEmptyString(UPLOAD_PATH);

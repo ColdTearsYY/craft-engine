@@ -236,9 +236,9 @@ public final class OneDriveHost implements ResourcePackHost {
         @Override
         public OneDriveHost create(ConfigSection section) {
             boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
-            String clientId = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_ID") : section.getNonEmptyString(CLIENT_ID);
-            String clientSecret = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_SECRET") : section.getNonEmptyString(CLIENT_SECRET);
-            String refreshToken = useEnv ? System.getenv("CE_ONEDRIVE_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
+            String clientId = useEnv ? getNonNullEnvironmentVariable(section, "CE_ONEDRIVE_CLIENT_ID") : section.getNonEmptyString(CLIENT_ID);
+            String clientSecret = useEnv ? getNonNullEnvironmentVariable(section, "CE_ONEDRIVE_CLIENT_SECRET") : section.getNonEmptyString(CLIENT_SECRET);
+            String refreshToken = useEnv ? getNonNullEnvironmentVariable(section, "CE_ONEDRIVE_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
             String uploadPath = section.getString(UPLOAD_PATH, "resource_pack.zip");
             return new OneDriveHost(clientId, clientSecret, refreshToken, uploadPath, getProxySelector(section.getSection("proxy")));
         }

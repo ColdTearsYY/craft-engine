@@ -268,9 +268,9 @@ public final class DropboxHost implements ResourcePackHost {
         @Override
         public DropboxHost create(ConfigSection section) {
             boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
-            String appKey = useEnv ? System.getenv("CE_DROPBOX_APP_KEY") : section.getNonEmptyString(APP_KEY);
-            String appSecret = useEnv ? System.getenv("CE_DROPBOX_APP_SECRET") : section.getNonEmptyString(APP_SECRET);
-            String refreshToken = useEnv ? System.getenv("CE_DROPBOX_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
+            String appKey = useEnv ? getNonNullEnvironmentVariable(section, "CE_DROPBOX_APP_KEY") : section.getNonEmptyString(APP_KEY);
+            String appSecret = useEnv ? getNonNullEnvironmentVariable(section, "CE_DROPBOX_APP_SECRET") : section.getNonEmptyString(APP_SECRET);
+            String refreshToken = useEnv ? getNonNullEnvironmentVariable(section, "CE_DROPBOX_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
             String uploadPath = section.getNonNullString(UPLOAD_PATH);
             ProxySelector proxy = getProxySelector(section.getSection("proxy"));
             return new DropboxHost(appKey, appSecret, refreshToken, "/" + uploadPath, proxy);

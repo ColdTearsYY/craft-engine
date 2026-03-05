@@ -177,11 +177,10 @@ public final class GitLabHost implements ResourcePackHost {
             if (gitlabUrl.endsWith("/")) {
                 gitlabUrl = gitlabUrl.substring(0, gitlabUrl.length() - 1);
             }
-            String accessToken = useEnv ? System.getenv("CE_GITLAB_ACCESS_TOKEN") : section.getNonEmptyString(ACCESS_TOKEN);
+            String accessToken = useEnv ? getNonNullEnvironmentVariable(section, "CE_GITLAB_ACCESS_TOKEN") : section.getNonEmptyString(ACCESS_TOKEN);
             String projectId = section.getNonEmptyString(PROJECT_ID);
             projectId = URLEncoder.encode(projectId, StandardCharsets.UTF_8).replace("/", "%2F");
-            ProxySelector proxy = getProxySelector(section.getSection("proxy"));
-            return new GitLabHost(gitlabUrl, accessToken, projectId, proxy);
+            return new GitLabHost(gitlabUrl, accessToken, projectId, getProxySelector(section.getSection("proxy")));
         }
     }
 }

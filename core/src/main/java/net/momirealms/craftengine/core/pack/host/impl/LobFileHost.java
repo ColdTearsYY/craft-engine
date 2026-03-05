@@ -268,7 +268,7 @@ public final class LobFileHost implements ResourcePackHost {
         @Override
         public LobFileHost create(ConfigSection section) {
             boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
-            String apiKey = useEnv ? System.getenv("CE_LOBFILE_API_KEY") : section.getNonEmptyString(API_KEY);
+            String apiKey = useEnv ? getNonNullEnvironmentVariable(section, "CE_LOBFILE_API_KEY") : section.getNonEmptyString(API_KEY);
             return new LobFileHost(apiKey, getProxySelector(section.getSection("proxy")));
         }
     }
