@@ -19,6 +19,33 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public record ConfigValue(String path, @NotNull Object value) {
+    private static final Map<Class<?>, Function<ConfigValue, ?>> SERIALIZERS = new HashMap<>();
+    static {
+        registerSerializer(ConfigSection.class, ConfigValue::getAsSection);
+        registerSerializer(Integer.class, ConfigValue::getAsInt);
+        registerSerializer(Double.class, ConfigValue::getAsDouble);
+        registerSerializer(Float.class, ConfigValue::getAsFloat);
+        registerSerializer(Long.class, ConfigValue::getAsLong);
+        registerSerializer(Boolean.class, ConfigValue::getAsBoolean);
+        registerSerializer(String.class, ConfigValue::getAsString);
+        registerSerializer(List.class, ConfigValue::getAsList);
+        registerSerializer(Map.class, ConfigValue::getAsMap);
+        registerSerializer(UUID.class, ConfigValue::getAsUUID);
+        registerSerializer(BlockStateWrapper.class, ConfigValue::getAsBlockState);
+        registerSerializer(Key.class, ConfigValue::getAsKey);
+        registerSerializer(NumberProvider.class, ConfigValue::getAsNumber);
+        registerSerializer(Tag.class, ConfigValue::getAsSNBT);
+        registerSerializer(AABB.class, ConfigValue::getAsAABB);
+        registerSerializer(Vector3f.class, ConfigValue::getAsVector3f);
+        registerSerializer(Vec3i.class, ConfigValue::getAsVector3i);
+        registerSerializer(Color.class, ConfigValue::getAsColor);
+        registerSerializer(Quaternionf.class, ConfigValue::getAsQuaternion);
+        registerSerializer(Object.class, ConfigValue::value);
+    }
+
+    public static <T> void registerSerializer(final Class<T> clazz, final Function<ConfigValue, T> serializer) {
+        SERIALIZERS.put(clazz, serializer);
+    }
 
     public static ConfigValue of(String path, Object value) {
         return new ConfigValue(path, value);
@@ -42,6 +69,18 @@ public record ConfigValue(String path, @NotNull Object value) {
 
     public String assemblePath(int index) {
         return this.path + "[" + index + "]";
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public <T> T getAs(Class<T> type) {
+        Function<ConfigValue, ?> function = SERIALIZERS.get(type);
+        if (function == null) {
+            if (Enum.class.isAssignableFrom(type)) {
+                return (T) getAsEnum((Class<Enum>) type);
+            }
+            throw new IllegalArgumentException("No serializer found for type " + type);
+        }
+        return (T) function.apply(this);
     }
 
     public String getAsString() {
