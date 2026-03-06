@@ -7,6 +7,8 @@ import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import org.bukkit.command.CommandSender;
 import org.incendo.cloud.Command;
 
+import java.io.IOException;
+
 public final class DebugSaveDefaultResourcesCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugSaveDefaultResourcesCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
@@ -18,7 +20,12 @@ public final class DebugSaveDefaultResourcesCommand extends BukkitCommandFeature
         return builder
                 .handler(context -> {
                     AbstractPackManager packManager = (AbstractPackManager) CraftEngine.instance().packManager();
-                    packManager.saveDefaultConfigs();
+                    try {
+                        packManager.saveDefaultConfigs();
+                    } catch (IOException e) {
+                        context.sender().sendMessage("Failed to save default configs: " + e.getMessage());
+                        return;
+                    }
                     context.sender().sendMessage("Saved default configs");
                 });
     }

@@ -1,2 +1,1 @@
-# Don't change this
-lang-version: "${lang_version}"
+exception.invalid_syntax: "<red>Invalid syntax. Correct syntax: <white><arg:0></white></red>"

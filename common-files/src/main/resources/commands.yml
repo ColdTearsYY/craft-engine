@@ -1,6 +1,4 @@
-#
-# Don't change this
-#
+# Do not modify this value
 config-version: "${config_version}"
 
 #
