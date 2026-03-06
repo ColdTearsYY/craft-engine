@@ -36,7 +36,7 @@ abstract class GenerateScopedResourceIndexTask : DefaultTask() {
                 val directoryNames = children.filter { it.isDirectory }.map { it.name }.sorted()
 
                 val fileNames = children.filter {
-                    it.isFile && !it.name.startsWith(".") && it.name != "index.json"
+                    it.isFile && !it.name.startsWith(".") && it.name != "_index.json"
                 }.map { it.name }.sorted()
 
                 val jsonContent = """
@@ -46,7 +46,7 @@ abstract class GenerateScopedResourceIndexTask : DefaultTask() {
                     }
                 """.trimIndent()
 
-                File(targetDir, "index.json").writeText(jsonContent)
+                File(targetDir, "_index.json").writeText(jsonContent)
             }
         }
     }
