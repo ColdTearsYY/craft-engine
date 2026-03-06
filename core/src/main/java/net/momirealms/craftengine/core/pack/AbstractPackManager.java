@@ -1630,7 +1630,7 @@ public abstract class AbstractPackManager implements PackManager {
                                 try {
                                     itemJson = GsonHelper.readJsonFile(file).getAsJsonObject();
                                 } catch (IOException | JsonParseException e) {
-                                    TranslationManager.instance().log("warning.config.resource_pack.generation.malformatted_json", file.toAbsolutePath().toString());
+                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().translate("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
                                     return FileVisitResult.CONTINUE;
                                 }
                                 Key item = Key.of(namespace, FileUtils.pathWithoutExtension(file.getFileName().toString()));
@@ -1655,7 +1655,7 @@ public abstract class AbstractPackManager implements PackManager {
                                 try {
                                     blockStateJson = GsonHelper.readJsonFile(file).getAsJsonObject();
                                 } catch (IOException | JsonParseException e) {
-                                    TranslationManager.instance().log("warning.config.resource_pack.generation.malformatted_json", file.toAbsolutePath().toString());
+                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().translate("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
                                     return FileVisitResult.CONTINUE;
                                 }
                                 String blockId = FileUtils.pathWithoutExtension(file.getFileName().toString());
