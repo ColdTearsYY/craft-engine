@@ -9,7 +9,7 @@ import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import org.jetbrains.annotations.Nullable;
 
-public final class BlockPlaceContext extends UseOnContext {
+public class BlockPlaceContext extends UseOnContext {
     private final BlockPos relativePos;
     private boolean replaceClicked;
 

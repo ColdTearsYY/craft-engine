@@ -9,7 +9,7 @@ import net.momirealms.craftengine.core.world.EntityHitResult;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.World;
 
-public final class InteractEntityContext {
+public class InteractEntityContext {
     private final Player player;
     private final InteractionHand hand;
     private final EntityHitResult hitResult;
