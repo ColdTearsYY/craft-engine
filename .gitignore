@@ -31,3 +31,4 @@ build/
 !/gradle/wrapper/*.jar
 .vscode/settings.json
 /runPaper/
+/buildSrc/.kotlin/

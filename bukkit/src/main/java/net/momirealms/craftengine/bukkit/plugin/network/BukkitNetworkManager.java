@@ -703,6 +703,11 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         return this.onlineUsers.get(player.getUniqueId());
     }
 
+    @Nullable
+    public NetWorkUser getOnlineUser(UUID uuid) {
+        return this.onlineUsers.get(uuid);
+    }
+
     // 当假人的时候channel为null
     @NotNull
     public Channel getChannel(Player player) {

@@ -51,7 +51,6 @@ public abstract class AbstractFontManager implements FontManager {
     protected Trie emojiKeywordTrie;
     protected Map<String, Emoji> emojiMapper;
     protected List<Emoji> emojiList;
-    protected List<String> allEmojiSuggestions;
     // Cached command suggestions
     protected final List<Suggestion> cachedImagesSuggestions = Collections.synchronizedList(new ArrayList<>());
 
@@ -120,9 +119,6 @@ public abstract class AbstractFontManager implements FontManager {
         // global shift l10n image
         this.buildEmojiKeywordsTrie();
         this.emojiList = new ArrayList<>(this.emojis.values());
-        this.allEmojiSuggestions = this.emojis.values().stream()
-                .flatMap(emoji -> emoji.keywords().stream())
-                .collect(Collectors.toList());
     }
 
     @Override
@@ -334,6 +330,7 @@ public abstract class AbstractFontManager implements FontManager {
         }
 
         private static final String[] CONTENT = new String[] {"content", "format"};
+        private static final String[] CHAT_COMPLETION = new String[] {"chat_completion", "chat-completion"};
 
         @Override
         public boolean async() {
@@ -377,7 +374,8 @@ public abstract class AbstractFontManager implements FontManager {
                     throw new KnownResourceException("resource.emoji.invalid_image_format", section.assemblePath("image"), imageValue.getAsString());
                 }
             }
-            Emoji emoji = new Emoji(content, permission, image, keywords);
+            boolean chatCompletion = section.getBoolean(CHAT_COMPLETION, true);
+            Emoji emoji = new Emoji(content, permission, image, keywords, chatCompletion);
             AbstractFontManager.this.emojis.put(id, emoji);
         }
     }
