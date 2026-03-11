@@ -40,7 +40,7 @@ public final class PathMatchers {
         if (reverted) {
             type = type.substring(1);
         }
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+        Key key = Key.withDefaultNamespace(type, Key.CRAFTENGINE_NAMESPACE);
         PathMatcherType<? extends Condition<PathContext>> matcherType = BuiltInRegistries.PATH_MATCHER_TYPE.getValue(key);
         if (matcherType == null) {
             throw new KnownResourceException("condition.unknown_type", section.assemblePath("type"), key.asString());

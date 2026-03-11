@@ -23,7 +23,7 @@ public final class ToUpperCaseTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public Object get(Map<String, TemplateArgument> arguments) {
+    public Object get(String node, Map<String, TemplateArgument> arguments) {
         return this.result;
     }
 

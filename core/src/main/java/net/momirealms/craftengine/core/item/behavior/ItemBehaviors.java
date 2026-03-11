@@ -12,7 +12,7 @@ import net.momirealms.craftengine.core.util.ResourceKey;
 import java.nio.file.Path;
 
 public abstract class ItemBehaviors {
-    public static final ItemBehaviorType<EmptyItemBehavior> EMPTY = register(Key.withDefaultNamespace("empty", Key.DEFAULT_NAMESPACE), EmptyItemBehavior.FACTORY);
+    public static final ItemBehaviorType<EmptyItemBehavior> EMPTY = register(Key.withDefaultNamespace("empty", Key.CRAFTENGINE_NAMESPACE), EmptyItemBehavior.FACTORY);
 
     protected ItemBehaviors() {}
 

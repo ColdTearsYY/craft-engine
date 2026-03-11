@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.plugin.config;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.pack.PendingConfigValue;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.template.TemplateManager;
@@ -38,7 +37,7 @@ public abstract class IdValueConfigParser extends IdConfigParser {
                     continue;
                 }
                 try {
-                    ConfigValue configValue = new ConfigValue(currentNode, createConfigValue(id, entry.getValue()));
+                    ConfigValue configValue = new ConfigValue(currentNode, createConfigValue(id, entry.getValue(), currentNode));
                     this.pendingConfigValues.add(new PendingConfigValue(cachedMajorSection.pack(), filePath, id, configValue));
                 } catch (KnownResourceException e) {
                     error(e, filePath);
@@ -72,8 +71,8 @@ public abstract class IdValueConfigParser extends IdConfigParser {
         }
     }
 
-    protected Object createConfigValue(final Key id, final Object value) {
-        return TemplateManager.INSTANCE.applyTemplates(id, value);
+    protected Object createConfigValue(final Key id, final Object value, final String node) {
+        return TemplateManager.INSTANCE.applyTemplates(id, value, node);
     }
 
     @Override

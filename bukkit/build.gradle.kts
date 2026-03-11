@@ -1,9 +1,4 @@
-import net.momirealms.asm
-import net.momirealms.cloud
-import net.momirealms.common
-import net.momirealms.nbt
-import net.momirealms.netty
-import net.momirealms.paperServer
+import net.momirealms.*
 
 plugins {
     id("craft-engine-publish")

@@ -23,7 +23,7 @@ public final class SelfIncreaseIntTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public String get(Map<String, TemplateArgument> arguments) {
+    public String get(String node, Map<String, TemplateArgument> arguments) {
         String value = String.valueOf(this.current);
         this.callCount++;
         if (this.stepInterval <= 0 || this.callCount % this.stepInterval == 0) {

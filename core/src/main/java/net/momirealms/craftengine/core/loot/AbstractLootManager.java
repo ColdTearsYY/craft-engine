@@ -2,7 +2,6 @@ package net.momirealms.craftengine.core.loot;
 
 import net.momirealms.craftengine.core.util.Key;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

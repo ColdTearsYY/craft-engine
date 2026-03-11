@@ -69,8 +69,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static net.momirealms.craftengine.core.util.MiscUtils.castToMap;
-
 @SuppressWarnings("DuplicatedCode")
 public abstract class AbstractPackManager implements PackManager {
     // 1.21.4+物品模型
@@ -369,12 +367,16 @@ public abstract class AbstractPackManager implements PackManager {
                 Files.createDirectories(resourcesFolder);
                 this.saveDefaultConfigs();
             }
+        } catch (IOException e) {
+            this.plugin.logger().severe("Error saving default configs", e);
+        }
+        try {
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(resourcesFolder)) {
                 for (Path path : paths) {
                     if (!Files.isDirectory(path)) {
-                        this.plugin.logger().warn(path.toAbsolutePath() + " is not a directory");
                         continue;
                     }
+                    // hidden
                     String namespace = path.getFileName().toString();
                     if (namespace.charAt(0) == '.') {
                         continue;
@@ -382,32 +384,32 @@ public abstract class AbstractPackManager implements PackManager {
                     if (!Identifier.isValidNamespace(namespace)) {
                         namespace = "minecraft";
                     }
-                    Path metaFile = path.resolve("pack.yml");
+
                     String description = null;
                     String version = null;
                     String author = null;
                     boolean enable = true;
-                    List<String> subPacks = new ArrayList<>();
+                    List<String> subPacks = new ArrayList<>(4);
+                    Path metaFile = path.resolve("pack.yml");
                     if (Files.exists(metaFile) && Files.isRegularFile(metaFile)) {
                         Yaml yaml = new Yaml(new StringKeyConstructor(path, new LoaderOptions()));
                         try (InputStream is = Files.newInputStream(metaFile)) {
                             Map<String, Object> data = yaml.load(is);
                             if (data != null) {
-                                enable = ResourceConfigUtils.getAsBoolean(data.getOrDefault("enable", true), "enable");
-                                namespace = data.getOrDefault("namespace", namespace).toString();
-                                description = Optional.ofNullable(data.get("description")).map(String::valueOf).orElse(null);
-                                version = Optional.ofNullable(data.get("version")).map(String::valueOf).orElse(null);
-                                author = Optional.ofNullable(data.get("author")).map(String::valueOf).orElse(null);
-                                Map<String, Object> subpacks = ResourceConfigUtils.getAsMapOrNull(data.get("subpacks"), "subpacks");
-                                if (subpacks != null) {
-                                    for (Map.Entry<String, Object> entry : subpacks.entrySet()) {
-                                        if (ResourceConfigUtils.getAsBoolean(entry.getValue(), entry.getKey())) {
-                                            subPacks.add(entry.getKey());
+                                ConfigSection section = ConfigSection.ofRoot(data);
+                                enable = section.getBoolean("enable", true);
+                                namespace = section.getString("namespace", namespace);
+                                description = section.getString("description");
+                                version = section.getString("version");
+                                author = section.getString("author");
+                                ConfigSection subpackSection = section.getSection("subpacks");
+                                if (subpackSection != null) {
+                                    for (String subpackId : subpackSection.keySet()) {
+                                        if (subpackSection.getBoolean(subpackId)) {
+                                            subPacks.add(subpackId);
                                         }
                                     }
                                 }
-                            } else {
-                                this.plugin.logger().warn("Failed to load resource meta file: " + metaFile);
                             }
                         } catch (IOException e) {
                             this.plugin.logger().warn("Failed to load " + metaFile, e);
@@ -610,7 +612,7 @@ public abstract class AbstractPackManager implements PackManager {
             String configType = hashIndex != -1 ? key.substring(0, hashIndex) : key;
             ConfigParser parser = this.sectionParsers.get(configType);
             if (parser != null) {
-                callback.accept(parser, new CachedConfigSection(pack, path, ConfigSection.of(key, castToMap(m, false))));
+                callback.accept(parser, new CachedConfigSection(pack, path, ConfigSection.of(key, MiscUtils.castToMap(m))));
             }
         }
     }

@@ -21,8 +21,8 @@ public final class WhenTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public Object get(Map<String, TemplateArgument> arguments) {
-        return this.result.get(arguments);
+    public Object get(String node, Map<String, TemplateArgument> arguments) {
+        return this.result.get(node, arguments);
     }
 
     private static class Factory extends NestedTemplateArgumentFactory<WhenTemplateArgument> {

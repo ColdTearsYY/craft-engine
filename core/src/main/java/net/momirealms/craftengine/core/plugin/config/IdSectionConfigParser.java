@@ -40,7 +40,7 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
                 }
                 Object value;
                 try {
-                    value = TemplateManager.INSTANCE.applyTemplates(id, entry.getValue());
+                    value = TemplateManager.INSTANCE.applyTemplates(id, entry.getValue(), currentNode);
                 } catch (KnownResourceException e) {
                     error(e, filePath);
                     continue;

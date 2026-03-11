@@ -567,7 +567,7 @@ public class ComponentItemFactory1_20_5 extends BukkitItemFactory<ComponentItemW
     protected Optional<FireworkExplosion> fireworkExplosion(ComponentItemWrapper item) {
         Optional<Object> optionalExplosion = item.getJavaComponent(DataComponentTypes.FIREWORK_EXPLOSION);
         if (optionalExplosion.isEmpty()) return Optional.empty();
-        Map<String, Object> explosions = MiscUtils.castToMap(optionalExplosion.get(), false);
+        Map<String, Object> explosions = MiscUtils.castToMap(optionalExplosion.get());
         FireworkExplosion.Shape shape = Optional.ofNullable(FireworkExplosion.Shape.byName((String) explosions.get("shape"))).orElse(FireworkExplosion.Shape.SMALL_BALL);
         boolean hasTrail = (boolean) explosions.getOrDefault("has_trail", false);
         boolean hasTwinkler = (boolean) explosions.getOrDefault("has_twinkle", false);

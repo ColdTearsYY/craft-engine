@@ -139,7 +139,7 @@ public final class FurnitureEventListener implements Listener {
         Object storedData = itemInHand.getJavaTag("craftengine:debug_stick_state");
         if (storedData == null) storedData = new HashMap<>();
         if (storedData instanceof Map<?,?> map) {
-            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map, false));
+            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
             FurnitureDebugStickState state = ResourceConfigUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
             state = player.isSecondaryUseActive() ? state.previous() : state.next();
             String propertyName = state.name().toLowerCase(Locale.ROOT);
@@ -169,7 +169,7 @@ public final class FurnitureEventListener implements Listener {
         Object storedData = itemInHand.getJavaTag("craftengine:debug_stick_state");
         if (storedData == null) storedData = new HashMap<>();
         if (storedData instanceof Map<?,?> map) {
-            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map, false));
+            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
             FurnitureDebugStickState state = ResourceConfigUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
             BukkitFurniture furniture = event.furniture();
             state.handler().onInteract(player.isSecondaryUseActive(), furniture, (s1, s2) -> {

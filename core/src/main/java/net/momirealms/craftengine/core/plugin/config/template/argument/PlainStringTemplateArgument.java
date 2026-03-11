@@ -21,7 +21,7 @@ public final class PlainStringTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public String get(Map<String, TemplateArgument> arguments) {
+    public String get(String node, Map<String, TemplateArgument> arguments) {
         return this.value;
     }
 

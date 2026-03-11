@@ -10,7 +10,6 @@ import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxCo
 import net.momirealms.craftengine.core.entity.furniture.tick.TickingFurniture;
 import net.momirealms.craftengine.core.loot.LootTable;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
@@ -21,7 +20,6 @@ import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
 import net.momirealms.craftengine.core.plugin.scheduler.SchedulerTask;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.TickersList;
 import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.Nullable;
