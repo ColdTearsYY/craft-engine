@@ -471,6 +471,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         registerNMSPacketConsumer(new ChatSessionUpdateListener(), ServerboundChatSessionUpdatePacketProxy.CLASS);
         registerNMSPacketConsumer(new PlayerChatListener(), ClientboundPlayerChatPacketProxy.CLASS);
         registerNMSPacketConsumer(new S2CFinishConfigurationListener(), ClientboundFinishConfigurationPacketProxy.CLASS);
+        registerNMSPacketConsumer(new CustomChatCompletionsListener(), ClientboundCustomChatCompletionsPacketProxy.CLASS);
         // 状态切换相关监听器 - 开始
         // fixme 因为会比 packetevents 在同一秒慢半拍切换，所以说会出现一下下的错误提示，只需要推迟 1 tick 发送即可
         registerByteBufferPacketListener(new C2SFinishConfigurationListener(), this.packetIds.serverboundFinishConfigurationPacket(), "ServerboundFinishConfigurationPacket", ConnectionState.CONFIGURATION, PacketFlow.SERVERBOUND); // 1.20.2+ s2c to play (configuration)
@@ -4844,6 +4845,20 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             buf.clear();
             buf.writeVarInt(event.packetID());
             buf.writeUtf(jsonObject.toString());
+        }
+    }
+
+    public static class CustomChatCompletionsListener implements NMSPacketListener {
+
+        @Override
+        public void onPacketSend(NetWorkUser user, NMSPacketEvent event, Object packet) {
+            Object action = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.getAction(packet);
+            if (action != ClientboundCustomChatCompletionsPacketProxy.ActionProxy.SET) return;
+            List<String> rawEntries = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.getEntries(packet);
+            if (rawEntries instanceof MarkedArrayList<?>) return;
+            List<String> markedEntries = new MarkedArrayList<>(rawEntries);
+            markedEntries.addAll(BukkitFontManager.instance().getEmojiSuggestions((net.momirealms.craftengine.core.entity.player.Player) user));
+            ClientboundCustomChatCompletionsPacketProxy.INSTANCE.setEntries(packet, markedEntries);
         }
     }
 }

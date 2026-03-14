@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.font;
 
+import com.google.common.collect.ImmutableList;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.pack.Identifier;
@@ -51,6 +52,7 @@ public abstract class AbstractFontManager implements FontManager {
     protected Trie emojiKeywordTrie;
     protected Map<String, Emoji> emojiMapper;
     protected List<Emoji> emojiList;
+    protected List<String> allEmojiSuggestions;
     // Cached command suggestions
     protected final List<Suggestion> cachedImagesSuggestions = Collections.synchronizedList(new ArrayList<>());
 
@@ -119,6 +121,9 @@ public abstract class AbstractFontManager implements FontManager {
         // global shift l10n image
         this.buildEmojiKeywordsTrie();
         this.emojiList = new ArrayList<>(this.emojis.values());
+        this.allEmojiSuggestions = this.emojis.values().stream()
+                .flatMap(emoji -> emoji.keywords().stream())
+                .collect(ImmutableList.toImmutableList());
     }
 
     @Override
@@ -300,6 +305,19 @@ public abstract class AbstractFontManager implements FontManager {
     @Override
     public Collection<Suggestion> cachedImagesSuggestions() {
         return Collections.unmodifiableCollection(this.cachedImagesSuggestions);
+    }
+
+    @Override
+    public List<String> getEmojiSuggestions(@NotNull Player player) {
+        List<String> suggestions = new ArrayList<>();
+        if (this.emojiList == null) return suggestions;
+        for (Emoji emoji : this.emojiList) {
+            if (!emoji.chatCompletion()) continue;
+            String permission = emoji.permission();
+            if (permission != null && !player.hasPermission(permission)) continue;
+            suggestions.addAll(emoji.keywords());
+        }
+        return suggestions;
     }
 
     private synchronized Font getOrCreateFont(Key key) {

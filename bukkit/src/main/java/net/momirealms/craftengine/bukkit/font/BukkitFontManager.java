@@ -36,6 +36,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.view.AnvilView;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -66,8 +68,12 @@ public final class BukkitFontManager extends AbstractFontManager implements List
 
     @Override
     public void delayedLoad() {
+        Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+        for (Player player : players) {
+            this.removeEmojiSuggestions(BukkitAdaptors.adapt(player));
+        }
         super.delayedLoad();
-        for (Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : players) {
             this.refreshEmojiSuggestions(player.getUniqueId());
         }
     }
@@ -78,19 +84,23 @@ public final class BukkitFontManager extends AbstractFontManager implements List
     }
 
     @Override
-    public void refreshEmojiSuggestions(UUID uuid) {
+    public void refreshEmojiSuggestions(@NotNull UUID uuid) {
         BukkitServerPlayer player = BukkitCraftEngine.instance().getPlayer(uuid);
         if (player == null) return;
-        List<String> suggestions = new ArrayList<>();
-        for (Emoji emoji : super.emojiList) {
-            if (!emoji.chatCompletion()) continue;
-            String permission = emoji.permission();
-            if (permission != null && !player.hasPermission(permission)) continue;
-            suggestions.addAll(emoji.keywords());
-        }
+        this.removeEmojiSuggestions(player);
         Object packet = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.newInstance(
-                ClientboundCustomChatCompletionsPacketProxy.ActionProxy.SET,
-                suggestions
+                ClientboundCustomChatCompletionsPacketProxy.ActionProxy.ADD,
+                super.getEmojiSuggestions(player)
+        );
+        player.sendPacket(packet, false);
+    }
+
+    @Override
+    public void removeEmojiSuggestions(@Nullable net.momirealms.craftengine.core.entity.player.Player player) {
+        if (player == null || super.allEmojiSuggestions == null) return;
+        Object packet = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.newInstance(
+                ClientboundCustomChatCompletionsPacketProxy.ActionProxy.REMOVE,
+                super.allEmojiSuggestions
         );
         player.sendPacket(packet, false);
     }
