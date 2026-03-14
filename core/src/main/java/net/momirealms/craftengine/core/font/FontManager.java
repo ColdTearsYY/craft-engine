@@ -111,6 +111,8 @@ public interface FontManager extends Manageable {
 
     List<String> getEmojiSuggestions(@NotNull Player player);
 
+    void addEmojiSuggestions(@Nullable Player player);
+
     void removeEmojiSuggestions(@Nullable Player player);
 
     @Deprecated

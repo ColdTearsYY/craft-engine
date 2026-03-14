@@ -308,6 +308,14 @@ public abstract class AbstractFontManager implements FontManager {
     }
 
     @Override
+    public void refreshEmojiSuggestions(@NotNull UUID uuid) {
+        Player player = CraftEngine.instance().getPlayer(uuid);
+        if (player == null) return;
+        this.removeEmojiSuggestions(player);
+        this.addEmojiSuggestions(player);
+    }
+
+    @Override
     public List<String> getEmojiSuggestions(@NotNull Player player) {
         List<String> suggestions = new ArrayList<>();
         if (this.emojiList == null) return suggestions;

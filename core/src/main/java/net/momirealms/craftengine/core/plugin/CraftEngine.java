@@ -8,6 +8,7 @@ import net.momirealms.craftengine.core.block.BlockSettingsModifiers;
 import net.momirealms.craftengine.core.entity.culling.EntityCullingManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifiers;
+import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
 import net.momirealms.craftengine.core.font.FontManager;
@@ -51,6 +52,7 @@ import net.momirealms.craftengine.core.world.score.TeamManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
@@ -61,6 +63,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -521,6 +524,11 @@ public abstract class CraftEngine implements Plugin {
     protected abstract void platformDelayedEnable();
 
     protected abstract List<Dependency> platformDependencies();
+
+    @Nullable
+    public Player getPlayer(@NotNull UUID uuid) {
+        return (Player) this.networkManager.getOnlineUser(uuid);
+    }
 
     protected List<Dependency> commonDependencies() {
         return List.of(

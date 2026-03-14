@@ -694,19 +694,15 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         return getChannel((Player) player.platformPlayer());
     }
 
-    @Nullable
-    public NetWorkUser getUser(Player player) {
-        return getUser(getChannel(player));
-    }
-
-    @Nullable
-    public NetWorkUser getOnlineUser(Player player) {
-        return this.onlineUsers.get(player.getUniqueId());
-    }
-
+    @Override
     @Nullable
     public NetWorkUser getOnlineUser(UUID uuid) {
         return this.onlineUsers.get(uuid);
+    }
+
+    @Nullable
+    public NetWorkUser getUser(Player player) {
+        return getUser(getChannel(player));
     }
 
     // 当假人的时候channel为null

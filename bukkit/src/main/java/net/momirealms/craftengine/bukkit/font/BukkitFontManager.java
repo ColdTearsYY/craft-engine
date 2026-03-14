@@ -84,10 +84,8 @@ public final class BukkitFontManager extends AbstractFontManager implements List
     }
 
     @Override
-    public void refreshEmojiSuggestions(@NotNull UUID uuid) {
-        BukkitServerPlayer player = BukkitCraftEngine.instance().getPlayer(uuid);
-        if (player == null) return;
-        this.removeEmojiSuggestions(player);
+    public void addEmojiSuggestions(@Nullable net.momirealms.craftengine.core.entity.player.Player player) {
+        if (player == null || super.emojiList == null) return;
         Object packet = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.newInstance(
                 ClientboundCustomChatCompletionsPacketProxy.ActionProxy.ADD,
                 super.getEmojiSuggestions(player)

@@ -61,7 +61,6 @@ import java.net.URLConnection;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 @SuppressWarnings("unchecked")
 public final class BukkitCraftEngine extends CraftEngine {
@@ -437,13 +436,7 @@ public final class BukkitCraftEngine extends CraftEngine {
     @Nullable
     public BukkitServerPlayer adapt(@Nullable Player player) {
         if (player == null) return null;
-        return (BukkitServerPlayer) networkManager().getOnlineUser(player);
-    }
-
-    @Nullable
-    public BukkitServerPlayer getPlayer(@Nullable UUID uuid) {
-        if (uuid == null) return null;
-        return (BukkitServerPlayer) networkManager().getOnlineUser(uuid);
+        return (BukkitServerPlayer) super.getPlayer(player.getUniqueId());
     }
 
     public AntiGriefLib antiGriefProvider() {
