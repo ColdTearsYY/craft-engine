@@ -38,7 +38,7 @@ resource-pack:
   merge-external-zip-files:
     - "CustomNameplates/resourcepack.zip"
     - "BetterModel/build.zip"
-  exclude-file-extensions: ["md", "psd", "bbmodel", "db", "ini", "DS_Store"]
+  exclude-file-extensions: ["md", "psd", "bbmodel", "db", "ini", "DS_Store", "zip", "gz", "tar", "jar"]
   # Provide the solution for when a file conflict is encountered
   # https://xiao-momi.github.io/craft-engine-wiki/reference/file_conflict
   duplicated-files-handler:

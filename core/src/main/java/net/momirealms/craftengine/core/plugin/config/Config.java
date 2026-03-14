@@ -420,12 +420,12 @@ public final class Config {
             List<?> list = config.getList("resource-pack.duplicated-files-handler");
             List<ConditionalResolution> resolutions = new ArrayList<>();
             for (int i = 0; i < list.size(); i++) {
-                ConditionalResolution.FACTORY.create(ConfigSection.of("resource-pack.duplicated-files-handler[" + i + "]", MiscUtils.castToMap(list.get(i))));
+                resolutions.add(ConditionalResolution.FACTORY.create(ConfigSection.of("resource-pack.duplicated-files-handler[" + i + "]", MiscUtils.castToMap(list.get(i)))));
             }
             resource_pack$duplicated_files_handler = resolutions;
         } catch (KnownResourceException e) {
             // todo 改进错误提示
-            this.plugin.logger().warn(TranslationManager.instance().plainTranslation(e.translationKey(), ));
+            // this.plugin.logger().warn(TranslationManager.instance().plainTranslation(e.translationKey(), ));
             TranslationManager.instance().log(e.node(), e.arguments());
             resource_pack$duplicated_files_handler = List.of();
         } catch (Exception e) {
