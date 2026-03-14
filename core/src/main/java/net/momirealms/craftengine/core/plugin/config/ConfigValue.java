@@ -272,6 +272,11 @@ public record ConfigValue(String path, @NotNull Object value) {
     public ConfigSection getAsSection() {
         if (this.value instanceof Map<?, ?> map) {
             return ConfigSection.of(this.path, (Map<String, Object>) map);
+        } else if (this.value instanceof List<?> list) {
+            Object first = list.getFirst();
+            if (first instanceof Map<?, ?> map) {
+                return ConfigSection.of(assemblePath(0), (Map<String, Object>) map);
+            }
         }
         throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.path, this.value.getClass().getSimpleName());
     }
@@ -280,6 +285,11 @@ public record ConfigValue(String path, @NotNull Object value) {
     public Map<String, Object> getAsMap() {
         if (this.value instanceof Map<?, ?> map) {
             return (Map<String, Object>) map;
+        } else if (this.value instanceof List<?> list) {
+            Object first = list.getFirst();
+            if (first instanceof Map<?, ?> map) {
+                return (Map<String, Object>) map;
+            }
         }
         throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, this.path, this.value.getClass().getSimpleName());
     }
