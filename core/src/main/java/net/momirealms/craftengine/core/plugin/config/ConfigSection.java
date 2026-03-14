@@ -190,7 +190,7 @@ public final class ConfigSection {
     public ConfigValue getNonNullValue(String key, String argType) {
         Object value = this.value.get(key);
         if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, key, TranslationManager.instance().translate(argType));
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, key, TranslationManager.instance().plainTranslation(argType));
         }
         return new ConfigValue(assemblePath(key), value);
     }
@@ -203,7 +203,7 @@ public final class ConfigSection {
                 return new ConfigValue(assemblePath(key), value);
             }
         }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().translate(argType));
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().plainTranslation(argType));
     }
 
     // 获取非空 config value 进行基础转换
@@ -476,7 +476,7 @@ public final class ConfigSection {
     public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass, Function<String, T> getter) {
         Object value = this.value.get(key);
         if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().translate(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
         }
         return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
     }
@@ -489,7 +489,7 @@ public final class ConfigSection {
                 return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
             }
         }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().translate(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
     }
 
     public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass, T def) {

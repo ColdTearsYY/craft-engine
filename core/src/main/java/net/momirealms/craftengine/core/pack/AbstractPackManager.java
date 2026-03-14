@@ -417,7 +417,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                     Pack pack = new Pack(path, new PackMeta(author, description, version, namespace), enable, subPacks.toArray(new String[0]));
                     this.loadedPacks.put(path.getFileName().toString(), pack);
-                    this.plugin.logger().info(TranslationManager.instance().translate("resource.pack_loaded", pack.folder().getFileName().toString(), namespace));
+                    this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource.pack_loaded", pack.folder().getFileName().toString(), namespace));
                 }
             }
         } catch (IOException e) {
@@ -569,7 +569,7 @@ public abstract class AbstractPackManager implements PackManager {
                 if (parser.silentIfNotExists() && count == 0) {
                     return;
                 }
-                this.plugin.logger().info(TranslationManager.instance().translate("resource.config_loaded",
+                this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource.config_loaded",
                        parser.loadingStage().name(), String.format("%.2f", ((t2 - t1) / 1_000_000.0)), String.valueOf(count)));
             });
         }
@@ -578,21 +578,21 @@ public abstract class AbstractPackManager implements PackManager {
             List<ResourceException> issues = entry.getValue();
             Path path = entry.getKey();
             if (path != null) {
-                this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detected", path.toString(), String.valueOf(issues.size())));
+                this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detected", path.toString(), String.valueOf(issues.size())));
                 for (int i = 0; i < issues.size(); i++) {
                     ResourceException issue = issues.get(i);
                     if (issue instanceof KnownResourceException) {
-                        this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+                        this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
                     } else {
-                        this.plugin.logger().severe(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), ""), issue);
+                        this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), ""), issue);
                     }
                 }
             } else {
                 // todo 异常
-                this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detected", "null", String.valueOf(issues.size())));
+                this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detected", "null", String.valueOf(issues.size())));
                 for (int i = 0; i < issues.size(); i++) {
                     ResourceException issue = issues.get(i);
-                    this.plugin.logger().warn(TranslationManager.instance().translate("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+                    this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
                 }
             }
         }
@@ -619,7 +619,7 @@ public abstract class AbstractPackManager implements PackManager {
 
     @Override
     public void generateResourcePack() {
-        this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.generation_started"));
+        this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.generation_started"));
         long time1 = System.currentTimeMillis();
 
         // Create cache data
@@ -632,7 +632,7 @@ public abstract class AbstractPackManager implements PackManager {
             Path generatedPackPath = fs.getPath("resource_pack");
             List<Pair<String, List<Path>>> duplicated = this.updateCachedAssets(cacheData, fs);
             if (!duplicated.isEmpty()) {
-                this.plugin.logger().severe(AdventureHelper.miniMessage().stripTags(TranslationManager.instance().miniMessageTranslation("warning.config.pack.duplicated_files")));
+                this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource_pack.duplicated_files"));
                 int x = 1;
                 for (Pair<String, List<Path>> path : duplicated) {
                     this.plugin.logger().warn("[ " + (x++) + " ] " + path.left());
@@ -672,7 +672,7 @@ public abstract class AbstractPackManager implements PackManager {
                 this.removeAllShaders(generatedPackPath);
             }
             long time2 = System.currentTimeMillis();
-            this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.generation_finished", String.valueOf(time2 - time1)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.generation_finished", String.valueOf(time2 - time1)));
 
             // 校验资源包
             if (Config.validateResourcePack()) {
@@ -680,7 +680,7 @@ public abstract class AbstractPackManager implements PackManager {
             }
             long time3 = System.currentTimeMillis();
             if (Config.validateResourcePack()) {
-                this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.validation_finished", String.valueOf(time3 - time2)));
+                this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.validation_finished", String.valueOf(time3 - time2)));
             }
 
             // 验证完成后，应该重新校验pack.mcmeta并写入
@@ -692,9 +692,9 @@ public abstract class AbstractPackManager implements PackManager {
             }
             long time4 = System.currentTimeMillis();
             if (Config.optimizeResourcePack()) {
-                this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.optimization_finished", String.valueOf(time4 - time3)));
+                this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.optimization_finished", String.valueOf(time4 - time3)));
             }
-            this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.compression_started"));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.compression_started"));
             Path finalPath = resourcePackPath();
             Files.createDirectories(finalPath.getParent());
             if (VersionHelper.PREMIUM && Config.createUnprotectedCopy()) {
@@ -711,7 +711,7 @@ public abstract class AbstractPackManager implements PackManager {
                 this.plugin.logger().severe("Error creating resource pack", e);
             }
             long time5 = System.currentTimeMillis();
-            this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.compression_finished", String.valueOf(time5 - time4)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.compression_finished", String.valueOf(time5 - time4)));
             this.generationEventDispatcher.accept(generatedPackPath, finalPath);
         } catch (IOException e) {
             this.plugin.logger().severe("Error generating resource pack", e);
@@ -987,7 +987,7 @@ public abstract class AbstractPackManager implements PackManager {
         }
 
         if (Config.optimizeJson()) {
-            this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.json_optimization_started"));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.json_optimization_started"));
             AtomicLong previousBytes = new AtomicLong(0L);
             AtomicLong afterBytes = new AtomicLong(0L);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -1054,11 +1054,11 @@ public abstract class AbstractPackManager implements PackManager {
             long originalSize = previousBytes.get();
             long optimizedSize = afterBytes.get();
             double compressionRatio = ((double) optimizedSize / originalSize) * 100;
-            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
         }
 
         if (Config.optimizeTexture()) {
-            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.texture"));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.optimize.texture"));
             AtomicLong previousBytes = new AtomicLong(0L);
             AtomicLong afterBytes = new AtomicLong(0L);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -1100,7 +1100,7 @@ public abstract class AbstractPackManager implements PackManager {
             long originalSize = previousBytes.get();
             long optimizedSize = afterBytes.get();
             double compressionRatio = ((double) optimizedSize / originalSize) * 100;
-            this.plugin.logger().info(TranslationManager.instance().translate("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
         }
     }
 
@@ -1213,7 +1213,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                 }
             }
-            this.plugin.logger().info(TranslationManager.instance().translate("resource_pack.validation_started",
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.validation_started",
                     String.valueOf(i + 1), String.valueOf(size), String.valueOf(segment.min()), String.valueOf(segment.max()), overlayInOrder.stream().map(Overlay::directory).toList().toString()));
             ValidationResult result = validateOverlayedResourcePack(rootPathList.toArray(new Path[0]), segment.max() >= MinecraftVersion.V1_21_11.packFormat().major(), fixedModels);
             if (Config.fixTextureAtlas() && !Config.enableObfuscation()) {
@@ -1434,7 +1434,7 @@ public abstract class AbstractPackManager implements PackManager {
                                 try {
                                     itemJson = GsonHelper.readJsonFile(file).getAsJsonObject();
                                 } catch (IOException | JsonParseException e) {
-                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().translate("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
+                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
                                     return FileVisitResult.CONTINUE;
                                 }
                                 Key item = Key.of(namespace, FileUtils.pathWithoutExtension(file.getFileName().toString()));
@@ -1459,7 +1459,7 @@ public abstract class AbstractPackManager implements PackManager {
                                 try {
                                     blockStateJson = GsonHelper.readJsonFile(file).getAsJsonObject();
                                 } catch (IOException | JsonParseException e) {
-                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().translate("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
+                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
                                     return FileVisitResult.CONTINUE;
                                 }
                                 String blockId = FileUtils.pathWithoutExtension(file.getFileName().toString());

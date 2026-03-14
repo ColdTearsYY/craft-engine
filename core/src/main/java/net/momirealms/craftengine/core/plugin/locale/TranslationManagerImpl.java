@@ -102,6 +102,7 @@ public final class TranslationManagerImpl implements TranslationManager {
     public void reload() {
         // clear old data
         this.clientLangData.clear();
+        this.serverLangData.clear();
         this.installed.clear();
         this.translationKeys.clear();
 
@@ -191,7 +192,7 @@ public final class TranslationManagerImpl implements TranslationManager {
             // 只处理没有国家/地区的locale
             if (locale.getCountry().isEmpty()) {
                 Map<String, String> translations = entry.getValue().translations();
-                this.serverLangData.computeIfAbsent(locale, k -> new LangData()).addTranslations(translations);
+                this.serverLangData.computeIfAbsent(locale, k -> new LangData(this.translationFallback::get)).addTranslations(translations);
                 this.installed.add(locale);
             }
         }
@@ -202,7 +203,7 @@ public final class TranslationManagerImpl implements TranslationManager {
             // 跳过已经注册的无国家locale
             if (!locale.getCountry().isEmpty()) {
                 Map<String, String> translations = entry.getValue().translations();
-                this.serverLangData.computeIfAbsent(locale, k -> new LangData()).addTranslations(translations);
+                this.serverLangData.computeIfAbsent(locale, k -> new LangData(this.translationFallback::get)).addTranslations(translations);
                 this.installed.add(locale);
 
                 // 如果需要，为有国家/地区的locale也注册无国家版本，可以提升一定的兼容性

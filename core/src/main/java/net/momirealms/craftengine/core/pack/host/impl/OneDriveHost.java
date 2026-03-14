@@ -77,7 +77,7 @@ public final class OneDriveHost implements ResourcePackHost {
             this.sha1 = cache.get("sha1");
             this.fileId = cache.get("file-id");
 
-            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.host.cache.load", "OneDrive"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "OneDrive"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn(
                     "[OneDrive] Failed to load cache" + cachePath, e);

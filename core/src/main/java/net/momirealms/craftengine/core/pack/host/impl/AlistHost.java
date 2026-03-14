@@ -85,7 +85,7 @@ public final class AlistHost implements ResourcePackHost {
                     new TypeToken<Map<String, String>>(){}.getType()
             );
             this.cachedSha1 = cache.get("sha1");
-            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.host.cache.load", "Alist"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "Alist"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn("[Alist] Failed to load cache " + cachePath, e);
         }

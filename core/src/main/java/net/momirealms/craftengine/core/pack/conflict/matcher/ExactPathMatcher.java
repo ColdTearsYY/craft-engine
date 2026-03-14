@@ -10,8 +10,8 @@ public record ExactPathMatcher(String path) implements Condition<PathContext> {
     public static final ConditionFactory<PathContext, ExactPathMatcher> FACTORY = new Factory();
 
     @Override
-    public boolean test(PathContext path) {
-        String pathStr = CharacterUtils.replaceBackslashWithSlash(path.path().toString());
+    public boolean test(PathContext context) {
+        String pathStr = CharacterUtils.replaceBackslashWithSlash(context.path().toString());
         return pathStr.equals(this.path);
     }
 

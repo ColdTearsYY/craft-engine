@@ -60,6 +60,24 @@ public interface TranslationManager extends Manageable {
 
     Component render(TranslatableComponent component, @Nullable Locale locale);
 
+    default String plainTranslation(String key, @Nullable Locale locale, String... arguments) {
+        String translation = miniMessageTranslation(key, locale);
+        if (translation == null) {
+            return key;
+        }
+        Component deserialize = AdventureHelper.customMiniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(arguments).map(Component::text).toList()));
+        return AdventureHelper.plainTextContent(deserialize);
+    }
+
+    default String plainTranslation(String key, String... arguments) {
+        String translation = miniMessageTranslation(key);
+        if (translation == null) {
+            return key;
+        }
+        Component deserialize = AdventureHelper.customMiniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(arguments).map(Component::text).toList()));
+        return AdventureHelper.plainTextContent(deserialize);
+    }
+
     static @Nullable Locale parseLocale(@Nullable String locale) {
         return locale == null || locale.isEmpty() ? null : Translator.parseLocale(locale);
     }
@@ -72,15 +90,6 @@ public interface TranslationManager extends Manageable {
         } else {
             return language + "_" + country;
         }
-    }
-
-    default String translate(String id, String... arguments) {
-        String translation = miniMessageTranslation(id);
-        if (translation == null) {
-            return id;
-        }
-        Component deserialize = AdventureHelper.customMiniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(arguments).map(Component::text).toList()));
-        return AdventureHelper.plainTextContent(deserialize);
     }
 
     Set<String> translationKeys();

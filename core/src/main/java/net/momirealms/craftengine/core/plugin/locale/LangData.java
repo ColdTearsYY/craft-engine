@@ -10,9 +10,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Function;
 
-public class LangData {
+public final class LangData {
     private static final Map<String, Function<String, List<String>>> LANG_KEY_PROCESSORS = new HashMap<>();
     public Map<String, String> translations = new LinkedHashMap<>(64);
+    private final Function<String, String> fallback;
+
+    public LangData(Function<String, String> fallback) {
+        this.fallback = fallback;
+    }
+
+    public LangData() {
+        this.fallback = (k) -> null;
+    }
 
     static {
         LANG_KEY_PROCESSORS.put("block_name", (id) -> {
@@ -68,7 +77,11 @@ public class LangData {
 
     @Nullable
     public String translate(String key) {
-        return this.translations.get(key);
+        String text = this.translations.get(key);
+        if (text == null) {
+            text = this.fallback.apply(key);
+        }
+        return text;
     }
 
     @Override

@@ -57,7 +57,7 @@ public final class GitLabHost implements ResourcePackHost {
             if (uuidString != null && !uuidString.isEmpty()) {
                 this.uuid = UUID.fromString(uuidString);
             }
-            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.host.cache.load", "GitLab"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "GitLab"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn(
                     "[GitLab] Failed to read cache file: " + cachePath, e);
