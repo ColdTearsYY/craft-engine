@@ -12,8 +12,8 @@ public record ParentPrefixPathMatcher(String prefix) implements Condition<PathCo
     public static final ConditionFactory<PathContext, ParentPrefixPathMatcher> FACTORY = new Factory();
 
     @Override
-    public boolean test(PathContext path) {
-        Path parent = path.path().getParent();
+    public boolean test(PathContext context) {
+        Path parent = context.path().getParent();
         if (parent == null) return false;
         String pathStr = CharacterUtils.replaceBackslashWithSlash(parent.toString());
         return pathStr.startsWith(this.prefix);

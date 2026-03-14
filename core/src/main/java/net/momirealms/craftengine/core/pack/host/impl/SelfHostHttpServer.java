@@ -173,7 +173,7 @@ public final class SelfHostHttpServer {
                 });
         try {
             this.serverChannel = b.bind(this.port).sync().channel();
-            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.host.self.netty_server", String.valueOf(this.port)));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.self.netty_server", String.valueOf(this.port)));
         } catch (InterruptedException e) {
             CraftEngine.instance().logger().warn("Failed to start Netty server", e);
             Thread.currentThread().interrupt();

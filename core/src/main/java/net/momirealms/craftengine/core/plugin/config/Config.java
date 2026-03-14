@@ -425,6 +425,7 @@ public final class Config {
             resource_pack$duplicated_files_handler = resolutions;
         } catch (KnownResourceException e) {
             // todo 改进错误提示
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation(e.translationKey(), ));
             TranslationManager.instance().log(e.node(), e.arguments());
             resource_pack$duplicated_files_handler = List.of();
         } catch (Exception e) {

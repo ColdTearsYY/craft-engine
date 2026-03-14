@@ -60,7 +60,7 @@ public final class DropboxHost implements ResourcePackHost {
             this.refreshToken = getString(cache, "refresh_token");
             this.accessToken = getString(cache, "access_token");
             this.expiresAt = getLong(cache, "expires_at");
-            CraftEngine.instance().logger().info(TranslationManager.instance().translate("info.host.cache.load", "Dropbox"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "Dropbox"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn("[Dropbox] Failed to load cache " + cachePath, e);
         }

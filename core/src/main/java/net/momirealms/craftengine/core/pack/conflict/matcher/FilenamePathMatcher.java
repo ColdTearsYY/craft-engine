@@ -9,8 +9,8 @@ public record FilenamePathMatcher(String name) implements Condition<PathContext>
     public static final ConditionFactory<PathContext, FilenamePathMatcher> FACTORY = new Factory();
 
     @Override
-    public boolean test(PathContext path) {
-        String fileName = String.valueOf(path.path().getFileName());
+    public boolean test(PathContext context) {
+        String fileName = String.valueOf(context.path().getFileName());
         return fileName.equals(name);
     }
 

@@ -75,6 +75,8 @@ import net.momirealms.craftengine.core.plugin.network.codec.NetworkCodec;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
+import java.util.function.Supplier;
+
 public final class BuiltInRegistries {
     public static final Registry<CustomBlock> BLOCK = new BlockRegistry<>(Registries.BLOCK, 512);
     public static final Registry<BlockBehaviorType<? extends BlockBehavior>> BLOCK_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.BLOCK_BEHAVIOR_TYPE, 64);
@@ -121,6 +123,10 @@ public final class BuiltInRegistries {
     private BuiltInRegistries() {}
 
     private static <T> Registry<T> createConstantBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
+        return new ConstantBoundRegistry<>(key, expectedSize);
+    }
+
+    private static <T> Registry<T> createConstantBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize, Supplier<T> initializer) {
         return new ConstantBoundRegistry<>(key, expectedSize);
     }
 }

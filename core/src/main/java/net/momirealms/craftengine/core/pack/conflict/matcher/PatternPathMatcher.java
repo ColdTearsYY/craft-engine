@@ -25,8 +25,8 @@ public final class PatternPathMatcher implements Condition<PathContext> {
     }
 
     @Override
-    public boolean test(PathContext path) {
-        String pathStr = CharacterUtils.replaceBackslashWithSlash(path.path().toString());
+    public boolean test(PathContext context) {
+        String pathStr = CharacterUtils.replaceBackslashWithSlash(context.path().toString());
         return this.pattern.matcher(pathStr).matches();
     }
 
