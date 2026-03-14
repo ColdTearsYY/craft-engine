@@ -117,6 +117,10 @@ public abstract class AbstractFontManager implements FontManager {
 
     @Override
     public void delayedLoad() {
+        Player[] players = CraftEngine.instance().networkManager().onlineUsers();
+        for (Player player : players) {
+            this.removeEmojiSuggestions(player);
+        }
         Optional.ofNullable(this.fonts.get(DEFAULT_FONT)).ifPresent(font -> this.illegalChars.addAll(font.codepointsInUse()));
         // global shift l10n image
         this.buildEmojiKeywordsTrie();
@@ -124,6 +128,9 @@ public abstract class AbstractFontManager implements FontManager {
         this.allEmojiSuggestions = this.emojis.values().stream()
                 .flatMap(emoji -> emoji.keywords().stream())
                 .collect(ImmutableList.toImmutableList());
+        for (Player player : players) {
+            this.addEmojiSuggestions(player);
+        }
     }
 
     @Override

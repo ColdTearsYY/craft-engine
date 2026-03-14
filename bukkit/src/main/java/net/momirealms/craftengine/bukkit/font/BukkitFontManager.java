@@ -7,6 +7,7 @@ import io.papermc.paper.event.player.AsyncChatDecorateEvent;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
+import net.momirealms.craftengine.bukkit.plugin.network.BukkitNetworkManager;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
 import net.momirealms.craftengine.bukkit.util.InventoryUtils;
@@ -64,18 +65,6 @@ public final class BukkitFontManager extends AbstractFontManager implements List
     public void disable() {
         super.disable();
         HandlerList.unregisterAll(this);
-    }
-
-    @Override
-    public void delayedLoad() {
-        Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-        for (Player player : players) {
-            this.removeEmojiSuggestions(BukkitAdaptors.adapt(player));
-        }
-        super.delayedLoad();
-        for (Player player : players) {
-            this.refreshEmojiSuggestions(player.getUniqueId());
-        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
