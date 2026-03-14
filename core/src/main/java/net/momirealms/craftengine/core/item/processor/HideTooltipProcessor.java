@@ -206,10 +206,11 @@ public final class HideTooltipProcessor implements ItemProcessor {
 
         @Override
         public <I> void apply(Item<I> item) {
-            Map<String, Object> data = MiscUtils.castToMap(item.getJavaComponent(DataComponentKeys.TOOLTIP_DISPLAY), true);
-            if (data == null) {
+            Object tooltipDisplayJava = item.getJavaComponent(DataComponentKeys.TOOLTIP_DISPLAY);
+            if (tooltipDisplayJava == null) {
                 item.setJavaComponent(DataComponentKeys.TOOLTIP_DISPLAY, Map.of("hidden_components", this.components));
             } else {
+                Map<String, Object> data = MiscUtils.castToMap(tooltipDisplayJava);
                 if (data.get("hidden_components") instanceof List<?> list) {
                     List<String> hiddenComponents = list.stream().map(Object::toString).toList();
                     List<String> mergedComponents = Stream.concat(

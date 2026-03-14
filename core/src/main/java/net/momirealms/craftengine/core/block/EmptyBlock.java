@@ -14,7 +14,7 @@ public final class EmptyBlock extends AbstractCustomBlock {
     public static final ImmutableBlockState STATE;
 
     static {
-        Holder.Reference<CustomBlock> holder = ((WritableRegistry<CustomBlock>) BuiltInRegistries.BLOCK).registerForHolder(ResourceKey.create(BuiltInRegistries.BLOCK.key().location(), Key.withDefaultNamespace("empty")));
+        Holder.Reference<CustomBlock> holder = ((WritableRegistry<CustomBlock>) BuiltInRegistries.BLOCK).registerForHolder(ResourceKey.create(BuiltInRegistries.BLOCK.key().location(), Key.withCraftEngineNamespace("empty")));
         INSTANCE = new EmptyBlock(holder);
         holder.bindValue(INSTANCE);
         STATE = INSTANCE.defaultState();

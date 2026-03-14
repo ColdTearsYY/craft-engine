@@ -18,7 +18,7 @@ public final class ListTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public List<Object> get(Map<String, TemplateArgument> arguments) {
+    public List<Object> get(String node, Map<String, TemplateArgument> arguments) {
         return this.value;
     }
 

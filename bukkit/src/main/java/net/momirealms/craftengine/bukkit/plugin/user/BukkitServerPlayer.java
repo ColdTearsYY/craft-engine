@@ -866,8 +866,8 @@ public class BukkitServerPlayer extends Player {
             } else {
                 if (VersionHelper.isOrAbove1_20_5()) {
                     Object attributeModifier = VersionHelper.isOrAbove1_21() ?
-                            AttributeModifierProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(Key.DEFAULT_NAMESPACE, "custom_hardness"), -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE) :
-                            AttributeModifierProxy.INSTANCE.newInstance(UUID.randomUUID(), Key.DEFAULT_NAMESPACE + ":custom_hardness", -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE);
+                            AttributeModifierProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(Key.CRAFTENGINE_NAMESPACE, "custom_hardness"), -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE) :
+                            AttributeModifierProxy.INSTANCE.newInstance(UUID.randomUUID(), Key.CRAFTENGINE_NAMESPACE + ":custom_hardness", -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE);
                     Object attributeSnapshot = ClientboundUpdateAttributesPacketProxy.AttributeSnapshotProxy.INSTANCE.newInstance(AttributesProxy.BLOCK_BREAK_SPEED, 1d, Lists.newArrayList(attributeModifier));
                     Object newPacket = ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance(entityId(), Lists.newArrayList(attributeSnapshot));
                     sendPacket(newPacket, true);

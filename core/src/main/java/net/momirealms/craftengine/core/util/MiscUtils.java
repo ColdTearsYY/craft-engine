@@ -367,40 +367,10 @@ public final class MiscUtils {
             if (clazz.isInstance(list.getFirst())) {
                 return (List<T>) list;
             }
-        }
-        if (clazz.isInstance(o)) {
+        } else if (clazz.isInstance(o)) {
             return List.of((T) o);
         }
         return List.of();
-    }
-
-    @SuppressWarnings("unchecked")
-    public static void deepMergeMaps(Map<String, Object> baseMap, Map<String, Object> mapToMerge) {
-        for (Map.Entry<String, Object> entry : mapToMerge.entrySet()) {
-            String key = entry.getKey();
-            if (key.length() > 2 && key.charAt(0) == '$' && key.charAt(1) == '$') {
-                Object value = entry.getValue();
-                baseMap.put(key.substring(1), value);
-            } else {
-                Object value = entry.getValue();
-                if (baseMap.containsKey(key)) {
-                    Object existingValue = baseMap.get(key);
-                    if (existingValue instanceof Map && value instanceof Map) {
-                        Map<String, Object> existingMap = (Map<String, Object>) existingValue;
-                        Map<String, Object> newMap = (Map<String, Object>) value;
-                        deepMergeMaps(existingMap, newMap);
-                    } else if (existingValue instanceof List && value instanceof List) {
-                        List<Object> existingList = (List<Object>) existingValue;
-                        List<Object> newList = (List<Object>) value;
-                        existingList.addAll(newList);
-                    } else {
-                        baseMap.put(key, value);
-                    }
-                } else {
-                    baseMap.put(key, value);
-                }
-            }
-        }
     }
 
     public static <T> T requireNonNullIf(T o, boolean condition) {

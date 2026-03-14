@@ -1,9 +1,4 @@
-import net.momirealms.adventure
-import net.momirealms.cloud
-import net.momirealms.common
-import net.momirealms.compression
-import net.momirealms.nbt
-import net.momirealms.netty
+import net.momirealms.*
 
 plugins {
     id("craft-engine-publish")
@@ -18,7 +13,6 @@ repositories {
 }
 
 dependencies {
-    // NBT
     nbt(project, true)
     netty(project)
     common(project)

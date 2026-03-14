@@ -354,7 +354,7 @@ public abstract class AbstractFontManager implements FontManager {
             if (imageValue != null) {
                 ConfigValue[] split = imageValue.splitValues(":", 4);
                 if (split.length == 2) {
-                    Key imageId = new Key(split[0].getAsString(), split[1].getAsString());
+                    Key imageId = Key.of(split[0].getAsString(), split[1].getAsString());
                     Optional<Image> bitmapImage = imageById(imageId);
                     if (bitmapImage.isPresent() && bitmapImage.get() != DummyImage.INSTANCE) {
                         image = bitmapImage.get().miniMessageAt(0, 0);
@@ -362,7 +362,7 @@ public abstract class AbstractFontManager implements FontManager {
                         throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
                     }
                 } else if (split.length == 4) {
-                    Key imageId = new Key(split[0].getAsString(), split[1].getAsString());
+                    Key imageId = Key.of(split[0].getAsString(), split[1].getAsString());
                     Optional<Image> bitmapImage = imageById(imageId);
                     if (bitmapImage.isPresent() && bitmapImage.get() != DummyImage.INSTANCE) {
                         image = bitmapImage.get().miniMessageAt(split[2].getAsInt(), split[3].getAsInt());

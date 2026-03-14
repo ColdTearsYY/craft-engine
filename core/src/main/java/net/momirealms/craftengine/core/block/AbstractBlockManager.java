@@ -18,7 +18,6 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.entity.culling.CullingData;
 import net.momirealms.craftengine.core.loot.LootTable;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.pack.allocator.BlockStateCandidate;
 import net.momirealms.craftengine.core.pack.allocator.IdAllocator;
 import net.momirealms.craftengine.core.pack.allocator.VisualBlockStateAllocator;
@@ -333,7 +332,6 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
 
     private final class BlockParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[]{"blocks", "block"};
-
 
         @Override
         public int count() {

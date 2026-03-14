@@ -39,7 +39,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
                         if (optional.isEmpty()) {
                             canSet = true;
                         } else {
-                            Map<String, Object> equippableData = MiscUtils.castToMap(optional.get(), false);
+                            Map<String, Object> equippableData = MiscUtils.castToMap(optional.get());
                             Key defaultAssetId = equippableData.containsKey("asset_id") ? Key.of((String) equippableData.get("asset_id")) : null;
                             // 如果默认值和之前值相同，则可以覆写
                             if (Objects.equals(defaultAssetId, previousAssetId)) {

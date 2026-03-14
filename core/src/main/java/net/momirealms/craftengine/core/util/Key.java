@@ -4,12 +4,27 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.UnaryOperator;
 
-public record Key(String namespace, String value) {
-    public static final String DEFAULT_NAMESPACE = "craftengine";
+public final class Key {
+    public static final String CRAFTENGINE_NAMESPACE = "craftengine";
     public static final String MINECRAFT_NAMESPACE = "minecraft";
+    private final String namespace;
+    private final String value;
 
-    public static Key withDefaultNamespace(String value) {
-        return new Key(DEFAULT_NAMESPACE, value);
+    private Key(String namespace, String value) {
+        this.namespace = namespace;
+        this.value = value;
+    }
+
+    public String namespace() {
+        return this.namespace;
+    }
+
+    public String value() {
+        return this.value;
+    }
+
+    public static Key withCraftEngineNamespace(String value) {
+        return new Key(CRAFTENGINE_NAMESPACE, value);
     }
 
     public static Key of(String namespace, String value) {
@@ -29,7 +44,7 @@ public record Key(String namespace, String value) {
     }
 
     public static Key ce(String namespacedId) {
-        return of(decompose(namespacedId, DEFAULT_NAMESPACE));
+        return of(decompose(namespacedId, CRAFTENGINE_NAMESPACE));
     }
 
     public static Key from(String namespacedId) {

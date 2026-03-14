@@ -195,6 +195,7 @@ resource.furniture.hitbox.unknown_type: "Unknown furniture hitbox type '<arg:0>'
 resource.furniture.behavior.unknown_type: "Unknown furniture behavior type '<arg:0>'"
 resource.template.unknown_argument_type: "Unknown template argument type '<arg:0>'"
 resource.template.invalid_template: "Invalid template '<arg:0>'"
+resource.template.missing_argument: "Missing template argument: '<arg:0>'. Please provide this argument using the 'arguments' option or set a default value for it"
 resource.block.behavior.missing_property: "Behavior requires the block state property '<arg:0>' to be defined. (https://xiao-momi.github.io/craft-engine-wiki/configuration/block/states/properties)"
 resource.block.behavior.property_type_mismatch: "Expected property typed '<arg:0>', but got '<arg:1>'"
 resource.block.behavior.unknown_type: "Unknown block behavior type '<arg:0>'"

@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.plugin.locale;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.momirealms.craftengine.core.pack.Pack;
@@ -13,6 +15,8 @@ import net.momirealms.craftengine.core.plugin.text.minimessage.ImageTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.IndexedArgumentTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.ShiftTag;
 import net.momirealms.craftengine.core.util.AdventureHelper;
+import net.momirealms.craftengine.core.util.FileUtils;
+import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,7 +35,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public final class TranslationManagerImpl implements TranslationManager {
     private static final Locale DEFAULT_LOCALE = Locale.ENGLISH;
@@ -59,13 +62,29 @@ public final class TranslationManagerImpl implements TranslationManager {
         this.plugin = plugin;
         this.translationsDirectory = this.plugin.dataFolderPath().resolve("translations");
         this.langVersion = PluginProperties.getValue("lang-version");
-        this.supportedLanguages = Arrays.stream(PluginProperties.getValue("supported-languages").split(",")).collect(Collectors.toSet());
+        this.supportedLanguages = getSupportedLanguages();
         this.langParser = new LangParser();
         this.translationParser = new TranslationParser();
         try (InputStream is = plugin.resourceStream("translations/en.yml")) {
             this.translationFallback.putAll(TRANSLATION_YAML.load(is));
         } catch (IOException e) {
             CraftEngine.instance().logger().warn("Failed to load default translation file", e);
+        }
+    }
+
+    private Set<String> getSupportedLanguages() {
+        InputStream stream = this.plugin.resourceStream("translations/_index.json");
+        if (stream == null) return Set.of();
+        try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+            JsonObject json = GsonHelper.get().fromJson(reader, JsonObject.class);
+            Set<String> supportedLanguages = new HashSet<>();
+            for (JsonElement file : json.getAsJsonArray("file")) {
+                supportedLanguages.add(FileUtils.pathWithoutExtension(file.getAsString()));
+            }
+            return supportedLanguages;
+        } catch (IOException e) {
+            this.plugin.logger().warn("Failed to load default translation file", e);
+            return Set.of();
         }
     }
 

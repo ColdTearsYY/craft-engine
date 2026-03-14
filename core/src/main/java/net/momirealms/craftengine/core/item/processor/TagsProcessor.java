@@ -23,7 +23,7 @@ public final class TagsProcessor implements ItemProcessor {
                 this.arguments.put(entry.getKey().substring(1), entry.getValue());
             } else {
                 if (entry.getValue() instanceof Map<?,?> innerMap) {
-                    processTags(entry.getKey(), MiscUtils.castToMap(innerMap, false), this.arguments::put);
+                    processTags(entry.getKey(), MiscUtils.castToMap(innerMap), this.arguments::put);
                 } else {
                     this.arguments.put(entry.getKey(), entry.getValue());
                 }
@@ -41,7 +41,7 @@ public final class TagsProcessor implements ItemProcessor {
                 callback.accept(path + "." + entry.getKey().substring(1), entry.getValue());
             } else {
                 if (entry.getValue() instanceof Map<?,?> innerMap) {
-                    processTags(path + "." + entry.getKey(), MiscUtils.castToMap(innerMap, false), callback);
+                    processTags(path + "." + entry.getKey(), MiscUtils.castToMap(innerMap), callback);
                 } else {
                     callback.accept(path + "." + entry.getKey(), entry.getValue());
                 }

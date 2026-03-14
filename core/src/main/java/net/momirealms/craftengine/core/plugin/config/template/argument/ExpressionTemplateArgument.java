@@ -21,8 +21,8 @@ public final class ExpressionTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public Object get(Map<String, TemplateArgument> arguments) {
-        String expression = Optional.ofNullable(this.expression.get(arguments)).map(String::valueOf).orElse(null);
+    public Object get(String node, Map<String, TemplateArgument> arguments) {
+        String expression = Optional.ofNullable(this.expression.get(node, arguments)).map(String::valueOf).orElse(null);
         if (expression == null) return null;
         try {
             return this.valueType.formatter().apply(new Expression(expression).evaluate());

@@ -3,7 +3,6 @@ package net.momirealms.craftengine.core.util;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.plugin.config.template;
 
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.config.template.argument.TemplateArgument;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.TagParser;
@@ -11,7 +12,7 @@ import java.util.Map;
 public interface ArgumentString {
     String rawValue();
 
-    Object get(Map<String, TemplateArgument> arguments);
+    Object get(String node, Map<String, TemplateArgument> arguments);
 
     final class Literal implements ArgumentString {
         private final String value;
@@ -30,7 +31,7 @@ public interface ArgumentString {
         }
 
         @Override
-        public Object get(Map<String, TemplateArgument> arguments) {
+        public Object get(String node, Map<String, TemplateArgument> arguments) {
             return this.value;
         }
 
@@ -67,12 +68,7 @@ public interface ArgumentString {
             } else {
                 this.placeholder = placeholderContent.substring(0, separatorIndex);
                 String defaultValueString = placeholderContent.substring(separatorIndex + 2);
-                Object parsed;
-                try {
-                    parsed = TagParser.parseObjectFully(defaultValueString);
-                } catch (Exception e) {
-                    throw new LocalizedResourceConfigException("warning.config.type.snbt.invalid_syntax", e.getMessage());
-                }
+                Object parsed = TagParser.parseObjectFully(defaultValueString); // just let it throw
                 try {
                     this.defaultValue = ((TemplateManagerImpl) TemplateManager.INSTANCE).preprocessUnknownValue(parsed);
                 } catch (LocalizedResourceConfigException e) {
@@ -88,18 +84,18 @@ public interface ArgumentString {
         }
 
         @Override
-        public Object get(Map<String, TemplateArgument> arguments) {
+        public Object get(String node, Map<String, TemplateArgument> arguments) {
             TemplateArgument replacement = arguments.get(this.placeholder);
             if (replacement != null) {
-                return replacement.get(arguments);
+                return replacement.get(node, arguments);
             }
             if (this.hasDefaultValue) {
                 if (this.defaultValue == null) {
                     return null;
                 }
-                return ((TemplateManagerImpl) TemplateManager.INSTANCE).processUnknownValue(this.defaultValue, arguments);
+                return ((TemplateManagerImpl) TemplateManager.INSTANCE).processUnknownValue(node, this.defaultValue, arguments);
             }
-            throw new LocalizedResourceConfigException("warning.config.template.argument.missing_value", this.rawText);
+            throw new KnownResourceException("resource.template.missing_argument", node, this.rawText);
         }
 
         @Override
@@ -136,9 +132,9 @@ public interface ArgumentString {
         }
 
         @Override
-        public Object get(Map<String, TemplateArgument> arguments) {
-            Object arg1 = this.arg1.get(arguments);
-            Object arg2 = this.arg2.get(arguments);
+        public Object get(String node, Map<String, TemplateArgument> arguments) {
+            Object arg1 = this.arg1.get(node, arguments);
+            Object arg2 = this.arg2.get(node, arguments);
             if (arg1 == null && arg2 == null) return null;
             if (arg1 == null) return String.valueOf(arg2);
             if (arg2 == null) return String.valueOf(arg1);
@@ -181,10 +177,10 @@ public interface ArgumentString {
         }
 
         @Override
-        public Object get(Map<String, TemplateArgument> arguments) {
-            Object arg1 = this.arg1.get(arguments);
-            Object arg2 = this.arg2.get(arguments);
-            Object arg3 = this.arg3.get(arguments);
+        public Object get(String node, Map<String, TemplateArgument> arguments) {
+            Object arg1 = this.arg1.get(node, arguments);
+            Object arg2 = this.arg2.get(node, arguments);
+            Object arg3 = this.arg3.get(node, arguments);
             StringBuilder builder = new StringBuilder();
             if (arg1 != null) {
                 builder.append(arg1);
@@ -230,11 +226,11 @@ public interface ArgumentString {
         }
 
         @Override
-        public Object get(Map<String, TemplateArgument> arguments) {
+        public Object get(String node, Map<String, TemplateArgument> arguments) {
             StringBuilder result = new StringBuilder();
             boolean hasValue = false;
             for (ArgumentString part : this.parts) {
-                Object arg = part.get(arguments);
+                Object arg = part.get(node, arguments);
                 if (arg != null) {
                     result.append(arg);
                     hasValue = true;
