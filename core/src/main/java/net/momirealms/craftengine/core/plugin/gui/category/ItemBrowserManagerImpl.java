@@ -4,10 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.momirealms.craftengine.core.entity.player.Player;
-import net.momirealms.craftengine.core.item.Item;
-import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemKeys;
-import net.momirealms.craftengine.core.item.ItemManager;
+import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.item.recipe.*;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -131,8 +128,8 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             String name = section.getString("name", id.asString());
             List<String> members;
             if (section.getBoolean(ALL_ITEMS)) {
-                ItemManager itemManager = ItemBrowserManagerImpl.this.plugin.itemManager();
-                members = itemManager.loadedItems().keySet().stream().filter(it -> !itemManager.isVanillaItem(it)).map(Key::asString).collect(Collectors.toList());
+                AbstractItemManager itemManager = (AbstractItemManager) ItemBrowserManagerImpl.this.plugin.itemManager();
+                members = itemManager.orderedItemIds().stream().filter(it -> !itemManager.isVanillaItem(it)).map(Key::asString).collect(Collectors.toList());
             } else {
                 members = section.getStringList("list");
             }

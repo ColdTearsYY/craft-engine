@@ -13,6 +13,7 @@ import net.momirealms.craftengine.core.item.updater.ItemUpdater;
 import net.momirealms.craftengine.core.item.updater.ItemUpdaters;
 import net.momirealms.craftengine.core.pack.AbstractPackManager;
 import net.momirealms.craftengine.core.pack.Pack;
+import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.pack.allocator.IdAllocator;
 import net.momirealms.craftengine.core.pack.model.definition.*;
 import net.momirealms.craftengine.core.pack.model.definition.select.ChargeTypeSelectProperty;
@@ -39,6 +40,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -50,7 +53,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
     private final ItemParser itemParser;
     private final EquipmentParser equipmentParser;
-    protected final Map<Key, CustomItem> customItemsById = new LinkedHashMap<>();
+    protected final Map<Key, CustomItem> customItemsById = new HashMap<>();
     protected final Map<String, CustomItem> customItemsByPath = new HashMap<>();
     protected final Map<Key, List<UniqueKey>> customItemTags = new HashMap<>();
     protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new ConcurrentHashMap<>();
@@ -65,6 +68,8 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     protected final List<Suggestion> cachedTotemSuggestions = new ArrayList<>();
     // 替代配方材料
     protected final Map<Key, List<UniqueKey>> ingredientSubstitutes = new HashMap<>();
+
+    protected List<Key> orderedItemIds = List.of();
 
     protected boolean featureFlag$keepOnDeathChance = false;
     protected boolean featureFlag$destroyOnDeathChance = false;
@@ -257,6 +262,10 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         return Collections.unmodifiableMap(this.customItemsById);
     }
 
+    public List<Key> orderedItemIds() {
+        return this.orderedItemIds;
+    }
+
     @Override
     public Map<Key, ModernItemModel> modernItemModels1_21_4() {
         return Collections.unmodifiableMap(this.modernItemModels1_21_4);
@@ -425,12 +434,26 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                     AbstractItemManager.this.plugin.logger().warn("Error while saving custom model data allocation for material " + entry.getKey().asString(), e);
                 }
             }
+
             CompletableFutures.allOf(this.futures).join();
             for (CustomItem customItem : this.customItems) {
                 addCustomItem(customItem);
             }
+
             this.futures.clear();
             this.customItems.clear();
+
+            // 获取有序的物品id
+            int size = this.pendingConfigSections.size();
+            Object[] pendingElements = this.pendingConfigSections.elements();
+            List<Key> orderedKeys = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                PendingConfigSection pending = (PendingConfigSection) pendingElements[i];
+                if (customItemsById.containsKey(pending.id)) {
+                    orderedKeys.add(pending.id);
+                }
+            }
+            AbstractItemManager.this.orderedItemIds = orderedKeys;
         }
 
         // 创建或获取已有的自动分配器

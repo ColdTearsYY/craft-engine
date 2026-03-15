@@ -127,7 +127,7 @@ public abstract class AbstractPackManager implements PackManager {
     private final CraftEngine plugin;
     private final Consumer<PackCacheData> cacheEventDispatcher;
     private final BiConsumer<Path, Path> generationEventDispatcher;
-    private final Map<String, Pack> loadedPacks = new HashMap<>();
+    private final Map<String, Pack> loadedPacks = new LinkedHashMap<>();
     private final Map<String, ConfigParser> sectionParsers = new HashMap<>();
     private final List<ConfigParser> parsers = new ArrayList<>();
     public final JsonObject vanillaBlockAtlas;
