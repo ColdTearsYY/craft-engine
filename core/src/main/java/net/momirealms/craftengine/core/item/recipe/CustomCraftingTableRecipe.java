@@ -8,18 +8,18 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Predicate;
 
-public abstract class CustomCraftingTableRecipe<T> extends AbstractGroupedRecipe<T>
-        implements ConditionalRecipe<T>, VisualResultRecipe<T>, FunctionalRecipe<T> {
+public abstract class CustomCraftingTableRecipe extends AbstractGroupedRecipe
+        implements ConditionalRecipe, VisualResultRecipe, FunctionalRecipe {
     protected final CraftingRecipeCategory category;
-    private final CustomRecipeResult<T> visualResult;
+    private final CustomRecipeResult visualResult;
     private final Function<Context>[] craftingFunctions;
     private final Predicate<Context> craftingCondition;
     private final boolean alwaysRebuildResult;
 
     protected CustomCraftingTableRecipe(Key id,
                                         boolean showNotification,
-                                        CustomRecipeResult<T> result,
-                                        @Nullable CustomRecipeResult<T> visualResult,
+                                        CustomRecipeResult result,
+                                        @Nullable CustomRecipeResult visualResult,
                                         String group,
                                         CraftingRecipeCategory category,
                                         Function<Context>[] craftingFunctions,
@@ -58,7 +58,7 @@ public abstract class CustomCraftingTableRecipe<T> extends AbstractGroupedRecipe
     }
 
     @Override
-    public CustomRecipeResult<T> visualResult() {
+    public CustomRecipeResult visualResult() {
         return this.visualResult;
     }
 

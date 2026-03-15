@@ -103,7 +103,7 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         List<AttributeModifier> results = new ArrayList<>(this.modifiers.size());
         for (PreModifier modifier : this.modifiers) {
             results.add(modifier.toAttributeModifier(item, context));
@@ -112,17 +112,17 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ATTRIBUTE_MODIFIERS;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "AttributeModifiers";
     }
 
@@ -142,7 +142,7 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
             this.display = display;
         }
 
-        public <I> AttributeModifier toAttributeModifier(Item<I> item, ItemBuildContext context) {
+        public <I> AttributeModifier toAttributeModifier(Item item, ItemBuildContext context) {
             return new AttributeModifier(this.type, this.slot, this.id.orElseGet(() -> Key.of("craftengine", UUID.randomUUID().toString())),
                     this.amount.getDouble(context), this.operation, this.display == null ? null : this.display.toDisplay(context));
         }

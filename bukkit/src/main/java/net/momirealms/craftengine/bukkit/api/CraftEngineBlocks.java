@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.bukkit.api;
 
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
@@ -213,7 +212,7 @@ public final class CraftEngineBlocks {
                 serverPlayer = BukkitAdaptor.adapt(player);
                 builder.withOptionalParameter(DirectContextParameters.PLAYER, serverPlayer);
             }
-            for (Item<?> item : state.getDrops(builder, world, serverPlayer)) {
+            for (Item item : state.getDrops(builder, world, serverPlayer)) {
                 world.dropItemNaturally(position, item);
             }
         }

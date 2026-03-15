@@ -26,7 +26,7 @@ public final class ArgumentsProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         Map<String, String> processed = new HashMap<>();
         for (Map.Entry<String, TextProvider> entry : this.arguments.entrySet()) {
             processed.put(entry.getKey(), entry.getValue().get(context));

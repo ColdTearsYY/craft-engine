@@ -16,10 +16,10 @@ import java.nio.file.Path;
 import java.util.*;
 
 public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
-    protected final Map<RecipeType, List<Recipe<T>>> byType = new EnumMap<>(RecipeType.class);
-    protected final Map<Key, Recipe<T>> byId = new LinkedHashMap<>();
-    protected final Map<Key, List<Recipe<T>>> byResult = new HashMap<>();
-    protected final Map<Key, List<Recipe<T>>> byIngredient = new HashMap<>();
+    protected final Map<RecipeType, List<Recipe>> byType = new EnumMap<>(RecipeType.class);
+    protected final Map<Key, Recipe> byId = new LinkedHashMap<>();
+    protected final Map<Key, List<Recipe>> byResult = new HashMap<>();
+    protected final Map<Key, List<Recipe>> byIngredient = new HashMap<>();
     protected final Map<Key, List<IngredientUnlockable>> ingredientUnlockable = new HashMap<>();
     protected final Set<Key> dataPackRecipes = new HashSet<>();
     protected final ConfigParser recipeParser;
@@ -58,31 +58,31 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
     }
 
     @Override
-    public Optional<Recipe<T>> recipeById(Key key) {
+    public Optional<Recipe> recipeById(Key key) {
         return Optional.ofNullable(this.byId.get(key));
     }
 
     @Override
-    public List<Recipe<T>> recipesByType(RecipeType type) {
+    public List<Recipe> recipesByType(RecipeType type) {
         return this.byType.getOrDefault(type, List.of());
     }
 
     @Override
-    public List<Recipe<T>> recipeByResult(Key result) {
+    public List<Recipe> recipeByResult(Key result) {
         return this.byResult.getOrDefault(result, List.of());
     }
 
     @Override
-    public List<Recipe<T>> recipeByIngredient(Key ingredient) {
+    public List<Recipe> recipeByIngredient(Key ingredient) {
         return this.byIngredient.getOrDefault(ingredient, List.of());
     }
 
     @Nullable
     @Override
-    public Recipe<T> recipeByInput(RecipeType type, RecipeInput input) {
-        List<Recipe<T>> recipes = this.byType.get(type);
+    public Recipe recipeByInput(RecipeType type, RecipeInput input) {
+        List<Recipe> recipes = this.byType.get(type);
         if (recipes == null) return null;
-        for (Recipe<T> recipe : recipes) {
+        for (Recipe recipe : recipes) {
             if (recipe.matches(input)) {
                 return recipe;
             }
@@ -92,9 +92,9 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
 
     @Nullable
     @Override
-    public Recipe<T> recipeByInput(RecipeType type, RecipeInput input, Key lastRecipe) {
+    public Recipe recipeByInput(RecipeType type, RecipeInput input, Key lastRecipe) {
         if (lastRecipe != null) {
-            Recipe<T> last = this.byId.get(lastRecipe);
+            Recipe last = this.byId.get(lastRecipe);
             if (last != null && last.matches(input)) {
                 return last;
             }
@@ -106,17 +106,17 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         return this.ingredientUnlockable.getOrDefault(item, List.of());
     }
 
-    protected boolean registerInternalRecipe(Recipe<T> recipe, boolean unlockOnIngredientObtained) {
+    protected boolean registerInternalRecipe(Recipe recipe, boolean unlockOnIngredientObtained) {
         if (this.byId.containsKey(recipe.id())) return false;
         this.byType.computeIfAbsent(recipe.type(), k -> new ArrayList<>()).add(recipe);
         this.byId.put(recipe.id(), recipe);
-        if (recipe instanceof AbstractFixedResultRecipe<?> fixedResult) {
+        if (recipe instanceof AbstractFixedResultRecipe fixedResult) {
             this.byResult.computeIfAbsent(fixedResult.result().item().id(), k -> new ArrayList<>()).add(recipe);
         }
-        List<Ingredient<T>> ingredients = recipe.ingredientsInUse();
+        List<Ingredient> ingredients = recipe.ingredientsInUse();
         if (recipe.canBeSearchedByIngredients()) {
             HashSet<Key> usedKeys = new HashSet<>();
-            for (Ingredient<T> ingredient : ingredients) {
+            for (Ingredient ingredient : ingredients) {
                 for (UniqueKey holder : ingredient.items()) {
                     Key key = holder.key();
                     if (usedKeys.add(key)) {
@@ -128,7 +128,7 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         if (unlockOnIngredientObtained) {
             List<IngredientUnlockable.Requirement> requirements =  new ArrayList<>(4);
             HashSet<UniqueKey> usedKeys = new HashSet<>();
-            for (Ingredient<T> ingredient : ingredients) {
+            for (Ingredient ingredient : ingredients) {
                 List<UniqueKey> items = ingredient.items();
                 if (items.size() > 1) {
                     requirements.add(new IngredientUnlockable.Multiple(items.toArray(new UniqueKey[0])));
@@ -197,14 +197,14 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
             if (!Config.enableRecipeSystem()) return;
             boolean unlockOnIngredientObtained = section.getBoolean(UNLOCK_ON_INGREDIENT_OBTAINED, Config.unlockOnIngredientObtained());
-            Recipe<T> recipe = RecipeSerializers.fromConfig(id, section);
+            Recipe recipe = RecipeSerializers.fromConfig(id, section);
             this.recipes.add(new TempRecipe<>(recipe, unlockOnIngredientObtained));
         }
 
-        private record TempRecipe<T>(Recipe<T> recipe, boolean unlockOnIngredientObtained) {}
+        private record TempRecipe<T>(Recipe recipe, boolean unlockOnIngredientObtained) {}
     }
 
     protected abstract void unregisterPlatformRecipeMainThread(Key key, boolean isBrewingRecipe);
 
-    protected abstract void registerPlatformRecipeMainThread(Recipe<T> recipe);
+    protected abstract void registerPlatformRecipeMainThread(Recipe recipe);
 }

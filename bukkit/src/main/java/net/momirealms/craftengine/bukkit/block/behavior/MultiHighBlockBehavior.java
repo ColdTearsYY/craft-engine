@@ -27,7 +27,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -119,7 +118,7 @@ public final class MultiHighBlockBehavior extends BukkitBlockBehavior {
         if (serverPlayer == null) {
             return superMethod.call();
         }
-        Item<ItemStack> item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (serverPlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBasePart(args[0], args[1], blockState, player);
         }

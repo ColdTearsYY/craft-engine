@@ -55,7 +55,6 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.world.GenericGameEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
 
@@ -128,12 +127,12 @@ public final class BlockEventListener implements Listener {
         net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(player.getWorld());
         BlockPos blockPos = LocationUtils.toBlockPos(location);
         WorldPosition position = new WorldPosition(world, location.getBlockX() + 0.5, location.getBlockY() + 0.5, location.getBlockZ() + 0.5);
-        Item<ItemStack> itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
 
         if (!event.isCancelled() && !ItemUtils.isEmpty(itemInHand)) {
-            Optional<CustomItem<ItemStack>> optionalCustomItem = itemInHand.getCustomItem();
+            Optional<CustomItem> optionalCustomItem = itemInHand.getCustomItem();
             if (optionalCustomItem.isPresent()) {
-                CustomItem<ItemStack> customItem = optionalCustomItem.get();
+                CustomItem customItem = optionalCustomItem.get();
                 Cancellable cancellable = Cancellable.of(event::isCancelled, event::setCancelled);
                 customItem.execute(
                         PlayerOptionalContext.of(serverPlayer, ContextHolder.builder()
@@ -216,8 +215,8 @@ public final class BlockEventListener implements Listener {
                             .withParameter(DirectContextParameters.POSITION, position)
                             .withParameter(DirectContextParameters.PLAYER, serverPlayer)
                             .withOptionalParameter(DirectContextParameters.ITEM_IN_HAND, ItemUtils.isEmpty(itemInHand) ? null : itemInHand).build();
-                    for (LootTable<?> lootTable : it.lootTables()) {
-                        for (Item<?> item : lootTable.getRandomItems(lootContext, world, serverPlayer)) {
+                    for (LootTable lootTable : it.lootTables()) {
+                        for (Item item : lootTable.getRandomItems(lootContext, world, serverPlayer)) {
                             world.dropItemNaturally(position, item);
                         }
                     }
@@ -254,8 +253,8 @@ public final class BlockEventListener implements Listener {
                 ContextHolder.Builder builder = ContextHolder.builder()
                         .withParameter(DirectContextParameters.POSITION, position)
                         .withParameter(DirectContextParameters.BLOCK, new BukkitExistingBlock(block));
-                for (LootTable<?> lootTable : it.lootTables()) {
-                    for (Item<?> item : lootTable.getRandomItems(builder.build(), world, null)) {
+                for (LootTable lootTable : it.lootTables()) {
+                    for (Item item : lootTable.getRandomItems(builder.build(), world, null)) {
                         world.dropItemNaturally(position, item);
                     }
                 }

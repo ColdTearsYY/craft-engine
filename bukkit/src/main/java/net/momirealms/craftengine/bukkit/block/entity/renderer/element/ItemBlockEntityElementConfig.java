@@ -12,7 +12,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -31,11 +30,11 @@ public final class ItemBlockEntityElementConfig implements BlockEntityElementCon
         this.position = position;
         this.lazyMetadataPacket = player -> {
             List<Object> dataValues = new ArrayList<>();
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
+            Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
             if (wrappedItem == null) {
                 wrappedItem = Objects.requireNonNull(BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, player));
             }
-            ItemEntityData.Item.addEntityData(wrappedItem.getLiteralObject(), dataValues);
+            ItemEntityData.Item.addEntityData(wrappedItem.getMinecraftItem(), dataValues);
             ItemEntityData.NoGravity.addEntityData(true, dataValues);
             return dataValues;
         };

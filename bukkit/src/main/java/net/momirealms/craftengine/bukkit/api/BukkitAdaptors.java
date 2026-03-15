@@ -2,8 +2,6 @@ package net.momirealms.craftengine.bukkit.api;
 
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
-import net.momirealms.craftengine.bukkit.plugin.network.BukkitNetworkManager;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
 import net.momirealms.craftengine.bukkit.world.BukkitWorld;
@@ -41,7 +39,7 @@ public final class BukkitAdaptors {
     }
 
     @NotNull
-    public static Item<ItemStack> adapt(@NotNull final ItemStack item) {
+    public static Item adapt(@NotNull final ItemStack item) {
         return BukkitItemManager.instance().wrap(item);
     }
 }

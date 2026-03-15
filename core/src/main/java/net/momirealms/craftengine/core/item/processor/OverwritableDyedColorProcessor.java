@@ -24,24 +24,24 @@ public final class OverwritableDyedColorProcessor implements SimpleNetworkItemPr
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         Optional<Color> previous = item.dyedColor();
         if (previous.isPresent()) return item;
         return item.dyedColor(this.color);
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.DYED_COLOR;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "display.color";
     }
 

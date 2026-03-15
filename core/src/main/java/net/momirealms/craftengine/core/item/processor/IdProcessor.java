@@ -20,7 +20,7 @@ public final class IdProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         item.customId(this.argument);
         return item;
     }

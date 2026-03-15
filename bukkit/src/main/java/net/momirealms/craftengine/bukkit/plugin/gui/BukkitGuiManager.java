@@ -7,10 +7,7 @@ import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
 import net.momirealms.craftengine.bukkit.block.entity.SimpleStorageBlockEntity;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
-import net.momirealms.craftengine.bukkit.util.ComponentUtils;
-import net.momirealms.craftengine.bukkit.util.EntityUtils;
-import net.momirealms.craftengine.bukkit.util.InventoryUtils;
-import net.momirealms.craftengine.bukkit.util.LegacyInventoryUtils;
+import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.item.trade.MerchantOffer;
 import net.momirealms.craftengine.core.plugin.gui.*;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -167,9 +164,9 @@ public final class BukkitGuiManager implements GuiManager, Listener {
         Merchant merchant = VersionHelper.isOrAbove1_21_4() ? Bukkit.createMerchant() : LegacyInventoryUtils.createMerchant();
         List<MerchantRecipe> recipes = new ArrayList<>();
         for (MerchantOffer<?> offer : offers) {
-            MerchantRecipe merchantRecipe = new MerchantRecipe((ItemStack) offer.result().getItem(), 0, CRAFT_ENGINE_MAGIC_MERCHANT_NUMBER, false, offer.xp(), 0);
-            merchantRecipe.addIngredient((ItemStack) offer.cost1().getItem());
-            offer.cost2().ifPresent(it -> merchantRecipe.addIngredient((ItemStack) it.getItem()));
+            MerchantRecipe merchantRecipe = new MerchantRecipe(ItemStackUtils.getBukkitStack(offer.result()), 0, CRAFT_ENGINE_MAGIC_MERCHANT_NUMBER, false, offer.xp(), 0);
+            merchantRecipe.addIngredient(ItemStackUtils.getBukkitStack(offer.cost1()));
+            offer.cost2().ifPresent(it -> merchantRecipe.addIngredient(ItemStackUtils.getBukkitStack(it)));
             recipes.add(merchantRecipe);
         }
         merchant.setRecipes(recipes);

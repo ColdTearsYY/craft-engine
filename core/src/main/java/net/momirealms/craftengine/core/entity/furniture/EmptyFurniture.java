@@ -33,7 +33,7 @@ public final class EmptyFurniture implements CustomFurniture {
 
     @Nullable
     @Override
-    public LootTable<?> lootTable() {
+    public LootTable lootTable() {
         return null;
     }
 

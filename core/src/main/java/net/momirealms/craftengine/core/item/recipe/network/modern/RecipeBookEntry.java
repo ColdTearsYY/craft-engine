@@ -5,20 +5,19 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 
 import java.util.function.Function;
 
-public record RecipeBookEntry<I>(RecipeBookDisplayEntry<I> entry, byte flags) {
+public record RecipeBookEntry(RecipeBookDisplayEntry entry, byte flags) {
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.entry.applyClientboundData(function);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I> RecipeBookEntry<I> read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static RecipeBookEntry read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
         RecipeBookDisplayEntry displayEntry = RecipeBookDisplayEntry.read(buffer, reader);
         byte flags = buffer.readByte();
         return new RecipeBookEntry(displayEntry, flags);
     }
 
-    public void write(FriendlyByteBuf buffer, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buffer, FriendlyByteBuf.Writer<Item> writer) {
         this.entry.write(buffer, writer);
         buffer.writeByte(this.flags);
     }

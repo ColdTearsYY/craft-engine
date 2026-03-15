@@ -15,35 +15,34 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public final class FurnitureItemLootEntryContainer<T> extends SingleItemLootEntryContainer<T> {
-    public static final LootEntryContainerFactory<?> FACTORY = new Factory<>();
+public final class FurnitureItemLootEntryContainer extends SingleItemLootEntryContainer {
+    public static final LootEntryContainerFactory<FurnitureItemLootEntryContainer> FACTORY = new Factory();
     private final boolean hasFallback;
 
     private FurnitureItemLootEntryContainer(@Nullable Key item,
                                             List<Condition<LootContext>> conditions,
-                                            List<LootFunction<T>> lootFunctions,
+                                            List<LootFunction> lootFunctions,
                                             int weight,
                                             int quality) {
         super(item, conditions, lootFunctions, weight, quality);
         this.hasFallback = item != null;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    protected void createItem(Consumer<Item<T>> lootConsumer, LootContext context) {
-        Optional<Item<?>> optionalItem = context.getOptionalParameter(DirectContextParameters.FURNITURE_ITEM);
+    protected void createItem(Consumer<Item> lootConsumer, LootContext context) {
+        Optional<Item> optionalItem = context.getOptionalParameter(DirectContextParameters.FURNITURE_ITEM);
         if (optionalItem.isPresent()) {
-            lootConsumer.accept((Item<T>) optionalItem.get());
+            lootConsumer.accept((Item) optionalItem.get());
         } else if (this.hasFallback) {
             super.createItem(lootConsumer, context);
         }
     }
 
-    private static class Factory<A> implements LootEntryContainerFactory<A> {
+    private static class Factory implements LootEntryContainerFactory<FurnitureItemLootEntryContainer> {
 
         @Override
-        public LootEntryContainer<A> create(ConfigSection section) {
-            return new FurnitureItemLootEntryContainer<>(
+        public FurnitureItemLootEntryContainer create(ConfigSection section) {
+            return new FurnitureItemLootEntryContainer(
                     section.getIdentifier("item"),
                     section.getList("conditions", CommonConditions::fromConfig),
                     section.getList("functions", LootFunctions::fromConfig),

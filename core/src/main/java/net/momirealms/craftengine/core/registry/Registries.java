@@ -38,7 +38,9 @@ import net.momirealms.craftengine.core.item.recipe.result.PostProcessor;
 import net.momirealms.craftengine.core.item.recipe.result.PostProcessorType;
 import net.momirealms.craftengine.core.item.updater.ItemUpdater;
 import net.momirealms.craftengine.core.item.updater.ItemUpdaterType;
+import net.momirealms.craftengine.core.loot.entry.LootEntryContainer;
 import net.momirealms.craftengine.core.loot.entry.LootEntryContainerType;
+import net.momirealms.craftengine.core.loot.function.LootFunction;
 import net.momirealms.craftengine.core.loot.function.LootFunctionType;
 import net.momirealms.craftengine.core.loot.function.formula.Formula;
 import net.momirealms.craftengine.core.loot.function.formula.FormulaType;
@@ -85,8 +87,6 @@ public final class Registries {
     public static final ResourceKey<Registry<PropertyType<? extends Comparable<?>>>> PROPERTY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("property_type"));
     public static final ResourceKey<Registry<BlockBehaviorType<? extends BlockBehavior>>> BLOCK_BEHAVIOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("block_behavior_type"));
     public static final ResourceKey<Registry<ItemBehaviorType<? extends ItemBehavior>>> ITEM_BEHAVIOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("item_behavior_type"));
-    public static final ResourceKey<Registry<LootFunctionType<?>>> LOOT_FUNCTION_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("loot_function_type"));
-    public static final ResourceKey<Registry<LootEntryContainerType<?>>> LOOT_ENTRY_CONTAINER_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("loot_entry_container_type"));
     public static final ResourceKey<Registry<NumberProviderType<? extends NumberProvider>>> NUMBER_PROVIDER_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("number_provider_type"));
     public static final ResourceKey<Registry<TemplateArgumentType<? extends TemplateArgument>>> TEMPLATE_ARGUMENT_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("template_argument_type"));
     public static final ResourceKey<Registry<ItemModelType<? extends ItemModel>>> ITEM_MODEL_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("item_model_type"));
@@ -95,7 +95,7 @@ public final class Registries {
     public static final ResourceKey<Registry<RangeDispatchPropertyType<? extends RangeDispatchProperty>>> RANGE_DISPATCH_PROPERTY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("range_dispatch_property_type"));
     public static final ResourceKey<Registry<ConditionPropertyType<? extends ConditionProperty>>> CONDITION_PROPERTY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("condition_property_type"));
     public static final ResourceKey<Registry<SelectPropertyType<? extends SelectProperty>>> SELECT_PROPERTY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("select_property_type"));
-    public static final ResourceKey<Registry<RecipeSerializer<?, ? extends Recipe<?>>>> RECIPE_SERIALIZER = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_serializer"));
+    public static final ResourceKey<Registry<RecipeSerializer<? extends Recipe>>> RECIPE_SERIALIZER = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_serializer"));
     public static final ResourceKey<Registry<FormulaType<? extends Formula>>> FORMULA_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("formula_type"));
     public static final ResourceKey<Registry<PathMatcherType<? extends Condition<PathContext>>>> PATH_MATCHER_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("path_matcher_type"));
     public static final ResourceKey<Registry<ResolutionType<? extends Resolution>>> RESOLUTION_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("resolution_type"));
@@ -105,8 +105,8 @@ public final class Registries {
     public static final ResourceKey<Registry<CommonConditionType<? extends Condition<Context>>>> COMMON_CONDITION_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("common_condition_type"));
     public static final ResourceKey<Registry<PlayerSelectorType<? extends Context>>> PLAYER_SELECTOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("player_selector_type"));
     public static final ResourceKey<Registry<EquipmentType<? extends Equipment>>> EQUIPMENT_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("equipment_type"));
-    public static final ResourceKey<Registry<SlotDisplay.Type<?>>> SLOT_DISPLAY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("slot_display_type"));
-    public static final ResourceKey<Registry<RecipeDisplay.Type<?>>> RECIPE_DISPLAY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_display_type"));
+    public static final ResourceKey<Registry<SlotDisplay.Type<? extends SlotDisplay>>> SLOT_DISPLAY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("slot_display_type"));
+    public static final ResourceKey<Registry<RecipeDisplay.Type<? extends RecipeDisplay>>> RECIPE_DISPLAY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_display_type"));
     public static final ResourceKey<Registry<LegacyRecipe.Type<?>>> LEGACY_RECIPE_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("legacy_recipe_type"));
     public static final ResourceKey<Registry<PostProcessorType<? extends PostProcessor>>> RECIPE_POST_PROCESSOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_post_processor_type"));
     public static final ResourceKey<Registry<ItemUpdaterType<? extends ItemUpdater>>> ITEM_UPDATER_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("item_updater_type"));
@@ -120,4 +120,6 @@ public final class Registries {
     public static final ResourceKey<Registry<FurnitureSettingsModifierType<? extends FurnitureSettingsModifier>>> FURNITURE_SETTINGS_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("furniture_settings_type"));
     public static final ResourceKey<Registry<BlockSettingsModifierType<? extends BlockSettingsModifier>>> BLOCK_SETTINGS_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("block_settings_type"));
     public static final ResourceKey<Registry<ItemSettingsModifierType<? extends ItemSettingsModifier>>> ITEM_SETTINGS_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("item_settings_type"));
+    public static final ResourceKey<Registry<LootFunctionType<? extends LootFunction>>> LOOT_FUNCTION_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("loot_function_type"));
+    public static final ResourceKey<Registry<LootEntryContainerType<? extends LootEntryContainer>>> LOOT_ENTRY_CONTAINER_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("loot_entry_container_type"));
 }

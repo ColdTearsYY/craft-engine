@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.item;
 
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.item.processor.ArgumentsProcessor;
@@ -31,10 +32,10 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 @SuppressWarnings("DuplicatedCode")
-public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemStack> {
+public final class ModernNetworkItemHandler implements NetworkItemHandler {
 
     @Override
-    public Optional<Item<ItemStack>> c2s(Item<ItemStack> wrapped) {
+    public Optional<Item> c2s(Item wrapped) {
         boolean forceReturn = false;
 
         // 处理收纳袋
@@ -43,7 +44,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
             List<Object> newItems = new ArrayList<>();
             boolean changed = false;
             for (Object previousItem : BundleContentsProxy.INSTANCE.getItems(bundleContents)) {
-                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem));
+                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.getBukkitStack(previousItem));
                 if (itemStack.isPresent()) {
                     newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
                     changed = true;
@@ -63,7 +64,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
             List<Object> newItems = new ArrayList<>();
             boolean changed = false;
             for (Object previousItem : ItemContainerContentsProxy.INSTANCE.getItems(containerContents)) {
-                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem));
+                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.getBukkitStack(previousItem));
                 if (itemStack.isPresent()) {
                     newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
                     changed = true;
@@ -78,10 +79,10 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         }
 
         // 先尝试恢复client-bound-material
-        Optional<CustomItem<ItemStack>> optionalCustomItem = wrapped.getCustomItem();
+        Optional<CustomItem> optionalCustomItem = wrapped.getCustomItem();
         if (optionalCustomItem.isPresent()) {
             BukkitCustomItem customItem = (BukkitCustomItem) optionalCustomItem.get();
-            if (customItem.item() != ItemStackProxy.INSTANCE.getItem(wrapped.getLiteralObject())) {
+            if (customItem.item() != ItemStackProxy.INSTANCE.getItem(wrapped.getMinecraftItem())) {
                 wrapped = wrapped.unsafeTransmuteCopy(customItem.item(), wrapped.count());
                 forceReturn = true;
             }
@@ -114,7 +115,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
     }
 
     @Override
-    public Optional<Item<ItemStack>> s2c(Item<ItemStack> wrapped, @Nullable Player player) {
+    public Optional<Item> s2c(Item wrapped, @Nullable Player player) {
         boolean forceReturn = false;
 
         // 处理收纳袋
@@ -123,7 +124,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
             List<Object> newItems = new ArrayList<>();
             boolean changed = false;
             for (Object previousItem : BundleContentsProxy.INSTANCE.getItems(bundleContents)) {
-                ItemStack cloned = CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem).clone();
+                ItemStack cloned = ItemStackUtils.getBukkitStack(previousItem).clone();
                 Optional<ItemStack> itemStack = BukkitItemManager.instance().s2c(cloned, player);
                 if (itemStack.isPresent()) {
                     newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
@@ -144,7 +145,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
             List<Object> newItems = new ArrayList<>();
             for (Object previousItem : ItemContainerContentsProxy.INSTANCE.getItems(containerContents)) {
                 boolean changed = false;
-                ItemStack cloned = CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem).clone();
+                ItemStack cloned = ItemStackUtils.getBukkitStack(previousItem).clone();
                 Optional<ItemStack> itemStack = BukkitItemManager.instance().s2c(cloned, player);
                 if (itemStack.isPresent()) {
                     newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
@@ -162,7 +163,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         // todo 处理book
 
         // 不是自定义物品或修改过的原版物品
-        Optional<CustomItem<ItemStack>> optionalCustomItem = wrapped.getCustomItem();
+        Optional<CustomItem> optionalCustomItem = wrapped.getCustomItem();
         if (optionalCustomItem.isEmpty()) {
             if (!Config.interceptItem()) {
                 return forceReturn ? Optional.of(wrapped) : Optional.empty();
@@ -172,9 +173,9 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
 
         BukkitCustomItem customItem = (BukkitCustomItem) optionalCustomItem.get();
         // 提前复制，这和物品类型相关
-        Item<ItemStack> original = wrapped;
+        Item original = wrapped;
         // 应用 client-bound-material前提是服务端侧物品类型和客户端侧的不同
-        if (customItem.hasClientboundMaterial() && ItemStackProxy.INSTANCE.getItem(wrapped.getLiteralObject()) != customItem.clientItem()) {
+        if (customItem.hasClientboundMaterial() && ItemStackProxy.INSTANCE.getItem(wrapped.getMinecraftItem()) != customItem.clientItem()) {
             wrapped = wrapped.unsafeTransmuteCopy(customItem.clientItem(), wrapped.count());
             forceReturn = true;
         }
@@ -234,7 +235,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         return forceReturn ? Optional.of(wrapped) : Optional.empty();
     }
 
-    public static boolean processLegacyLore(Item<ItemStack> item, Supplier<CompoundTag> tag, Context context) {
+    public static boolean processLegacyLore(Item item, Supplier<CompoundTag> tag, Context context) {
         Optional<List<String>> optionalLore = item.loreJson();
         if (optionalLore.isPresent()) {
             boolean changed = false;
@@ -262,7 +263,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         return false;
     }
     
-    public static boolean processLegacyCustomName(Item<ItemStack> item, Supplier<CompoundTag> tag, Context context) {
+    public static boolean processLegacyCustomName(Item item, Supplier<CompoundTag> tag, Context context) {
         Optional<String> optionalCustomName = item.customNameJson();
         if (optionalCustomName.isPresent()) {
             String line = optionalCustomName.get();
@@ -276,7 +277,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         return false;
     }
 
-    public static boolean processLegacyItemName(Item<ItemStack> item, Supplier<CompoundTag> tag, Context context) {
+    public static boolean processLegacyItemName(Item item, Supplier<CompoundTag> tag, Context context) {
         Optional<String> optionalItemName = item.itemNameJson();
         if (optionalItemName.isPresent()) {
             String line = optionalItemName.get();
@@ -290,7 +291,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         return false;
     }
 
-    public static boolean processModernItemName(Item<ItemStack> item, Supplier<CompoundTag> tag, Context context) {
+    public static boolean processModernItemName(Item item, Supplier<CompoundTag> tag, Context context) {
         Tag nameTag = item.getSparrowNBTComponent(DataComponentTypes.ITEM_NAME);
         if (nameTag == null) return false;
         Map<String, ComponentProvider> tokens = CraftEngine.instance().networkManager().matchNetworkTags(nameTag);
@@ -302,7 +303,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         return false;
     }
 
-    public static boolean processModernCustomName(Item<ItemStack> item, Supplier<CompoundTag> tag, Context context) {
+    public static boolean processModernCustomName(Item item, Supplier<CompoundTag> tag, Context context) {
         Tag nameTag = item.getSparrowNBTComponent(DataComponentTypes.CUSTOM_NAME);
         if (nameTag == null) return false;
         Map<String, ComponentProvider> tokens = CraftEngine.instance().networkManager().matchNetworkTags(nameTag);
@@ -314,7 +315,7 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
         return false;
     }
 
-    public static boolean processModernLore(Item<ItemStack> item, Supplier<CompoundTag> tagSupplier, Context context) {
+    public static boolean processModernLore(Item item, Supplier<CompoundTag> tagSupplier, Context context) {
         Tag loreTag = item.getSparrowNBTComponent(DataComponentTypes.LORE);
         boolean changed = false;
         if (!(loreTag instanceof ListTag listTag)) {
@@ -339,17 +340,17 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler<ItemSt
     }
 
     static class OtherItem {
-        private final Item<ItemStack> item;
+        private final Item item;
         private final boolean forceReturn;
         private boolean globalChanged = false;
         private CompoundTag tag;
 
-        public OtherItem(Item<ItemStack> item, boolean forceReturn) {
+        public OtherItem(Item item, boolean forceReturn) {
             this.item = item;
             this.forceReturn = forceReturn;
         }
 
-        public Optional<Item<ItemStack>> process(Context context) {
+        public Optional<Item> process(Context context) {
             if (VersionHelper.isOrAbove1_21_5()) {
                 if (processModernLore(this.item, this::getOrCreateTag, context))
                     this.globalChanged = true;

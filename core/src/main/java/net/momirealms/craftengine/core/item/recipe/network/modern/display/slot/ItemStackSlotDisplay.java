@@ -5,37 +5,37 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 
 import java.util.function.Function;
 
-public final class ItemStackSlotDisplay<I> implements SlotDisplay<I> {
-    private Item<I> item;
+public final class ItemStackSlotDisplay implements SlotDisplay {
+    private Item item;
 
-    public ItemStackSlotDisplay(Item<I> item) {
+    public ItemStackSlotDisplay(Item item) {
         this.item = item;
     }
 
-    public static <I> ItemStackSlotDisplay<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
-        Item<I> itemStack = reader.apply(buf);
-        return new ItemStackSlotDisplay<>(itemStack);
+    public static ItemStackSlotDisplay read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
+        Item itemStack = reader.apply(buf);
+        return new ItemStackSlotDisplay(itemStack);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(3);
         writer.accept(buf, this.item);
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.item = function.apply(this.item);
     }
 
-    public Item<I> item() {
+    public Item item() {
         return this.item;
     }
 
     @Override
     public String toString() {
         return "ItemStackSlotDisplay{" +
-                "item=" + this.item.getLiteralObject() +
+                "item=" + this.item.getMinecraftItem() +
                 '}';
     }
 }

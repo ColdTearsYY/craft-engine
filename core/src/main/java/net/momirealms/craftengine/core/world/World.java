@@ -35,7 +35,7 @@ public interface World extends WorldAccessor {
 
     UUID uuid();
 
-    void dropItemNaturally(Position location, Item<?> item);
+    void dropItemNaturally(Position location, Item item);
 
     void dropExp(Position location, int amount);
 

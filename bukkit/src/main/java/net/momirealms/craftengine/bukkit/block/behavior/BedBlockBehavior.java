@@ -37,7 +37,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -115,7 +114,7 @@ public final class BedBlockBehavior extends BukkitBlockBehavior implements Entit
         if (serverPlayer == null) {
             return superMethod.call();
         }
-        Item<ItemStack> item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (serverPlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromHeadPart(args[0], args[1], blockState, player);
         }

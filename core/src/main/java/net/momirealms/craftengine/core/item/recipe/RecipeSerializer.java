@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 
-public interface RecipeSerializer<T, R extends Recipe<T>> {
+public interface RecipeSerializer<R extends Recipe> {
 
     R readConfig(Key id, ConfigSection section);
 

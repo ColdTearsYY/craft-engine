@@ -69,7 +69,7 @@ public final class LegacyRecipeTypes {
         register(DECORATED_POT_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
     }
     
-    private static <I> BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<Item<I>>, LegacyRecipe<I>> createReaderFunction(
+    private static BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<Item>, LegacyRecipe> createReaderFunction(
             BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader, LegacyRecipe> function) {
         return (BiFunction) function;
     }

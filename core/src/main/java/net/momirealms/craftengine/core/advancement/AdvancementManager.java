@@ -7,5 +7,5 @@ import net.momirealms.craftengine.core.plugin.Manageable;
 
 public interface AdvancementManager extends Manageable {
 
-    void sendToast(Player player, Item<?> icon, Component message, AdvancementType type);
+    void sendToast(Player player, Item icon, Component message, AdvancementType type);
 }

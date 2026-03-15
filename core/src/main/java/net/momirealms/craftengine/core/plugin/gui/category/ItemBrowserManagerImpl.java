@@ -131,7 +131,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             String name = section.getString("name", id.asString());
             List<String> members;
             if (section.getBoolean(ALL_ITEMS)) {
-                ItemManager<?> itemManager = ItemBrowserManagerImpl.this.plugin.itemManager();
+                ItemManager itemManager = ItemBrowserManagerImpl.this.plugin.itemManager();
                 members = itemManager.loadedItems().keySet().stream().filter(it -> !itemManager.isVanillaItem(it)).map(Key::asString).collect(Collectors.toList());
             } else {
                 members = section.getStringList("list");
@@ -181,7 +181,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (!it.condition().test(PlayerOptionalContext.of(player))) {
                 return null;
             }
-            Item<?> item = this.plugin.itemManager().createWrappedItem(it.icon(), player);
+            Item item = this.plugin.itemManager().createWrappedItem(it.icon(), player);
             if (ItemUtils.isEmpty(item)) {
                 this.plugin.logger().warn("Cannot find item " + it.icon() + " for category icon");
                 return null;
@@ -265,7 +265,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (it.charAt(0) == '#') {
                 String subCategoryId = it.substring(1);
                 Category subCategory = this.byId.get(Key.of(subCategoryId));
-                Item<?> item;
+                Item item;
                 if (subCategory == null) {
                     item = Objects.requireNonNull(this.plugin.itemManager().createWrappedItem(ItemKeys.BARRIER, player));
                     item.customNameJson(AdventureHelper.componentToJson(Component.text(subCategoryId).color(NamedTextColor.RED).decoration(TextDecoration.ITALIC, false)));
@@ -293,7 +293,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 });
             } else {
                 Key itemId = Key.of(it);
-                Item<?> item = this.plugin.itemManager().createWrappedItem(itemId, player);
+                Item item = this.plugin.itemManager().createWrappedItem(itemId, player);
                 boolean canGoFurther;
                 if (ItemUtils.isEmpty(item)) {
                     if (!itemId.equals(ItemKeys.AIR)) {
@@ -306,13 +306,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 }
                 return new ItemWithAction(item, (e, c) -> {
                     c.cancel();
-                    Item<?> eItem = e.item();
+                    Item eItem = e.item();
                     if (!canGoFurther) {
                         return;
                     }
                     if (player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION)) {
                         if (MIDDLE_CLICK.contains(c.type()) && c.itemOnCursor() == null) {
-                            Item<?> newItem = this.plugin.itemManager().createWrappedItem(eItem.id(), player);
+                            Item newItem = this.plugin.itemManager().createWrappedItem(eItem.id(), player);
                             newItem.count(newItem.maxStackSize());
                             c.setItemOnCursor(newItem);
                             return;
@@ -321,14 +321,14 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                             player.giveItem(this.plugin.itemManager().createWrappedItem(eItem.id(), player));
                             return;
                         } else if (SHIFT_RIGHT.equals(c.type())) {
-                            Item<?> newItem = this.plugin.itemManager().createWrappedItem(eItem.id(), player);
+                            Item newItem = this.plugin.itemManager().createWrappedItem(eItem.id(), player);
                             newItem.count(newItem.maxStackSize());
                             player.giveItem(newItem);
                             return;
                         }
                     }
                     if (LEFT_CLICK.contains(c.type())) {
-                        List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(itemId);
+                        List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(itemId);
                         player.playSound(Constants.SOUND_CLICK_BUTTON);
                         if (!inRecipes.isEmpty()) {
                             openRecipePage(c.clicker(), e.gui(), inRecipes, 0, 0, canOpenNoRecipePage);
@@ -336,7 +336,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                             openNoRecipePage(player, itemId, e.gui(), 0);
                         }
                     } else if (RIGHT_CLICK.contains(c.type())) {
-                        List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(itemId);
+                        List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(itemId);
                         player.playSound(Constants.SOUND_CLICK_BUTTON);
                         if (!inRecipes.isEmpty()) {
                             openRecipePage(c.clicker(), e.gui(), inRecipes, 0, 0, canOpenNoRecipePage);
@@ -373,11 +373,11 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('X', GuiElement.constant(this.plugin.itemManager().createWrappedItem(result, player), (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
                     openRecipePage(c.clicker(), e.gui(), inRecipes, 0, depth + 1, true);
@@ -390,7 +390,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (LEFT_CLICK.contains(c.type())) {
                 player.giveItem(this.plugin.itemManager().createWrappedItem(result, player));
             } else if (RIGHT_CLICK.contains(c.type())) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 player.giveItem(item.count(item.maxStackSize()));
             }
         }) : GuiElement.EMPTY)
@@ -422,46 +422,46 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
     }
 
     @Override
-    public void openRecipePage(Player player, Gui parentGui, List<Recipe<Object>> recipes, int index, int depth, boolean canOpenNoRecipePage) {
+    public void openRecipePage(Player player, Gui parentGui, List<Recipe> recipes, int index, int depth, boolean canOpenNoRecipePage) {
         if (index >= recipes.size()) return;
         if (depth > MAX_RECIPE_DEPTH) return;
-        Recipe<Object> recipe = recipes.get(index);
+        Recipe recipe = recipes.get(index);
         Key recipeType = recipe.serializerType();
         if (recipeType == RecipeSerializers.SHAPELESS || recipeType == RecipeSerializers.SHAPED) {
-            openCraftingRecipePage(player, (CustomCraftingTableRecipe<Object>) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
+            openCraftingRecipePage(player, (CustomCraftingTableRecipe) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
             return;
         }
         if (recipeType == RecipeSerializers.BLASTING || recipeType == RecipeSerializers.CAMPFIRE_COOKING || recipeType == RecipeSerializers.SMOKING || recipeType == RecipeSerializers.SMELTING) {
-            openCookingRecipePage(player, (CustomCookingRecipe<Object>) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
+            openCookingRecipePage(player, (CustomCookingRecipe) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
             return;
         }
         if (recipeType == RecipeSerializers.STONECUTTING) {
-            openStoneCuttingRecipePage(player, (CustomStoneCuttingRecipe<Object>) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
+            openStoneCuttingRecipePage(player, (CustomStoneCuttingRecipe) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
             return;
         }
         if (recipeType == RecipeSerializers.SMITHING_TRANSFORM) {
-            openSmithingTransformRecipePage(player, (CustomSmithingTransformRecipe<Object>) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
+            openSmithingTransformRecipePage(player, (CustomSmithingTransformRecipe) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
             return;
         }
         if (recipeType == RecipeSerializers.BREWING) {
-            openBrewingRecipePage(player, (CustomBrewingRecipe<Object>) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
+            openBrewingRecipePage(player, (CustomBrewingRecipe) recipe, parentGui, recipes, index, depth, canOpenNoRecipePage);
             return;
         }
     }
 
-    public void openBrewingRecipePage(Player player, CustomBrewingRecipe<Object> recipe, Gui parentGui, List<Recipe<Object>> recipes, int index, int depth, boolean canOpenNoRecipePage) {
+    public void openBrewingRecipePage(Player player, CustomBrewingRecipe recipe, Gui parentGui, List<Recipe> recipes, int index, int depth, boolean canOpenNoRecipePage) {
         Key previous = index > 0 ? Constants.RECIPE_PREVIOUS_PAGE_AVAILABLE : Constants.RECIPE_PREVIOUS_PAGE_BLOCK;
         Key next = index + 1 < recipes.size() ? Constants.RECIPE_NEXT_PAGE_AVAILABLE : Constants.RECIPE_NEXT_PAGE_BLOCK;
         Key result = recipe.result().item().id();
 
-        List<Item<?>> ingredients = new ArrayList<>();
-        net.momirealms.craftengine.core.item.recipe.Ingredient<Object> ingredient = recipe.ingredient();
+        List<Item> ingredients = new ArrayList<>();
+        net.momirealms.craftengine.core.item.recipe.Ingredient ingredient = recipe.ingredient();
         for (UniqueKey in : ingredient.items()) {
             ingredients.add(this.plugin.itemManager().createWrappedItem(in.key(), player));
         }
 
-        List<Item<?>> containers = new ArrayList<>();
-        net.momirealms.craftengine.core.item.recipe.Ingredient<Object> container = recipe.container();
+        List<Item> containers = new ArrayList<>();
+        net.momirealms.craftengine.core.item.recipe.Ingredient container = recipe.container();
         for (UniqueKey in : container.items()) {
             containers.add(this.plugin.itemManager().createWrappedItem(in.key(), player));
         }
@@ -477,13 +477,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('X', GuiElement.constant(this.plugin.itemManager().createWrappedItem(result, player).count(recipe.result().count()), (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -492,7 +492,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, result, e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -506,7 +506,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (LEFT_CLICK.contains(c.type())) {
                 player.giveItem(this.plugin.itemManager().createWrappedItem(result, player));
             } else if (RIGHT_CLICK.contains(c.type())) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 player.giveItem(item.count(item.maxStackSize()));
             }
         }) : GuiElement.EMPTY)
@@ -552,13 +552,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('A', GuiElement.recipeIngredient(ingredients, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -567,7 +567,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -578,13 +578,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('B', GuiElement.recipeIngredient(containers, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -593,7 +593,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -615,7 +615,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 .open(player);
     }
 
-    public void openSmithingTransformRecipePage(Player player, CustomSmithingTransformRecipe<Object> recipe, Gui parentGui, List<Recipe<Object>> recipes, int index, int depth, boolean canOpenNoRecipePage) {
+    public void openSmithingTransformRecipePage(Player player, CustomSmithingTransformRecipe recipe, Gui parentGui, List<Recipe> recipes, int index, int depth, boolean canOpenNoRecipePage) {
         Key previous = index > 0 ? Constants.RECIPE_PREVIOUS_PAGE_AVAILABLE : Constants.RECIPE_PREVIOUS_PAGE_BLOCK;
         Key next = index + 1 < recipes.size() ? Constants.RECIPE_NEXT_PAGE_AVAILABLE : Constants.RECIPE_NEXT_PAGE_BLOCK;
         Key result = recipe.result().item().id();
@@ -630,13 +630,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('X', GuiElement.constant(this.plugin.itemManager().createWrappedItem(result, player).count(recipe.result().count()), (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -645,7 +645,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, result, e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -659,7 +659,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (LEFT_CLICK.contains(c.type())) {
                 player.giveItem(this.plugin.itemManager().createWrappedItem(result, player));
             } else if (RIGHT_CLICK.contains(c.type())) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 player.giveItem(item.count(item.maxStackSize()));
             }
         }) : GuiElement.EMPTY)
@@ -703,7 +703,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             }
         }));
 
-        List<Item<?>> templates = new ArrayList<>();
+        List<Item> templates = new ArrayList<>();
         Optional.ofNullable(recipe.template()).ifPresent(it -> {
             for (UniqueKey in : it.items()) {
                 templates.add(this.plugin.itemManager().createWrappedItem(in.key(), player).count(it.count()));
@@ -712,13 +712,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         layout.addIngredient('A', templates.isEmpty() ? GuiElement.EMPTY : GuiElement.recipeIngredient(templates, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -727,7 +727,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -736,7 +736,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             }
         }));
 
-        List<Item<?>> bases = new ArrayList<>();
+        List<Item> bases = new ArrayList<>();
         Optional.ofNullable(recipe.base()).ifPresent(it -> {
             for (UniqueKey in : it.items()) {
                 bases.add(this.plugin.itemManager().createWrappedItem(in.key(), player).count(it.count()));
@@ -745,13 +745,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         layout.addIngredient('B', bases.isEmpty() ? GuiElement.EMPTY : GuiElement.recipeIngredient(bases, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -760,7 +760,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -769,7 +769,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             }
         }));
 
-        List<Item<?>> additions = new ArrayList<>();
+        List<Item> additions = new ArrayList<>();
         Optional.ofNullable(recipe.addition()).ifPresent(it -> {
             for (UniqueKey in : it.items()) {
                 additions.add(this.plugin.itemManager().createWrappedItem(in.key(), player).count(it.count()));
@@ -778,13 +778,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         layout.addIngredient('C', additions.isEmpty() ? GuiElement.EMPTY : GuiElement.recipeIngredient(additions, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -793,7 +793,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -815,13 +815,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 .open(player);
     }
 
-    public void openStoneCuttingRecipePage(Player player, CustomStoneCuttingRecipe<Object> recipe, Gui parentGui, List<Recipe<Object>> recipes, int index, int depth, boolean canOpenNoRecipePage) {
+    public void openStoneCuttingRecipePage(Player player, CustomStoneCuttingRecipe recipe, Gui parentGui, List<Recipe> recipes, int index, int depth, boolean canOpenNoRecipePage) {
         Key previous = index > 0 ? Constants.RECIPE_PREVIOUS_PAGE_AVAILABLE : Constants.RECIPE_PREVIOUS_PAGE_BLOCK;
         Key next = index + 1 < recipes.size() ? Constants.RECIPE_NEXT_PAGE_AVAILABLE : Constants.RECIPE_NEXT_PAGE_BLOCK;
         Key result = recipe.result().item().id();
 
-        List<Item<?>> ingredients = new ArrayList<>();
-        net.momirealms.craftengine.core.item.recipe.Ingredient<Object> ingredient = recipe.ingredient();
+        List<Item> ingredients = new ArrayList<>();
+        net.momirealms.craftengine.core.item.recipe.Ingredient ingredient = recipe.ingredient();
         for (UniqueKey in : ingredient.items()) {
             ingredients.add(this.plugin.itemManager().createWrappedItem(in.key(), player));
         }
@@ -836,13 +836,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('X', GuiElement.constant(this.plugin.itemManager().createWrappedItem(result, player).count(recipe.result().count()), (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -851,7 +851,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, result, e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -865,20 +865,20 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (LEFT_CLICK.contains(c.type())) {
                 player.giveItem(this.plugin.itemManager().createWrappedItem(result, player));
             } else if (RIGHT_CLICK.contains(c.type())) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 player.giveItem(item.count(item.maxStackSize()));
             }
         }) : GuiElement.EMPTY)
         .addIngredient('A', GuiElement.recipeIngredient(ingredients, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -887,7 +887,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -948,13 +948,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 .open(player);
     }
 
-    public void openCookingRecipePage(Player player, CustomCookingRecipe<Object> recipe, Gui parentGui, List<Recipe<Object>> recipes, int index, int depth, boolean canOpenNoRecipePage) {
+    public void openCookingRecipePage(Player player, CustomCookingRecipe recipe, Gui parentGui, List<Recipe> recipes, int index, int depth, boolean canOpenNoRecipePage) {
         Key previous = index > 0 ? Constants.RECIPE_PREVIOUS_PAGE_AVAILABLE : Constants.RECIPE_PREVIOUS_PAGE_BLOCK;
         Key next = index + 1 < recipes.size() ? Constants.RECIPE_NEXT_PAGE_AVAILABLE : Constants.RECIPE_NEXT_PAGE_BLOCK;
         Key result = recipe.result().item().id();
 
-        List<Item<?>> ingredients = new ArrayList<>();
-        net.momirealms.craftengine.core.item.recipe.Ingredient<Object> ingredient = recipe.ingredient();
+        List<Item> ingredients = new ArrayList<>();
+        net.momirealms.craftengine.core.item.recipe.Ingredient ingredient = recipe.ingredient();
         for (UniqueKey in : ingredient.items()) {
             ingredients.add(this.plugin.itemManager().createWrappedItem(in.key(), player));
         }
@@ -969,13 +969,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('X', GuiElement.constant(this.plugin.itemManager().createWrappedItem(result, player).count(recipe.result().count()), (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -984,7 +984,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, result, e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -1004,20 +1004,20 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (LEFT_CLICK.contains(c.type())) {
                 player.giveItem(this.plugin.itemManager().createWrappedItem(result, player));
             } else if (RIGHT_CLICK.contains(c.type())) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(result, player);
+                Item item = this.plugin.itemManager().createWrappedItem(result, player);
                 player.giveItem(item.count(item.maxStackSize()));
             }
         }) : GuiElement.EMPTY)
         .addIngredient('A', GuiElement.recipeIngredient(ingredients, (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -1026,7 +1026,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -1098,7 +1098,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 .open(player);
     }
 
-    public void openCraftingRecipePage(Player player, CustomCraftingTableRecipe<Object> recipe, Gui parentGui, List<Recipe<Object>> recipes, int index, int depth, boolean canOpenNoRecipePage) {
+    public void openCraftingRecipePage(Player player, CustomCraftingTableRecipe recipe, Gui parentGui, List<Recipe> recipes, int index, int depth, boolean canOpenNoRecipePage) {
         Key previous = index > 0 ? Constants.RECIPE_PREVIOUS_PAGE_AVAILABLE : Constants.RECIPE_PREVIOUS_PAGE_BLOCK;
         Key next = index + 1 < recipes.size() ? Constants.RECIPE_NEXT_PAGE_AVAILABLE : Constants.RECIPE_NEXT_PAGE_BLOCK;
         Key result = recipe.result().item().id();
@@ -1114,13 +1114,13 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         .addIngredient('X', GuiElement.constant(this.plugin.itemManager().createWrappedItem(result, player).count(recipe.result().count()), (e, c) -> {
             c.cancel();
             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(recipe.result().item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(recipe.result().item().id(), player);
                 item.count(item.maxStackSize());
                 c.setItemOnCursor(item);
                 return;
             }
             if (LEFT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -1129,7 +1129,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                     openNoRecipePage(player, result, e.gui(), 0);
                 }
             } else if (RIGHT_CLICK.contains(c.type())) {
-                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
+                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(result);
                 if (inRecipes == recipes) return;
                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                 if (!inRecipes.isEmpty()) {
@@ -1143,7 +1143,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
             if (LEFT_CLICK.contains(c.type())) {
                 player.giveItem(this.plugin.itemManager().createWrappedItem(recipe.result().item().id(), player));
             } else if (RIGHT_CLICK.contains(c.type())) {
-                Item<?> item = this.plugin.itemManager().createWrappedItem(recipe.result().item().id(), player);
+                Item item = this.plugin.itemManager().createWrappedItem(recipe.result().item().id(), player);
                 player.giveItem(item.count(item.maxStackSize()));
             }
         }) : GuiElement.EMPTY)
@@ -1189,30 +1189,30 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
 
         char start = 'A';
         if (recipe.serializerType() == RecipeSerializers.SHAPED) {
-            String[] pattern = ((CustomShapedRecipe<Object>) recipe).pattern().pattern();
+            String[] pattern = ((CustomShapedRecipe) recipe).pattern().pattern();
             for (int x = 0; x < 3; x++) {
                 for (int y = 0; y < 3; y++) {
                     char currentChar = (char) (start + x + y * 3);
                     if (x < pattern[0].length() && y < pattern.length) {
                         char ingredientChar = pattern[y].charAt(x);
-                        net.momirealms.craftengine.core.item.recipe.Ingredient<Object> ingredient = ((CustomShapedRecipe<Object>) recipe).pattern().ingredients().get(ingredientChar);
+                        net.momirealms.craftengine.core.item.recipe.Ingredient ingredient = ((CustomShapedRecipe) recipe).pattern().ingredients().get(ingredientChar);
                         if (ingredient == null) {
                             layout.addIngredient(currentChar, Ingredient.EMPTY);
                         } else {
-                            List<Item<?>> ingredients = new ArrayList<>();
+                            List<Item> ingredients = new ArrayList<>();
                             for (UniqueKey in : ingredient.items()) {
                                 ingredients.add(this.plugin.itemManager().createWrappedItem(in.key(), player).count(ingredient.count()));
                             }
                             layout.addIngredient(currentChar, GuiElement.recipeIngredient(ingredients, (e, c) -> {
                                 c.cancel();
                                 if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                                    Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                                    Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                                     item.count(item.maxStackSize());
                                     c.setItemOnCursor(item);
                                     return;
                                 }
                                 if (LEFT_CLICK.contains(c.type())) {
-                                    List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                                    List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                                     if (inRecipes == recipes) return;
                                     player.playSound(Constants.SOUND_CLICK_BUTTON);
                                     if (!inRecipes.isEmpty()) {
@@ -1221,7 +1221,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                                         openNoRecipePage(player, e.item().id(), e.gui(), 0);
                                     }
                                 } else if (RIGHT_CLICK.contains(c.type())) {
-                                    List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                                    List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                                     if (inRecipes == recipes) return;
                                     player.playSound(Constants.SOUND_CLICK_BUTTON);
                                     if (!inRecipes.isEmpty()) {
@@ -1236,27 +1236,27 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                 }
             }
         } else {
-            List<net.momirealms.craftengine.core.item.recipe.Ingredient<Object>> ingredients = recipe.ingredientsInUse();
+            List<net.momirealms.craftengine.core.item.recipe.Ingredient> ingredients = recipe.ingredientsInUse();
             int i = 0;
             for (int x = 0; x < 3; x++) {
                 for (int y = 0; y < 3; y++) {
                     char currentChar = (char) (start + x + y * 3);
                     if (i < ingredients.size()) {
-                        List<Item<?>> ingredientItems = new ArrayList<>();
-                        net.momirealms.craftengine.core.item.recipe.Ingredient<Object> ingredient = ingredients.get(i);
+                        List<Item> ingredientItems = new ArrayList<>();
+                        net.momirealms.craftengine.core.item.recipe.Ingredient ingredient = ingredients.get(i);
                         for (UniqueKey in : ingredient.items()) {
                             ingredientItems.add(this.plugin.itemManager().createWrappedItem(in.key(), player).count(ingredient.count()));
                         }
                         layout.addIngredient(currentChar, GuiElement.recipeIngredient(ingredientItems, (e, c) -> {
                             c.cancel();
                             if (MIDDLE_CLICK.contains(c.type()) && player.isCreativeMode() && player.hasPermission(GET_ITEM_PERMISSION) && c.itemOnCursor() == null) {
-                                Item<?> item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
+                                Item item = this.plugin.itemManager().createWrappedItem(e.item().id(), player);
                                 item.count(item.maxStackSize());
                                 c.setItemOnCursor(item);
                                 return;
                             }
                             if (LEFT_CLICK.contains(c.type())) {
-                                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
+                                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByResult(e.item().id());
                                 if (inRecipes == recipes) return;
                                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                                 if (!inRecipes.isEmpty()) {
@@ -1265,7 +1265,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
                                     openNoRecipePage(player, e.item().id(), e.gui(), 0);
                                 }
                             } else if (RIGHT_CLICK.contains(c.type())) {
-                                List<Recipe<Object>> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
+                                List<Recipe> inRecipes = this.plugin.recipeManager().recipeByIngredient(e.item().id());
                                 if (inRecipes == recipes) return;
                                 player.playSound(Constants.SOUND_CLICK_BUTTON);
                                 if (!inRecipes.isEmpty()) {

@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
-        implements ConditionalRecipe<T>, FunctionalRecipe<T> {
-    public static final Serializer<?> SERIALIZER = new Serializer<>();
-    private final Ingredient<T> base;
-    private final Ingredient<T> template;
-    private final Ingredient<T> addition;
+public final class CustomSmithingTrimRecipe extends AbstractRecipe
+        implements ConditionalRecipe, FunctionalRecipe {
+    public static final Serializer SERIALIZER = new Serializer();
+    private final Ingredient base;
+    private final Ingredient template;
+    private final Ingredient addition;
     @Nullable // 1.21.5
     private final Key pattern;
     @Nullable
@@ -37,9 +37,9 @@ public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
 
     public CustomSmithingTrimRecipe(@NotNull Key id,
                                     boolean showNotification,
-                                    @NotNull Ingredient<T> template,
-                                    @NotNull Ingredient<T> base,
-                                    @NotNull Ingredient<T> addition,
+                                    @NotNull Ingredient template,
+                                    @NotNull Ingredient base,
+                                    @NotNull Ingredient addition,
                                     @Nullable Key pattern,
                                     @Nullable Function<Context>[] smithingFunctions,
                                     @Nullable Predicate<Context> condition
@@ -72,39 +72,35 @@ public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
         return this.condition != null;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void takeInput(@NotNull RecipeInput input, int ignore) {
-        SmithingInput<T> smithingInput = (SmithingInput<T>) input;
+        SmithingInput smithingInput = (SmithingInput) input;
         super.takeIngredient(this.base, smithingInput.base().item(), ignore);
         super.takeIngredient(this.template, smithingInput.template().item(), ignore);
         super.takeIngredient(this.addition, smithingInput.addition().item(), ignore);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public T assemble(RecipeInput input, ItemBuildContext context) {
-        SmithingInput<T> smithingInput = (SmithingInput<T>) input;
-        Item<T> processed = (Item<T>) CraftEngine.instance().itemManager().applyTrim((Item<Object>) smithingInput.base().item(), (Item<Object>) smithingInput.addition().item(), (Item<Object>) smithingInput.template().item(), this.pattern);
-        return processed.getItem();
+    public Item assemble(RecipeInput input, ItemBuildContext context) {
+        SmithingInput smithingInput = (SmithingInput) input;
+        return CraftEngine.instance().itemManager().applyTrim(smithingInput.base().item(), smithingInput.addition().item(), (Item) smithingInput.template().item(), this.pattern);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean matches(RecipeInput input) {
-        SmithingInput<T> smithingInput = (SmithingInput<T>) input;
+        SmithingInput smithingInput = (SmithingInput) input;
         return checkIngredient(this.base, smithingInput.base())
                 && checkIngredient(this.template, smithingInput.template())
                 && checkIngredient(this.addition, smithingInput.addition());
     }
 
-    private boolean checkIngredient(Ingredient<T> ingredient, UniqueIdItem<T> item) {
+    private boolean checkIngredient(Ingredient ingredient, UniqueIdItem item) {
         return ingredient.test(item);
     }
 
     @Override
-    public List<Ingredient<T>> ingredientsInUse() {
-        List<Ingredient<T>> ingredients = new ArrayList<>();
+    public List<Ingredient> ingredientsInUse() {
+        List<Ingredient> ingredients = new ArrayList<>();
         ingredients.add(this.base);
         ingredients.add(this.template);
         ingredients.add(this.addition);
@@ -122,17 +118,17 @@ public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
     }
 
     @NotNull
-    public Ingredient<T> base() {
+    public Ingredient base() {
         return this.base;
     }
 
     @NotNull
-    public Ingredient<T> template() {
+    public Ingredient template() {
         return template;
     }
 
     @NotNull
-    public Ingredient<T> addition() {
+    public Ingredient addition() {
         return addition;
     }
 
@@ -147,13 +143,13 @@ public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
     }
 
     @SuppressWarnings({"DuplicatedCode"})
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmithingTrimRecipe<A>> {
+    public static class Serializer extends AbstractRecipeSerializer<CustomSmithingTrimRecipe> {
         private static final String[] TEMPLATE_TYPE = new String[]{"template_type", "template-type"};
 
         @SuppressWarnings("unchecked")
         @Override
-        public CustomSmithingTrimRecipe<A> readConfig(Key id, ConfigSection section) {
-            return new CustomSmithingTrimRecipe<>(id,
+        public CustomSmithingTrimRecipe readConfig(Key id, ConfigSection section) {
+            return new CustomSmithingTrimRecipe(id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
                     section.getNonNullValue(TEMPLATE_TYPE, ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
                     section.getNonNullValue("base", ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
@@ -165,8 +161,8 @@ public final class CustomSmithingTrimRecipe<T> extends AbstractRecipe<T>
         }
 
         @Override
-        public CustomSmithingTrimRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomSmithingTrimRecipe<>(id,
+        public CustomSmithingTrimRecipe readJson(Key id, JsonObject json) {
+            return new CustomSmithingTrimRecipe(id,
                     VANILLA_RECIPE_HELPER.showNotification(json),
                     Objects.requireNonNull(toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("template")))),
                     Objects.requireNonNull(toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("base")))),

@@ -11,15 +11,15 @@ import net.momirealms.craftengine.core.util.random.RandomUtils;
 import java.util.List;
 import java.util.Optional;
 
-public final class ExplosionDecayFunction<T> extends AbstractLootConditionalFunction<T> {
-    public static final LootFunctionFactory<?> FACTORY = new Factory<>();
+public final class ExplosionDecayFunction extends AbstractLootConditionalFunction {
+    public static final LootFunctionFactory<ExplosionDecayFunction> FACTORY = new Factory();
 
     public ExplosionDecayFunction(List<Condition<LootContext>> predicates) {
         super(predicates);
     }
 
     @Override
-    protected Item<T> applyInternal(Item<T> item, LootContext context) {
+    protected Item applyInternal(Item item, LootContext context) {
         Optional<Float> radius = context.getOptionalParameter(DirectContextParameters.EXPLOSION_RADIUS);
         if (radius.isPresent()) {
             float f = 1f / radius.get();
@@ -35,11 +35,11 @@ public final class ExplosionDecayFunction<T> extends AbstractLootConditionalFunc
         return item;
     }
 
-    private static class Factory<T> implements LootFunctionFactory<T> {
+    private static class Factory implements LootFunctionFactory<ExplosionDecayFunction> {
 
         @Override
-        public LootFunction<T> create(ConfigSection section) {
-            return new ExplosionDecayFunction<>(section.getList("conditions", CommonConditions::fromConfig));
+        public ExplosionDecayFunction create(ConfigSection section) {
+            return new ExplosionDecayFunction(section.getList("conditions", CommonConditions::fromConfig));
         }
     }
 }

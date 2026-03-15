@@ -19,7 +19,7 @@ public final class OverwritableLoreProcessor implements SimpleNetworkItemProcess
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         if (VersionHelper.COMPONENT_RELEASE) {
             if (item.hasNonDefaultComponent(DataComponentKeys.LORE)) {
                 return item;
@@ -33,22 +33,22 @@ public final class OverwritableLoreProcessor implements SimpleNetworkItemProcess
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.LORE;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"display", "Lore"};
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "display.Lore";
     }
 
     @Override
-    public <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
+    public Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
         if (VersionHelper.COMPONENT_RELEASE) {
             if (item.hasNonDefaultComponent(DataComponentKeys.LORE)) {
                 return item;

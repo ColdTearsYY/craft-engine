@@ -42,9 +42,9 @@ public interface CompatibilityManager {
 
     void registerModelProvider(ModelProvider provider);
 
-    ItemSource<?> getItemSource(String id);
+    ItemSource getItemSource(String id);
 
-    void registerItemSource(ItemSource<?> itemSource);
+    void registerItemSource(ItemSource itemSource);
 
     LevelerProvider getLevelerProvider(String id);
 

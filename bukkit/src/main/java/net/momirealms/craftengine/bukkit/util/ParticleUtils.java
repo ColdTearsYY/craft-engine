@@ -10,6 +10,7 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Vibration;
 import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public final class ParticleUtils {
@@ -44,7 +45,7 @@ public final class ParticleUtils {
             case ColorData data -> ColorUtils.toBukkit(data.color());
             case DustData data -> new Particle.DustOptions(ColorUtils.toBukkit(data.color()), data.size());
             case DustTransitionData data -> new Particle.DustTransition(ColorUtils.toBukkit(data.from()), ColorUtils.toBukkit(data.to()), data.size());
-            case ItemStackData data -> data.item().getItem();
+            case ItemStackData data -> ItemStackUtils.getBukkitStack(data.item());
             case JavaTypeData data -> data.data();
             case VibrationData data -> new Vibration(new Vibration.Destination.BlockDestination(new Location(world, x + data.destinationX().getDouble(context), y + data.destinationY().getDouble(context), y + data.destinationZ().getDouble(context))), data.arrivalTime().getInt(context));
             case TrailData data -> new Particle.Trail(new Location(world, x + data.targetX().getDouble(context), y + data.targetZ().getDouble(context), z + data.targetZ().getDouble(context)), ColorUtils.toBukkit(data.color()), data.duration().getInt(context));

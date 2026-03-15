@@ -2,7 +2,6 @@ package net.momirealms.craftengine.bukkit.plugin.gui;
 
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
@@ -65,12 +64,12 @@ public final class BukkitClick implements Click {
 
     @SuppressWarnings("deprecation")
     @Override
-    public void setItemOnCursor(Item<?> item) {
-        this.event.setCursor((ItemStack) item.getItem());
+    public void setItemOnCursor(Item item) {
+        this.event.setCursor(ItemStackUtils.getBukkitStack(item));
     }
 
     @Override
-    public Item<?> itemOnCursor() {
+    public Item itemOnCursor() {
         ItemStack itemStack = this.event.getCursor();
         if (ItemStackUtils.isEmpty(itemStack)) return null;
         return BukkitItemManager.instance().wrap(itemStack);

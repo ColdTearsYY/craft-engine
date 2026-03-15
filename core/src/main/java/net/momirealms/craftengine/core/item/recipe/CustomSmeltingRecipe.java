@@ -7,15 +7,15 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
-public final class CustomSmeltingRecipe<T> extends CustomCookingRecipe<T> {
-    public static final Serializer<?> SERIALIZER = new Serializer<>();
+public final class CustomSmeltingRecipe extends CustomCookingRecipe {
+    public static final Serializer SERIALIZER = new Serializer();
 
     public CustomSmeltingRecipe(Key id,
                                 boolean showNotification,
-                                CustomRecipeResult<T> result,
+                                CustomRecipeResult result,
                                 String group,
                                 CookingRecipeCategory category,
-                                Ingredient<T> ingredient,
+                                Ingredient ingredient,
                                 int cookingTime,
                                 float experience) {
         super(id, showNotification, result, group, category, ingredient, cookingTime, experience);
@@ -31,11 +31,11 @@ public final class CustomSmeltingRecipe<T> extends CustomCookingRecipe<T> {
         return RecipeType.SMELTING;
     }
 
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmeltingRecipe<A>> {
+    public static class Serializer extends AbstractRecipeSerializer<CustomSmeltingRecipe> {
 
-        @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
+        @SuppressWarnings("DuplicatedCode")
         @Override
-        public CustomSmeltingRecipe<A> readConfig(Key id, ConfigSection section) {
+        public CustomSmeltingRecipe readConfig(Key id, ConfigSection section) {
             return new CustomSmeltingRecipe(
                     id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
@@ -49,8 +49,8 @@ public final class CustomSmeltingRecipe<T> extends CustomCookingRecipe<T> {
         }
 
         @Override
-        public CustomSmeltingRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomSmeltingRecipe<>(
+        public CustomSmeltingRecipe readJson(Key id, JsonObject json) {
+            return new CustomSmeltingRecipe(
                     id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.cookingResult(json.get("result"))), VANILLA_RECIPE_HELPER.readGroup(json), VANILLA_RECIPE_HELPER.cookingCategory(json),

@@ -9,6 +9,7 @@ import net.momirealms.craftengine.core.util.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class BlockSettingsModifiers {
     public static final BlockSettingsModifierType<BlockSettingsModifier> ITEM = register(Key.ce("item"), value -> {

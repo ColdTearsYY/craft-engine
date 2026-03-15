@@ -17,28 +17,22 @@ import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
-public abstract class ItemFactory<W extends ItemWrapper<I>, I> {
+public abstract class ItemFactory<W extends ItemWrapper> {
     protected final CraftEngine plugin;
 
     protected ItemFactory(CraftEngine plugin) {
         this.plugin = plugin;
     }
 
-    public Item<I> wrap(I item) {
-        Objects.requireNonNull(item, "item");
-        return new AbstractItem<>(this, wrapInternal(item));
-    }
+    public abstract W wrap(Object item);
 
     protected abstract ItemType type(W item);
 
     protected abstract W mergeCopy(W item1, W item2);
 
     protected abstract void merge(W item1, W item2);
-
-    protected abstract W wrapInternal(I item);
 
     protected abstract Object getJavaTag(W item, Object... path);
 
@@ -73,8 +67,6 @@ public abstract class ItemFactory<W extends ItemWrapper<I>, I> {
     protected abstract void resetComponent(W item, Object type);
 
     protected abstract boolean hasNonDefaultComponent(W item, Object type);
-
-    protected abstract I getItem(W item);
 
     protected abstract void customModelData(W item, Integer data);
 
@@ -219,8 +211,6 @@ public abstract class ItemFactory<W extends ItemWrapper<I>, I> {
     protected abstract W unsafeTransmuteCopy(W item, Object newItem, int count);
 
     protected abstract boolean isEmpty(W item);
-
-    protected abstract UniqueKey recipeIngredientID(W item);
 
     protected abstract void attributeModifiers(W item, List<AttributeModifier> modifiers);
 

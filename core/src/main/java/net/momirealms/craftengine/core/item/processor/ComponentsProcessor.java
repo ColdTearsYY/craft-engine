@@ -42,7 +42,7 @@ public final class ComponentsProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         for (DynamicComponentProvider argument : arguments) {
             item.setNBTComponent(argument.type, argument.function.apply(context));
         }
@@ -61,7 +61,7 @@ public final class ComponentsProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
+    public Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
         for (DynamicComponentProvider argument : this.arguments) {
             String componentType = argument.type.asString();
             Tag previous = item.getSparrowNBTComponent(componentType);

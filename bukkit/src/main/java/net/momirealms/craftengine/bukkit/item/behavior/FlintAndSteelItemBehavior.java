@@ -26,7 +26,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.nio.file.Path;
 
@@ -79,7 +78,7 @@ public final class FlintAndSteelItemBehavior extends ItemBehavior {
                 if (direction == Direction.UP) {
                     // 客户端层面必须可交互
                     if (!InteractUtils.isInteractable((Player) player.platformPlayer(), vanillaBlockState,
-                            context.getHitResult(), (Item<ItemStack>) context.getItem())) {
+                            context.getHitResult(), (Item) context.getItem())) {
                         return InteractionResult.PASS;
                     }
                     // 且没有shift或者忽略潜行的可交互方块
@@ -97,7 +96,7 @@ public final class FlintAndSteelItemBehavior extends ItemBehavior {
                                     BlockStateUtils.blockDataToBlockState(belowFireBlock.block().getBlockData()), context.getLevel().serverWorld(), LocationUtils.toBlockPos(belowFirePos), DirectionProxy.UP, SupportTypeProxy.FULL);
 
                     // 客户端觉得这玩意可交互，就会忽略声音
-                    if (InteractUtils.isInteractable((Player) player.platformPlayer(), vanillaBlockState, context.getHitResult(), (Item<ItemStack>) context.getItem())) {
+                    if (InteractUtils.isInteractable((Player) player.platformPlayer(), vanillaBlockState, context.getHitResult(), (Item) context.getItem())) {
                         // 如果按住了shift，则代表尝试对侧面方块点火
                         if (player.isSecondaryUseActive()) {
                             // 如果底部不能燃烧，则燃烧点位为侧面，需要补发

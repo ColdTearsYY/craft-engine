@@ -33,7 +33,7 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         if (item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK)) {
             if (this.merge) {
                 Optional<List<Enchantment>> previousEnchantments = item.storedEnchantments();
@@ -72,17 +72,17 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK) ? DataComponentKeys.STORED_ENCHANTMENTS : DataComponentKeys.ENCHANTMENTS;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
         return item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK) ? STORED_ENCHANTMENTS : ENCHANTMENTS;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK) ? "StoredEnchantments" : "Enchantments";
     }
 

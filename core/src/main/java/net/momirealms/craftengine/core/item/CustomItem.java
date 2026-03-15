@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public interface CustomItem<I> extends BuildableItem<I> {
+public interface CustomItem extends BuildableItem {
 
     /**
      * Since CraftEngine allows users to add certain functionalities to vanilla items, this custom item might actually be a vanilla item.
@@ -54,33 +54,33 @@ public interface CustomItem<I> extends BuildableItem<I> {
     @NotNull
     List<ItemBehavior> behaviors();
 
-    interface Builder<I> {
-        Builder<I> isVanillaItem(boolean isVanillaItem);
+    interface Builder {
+        Builder isVanillaItem(boolean isVanillaItem);
 
-        Builder<I> id(UniqueKey id);
+        Builder id(UniqueKey id);
 
-        Builder<I> clientBoundMaterial(Key clientBoundMaterialKey);
+        Builder clientBoundMaterial(Key clientBoundMaterialKey);
 
-        Builder<I> material(Key material);
+        Builder material(Key material);
 
-        Builder<I> dataModifier(ItemProcessor modifier);
+        Builder dataModifier(ItemProcessor modifier);
 
-        Builder<I> dataModifiers(List<ItemProcessor> modifiers);
+        Builder dataModifiers(List<ItemProcessor> modifiers);
 
-        Builder<I> clientBoundDataModifier(ItemProcessor modifier);
+        Builder clientBoundDataModifier(ItemProcessor modifier);
 
-        Builder<I> clientBoundDataModifiers(List<ItemProcessor> modifiers);
+        Builder clientBoundDataModifiers(List<ItemProcessor> modifiers);
 
-        Builder<I> behavior(ItemBehavior behavior);
+        Builder behavior(ItemBehavior behavior);
 
-        Builder<I> behaviors(List<ItemBehavior> behaviors);
+        Builder behaviors(List<ItemBehavior> behaviors);
 
-        Builder<I> settings(ItemSettings settings);
+        Builder settings(ItemSettings settings);
 
-        Builder<I> updater(ItemUpdateConfig updater);
+        Builder updater(ItemUpdateConfig updater);
 
-        Builder<I> events(Map<EventTrigger, List<Function<Context>>> events);
+        Builder events(Map<EventTrigger, List<Function<Context>>> events);
 
-        CustomItem<I> build();
+        CustomItem build();
     }
 }

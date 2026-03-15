@@ -31,22 +31,22 @@ public final class TrimProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         return item.trim(new Trim(this.pattern, this.material));
     }
 
     @Override
-    public <I> @NotNull Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> @NotNull Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.TRIM;
     }
 
     @Override
-    public <I> @Nullable Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> @Nullable Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "Trim";
     }
 

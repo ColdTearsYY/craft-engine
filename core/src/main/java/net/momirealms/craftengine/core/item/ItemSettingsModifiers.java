@@ -98,7 +98,7 @@ public final class ItemSettingsModifiers {
         }
         // 旧版本兼容写法
         ComponentBasedEquipment componentBasedEquipment = Equipments.COMPONENT.factory().create(data.assetId(), value.getAsSection());
-        ((AbstractItemManager<?>) CraftEngine.instance().itemManager()).addOrMergeEquipment(componentBasedEquipment);
+        ((AbstractItemManager) CraftEngine.instance().itemManager()).addOrMergeEquipment(componentBasedEquipment);
         ItemEquipment itemEquipment = new ItemEquipment(Tristate.FALSE, data, componentBasedEquipment);
         return settings -> settings.equipment(itemEquipment);
     }));

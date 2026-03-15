@@ -562,7 +562,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     protected CustomBlock createCustomBlock(@NotNull Holder.Reference<CustomBlock> holder, 
                                             @NotNull BlockStateVariantProvider variantProvider,
                                             @NotNull Map<EventTrigger, List<Function<Context>>> events,
-                                            @Nullable LootTable<?> lootTable) {
+                                            @Nullable LootTable lootTable) {
         return new BukkitCustomBlock(holder, variantProvider, events, lootTable);
     }
 }

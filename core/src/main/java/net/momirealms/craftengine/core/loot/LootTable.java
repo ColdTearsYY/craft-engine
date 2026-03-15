@@ -22,12 +22,12 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-public final class LootTable<T> {
-    private final List<LootPool<T>> pools;
-    private final List<LootFunction<T>> functions;
-    private final BiFunction<Item<T>, LootContext, Item<T>> compositeFunction;
+public final class LootTable {
+    private final List<LootPool> pools;
+    private final List<LootFunction> functions;
+    private final BiFunction<Item, LootContext, Item> compositeFunction;
 
-    public LootTable(List<LootPool<T>> pools, List<LootFunction<T>> functions) {
+    public LootTable(List<LootPool> pools, List<LootFunction> functions) {
         this.pools = pools;
         this.functions = functions;
         this.compositeFunction = LootFunctions.compose(functions);
@@ -36,54 +36,54 @@ public final class LootTable<T> {
     private static final String[] BONUS_ROLLS = new String[]{"bonus_rolls", "bonus-rolls"};
 
     @NotNull
-    public static <T> LootTable<T> fromConfig(@NotNull ConfigSection section) {
-        List<LootPool<T>> lootPools = section.getList("pools", v -> {
+    public static LootTable fromConfig(@NotNull ConfigSection section) {
+        List<LootPool> lootPools = section.getList("pools", v -> {
             ConfigSection innerSection = v.getAsSection();
             NumberProvider rolls = innerSection.getValue("rolls", NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
             NumberProvider bonus_rolls = innerSection.getValue(BONUS_ROLLS, NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
             List<Condition<LootContext>> conditions = innerSection.getList("conditions", CommonConditions::fromConfig);
-            List<LootEntryContainer<T>> containers = innerSection.getList("entries", LootEntryContainers::fromConfig);
-            List<LootFunction<T>> functions = innerSection.getList("functions", LootFunctions::fromConfig);
-            return new LootPool<>(containers, conditions, functions, rolls, bonus_rolls);
+            List<LootEntryContainer> containers = innerSection.getList("entries", LootEntryContainers::fromConfig);
+            List<LootFunction> functions = innerSection.getList("functions", LootFunctions::fromConfig);
+            return new LootPool(containers, conditions, functions, rolls, bonus_rolls);
         });
-        return new LootTable<>(lootPools, section.getList("functions", LootFunctions::fromConfig));
+        return new LootTable(lootPools, section.getList("functions", LootFunctions::fromConfig));
     }
 
-    public List<Item<T>> getRandomItems(ContextHolder parameters, World world) {
+    public List<Item> getRandomItems(ContextHolder parameters, World world) {
         return this.getRandomItems(parameters, world, null);
     }
 
-    public List<Item<T>> getRandomItems(ContextHolder parameters, World world, @Nullable Player player) {
+    public List<Item> getRandomItems(ContextHolder parameters, World world, @Nullable Player player) {
         return this.getRandomItems(new LootContext(world, player, player == null ? 1f : (float) player.luck(), parameters));
     }
 
-    private List<Item<T>> getRandomItems(LootContext context) {
-        ArrayList<Item<T>> list = new ArrayList<>();
+    private List<Item> getRandomItems(LootContext context) {
+        ArrayList<Item> list = new ArrayList<>();
         this.getRandomItems(context, list::add);
         return list;
     }
 
-    public void getRandomItems(LootContext context, Consumer<Item<T>> lootConsumer) {
+    public void getRandomItems(LootContext context, Consumer<Item> lootConsumer) {
         this.getRandomItemsRaw(context, createFunctionApplier(createStackSplitter(lootConsumer), context));
     }
 
-    private Consumer<Item<T>> createFunctionApplier(Consumer<Item<T>> lootConsumer, LootContext context) {
+    private Consumer<Item> createFunctionApplier(Consumer<Item> lootConsumer, LootContext context) {
         return (item -> {
-            for (LootFunction<T> function : this.functions) {
+            for (LootFunction function : this.functions) {
                 function.apply(item, context);
             }
             lootConsumer.accept(item);
         });
     }
 
-    private Consumer<Item<T>> createStackSplitter(Consumer<Item<T>> consumer) {
+    private Consumer<Item> createStackSplitter(Consumer<Item> consumer) {
         return (item) -> {
             if (item.count() < item.maxStackSize()) {
                 consumer.accept(item);
             } else {
                 int remaining = item.count();
                 while (remaining > 0) {
-                    Item<T> splitItem = item.copyWithCount(Math.min(item.maxStackSize(), remaining));
+                    Item splitItem = item.copyWithCount(Math.min(item.maxStackSize(), remaining));
                     remaining -= splitItem.count();
                     consumer.accept(splitItem);
                 }
@@ -91,9 +91,9 @@ public final class LootTable<T> {
         };
     }
 
-    public void getRandomItemsRaw(LootContext context, Consumer<Item<T>> lootConsumer) {
-        Consumer<Item<T>> consumer = LootFunction.decorate(this.compositeFunction, lootConsumer, context);
-        for (LootPool<T> pool : this.pools) {
+    public void getRandomItemsRaw(LootContext context, Consumer<Item> lootConsumer) {
+        Consumer<Item> consumer = LootFunction.decorate(this.compositeFunction, lootConsumer, context);
+        for (LootPool pool : this.pools) {
             pool.addRandomItems(consumer, context);
         }
     }

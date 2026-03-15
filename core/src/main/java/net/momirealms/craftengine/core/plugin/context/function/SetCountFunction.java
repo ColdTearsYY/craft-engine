@@ -24,9 +24,9 @@ public final class SetCountFunction<CTX extends Context> extends AbstractConditi
 
     @Override
     public void runInternal(CTX ctx) {
-        Optional<Item<?>> optionalItem = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
+        Optional<Item> optionalItem = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
         if (optionalItem.isPresent()) {
-            Item<?> item = optionalItem.get();
+            Item item = optionalItem.get();
             if (this.add) {
                 item.count(Math.min(item.count() + (this.count.getInt(ctx)), item.maxStackSize()));
             } else {

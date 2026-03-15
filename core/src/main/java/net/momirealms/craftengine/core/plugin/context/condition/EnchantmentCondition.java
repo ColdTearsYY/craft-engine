@@ -23,7 +23,7 @@ public final class EnchantmentCondition<CTX extends Context> implements Conditio
 
     @Override
     public boolean test(CTX ctx) {
-        Optional<Item<?>> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
+        Optional<Item> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
         if (item.isEmpty()) return false;
         Optional<Enchantment> enchantment = item.get().getEnchantment(id);
         int level = enchantment.map(Enchantment::level).orElse(0);

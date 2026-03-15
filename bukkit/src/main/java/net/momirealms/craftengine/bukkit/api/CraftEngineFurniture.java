@@ -4,7 +4,6 @@ import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurnitureManager;
 import net.momirealms.craftengine.bukkit.entity.seat.BukkitSeatManager;
 import net.momirealms.craftengine.bukkit.nms.CollisionEntity;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.entity.furniture.AnchorType;
 import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
@@ -24,7 +23,6 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
@@ -432,7 +430,7 @@ public final class CraftEngineFurniture {
         if (!furniture.isValid()) return;
         Location location = ((BukkitFurniture) furniture).getDropLocation();
         furniture.destroy();
-        LootTable<ItemStack> lootTable = (LootTable<ItemStack>) furniture.config.lootTable();
+        LootTable lootTable = (LootTable) furniture.config.lootTable();
         World world = BukkitAdaptor.adapt(location.getWorld());
         WorldPosition position = new WorldPosition(world, location.getX(), location.getY(), location.getZ());
         if (dropLoot && lootTable != null) {
@@ -441,12 +439,12 @@ public final class CraftEngineFurniture {
                     .withParameter(DirectContextParameters.FURNITURE, furniture)
                     .withOptionalParameter(DirectContextParameters.FURNITURE_ITEM, furniture.dataAccessor.item().orElse(null));
             if (player != null) {
-                Item<?> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+                Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
                 builder.withParameter(DirectContextParameters.PLAYER, player)
                         .withOptionalParameter(DirectContextParameters.ITEM_IN_HAND, itemInHand.isEmpty() ? null : itemInHand);
             }
-            List<Item<ItemStack>> items = lootTable.getRandomItems(builder.build(), world, player);
-            for (Item<ItemStack> item : items) {
+            List<Item> items = lootTable.getRandomItems(builder.build(), world, player);
+            for (Item item : items) {
                 world.dropItemNaturally(position, item);
             }
         }

@@ -26,7 +26,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         Optional<EquipmentData> optionalData = item.equippable();
         optionalData.ifPresent(data ->
                 {
@@ -65,7 +65,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.EQUIPPABLE;
     }
 

@@ -18,7 +18,6 @@ import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
@@ -47,8 +46,8 @@ public final class ItemFurnitureElementConfig implements FurnitureElementConfig<
         this.itemId = itemId;
         this.hasCondition = hasCondition;
         this.predicate = predicate;
-        BiFunction<Player, FurnitureColorSource, Item<?>> itemFunction = (player, colorSource) -> {
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
+        BiFunction<Player, FurnitureColorSource, Item> itemFunction = (player, colorSource) -> {
+            Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
             if (applyDyedColor && colorSource != null && wrappedItem != null) {
                 Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
                 Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(
@@ -63,7 +62,7 @@ public final class ItemFurnitureElementConfig implements FurnitureElementConfig<
         };
         this.metadata = (player, source) -> {
             List<Object> dataValues = new ArrayList<>();
-            ItemEntityData.Item.addEntityData(itemFunction.apply(player, source).getLiteralObject(), dataValues);
+            ItemEntityData.Item.addEntityData(itemFunction.apply(player, source).getMinecraftItem(), dataValues);
             ItemEntityData.NoGravity.addEntityData(true, dataValues);
             return dataValues;
         };

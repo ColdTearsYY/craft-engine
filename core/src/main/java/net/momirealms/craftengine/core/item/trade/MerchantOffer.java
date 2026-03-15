@@ -6,9 +6,9 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public final class MerchantOffer<I> {
-    private Item<I> cost1;
-    private Optional<Item<I>> cost2;
-    private Item<I> result;
+    private Item cost1;
+    private Optional<Item> cost2;
+    private Item result;
     private final int uses;
     private final int maxUses;
     private final int specialPrice;
@@ -17,9 +17,9 @@ public final class MerchantOffer<I> {
     private final int demand;
     private final boolean outOfStock;
 
-    public MerchantOffer(Item<I> cost1,
-                         Optional<Item<I>> cost2,
-                         Item<I> result,
+    public MerchantOffer(Item cost1,
+                         Optional<Item> cost2,
+                         Item result,
                          boolean outOfStock,
                          int uses,
                          int maxUses,
@@ -39,21 +39,21 @@ public final class MerchantOffer<I> {
         this.demand = demand;
     }
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.cost1 = function.apply(this.cost1);
         this.cost2 = this.cost2.map(function);
         this.result = function.apply(this.result);
     }
 
-    public Item<I> cost1() {
+    public Item cost1() {
         return this.cost1;
     }
 
-    public Optional<Item<I>> cost2() {
+    public Optional<Item> cost2() {
         return this.cost2;
     }
 
-    public Item<I> result() {
+    public Item result() {
         return this.result;
     }
 

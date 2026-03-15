@@ -19,9 +19,9 @@ public final class ExternalSourceProcessor implements ItemProcessor {
     public static final ItemProcessorFactory<ExternalSourceProcessor> FACTORY = new Factory();
     private static final ThreadLocal<Set<Dependency>> BUILD_STACK = ThreadLocal.withInitial(LinkedHashSet::new);
     private final String id;
-    private final LazyReference<ItemSource<?>> provider;
+    private final LazyReference<ItemSource> provider;
 
-    public ExternalSourceProcessor(String id, LazyReference<ItemSource<?>> provider) {
+    public ExternalSourceProcessor(String id, LazyReference<ItemSource> provider) {
         this.id = id;
         this.provider = provider;
     }
@@ -30,10 +30,9 @@ public final class ExternalSourceProcessor implements ItemProcessor {
         return id;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        ItemSource<I> provider = (ItemSource<I>) this.provider.get();
+    public Item apply(Item item, ItemBuildContext context) {
+        ItemSource provider = this.provider.get();
         if (provider == null) return item;
 
         Dependency dependency = new Dependency(provider.plugin(), this.id);
@@ -51,12 +50,12 @@ public final class ExternalSourceProcessor implements ItemProcessor {
 
         buildStack.add(dependency);
         try {
-            I another = provider.build(this.id, context);
+            Item another = provider.build(this.id, context);
             if (another == null) {
                 CraftEngine.instance().logger().warn("'" + this.id + "' could not be found in " + provider.plugin());
                 return item;
             }
-            Item<I> anotherWrapped = (Item<I>) CraftEngine.instance().itemManager().wrap(another);
+            Item anotherWrapped = (Item) CraftEngine.instance().itemManager().wrap(another);
             item.merge(anotherWrapped);
             return item;
         } catch (Throwable e) {
@@ -77,7 +76,7 @@ public final class ExternalSourceProcessor implements ItemProcessor {
             String plugin = section.getNonNullString(PLUGIN);
             String id = section.getNonNullString("id");
             return new ExternalSourceProcessor(id, LazyReference.lazyReference(() -> {
-                ItemSource<?> itemSource = CraftEngine.instance().compatibilityManager().getItemSource(plugin.toLowerCase(Locale.ENGLISH));
+                ItemSource itemSource = CraftEngine.instance().compatibilityManager().getItemSource(plugin.toLowerCase(Locale.ENGLISH));
                 if (itemSource == null) {
                     CraftEngine.instance().logger().warn("Item source '" + plugin + "' not found for item '" + id + "'");
                 }

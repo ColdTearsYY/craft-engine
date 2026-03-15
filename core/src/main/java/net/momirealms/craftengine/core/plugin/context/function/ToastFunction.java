@@ -17,13 +17,13 @@ import java.util.List;
 public final class ToastFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final PlayerSelector<CTX> selector;
     private final String toast;
-    private final java.util.function.Function<Player, Item<?>> icon;
+    private final java.util.function.Function<Player, Item> icon;
     private final AdvancementType advancementType;
 
     private ToastFunction(List<Condition<CTX>> predicates,
                           @Nullable PlayerSelector<CTX> selector,
                           String toast,
-                          java.util.function.Function<Player, Item<?>> icon,
+                          java.util.function.Function<Player, Item> icon,
                           AdvancementType advancementType) {
         super(predicates);
         this.selector = selector;

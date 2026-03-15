@@ -16,12 +16,12 @@ public final class ItemModelProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         return item.itemModel(this.data.asString());
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ITEM_MODEL;
     }
 

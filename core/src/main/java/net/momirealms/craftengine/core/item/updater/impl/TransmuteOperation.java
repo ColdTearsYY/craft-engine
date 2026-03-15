@@ -16,7 +16,7 @@ public final class TransmuteOperation implements ItemUpdater {
     }
 
     @Override
-    public <I> Item<I> update(Item<I> item, ItemBuildContext context) {
+    public Item update(Item item, ItemBuildContext context) {
         return item.transmuteCopy(this.newMaterial, item.count());
     }
 

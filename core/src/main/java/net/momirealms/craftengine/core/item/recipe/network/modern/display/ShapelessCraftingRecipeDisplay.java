@@ -9,17 +9,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public record ShapelessCraftingRecipeDisplay<I>(List<SlotDisplay<I>> ingredients, SlotDisplay<I> result, SlotDisplay<I> craftingStation) implements RecipeDisplay<I> {
+public record ShapelessCraftingRecipeDisplay(List<SlotDisplay> ingredients, SlotDisplay result, SlotDisplay craftingStation) implements RecipeDisplay {
 
-    public static <I> ShapelessCraftingRecipeDisplay<I> read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item<I>> reader) {
-        List<SlotDisplay<I>> ingredients = buffer.readCollection(ArrayList::new, buf -> SlotDisplay.read(buf, reader));
-        SlotDisplay<I> result = SlotDisplay.read(buffer, reader);
-        SlotDisplay<I> craftingStation = SlotDisplay.read(buffer, reader);
-        return new ShapelessCraftingRecipeDisplay<>(ingredients, result, craftingStation);
+    public static ShapelessCraftingRecipeDisplay read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
+        List<SlotDisplay> ingredients = buffer.readCollection(ArrayList::new, buf -> SlotDisplay.read(buf, reader));
+        SlotDisplay result = SlotDisplay.read(buffer, reader);
+        SlotDisplay craftingStation = SlotDisplay.read(buffer, reader);
+        return new ShapelessCraftingRecipeDisplay(ingredients, result, craftingStation);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(0);
         buf.writeCollection(this.ingredients, (byteBuf, slotDisplay) -> slotDisplay.write(buf, writer));
         this.result.write(buf, writer);
@@ -27,8 +27,8 @@ public record ShapelessCraftingRecipeDisplay<I>(List<SlotDisplay<I>> ingredients
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
-        for (SlotDisplay<I> ingredient : ingredients) {
+    public void applyClientboundData(Function<Item, Item> function) {
+        for (SlotDisplay ingredient : ingredients) {
             ingredient.applyClientboundData(function);
         }
         this.result.applyClientboundData(function);

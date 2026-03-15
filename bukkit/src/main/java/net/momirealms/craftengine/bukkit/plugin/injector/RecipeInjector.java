@@ -14,6 +14,7 @@ import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.ItemTags;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.core.item.CustomItem;
@@ -30,7 +31,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.inventory.CraftingContai
 import net.momirealms.craftengine.proxy.minecraft.world.item.*;
 import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.*;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -151,7 +151,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item<ItemStack> wrapped = BukkitItemManager.instance().wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
                 if (isFireworkDye(wrapped)) {
                     hasDye = true;
                 } else {
@@ -174,7 +174,7 @@ public final class RecipeInjector {
         @RuntimeType
         public Object intercept(@AllArguments Object[] args) {
             IntList colors = new IntArrayList();
-            Item<ItemStack> starItem = null;
+            Item starItem = null;
             Object input = args[0];
             int size = INGREDIENT_SIZE_GETTER.apply(input);
             for (int i = 0; i < size; i++) {
@@ -182,7 +182,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item<ItemStack> wrapped = BukkitItemManager.instance().wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
                 if (isFireworkDye(wrapped)) {
                     Color color = getFireworkColor(wrapped);
                     if (color == null) {
@@ -198,7 +198,7 @@ public final class RecipeInjector {
             }
             FireworkExplosion explosion = starItem.fireworkExplosion().orElse(FireworkExplosion.DEFAULT);
             starItem.fireworkExplosion(explosion.withFadeColors(colors));
-            return starItem.getLiteralObject();
+            return starItem.getMinecraftItem();
         }
     }
 
@@ -216,16 +216,16 @@ public final class RecipeInjector {
     }
 
     @Nullable
-    private static Pair<Item<ItemStack>, Item<ItemStack>> getItemsToCombine(Object input) {
-        Item<ItemStack> item1 = null;
-        Item<ItemStack> item2 = null;
+    private static Pair<Item, Item> getItemsToCombine(Object input) {
+        Item item1 = null;
+        Item item2 = null;
         int size = INGREDIENT_SIZE_GETTER.apply(input);
         for (int i = 0; i < size; i++) {
             Object itemStack = INGREDIENT_GETTER.apply(input, i);
             if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                 continue;
             }
-            Item<ItemStack> wrapped = BukkitItemManager.instance().wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(itemStack));
+            Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
             if (item1 == null) {
                 item1 = wrapped;
             } else {
@@ -244,19 +244,19 @@ public final class RecipeInjector {
         return new Pair<>(item1, item2);
     }
 
-    private static boolean canCombine(Item<ItemStack> input1, Item<ItemStack> input2) {
+    private static boolean canCombine(Item input1, Item input2) {
         if (input1.count() != 1 || !isDamageableItem(input1)) return false;
         if (input2.count() != 1 || !isDamageableItem(input2)) return false;
         if (!input1.id().equals(input2.id())) return false;
-        Optional<CustomItem<ItemStack>> customItem = input1.getCustomItem();
+        Optional<CustomItem> customItem = input1.getCustomItem();
         return customItem.isEmpty() || customItem.get().settings().repairable().craftingTable() != Tristate.FALSE;
     }
 
-    private static boolean isDamageableItem(Item<ItemStack> item) {
+    private static boolean isDamageableItem(Item item) {
         if (VersionHelper.isOrAbove1_20_5()) {
             return item.hasComponent(DataComponentTypes.MAX_DAMAGE) && item.hasComponent(DataComponentTypes.DAMAGE);
         } else {
-            return ItemProxy.INSTANCE.canBeDepleted(ItemStackProxy.INSTANCE.getItem(item.getLiteralObject()));
+            return ItemProxy.INSTANCE.canBeDepleted(ItemStackProxy.INSTANCE.getItem(item.getMinecraftItem()));
         }
     }
 
@@ -275,14 +275,14 @@ public final class RecipeInjector {
                 return false;
             }
             int size = INGREDIENT_SIZE_GETTER.apply(input);
-            Item<ItemStack> itemToDye = null;
+            Item itemToDye = null;
             boolean hasDye = false;
             for (int i = 0; i < size; i++) {
                 Object itemStack = INGREDIENT_GETTER.apply(input, i);
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item<ItemStack> wrapped = BukkitItemManager.instance().wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
                 if (isDyeable(wrapped)) {
                     if (itemToDye != null) {
                         return false;
@@ -305,7 +305,7 @@ public final class RecipeInjector {
         @RuntimeType
         public Object intercept(@AllArguments Object[] args) {
             List<Color> colors = new ArrayList<>();
-            Item<ItemStack> itemToDye = null;
+            Item itemToDye = null;
             Object input = args[0];
             int size = INGREDIENT_SIZE_GETTER.apply(input);
             for (int i = 0; i < size; i++) {
@@ -313,7 +313,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item<ItemStack> wrapped = BukkitItemManager.instance().wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
                 if (isDyeable(wrapped)) {
                     itemToDye = wrapped.copyWithCount(1);
                 } else {
@@ -328,42 +328,42 @@ public final class RecipeInjector {
             if (itemToDye == null || itemToDye.isEmpty() || colors.isEmpty()) {
                 return ItemStackProxy.EMPTY;
             }
-            return itemToDye.applyDyedColors(colors).getLiteralObject();
+            return itemToDye.applyDyedColors(colors).getMinecraftItem();
         }
     }
 
     @Nullable
-    private static Color getDyeColor(final Item<ItemStack> dyeItem) {
-        Optional<CustomItem<ItemStack>> optionalCustomItem = dyeItem.getCustomItem();
+    private static Color getDyeColor(final Item dyeItem) {
+        Optional<CustomItem> optionalCustomItem = dyeItem.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<ItemStack> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             return Optional.ofNullable(customItem.settings().dyeColor()).orElseGet(() -> getVanillaDyeColor(dyeItem));
         }
         return getVanillaDyeColor(dyeItem);
     }
 
     @Nullable
-    private static Color getFireworkColor(final Item<ItemStack> dyeItem) {
-        Optional<CustomItem<ItemStack>> optionalCustomItem = dyeItem.getCustomItem();
+    private static Color getFireworkColor(final Item dyeItem) {
+        Optional<CustomItem> optionalCustomItem = dyeItem.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<ItemStack> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             return Optional.ofNullable(customItem.settings().fireworkColor()).orElseGet(() -> getVanillaFireworkColor(dyeItem));
         }
         return getVanillaFireworkColor(dyeItem);
     }
 
-    private static final Predicate<Item<ItemStack>> IS_DYEABLE =
+    private static final Predicate<Item> IS_DYEABLE =
             VersionHelper.isOrAbove1_20_5() ?
                     (item -> item.hasItemTag(ItemTags.DYEABLE)) :
                     (item -> {
-                       Object itemLike = ItemStackProxy.INSTANCE.getItem(item.getLiteralObject());
+                       Object itemLike = ItemStackProxy.INSTANCE.getItem(item.getMinecraftItem());
                        return DyeableLeatherItemProxy.CLASS.isInstance(itemLike);
                     });
 
-    private static boolean isDyeable(final Item<ItemStack> item) {
-        Optional<CustomItem<ItemStack>> optionalCustomItem = item.getCustomItem();
+    private static boolean isDyeable(final Item item) {
+        Optional<CustomItem> optionalCustomItem = item.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<ItemStack> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             if (customItem.settings().dyeable() == Tristate.FALSE) {
                 return false;
             }
@@ -376,8 +376,8 @@ public final class RecipeInjector {
 
     @SuppressWarnings("PointlessBitwiseExpression")
     @Nullable
-    private static Color getVanillaDyeColor(final Item<ItemStack> item) {
-        Object itemStack = item.getLiteralObject();
+    private static Color getVanillaDyeColor(final Item item) {
+        Object itemStack = item.getMinecraftItem();
         Object dyeItem = ItemStackProxy.INSTANCE.getItem(itemStack);
         if (!DyeItemProxy.CLASS.isInstance(dyeItem)) return null;
         Object dyeColor = DyeItemProxy.INSTANCE.getDyeColor(dyeItem);
@@ -395,32 +395,32 @@ public final class RecipeInjector {
     }
 
     @Nullable
-    private static Color getVanillaFireworkColor(final Item<ItemStack> item) {
-        Object itemStack = item.getLiteralObject();
+    private static Color getVanillaFireworkColor(final Item item) {
+        Object itemStack = item.getMinecraftItem();
         Object dyeItem = ItemStackProxy.INSTANCE.getItem(itemStack);
         if (!DyeItemProxy.CLASS.isInstance(dyeItem)) return null;
         return Color.fromDecimal(DyeColorProxy.INSTANCE.getFireworkColor(DyeItemProxy.INSTANCE.getDyeColor(dyeItem)));
     }
 
-    private static boolean isArmorDye(Item<ItemStack> dyeItem) {
-        Optional<CustomItem<ItemStack>> optionalCustomItem = dyeItem.getCustomItem();
+    private static boolean isArmorDye(Item dyeItem) {
+        Optional<CustomItem> optionalCustomItem = dyeItem.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<ItemStack> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             return customItem.settings().dyeColor() != null || isVanillaDyeItem(dyeItem);
         }
         return isVanillaDyeItem(dyeItem);
     }
 
-    private static boolean isFireworkDye(Item<ItemStack> dyeItem) {
-        Optional<CustomItem<ItemStack>> optionalCustomItem = dyeItem.getCustomItem();
+    private static boolean isFireworkDye(Item dyeItem) {
+        Optional<CustomItem> optionalCustomItem = dyeItem.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<ItemStack> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             return customItem.settings().fireworkColor() != null || isVanillaDyeItem(dyeItem);
         }
         return isVanillaDyeItem(dyeItem);
     }
 
-    private static boolean isVanillaDyeItem(Item<ItemStack> item) {
-        return DyeItemProxy.CLASS.isInstance(ItemStackProxy.INSTANCE.getItem(item.getLiteralObject()));
+    private static boolean isVanillaDyeItem(Item item) {
+        return DyeItemProxy.CLASS.isInstance(ItemStackProxy.INSTANCE.getItem(item.getMinecraftItem()));
     }
 }

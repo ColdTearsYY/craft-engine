@@ -6,6 +6,7 @@ import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent;
 import io.papermc.paper.event.player.AsyncChatDecorateEvent;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
+import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
@@ -142,9 +143,9 @@ public final class BukkitFontManager extends AbstractFontManager implements List
         Component itemName = Component.text(renameText);
         EmojiComponentProcessResult replaceProcessResult = replaceComponentEmoji(itemName, BukkitAdaptor.adapt(player), renameText);
         if (replaceProcessResult.changed()) {
-            Item<ItemStack> wrapped = this.plugin.itemManager().wrap(result);
+            BukkitItem wrapped = this.plugin.itemManager().wrap(result);
             wrapped.customNameJson(AdventureHelper.componentToJson(replaceProcessResult.newText()));
-            event.setResult(wrapped.getItem());
+            event.setResult(wrapped.getBukkitItem());
         }
     }
 

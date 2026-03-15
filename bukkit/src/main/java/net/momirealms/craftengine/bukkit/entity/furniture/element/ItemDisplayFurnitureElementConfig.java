@@ -22,7 +22,6 @@ import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -92,8 +91,8 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
         this.viewRange = viewRange;
         this.predicate = predicate;
         this.hasCondition = hasCondition;
-        BiFunction<Player, FurnitureColorSource, Item<?>> itemFunction = (player, colorSource) -> {
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
+        BiFunction<Player, FurnitureColorSource, Item> itemFunction = (player, colorSource) -> {
+            Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
             if (applyDyedColor && colorSource != null && wrappedItem != null) {
                 Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
                 Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(
@@ -112,7 +111,7 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
                 ItemDisplayEntityData.SharedFlags.addEntityData((byte) 0x40, dataValues);
                 ItemDisplayEntityData.GlowColorOverride.addEntityData(glowColor.color(), dataValues);
             }
-            ItemDisplayEntityData.DisplayedItem.addEntityData(itemFunction.apply(player, source).getLiteralObject(), dataValues);
+            ItemDisplayEntityData.DisplayedItem.addEntityData(itemFunction.apply(player, source).getMinecraftItem(), dataValues);
             ItemDisplayEntityData.Scale.addEntityDataIfNotDefaultValue(this.scale, dataValues);
             ItemDisplayEntityData.RotationLeft.addEntityDataIfNotDefaultValue(this.rotation, dataValues);
             ItemDisplayEntityData.BillboardConstraints.addEntityDataIfNotDefaultValue(this.billboard.id(), dataValues);

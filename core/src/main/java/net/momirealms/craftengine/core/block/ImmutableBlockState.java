@@ -157,10 +157,10 @@ public final class ImmutableBlockState {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Item<Object>> getDrops(@NotNull ContextHolder.Builder builder, @NotNull World world, @Nullable Player player) {
+    public List<Item> getDrops(@NotNull ContextHolder.Builder builder, @NotNull World world, @Nullable Player player) {
         CustomBlock block = this.owner.value();
         if (block == null) return List.of();
-        LootTable<Object> lootTable = (LootTable<Object>) block.lootTable();
+        LootTable lootTable = (LootTable) block.lootTable();
         if (lootTable == null) return List.of();
         return lootTable.getRandomItems(builder.withParameter(DirectContextParameters.CUSTOM_BLOCK_STATE, this).build(), world, player);
     }

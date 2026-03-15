@@ -22,7 +22,7 @@ public final class RecipeBasedCraftRemainder implements CraftRemainder {
     }
 
     @Override
-    public <T> Item<T> remainder(Key recipeId, Item<T> item) {
+    public <T> Item remainder(Key recipeId, Item item) {
         CraftRemainder remainder = this.remainders.get(recipeId);
         if (remainder != null) {
             return remainder.remainder(recipeId, item);

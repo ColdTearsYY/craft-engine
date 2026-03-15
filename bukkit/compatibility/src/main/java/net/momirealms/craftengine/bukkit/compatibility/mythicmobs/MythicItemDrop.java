@@ -10,6 +10,7 @@ import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.adapters.BukkitItemStack;
 import io.lumine.mythic.core.drops.droppables.ItemDrop;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
+import net.momirealms.craftengine.bukkit.item.BukkitCustomItem;
 import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -25,10 +26,10 @@ import java.lang.reflect.Constructor;
 public final class MythicItemDrop extends ItemDrop implements IItemDrop {
     private static final Constructor<?> constructor$BukkitItemStack = ReflectionUtils.getConstructor(BukkitItemStack.class, ItemStack.class);
     private static final boolean useReflection = constructor$BukkitItemStack != null;
-    private final LazyReference<CustomItem<ItemStack>> customItem;
+    private final LazyReference<CustomItem> customItem;
     private final String itemId;
 
-    public MythicItemDrop(String line, MythicLineConfig config, LazyReference<CustomItem<ItemStack>> customItem, String itemId) {
+    public MythicItemDrop(String line, MythicLineConfig config, LazyReference<CustomItem> customItem, String itemId) {
         super(line, config);
         this.customItem = customItem;
         this.itemId = itemId;
@@ -46,11 +47,11 @@ public final class MythicItemDrop extends ItemDrop implements IItemDrop {
             }
         }
         int amountInt = MiscUtils.floor(amount + 0.5F);
-        CustomItem<ItemStack> customItem = this.customItem.get();
+        BukkitCustomItem customItem = (BukkitCustomItem) this.customItem.get();
         if (customItem == null) {
             throw new IllegalArgumentException("Cannot find CraftEngine item " + this.itemId);
         } else {
-            ItemStack itemStack = customItem.buildItemStack(context, amountInt);
+            ItemStack itemStack = customItem.buildBukkitItem(context, amountInt);
             return adapt(itemStack).amount(amountInt);
         }
     }

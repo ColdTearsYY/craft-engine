@@ -7,7 +7,6 @@ import net.momirealms.craftengine.core.item.data.Enchantment;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
@@ -33,27 +32,27 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultRecipe<T>
-        implements ConditionalRecipe<T>, VisualResultRecipe<T>, FunctionalRecipe<T> {
-    public static final Serializer<?> SERIALIZER = new Serializer<>();
-    private final Ingredient<T> base;
-    private final Ingredient<T> template;
-    private final Ingredient<T> addition;
+public final class CustomSmithingTransformRecipe extends AbstractFixedResultRecipe
+        implements ConditionalRecipe, VisualResultRecipe, FunctionalRecipe {
+    public static final Serializer SERIALIZER = new Serializer();
+    private final Ingredient base;
+    private final Ingredient template;
+    private final Ingredient addition;
     private final boolean mergeComponents;
     private final boolean mergeEnchantments;
     private final List<ItemDataProcessor> processors;
     private final Predicate<Context> condition;
     private final Function<Context>[] smithingFunctions;
-    private final CustomRecipeResult<T> visualResult;
+    private final CustomRecipeResult visualResult;
     private final boolean ingredientCountSupport;
 
     public CustomSmithingTransformRecipe(Key id,
                                          boolean showNotification,
-                                         @Nullable Ingredient<T> template,
-                                         @NotNull Ingredient<T> base,
-                                         @Nullable Ingredient<T> addition,
-                                         CustomRecipeResult<T> result,
-                                         @Nullable CustomRecipeResult<T> visualResult,
+                                         @Nullable Ingredient template,
+                                         @NotNull Ingredient base,
+                                         @Nullable Ingredient addition,
+                                         CustomRecipeResult result,
+                                         @Nullable CustomRecipeResult visualResult,
                                          List<ItemDataProcessor> processors,
                                          boolean mergeComponents,
                                          boolean mergeEnchantments,
@@ -92,7 +91,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
     }
 
     @Override
-    public CustomRecipeResult<T> visualResult() {
+    public CustomRecipeResult visualResult() {
         return this.visualResult;
     }
 
@@ -110,7 +109,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
     @SuppressWarnings("unchecked")
     @Override
     public void takeInput(@NotNull RecipeInput input, int ignore) {
-        SmithingInput<T> smithingInput = (SmithingInput<T>) input;
+        SmithingInput smithingInput = (SmithingInput) input;
         super.takeIngredient(this.base, smithingInput.base().item(), ignore);
         if (this.template != null) super.takeIngredient(this.template, smithingInput.template().item(), ignore);
         if (this.addition != null) super.takeIngredient(this.addition, smithingInput.addition().item(), ignore);
@@ -119,13 +118,13 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
     @SuppressWarnings("unchecked")
     @Override
     public boolean matches(RecipeInput input) {
-        SmithingInput<T> smithingInput = (SmithingInput<T>) input;
+        SmithingInput smithingInput = (SmithingInput) input;
         return checkIngredient(this.base, smithingInput.base())
                 && checkIngredient(this.template, smithingInput.template())
                 && checkIngredient(this.addition, smithingInput.addition());
     }
 
-    private boolean checkIngredient(Ingredient<T> ingredient, UniqueIdItem<T> item) {
+    private boolean checkIngredient(Ingredient ingredient, UniqueIdItem item) {
         if (ingredient != null) {
             if (item == null || item.isEmpty()) {
                 return false;
@@ -137,8 +136,8 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
     }
 
     @Override
-    public List<Ingredient<T>> ingredientsInUse() {
-        List<Ingredient<T>> ingredients = new ArrayList<>();
+    public List<Ingredient> ingredientsInUse() {
+        List<Ingredient> ingredients = new ArrayList<>();
         ingredients.add(this.base);
         if (this.template != null) {
             ingredients.add(this.template);
@@ -159,66 +158,62 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         return RecipeType.SMITHING;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public T assembleVisual(RecipeInput input, ItemBuildContext context) {
-        SmithingInput<T> smithingInput = ((SmithingInput<T>) input);
-        Item<T> base = smithingInput.base().item();
-        T result = this.visualResult().buildItemStack(context);
+    public Item assembleVisual(RecipeInput input, ItemBuildContext context) {
+        SmithingInput smithingInput = ((SmithingInput) input);
+        Item base = smithingInput.base().item();
+        Item result = this.visualResult().buildItem(context);
         return createSmithingResult(base, result);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public T assemble(RecipeInput input, ItemBuildContext context) {
-        SmithingInput<T> smithingInput = ((SmithingInput<T>) input);
-        Item<T> base = smithingInput.base().item();
-        T result = this.result(context);
+    public Item assemble(RecipeInput input, ItemBuildContext context) {
+        SmithingInput smithingInput = ((SmithingInput) input);
+        Item base = smithingInput.base().item();
+        Item result = this.result(context);
         return createSmithingResult(base, result);
     }
 
-    @SuppressWarnings("unchecked")
-    private T createSmithingResult(Item<T> base, T result) {
-        Item<T> wrappedResult = (Item<T>) CraftEngine.instance().itemManager().wrap(result);
-        Item<T> finalResult = wrappedResult;
+    private Item createSmithingResult(Item base, Item result) {
+        Item finalResult = result;
         if (this.mergeComponents) {
-            finalResult = base.mergeCopy(wrappedResult);
+            finalResult = base.mergeCopy(result);
         }
         if (this.processors != null) {
             for (ItemDataProcessor processor : this.processors) {
-                processor.accept(base, wrappedResult, finalResult);
+                processor.accept(base, result, finalResult);
             }
         }
-        return finalResult.getItem();
+        return finalResult;
     }
 
     @NotNull
-    public Ingredient<T> base() {
+    public Ingredient base() {
         return this.base;
     }
 
     @Nullable
-    public Ingredient<T> template() {
+    public Ingredient template() {
         return template;
     }
 
     @Nullable
-    public Ingredient<T> addition() {
+    public Ingredient addition() {
         return addition;
     }
 
     @SuppressWarnings({"DuplicatedCode"})
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmithingTransformRecipe<A>> {
+    public static class Serializer extends AbstractRecipeSerializer<CustomSmithingTransformRecipe> {
         private static final String[] TEMPLATE_TYPE = new String[]{"template_type", "template-type"};
         private static final String[] MERGE_COMPONENTS = new String[]{"merge-components", "merge_components"};
         private static final String[] MERGE_ENCHANTMENTS = new String[]{"merge-enchantments", "merge_enchantments"};
 
         @SuppressWarnings("unchecked")
         @Override
-        public CustomSmithingTransformRecipe<A> readConfig(Key id, ConfigSection section) {
-            Ingredient<A> templateIngredient = section.getValue(TEMPLATE_TYPE, super::parseIngredient);
-            Ingredient<A> baseIngredient = section.getNonNullValue("base", ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
-            Ingredient<A> additionIngredient = section.getValue("addition", super::parseIngredient);
+        public CustomSmithingTransformRecipe readConfig(Key id, ConfigSection section) {
+            Ingredient templateIngredient = section.getValue(TEMPLATE_TYPE, super::parseIngredient);
+            Ingredient baseIngredient = section.getNonNullValue("base", ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
+            Ingredient additionIngredient = section.getValue("addition", super::parseIngredient);
             boolean countSupport = false;
             if (/* !countSupport && */ templateIngredient != null && templateIngredient.count() > 1) {
                 countSupport = true;
@@ -229,7 +224,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
             if (!countSupport && /* baseIngredient != null && */ baseIngredient.count() > 1) {
                 countSupport = true;
             }
-            return new CustomSmithingTransformRecipe<>(id,
+            return new CustomSmithingTransformRecipe(id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
                     templateIngredient,
                     baseIngredient,
@@ -246,8 +241,8 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         }
 
         @Override
-        public CustomSmithingTransformRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomSmithingTransformRecipe<>(
+        public CustomSmithingTransformRecipe readJson(Key id, JsonObject json) {
+            return new CustomSmithingTransformRecipe(
                     id,
                     true,
                     toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("template"))),
@@ -295,7 +290,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         }
     }
 
-    public interface ItemDataProcessor extends TriConsumer<Item<?>, Item<?>, Item<?>> {
+    public interface ItemDataProcessor extends TriConsumer<Item, Item, Item> {
 
         interface Factory<T extends ItemDataProcessor> {
             T create(ConfigSection section);
@@ -309,7 +304,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         public static final ItemDataProcessor.Factory<MergeEnchantments> FACTORY = new Factory();
 
         @Override
-        public void accept(Item<?> item1, Item<?> item2, Item<?> item3) {
+        public void accept(Item item1, Item item2, Item item3) {
             item1.enchantments().ifPresent(e1 -> {
                 item3.enchantments().ifPresent(e2 -> {
                     item3.setEnchantments(Stream.concat(e1.stream(), e2.stream())
@@ -344,7 +339,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         }
 
         @Override
-        public void accept(Item<?> item1, Item<?> item2, Item<?> item3) {
+        public void accept(Item item1, Item item2, Item item3) {
             for (String[] path : this.paths) {
                 Object dataObj = item1.getJavaTag((Object[]) path);
                 if (dataObj != null) {
@@ -372,7 +367,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         }
 
         @Override
-        public void accept(Item<?> item1, Item<?> item2, Item<?> item3) {
+        public void accept(Item item1, Item item2, Item item3) {
             for (Key component : this.components) {
                 Object componentObj = item1.getExactComponent(component);
                 if (componentObj != null) {
@@ -400,7 +395,7 @@ public final class CustomSmithingTransformRecipe<T> extends AbstractFixedResultR
         }
 
         @Override
-        public void accept(Item<?> item1, Item<?> item2, Item<?> item3) {
+        public void accept(Item item1, Item item2, Item item3) {
             for (String[] tag : this.tags) {
                 Object tagObj = item1.getJavaTag((Object[]) tag);
                 if (tagObj != null) {

@@ -60,7 +60,7 @@ public interface Plugin {
 
     String serverVersion();
 
-    <T> ItemManager<T> itemManager();
+    <T> ItemManager itemManager();
 
     BlockManager blockManager();
 

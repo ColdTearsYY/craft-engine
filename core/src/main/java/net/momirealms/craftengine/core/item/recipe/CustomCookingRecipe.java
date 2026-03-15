@@ -8,18 +8,18 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public abstract class CustomCookingRecipe<T> extends AbstractGroupedRecipe<T> {
+public abstract class CustomCookingRecipe extends AbstractGroupedRecipe {
     protected final CookingRecipeCategory category;
-    protected final Ingredient<T> ingredient;
+    protected final Ingredient ingredient;
     protected final float experience;
     protected final int cookingTime;
 
     protected CustomCookingRecipe(Key id,
                                   boolean showNotification,
-                                  CustomRecipeResult<T> result,
+                                  CustomRecipeResult result,
                                   String group,
                                   CookingRecipeCategory category,
-                                  Ingredient<T> ingredient,
+                                  Ingredient ingredient,
                                   int cookingTime,
                                   float experience) {
         super(id, showNotification, result, group);
@@ -32,13 +32,13 @@ public abstract class CustomCookingRecipe<T> extends AbstractGroupedRecipe<T> {
     @SuppressWarnings("unchecked")
     @Override
     public boolean matches(RecipeInput input) {
-        return this.ingredient.test(((SingleItemInput<T>) input).input());
+        return this.ingredient.test(((SingleItemInput) input).input());
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void takeInput(@NotNull RecipeInput in, int ignore) {
-        SingleItemInput<T> input = (SingleItemInput<T>) in;
+        SingleItemInput input = (SingleItemInput) in;
         takeIngredient(this.ingredient, input.input().item(), ignore);
     }
 
@@ -46,7 +46,7 @@ public abstract class CustomCookingRecipe<T> extends AbstractGroupedRecipe<T> {
         return this.category;
     }
 
-    public Ingredient<T> ingredient() {
+    public Ingredient ingredient() {
         return this.ingredient;
     }
 
@@ -59,7 +59,7 @@ public abstract class CustomCookingRecipe<T> extends AbstractGroupedRecipe<T> {
     }
 
     @Override
-    public List<Ingredient<T>> ingredientsInUse() {
+    public List<Ingredient> ingredientsInUse() {
         return List.of(this.ingredient);
     }
 }

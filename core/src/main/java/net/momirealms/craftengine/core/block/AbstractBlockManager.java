@@ -260,7 +260,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
     protected abstract CustomBlock createCustomBlock(@NotNull Holder.Reference<CustomBlock> holder,
                                                      @NotNull BlockStateVariantProvider variantProvider,
                                                      @NotNull Map<EventTrigger, List<Function<Context>>> events,
-                                                     @Nullable LootTable<?> lootTable);
+                                                     @Nullable LootTable lootTable);
 
     private final class BlockStateMappingParser extends SectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[]{"block-state-mappings", "block-state-mapping", "block_state_mappings", "block_state_mapping"};
@@ -533,7 +533,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 }
 
                 // 解析战利品表 （可异常）
-                LootTable<?> lootTable = null;
+                LootTable lootTable = null;
                 try {
                     lootTable = section.getValue("loot", v -> LootTable.fromConfig(v.getAsSection()));
                 } catch (KnownResourceException e) {

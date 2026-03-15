@@ -17,7 +17,6 @@ import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.parser.NamespacedKeyParser;
@@ -52,7 +51,7 @@ public final class GetItemCommand extends BukkitCommandFeature<CommandSender> {
                     int amount = context.getOrDefault("amount", 1);
                     NamespacedKey namespacedKey = context.get("id");
                     Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    CustomItem<ItemStack> customItem = CraftEngineItems.byId(itemId);
+                    CustomItem customItem = CraftEngineItems.byId(itemId);
                     if (customItem == null) {
                         customItem = BukkitItemManager.instance().getCustomItemByPathOnly(itemId.value()).orElse(null);
                         if (customItem == null) {
@@ -63,7 +62,7 @@ public final class GetItemCommand extends BukkitCommandFeature<CommandSender> {
                         }
                     }
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-                    Item<ItemStack> builtItem = customItem.buildItem(serverPlayer);
+                    Item builtItem = customItem.buildItem(serverPlayer);
                     if (builtItem != null) {
                         PlayerUtils.giveItem(serverPlayer, amount, builtItem);
                     }

@@ -12,7 +12,6 @@ import net.momirealms.craftengine.core.item.ItemWrapper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
-import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.component.DataComponentGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.component.DataComponentMapProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.component.DataComponentTypeProxy;
@@ -28,40 +27,31 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
-    private final ItemStack item;
-    private final Object handle;
-    private ItemType itemType;
+public final class ComponentItemWrapper extends BukkitItemWrapper {
 
-    public ComponentItemWrapper(final Object handle) {
-        this.handle = handle;
-        this.item = CraftItemStackProxy.INSTANCE.asCraftMirror(handle);
+    public ComponentItemWrapper(Object itemStack) {
+        super(itemStack);
     }
 
-    public ComponentItemWrapper(final ItemStack item) {
-        this.item = ItemStackUtils.ensureCraftItemStack(item);
-        this.handle = CraftItemStackProxy.INSTANCE.unwrap(this.item);
+    public ComponentItemWrapper(ItemStack itemStack) {
+        super(itemStack);
     }
 
-    public ComponentItemWrapper(final ItemStack item, int count) {
-        this.item = ItemStackUtils.ensureCraftItemStack(item);
-        this.item.setAmount(count);
-        this.handle = CraftItemStackProxy.INSTANCE.unwrap(this.item);
+    public ItemType createItemType() {
+        return new ComponentItemType(super.itemStack);
     }
 
-    public ItemType itemType() {
-        if (this.itemType == null) {
-            this.itemType = new ComponentItemType(ItemStackProxy.INSTANCE.getItem(this.getLiteralObject()));
-        }
-        return this.itemType;
+    @Override
+    public ItemWrapper copyWithCount(int count) {
+        return new ComponentItemWrapper(ItemStackProxy.INSTANCE.copyWithCount(this.itemStack, count));
     }
 
     public void removeComponent(Object type) {
-        ItemStackProxy.INSTANCE.remove(this.getLiteralObject(), ensureDataComponentType(type));
+        ItemStackProxy.INSTANCE.remove(this.getMinecraftItem(), ensureDataComponentType(type));
     }
 
     public void resetComponent(Object type) {
-        Object item = ItemStackProxy.INSTANCE.getItem(this.getLiteralObject());
+        Object item = ItemStackProxy.INSTANCE.getItem(this.getMinecraftItem());
         Object componentMap = ItemProxy.INSTANCE.components(item);
         Object componentType = ensureDataComponentType(type);
         Object defaultComponent;
@@ -70,7 +60,7 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
         } else {
             defaultComponent = DataComponentMapProxy.INSTANCE.get(componentMap, componentType);
         }
-        ItemStackProxy.INSTANCE.set(this.getLiteralObject(), componentType, defaultComponent);
+        ItemStackProxy.INSTANCE.set(this.getMinecraftItem(), componentType, defaultComponent);
     }
 
     public void setComponent(Object type, final Object value) {
@@ -86,7 +76,7 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
     }
 
     public Object getExactComponent(Object type) {
-        return ItemStackProxy.INSTANCE.get(getLiteralObject(), ensureDataComponentType(type));
+        return ItemStackProxy.INSTANCE.get(getMinecraftItem(), ensureDataComponentType(type));
     }
 
     @SuppressWarnings("unchecked")
@@ -110,7 +100,7 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
         Object componentType = ensureDataComponentType(type);
         Codec<T> codec = DataComponentTypeProxy.INSTANCE.codec(componentType);
         try {
-            T componentData = ItemStackProxy.INSTANCE.get(getLiteralObject(), componentType);
+            T componentData = ItemStackProxy.INSTANCE.get(getMinecraftItem(), componentType);
             if (componentData == null) return Optional.empty();
             DataResult<T> result = codec.encodeStart(ops, componentData);
             return result.result();
@@ -120,14 +110,14 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
     }
 
     public boolean hasComponent(Object type) {
-        return ItemStackProxy.INSTANCE.has(getLiteralObject(), ensureDataComponentType(type));
+        return ItemStackProxy.INSTANCE.has(getMinecraftItem(), ensureDataComponentType(type));
     }
 
     public boolean hasNonDefaultComponent(Object type) {
         if (VersionHelper.isOrAbove1_21_4()) {
-            return ItemStackProxy.INSTANCE.hasNonDefault(getLiteralObject(), ensureDataComponentType(type));
+            return ItemStackProxy.INSTANCE.hasNonDefault(getMinecraftItem(), ensureDataComponentType(type));
         } else {
-            Object item = ItemStackProxy.INSTANCE.getItem(this.getLiteralObject());
+            Object item = ItemStackProxy.INSTANCE.getItem(this.getMinecraftItem());
             Object componentMap = ItemProxy.INSTANCE.components(item);
             Object componentType = ensureDataComponentType(type);
             Object defaultComponent;
@@ -141,7 +131,7 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
     }
 
     public void setExactComponent(Object type, final Object value) {
-        ItemStackProxy.INSTANCE.set(this.getLiteralObject(), ensureDataComponentType(type), value);
+        ItemStackProxy.INSTANCE.set(this.getMinecraftItem(), ensureDataComponentType(type), value);
     }
 
     public void setJavaComponent(Object type, Object value) {
@@ -172,7 +162,7 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
             if (result.isError()) {
                 throw new IllegalArgumentException(result.toString());
             }
-            result.result().ifPresent(it -> ItemStackProxy.INSTANCE.set(this.getLiteralObject(), componentType, it));
+            result.result().ifPresent(it -> ItemStackProxy.INSTANCE.set(this.getMinecraftItem(), componentType, it));
         } catch (Throwable t) {
             throw new RuntimeException("Cannot parse component " + type.toString(), t);
         }
@@ -180,81 +170,8 @@ public final class ComponentItemWrapper implements ItemWrapper<ItemStack> {
 
     private Object ensureDataComponentType(Object type) {
         if (!DataComponentTypeProxy.CLASS.isInstance(type)) {
-            Key key = Key.of(type.toString());
-            return RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE, KeyUtils.toIdentifier(key));
+            return RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE, KeyUtils.toIdentifier(type.toString()));
         }
         return type;
-    }
-
-    @Override
-    public ItemWrapper<ItemStack> copyWithCount(int count) {
-        ItemStack copied = this.item.clone();
-        copied.setAmount(count);
-        return new ComponentItemWrapper(copied);
-    }
-
-    @Override
-    public ItemStack getItem() {
-        return this.item;
-    }
-
-    @Override
-    public Object getLiteralObject() {
-        return this.handle;
-    }
-
-    @Override
-    public int count() {
-        return this.item.getAmount();
-    }
-
-    @Override
-    public void count(int amount) {
-        this.item.setAmount(Math.max(amount, 0));
-    }
-
-    @Override
-    public void shrink(int amount) {
-        count(count() - amount);
-    }
-
-    @Override
-    public void grow(int amount) {
-        count(count() + amount);
-    }
-
-    @Override
-    public void hurtAndBreak(int amount, @Nullable Player player, @Nullable EquipmentSlot slot) {
-        if (player == null) {
-            if (this.hurt(amount)) {
-                this.shrink(1);
-                this.setJavaComponent(DataComponentTypes.DAMAGE, 0);
-            }
-            return;
-        }
-        ItemStackUtils.hurtAndBreak(
-                this.handle,
-                amount,
-                player.serverPlayer(),
-                slot != null ? EquipmentSlotUtils.toNMSEquipmentSlot(slot) : null
-        );
-    }
-
-    private boolean hurt(int amount) {
-        if (!this.hasComponent(DataComponentTypes.MAX_DAMAGE) || this.hasComponent(DataComponentTypes.UNBREAKABLE) || !this.hasComponent(DataComponentTypes.DAMAGE)) return false;
-        if (amount > 0) {
-            int level = this.item.getEnchantmentLevel(Enchantment.UNBREAKING);
-            int ignoredDamage = 0;
-            for (int i = 0; level > 0 && i < amount; ++i) {
-                if (RandomUtils.generateRandomInt(0, level + 1) > 0) ++ignoredDamage;
-            }
-            amount -= ignoredDamage;
-            if (amount <= 0) return false;
-        }
-        Optional<Integer> optionalDamage = this.getJavaComponent(DataComponentTypes.DAMAGE);
-        int damage = optionalDamage.orElse(0) + amount;
-        this.setJavaComponent(DataComponentTypes.DAMAGE, damage);
-        Optional<Integer> optionalMaxDamage = this.getJavaComponent(DataComponentTypes.MAX_DAMAGE);
-        return damage >= optionalMaxDamage.orElseGet(() -> (int) this.item.getType().getMaxDurability());
     }
 }

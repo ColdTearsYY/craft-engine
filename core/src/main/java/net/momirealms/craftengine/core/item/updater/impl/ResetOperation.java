@@ -17,20 +17,19 @@ import java.util.List;
 // todo 完善 custom data 保留机制
 public final class ResetOperation implements ItemUpdater {
     public static final ItemUpdaterFactory<ResetOperation> FACTORY = new Factory();
-    private final LazyReference<CustomItem<?>> item;
+    private final LazyReference<CustomItem> item;
     private final List<Key> componentsToKeep;
     private final List<String[]> tagsToKeep;
 
-    public ResetOperation(LazyReference<CustomItem<?>> item, List<Key> componentsToKeep, List<String[]> tagsToKeep) {
+    public ResetOperation(LazyReference<CustomItem> item, List<Key> componentsToKeep, List<String[]> tagsToKeep) {
         this.componentsToKeep = componentsToKeep;
         this.tagsToKeep = tagsToKeep;
         this.item = item;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <I> Item<I> update(Item<I> item, ItemBuildContext context) {
-        Item<I> newItem = (Item<I>) this.item.get().buildItem(context);
+    public Item update(Item item, ItemBuildContext context) {
+        Item newItem = this.item.get().buildItem(context);
         if (VersionHelper.COMPONENT_RELEASE) {
             for (Key component : this.componentsToKeep) {
                 if (item.hasComponent(component)) {

@@ -55,11 +55,11 @@ import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
 public final class RecipeEventListener implements Listener {
-    private final ItemManager<ItemStack> itemManager;
+    private final ItemManager itemManager;
     private final BukkitRecipeManager recipeManager;
     private final BukkitCraftEngine plugin;
 
-    public RecipeEventListener(BukkitCraftEngine plugin, BukkitRecipeManager recipeManager, ItemManager<ItemStack> itemManager) {
+    public RecipeEventListener(BukkitCraftEngine plugin, BukkitRecipeManager recipeManager, ItemManager itemManager) {
         this.itemManager = itemManager;
         this.recipeManager = recipeManager;
         this.plugin = plugin;
@@ -79,7 +79,7 @@ public final class RecipeEventListener implements Listener {
                 ItemStack item = event.getCurrentItem();
                 if (ItemStackUtils.isEmpty(item)) return;
                 if (ItemStackUtils.isEmpty(fuelStack)) {
-                    SingleItemInput<ItemStack> input = new SingleItemInput<>(ItemStackUtils.getUniqueIdItem(item));
+                    SingleItemInput input = new SingleItemInput(ItemStackUtils.getUniqueIdItem(item));
                     RecipeType recipeType;
                     if (furnaceInventory.getType() == InventoryType.FURNACE) {
                         recipeType = RecipeType.SMELTING;
@@ -89,11 +89,11 @@ public final class RecipeEventListener implements Listener {
                         recipeType = RecipeType.SMOKING;
                     }
 
-                    Recipe<ItemStack> ceRecipe = this.recipeManager.recipeByInput(recipeType, input);
+                    Recipe ceRecipe = this.recipeManager.recipeByInput(recipeType, input);
                     // The item is an ingredient, we should never consider it as fuel firstly
                     if (ceRecipe != null) return;
 
-                    int fuelTime = this.itemManager.fuelTime(item);
+                    int fuelTime = this.itemManager.getFuelTime(BukkitAdaptor.adapt(item).id());
                     if (fuelTime == 0) {
                         if (ItemStackUtils.isCustomItem(item) && item.getType().isFuel()) {
                             event.setCancelled(true);
@@ -160,7 +160,7 @@ public final class RecipeEventListener implements Listener {
                         item = player.getInventory().getItem(hotBarSlot);
                     }
                     if (ItemStackUtils.isEmpty(item)) return;
-                    int fuelTime = this.plugin.itemManager().fuelTime(item);
+                    int fuelTime = this.plugin.itemManager().getFuelTime(BukkitAdaptor.adapt(item).id());
                     // only handle custom items
                     if (fuelTime == 0) {
                         if (ItemStackUtils.isCustomItem(item) && item.getType().isFuel()) {
@@ -187,7 +187,7 @@ public final class RecipeEventListener implements Listener {
                     ItemStack itemOnCursor = event.getCursor();
                     // pick item
                     if (ItemStackUtils.isEmpty(itemOnCursor)) return;
-                    int fuelTime = this.plugin.itemManager().fuelTime(itemOnCursor);
+                    int fuelTime = this.plugin.itemManager().getFuelTime(BukkitAdaptor.adapt(itemOnCursor).id());
                     // only handle custom items
                     if (fuelTime == 0) {
                         if (ItemStackUtils.isCustomItem(itemOnCursor) && itemOnCursor.getType().isFuel()) {
@@ -257,7 +257,7 @@ public final class RecipeEventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onFurnaceBurn(FurnaceBurnEvent event) {
         ItemStack fuel = event.getFuel();
-        int fuelTime = this.itemManager.fuelTime(fuel);
+        int fuelTime = this.itemManager.getFuelTime(BukkitAdaptor.adapt(fuel).id());
         if (fuelTime != 0) {
             event.setBurnTime(fuelTime);
         }
@@ -289,10 +289,10 @@ public final class RecipeEventListener implements Listener {
         ItemStack first = inventory.getFirstItem();
         ItemStack second = inventory.getSecondItem();
         if (first == null || second == null) return;
-        Item<ItemStack> wrappedFirst = BukkitItemManager.instance().wrap(first);
-        Optional<CustomItem<ItemStack>> firstCustom = wrappedFirst.getCustomItem();
-        Item<ItemStack> wrappedSecond = BukkitItemManager.instance().wrap(second);
-        Optional<CustomItem<ItemStack>> secondCustom = wrappedFirst.getCustomItem();
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first);
+        Optional<CustomItem> firstCustom = wrappedFirst.getCustomItem();
+        Item wrappedSecond = BukkitItemManager.instance().wrap(second);
+        Optional<CustomItem> secondCustom = wrappedFirst.getCustomItem();
         // 两个都是原版物品
         if (firstCustom.isEmpty() && secondCustom.isEmpty()) {
             return;
@@ -333,13 +333,13 @@ public final class RecipeEventListener implements Listener {
         }
 
         if (firstCustom.isPresent()) {
-            CustomItem<ItemStack> firstCustomItem = firstCustom.get();
+            CustomItem firstCustomItem = firstCustom.get();
             if (firstCustomItem.settings().repairable().anvilCombine() == Tristate.FALSE) {
                 event.setResult(null);
                 return;
             }
 
-            Item<ItemStack> wrappedResult = BukkitItemManager.instance().wrap(event.getResult());
+            Item wrappedResult = BukkitItemManager.instance().wrap(event.getResult());
             if (!firstCustomItem.settings().canEnchant()) {
                 Object previousEnchantment = wrappedFirst.getExactComponent(DataComponentTypes.ENCHANTMENTS);
                 if (previousEnchantment != null) {
@@ -362,14 +362,14 @@ public final class RecipeEventListener implements Listener {
         ItemStack second = inventory.getSecondItem();
         if (ItemStackUtils.isEmpty(first) || ItemStackUtils.isEmpty(second)) return;
 
-        Item<ItemStack> wrappedSecond = BukkitItemManager.instance().wrap(second);
+        Item wrappedSecond = BukkitItemManager.instance().wrap(second);
         // 如果材料不是自定义的，那么忽略
-        Optional<CustomItem<ItemStack>> customItemOptional = this.plugin.itemManager().getCustomItem(wrappedSecond.id());
+        Optional<CustomItem> customItemOptional = this.plugin.itemManager().getCustomItem(wrappedSecond.id());
         if (customItemOptional.isEmpty()) {
             return;
         }
 
-        CustomItem<ItemStack> customItem = customItemOptional.get();
+        CustomItem customItem = customItemOptional.get();
         List<AnvilRepairItem> repairItems = customItem.settings().repairItems();
         // 如果材料不支持修复物品，则忽略
         if (repairItems.isEmpty()) {
@@ -377,14 +377,14 @@ public final class RecipeEventListener implements Listener {
         }
 
         // 后续均为修复逻辑
-        Item<ItemStack> wrappedFirst = BukkitItemManager.instance().wrap(first.clone());
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first.clone());
         int maxDamage = wrappedFirst.maxDamage();
         int damage = wrappedFirst.damage().orElse(0);
         // 物品无damage属性
         if (damage == 0 || maxDamage == 0) return;
 
         Key firstId = wrappedFirst.id();
-        Optional<CustomItem<ItemStack>> optionalCustomTool = wrappedFirst.getCustomItem();
+        Optional<CustomItem> optionalCustomTool = wrappedFirst.getCustomItem();
         // 物品无法被修复
         if (optionalCustomTool.isPresent() && optionalCustomTool.get().settings().repairable().anvilRepair() == Tristate.FALSE) {
             return;
@@ -496,7 +496,7 @@ public final class RecipeEventListener implements Listener {
             }
             afterPenalty = calculateIncreasedRepairCost(afterPenalty);
             wrappedFirst.repairCost(afterPenalty);
-            event.setResult(wrappedFirst.getItem());
+            event.setResult(ItemStackUtils.getBukkitStack(wrappedFirst));
         }
     }
 
@@ -511,7 +511,7 @@ public final class RecipeEventListener implements Listener {
         if (ItemStackUtils.isEmpty(first)) {
             return;
         }
-        Item<ItemStack> wrappedFirst = BukkitItemManager.instance().wrap(first);
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first);
         wrappedFirst.getCustomItem().ifPresent(item -> {
             if (!item.settings().renameable()) {
                 String renameText;
@@ -559,22 +559,22 @@ public final class RecipeEventListener implements Listener {
             if (RepairItemRecipeProxy.CLASS.isInstance(mcRecipe)) {
                 Pair<ItemStack, ItemStack> theOnlyTwoItem = getTheOnlyTwoItem(inventory.getMatrix());
                 if (theOnlyTwoItem == null) return;
-                Item<ItemStack> first = BukkitItemManager.instance().wrap(theOnlyTwoItem.left());
-                Item<ItemStack> right = BukkitItemManager.instance().wrap(theOnlyTwoItem.right());
+                Item first = BukkitItemManager.instance().wrap(theOnlyTwoItem.left());
+                Item right = BukkitItemManager.instance().wrap(theOnlyTwoItem.right());
                 int max = Math.max(first.maxDamage(), right.maxDamage());
                 int durability1 = first.maxDamage() - first.damage().orElse(0);
                 int durability2 = right.maxDamage() - right.damage().orElse(0);
                 int finalDurability = durability1 + durability2 + max * 5 / 100;
-                Optional<CustomItem<ItemStack>> customItemOptional = plugin.itemManager().getCustomItem(first.id());
+                Optional<CustomItem> customItemOptional = plugin.itemManager().getCustomItem(first.id());
                 if (customItemOptional.isEmpty()) {
                     inventory.setResult(null);
                     return;
                 }
                 Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-                Item<ItemStack> newItem = customItemOptional.get().buildItem(BukkitAdaptor.adapt(player));
+                Item newItem = customItemOptional.get().buildItem(BukkitAdaptor.adapt(player));
                 newItem.maxDamage(max);
                 newItem.damage(Math.max(max - finalDurability, 0));
-                inventory.setResult(newItem.getItem());
+                inventory.setResult(ItemStackUtils.getBukkitStack(newItem));
                 return;
             }
             // 其他配方不允许使用自定义物品
@@ -608,12 +608,12 @@ public final class RecipeEventListener implements Listener {
         CraftingInventory inventory = event.getInventory();
         Key recipeId = getCurrentCraftingRecipeId(inventory);
         if (recipeId == null) return;
-        Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+        Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
         // 也许是其他插件注册的配方，直接无视
         if (optionalRecipe.isEmpty()) {
             return;
         }
-        if (!(optionalRecipe.get() instanceof CustomCraftingTableRecipe<ItemStack> craftingTableRecipe)) {
+        if (!(optionalRecipe.get() instanceof CustomCraftingTableRecipe craftingTableRecipe)) {
             inventory.setResult(null);
             return;
         }
@@ -627,11 +627,11 @@ public final class RecipeEventListener implements Listener {
         }
         if (craftingTableRecipe.hasVisualResult() && VersionHelper.PREMIUM) {
             ItemBuildContext itemBuildContext = ItemBuildContext.of(serverPlayer);
-            inventory.setResult(craftingTableRecipe.assembleVisual(null, itemBuildContext));
+            inventory.setResult(ItemStackUtils.getBukkitStack(craftingTableRecipe.assembleVisual(null, itemBuildContext)));
         } else {
             if (craftingTableRecipe.alwaysRebuildOutput()) {
                 ItemBuildContext itemBuildContext = ItemBuildContext.of(serverPlayer);
-                inventory.setResult(craftingTableRecipe.assemble(null, itemBuildContext));
+                inventory.setResult(ItemStackUtils.getBukkitStack(craftingTableRecipe.assemble(null, itemBuildContext)));
             }
         }
     }
@@ -645,9 +645,9 @@ public final class RecipeEventListener implements Listener {
         if (ItemStackUtils.isEmpty(visualResultOrReal)) return;
         Key recipeId = getCurrentCraftingRecipeId(inventory);
         if (recipeId == null) return;
-        Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+        Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
         // 也许是其他插件注册的配方，直接无视
-        if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomCraftingTableRecipe<ItemStack> ceRecipe)) {
+        if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomCraftingTableRecipe ceRecipe)) {
             return;
         }
         // 没有视觉结果和函数你凑什么热闹
@@ -689,7 +689,7 @@ public final class RecipeEventListener implements Listener {
 
             // 如果有视觉结果，先临时替换为真实的
             if (ceRecipe.hasVisualResult()) {
-                inventory.setResult(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer)));
+                inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer))));
             }
             // 先取一次
             Object itemMoved = AbstractContainerMenuProxy.INSTANCE.quickMoveStack(craftingMenu, mcPlayer, 0 /* result slot */);
@@ -715,7 +715,7 @@ public final class RecipeEventListener implements Listener {
                 // 配方不变，允许起飞
                 // 如果有视觉结果，先临时替换为真实的
                 if (ceRecipe.hasVisualResult()) {
-                    inventory.setResult(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer)));
+                    inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer))));
                 }
 
                 // 连续获取
@@ -759,7 +759,7 @@ public final class RecipeEventListener implements Listener {
                         }
                     }
                 }
-                inventory.setResult(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer)));
+                inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer))));
             }
             // 有函数的情况下，执行函数
             if (ceRecipe.hasFunctions()) {
@@ -792,13 +792,13 @@ public final class RecipeEventListener implements Listener {
         }
     }
 
-    private CraftingInput<ItemStack> getCraftingInput(CraftingInventory inventory) {
+    private CraftingInput getCraftingInput(CraftingInventory inventory) {
         ItemStack[] ingredients = inventory.getMatrix();
-        List<UniqueIdItem<ItemStack>> uniqueIdItems = new ArrayList<>();
+        List<UniqueIdItem> uniqueIdItems = new ArrayList<>();
         for (ItemStack itemStack : ingredients) {
             uniqueIdItems.add(ItemStackUtils.getUniqueIdItem(itemStack));
         }
-        CraftingInput<ItemStack> input;
+        CraftingInput input;
         if (ingredients.length == 9) {
             input = CraftingInput.of(3, 3, uniqueIdItems);
         } else if (ingredients.length == 4) {
@@ -817,10 +817,10 @@ public final class RecipeEventListener implements Listener {
         if (smithingRecipe instanceof SmithingTrimRecipe recipe) {
             ItemStack equipment = inventory.getInputEquipment();
             if (!ItemStackUtils.isEmpty(equipment)) {
-                Item<ItemStack> wrappedEquipment = this.itemManager.wrap(equipment);
-                Optional<CustomItem<ItemStack>> optionalCustomItem = wrappedEquipment.getCustomItem();
+                Item wrappedEquipment = this.itemManager.wrap(equipment);
+                Optional<CustomItem> optionalCustomItem = wrappedEquipment.getCustomItem();
                 if (optionalCustomItem.isPresent()) {
-                    CustomItem<ItemStack> customItem = optionalCustomItem.get();
+                    CustomItem customItem = optionalCustomItem.get();
                     ItemEquipment itemEquipmentSettings = customItem.settings().equipment();
                     if (itemEquipmentSettings != null && itemEquipmentSettings.equipment() instanceof TrimBasedEquipment) {
                         // 不允许trim类型的盔甲再次被使用trim
@@ -831,11 +831,11 @@ public final class RecipeEventListener implements Listener {
             }
 
             Key recipeId = Key.of(recipe.getKey().namespace(), recipe.getKey().value());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
             if (optionalRecipe.isEmpty()) {
                 return;
             }
-            if (!(optionalRecipe.get() instanceof CustomSmithingTrimRecipe<ItemStack> smithingTrimRecipe)) {
+            if (!(optionalRecipe.get() instanceof CustomSmithingTrimRecipe smithingTrimRecipe)) {
                 event.setResult(null);
                 return;
             }
@@ -845,15 +845,15 @@ public final class RecipeEventListener implements Listener {
                 event.setResult(null);
                 return;
             }
-            ItemStack result = smithingTrimRecipe.assemble(getSmithingInput(inventory), itemBuildContext);
-            event.setResult(result);
+            Item result = smithingTrimRecipe.assemble(getSmithingInput(inventory), itemBuildContext);
+            event.setResult(ItemStackUtils.getBukkitStack(result));
         } else if (smithingRecipe instanceof SmithingTransformRecipe recipe) {
             Key recipeId = Key.of(recipe.getKey().namespace(), recipe.getKey().value());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
             if (optionalRecipe.isEmpty()) {
                 return;
             }
-            if (!(optionalRecipe.get() instanceof CustomSmithingTransformRecipe<ItemStack> smithingTransformRecipe)) {
+            if (!(optionalRecipe.get() instanceof CustomSmithingTransformRecipe smithingTransformRecipe)) {
                 event.setResult(null);
                 return;
             }
@@ -863,11 +863,11 @@ public final class RecipeEventListener implements Listener {
                 event.setResult(null);
                 return;
             }
-            SmithingInput<ItemStack> input = getSmithingInput(inventory);
+            SmithingInput input = getSmithingInput(inventory);
             if (smithingTransformRecipe.hasVisualResult() && VersionHelper.PREMIUM) {
-                event.setResult(smithingTransformRecipe.assembleVisual(input, itemBuildContext));
+                event.setResult(ItemStackUtils.getBukkitStack(smithingTransformRecipe.assembleVisual(input, itemBuildContext)));
             } else {
-                event.setResult(smithingTransformRecipe.assemble(input, itemBuildContext));
+                event.setResult(ItemStackUtils.getBukkitStack(smithingTransformRecipe.assemble(input, itemBuildContext)));
             }
         }
     }
@@ -887,9 +887,9 @@ public final class RecipeEventListener implements Listener {
 
         if (recipe instanceof SmithingTransformRecipe transformRecipe) {
             Key recipeId = KeyUtils.namespacedKeyToKey(transformRecipe.getKey());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
             // 也许是其他插件注册的配方，直接无视
-            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTransformRecipe<ItemStack> ceRecipe)) {
+            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTransformRecipe ceRecipe)) {
                 return;
             }
 
@@ -936,7 +936,7 @@ public final class RecipeEventListener implements Listener {
 
                 // 如果有视觉结果，先临时替换为真实的
                 if (ceRecipe.hasVisualResult()) {
-                    inventory.setResult(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer)));
+                    inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer))));
                 }
                 // 先取一次
                 Object itemMoved = AbstractContainerMenuProxy.INSTANCE.quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
@@ -967,7 +967,7 @@ public final class RecipeEventListener implements Listener {
                     // 配方不变，允许起飞
                     // 如果有视觉结果，先临时替换为真实的
                     if (ceRecipe.hasVisualResult()) {
-                        inventory.setResult(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer)));
+                        inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer))));
                     }
 
                     // 连续获取
@@ -1012,7 +1012,7 @@ public final class RecipeEventListener implements Listener {
                             }
                         }
                     }
-                    inventory.setResult(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer)));
+                    inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer))));
                 }
                 // 有函数的情况下，执行函数
                 if (ceRecipe.hasFunctions()) {
@@ -1031,8 +1031,8 @@ public final class RecipeEventListener implements Listener {
         // trim 配方只能执行函数
         else if (recipe instanceof SmithingTrimRecipe trimRecipe) {
             Key recipeId = KeyUtils.namespacedKeyToKey(trimRecipe.getKey());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
-            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTrimRecipe<ItemStack> ceRecipe)) {
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTrimRecipe ceRecipe)) {
                 return;
             }
             // 没有函数你凑什么热闹
@@ -1122,8 +1122,8 @@ public final class RecipeEventListener implements Listener {
         }
     }
 
-    private SmithingInput<ItemStack> getSmithingInput(SmithingInventory inventory) {
-        return new SmithingInput<>(
+    private SmithingInput getSmithingInput(SmithingInventory inventory) {
+        return new SmithingInput(
                 ItemStackUtils.getUniqueIdItem(inventory.getInputEquipment()),
                 ItemStackUtils.getUniqueIdItem(inventory.getInputTemplate()),
                 ItemStackUtils.getUniqueIdItem(inventory.getInputMineral())

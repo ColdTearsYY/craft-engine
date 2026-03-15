@@ -32,13 +32,13 @@ public final class SearchUsagePlayerCommand extends BukkitCommandFeature<Command
                     Player player = context.sender();
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                     if (serverPlayer == null) return;
-                    Item<?> item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+                    Item item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
                     if (ItemUtils.isEmpty(item)) {
                         handleFeedback(context, MessageConstants.COMMAND_SEARCH_USAGE_NO_ITEM);
                         return;
                     }
                     Key itemId = item.id();
-                    List<Recipe<Object>> inRecipes = plugin().recipeManager().recipeByIngredient(itemId);
+                    List<Recipe> inRecipes = plugin().recipeManager().recipeByIngredient(itemId);
                     if (!inRecipes.isEmpty()) {
                         plugin().itemBrowserManager().openRecipePage(serverPlayer, null, inRecipes, 0, 0, false);
                     } else {

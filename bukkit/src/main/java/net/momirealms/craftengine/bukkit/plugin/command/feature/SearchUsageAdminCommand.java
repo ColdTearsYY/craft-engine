@@ -49,7 +49,7 @@ public final class SearchUsageAdminCommand extends BukkitCommandFeature<CommandS
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) continue;
                         Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                        List<Recipe<Object>> inRecipes = plugin().recipeManager().recipeByIngredient(itemId);
+                        List<Recipe> inRecipes = plugin().recipeManager().recipeByIngredient(itemId);
                         if (!inRecipes.isEmpty()) {
                             plugin().itemBrowserManager().openRecipePage(serverPlayer, null, inRecipes, 0, 0, false);
                         }

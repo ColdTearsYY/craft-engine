@@ -32,6 +32,10 @@ public final class KeyUtils {
         return toIdentifier(key.namespace(), key.value());
     }
 
+    public static Object toIdentifier(String key) {
+        return IdentifierProxy.INSTANCE.tryParse(key);
+    }
+
     public static NamespacedKey toNamespacedKey(Key key) {
         return new NamespacedKey(key.namespace(), key.value());
     }

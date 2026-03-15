@@ -7,13 +7,13 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public final class LegacySmithingTransformRecipe<I> implements LegacyRecipe<I> {
-    private final LegacyIngredient<I> template;
-    private final LegacyIngredient<I> base;
-    private final LegacyIngredient<I> addition;
-    private Item<I> result;
+public final class LegacySmithingTransformRecipe implements LegacyRecipe {
+    private final LegacyIngredient template;
+    private final LegacyIngredient base;
+    private final LegacyIngredient addition;
+    private Item result;
 
-    public LegacySmithingTransformRecipe(LegacyIngredient<I> addition, LegacyIngredient<I> template, LegacyIngredient<I> base, Item<I> result) {
+    public LegacySmithingTransformRecipe(LegacyIngredient addition, LegacyIngredient template, LegacyIngredient base, Item result) {
         this.addition = addition;
         this.template = template;
         this.base = base;
@@ -21,7 +21,7 @@ public final class LegacySmithingTransformRecipe<I> implements LegacyRecipe<I> {
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         this.template.write(buf, writer);
         this.base.write(buf, writer);
         this.addition.write(buf, writer);
@@ -29,18 +29,18 @@ public final class LegacySmithingTransformRecipe<I> implements LegacyRecipe<I> {
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.result = function.apply(this.result);
         this.template.applyClientboundData(function);
         this.base.applyClientboundData(function);
         this.addition.applyClientboundData(function);
     }
 
-    public static <I> LegacySmithingTransformRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
-        LegacyIngredient<I> template = LegacyIngredient.read(buf, reader);
-        LegacyIngredient<I> base = LegacyIngredient.read(buf, reader);
-        LegacyIngredient<I> addition = LegacyIngredient.read(buf, reader);
-        Item<I> result = reader.apply(buf);
-        return new LegacySmithingTransformRecipe<>(template, base, addition, result);
+    public static LegacySmithingTransformRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
+        LegacyIngredient template = LegacyIngredient.read(buf, reader);
+        LegacyIngredient base = LegacyIngredient.read(buf, reader);
+        LegacyIngredient addition = LegacyIngredient.read(buf, reader);
+        Item result = reader.apply(buf);
+        return new LegacySmithingTransformRecipe(template, base, addition, result);
     }
 }

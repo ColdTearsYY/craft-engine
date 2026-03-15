@@ -26,7 +26,7 @@ import net.momirealms.craftengine.proxy.minecraft.world.entity.item.ItemEntityPr
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.InventoryProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
-import org.bukkit.inventory.ItemStack;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ public final class PlayerUtils {
     private PlayerUtils() {
     }
 
-    public static void giveItem(Player player, int amount, Item<ItemStack> original) {
+    public static void giveItem(Player player, int amount, Item original) {
         int amountToGive = amount;
         int maxStack = original.maxStackSize();
         while (amountToGive > 0) {
@@ -47,19 +47,19 @@ public final class PlayerUtils {
         }
     }
 
-    public static void giveItem(Player player, Item<ItemStack> original, Item<ItemStack> item) {
+    public static void giveItem(Player player, Item original, Item item) {
         if (player == null) return;
         Object serverPlayer = player.serverPlayer();
         Object inventory = PlayerProxy.INSTANCE.getInventory(serverPlayer);
-        boolean flag = InventoryProxy.INSTANCE.add(inventory, item.getLiteralObject());
+        boolean flag = InventoryProxy.INSTANCE.add(inventory, item.getMinecraftItem());
         if (flag && item.isEmpty()) {
             Object droppedItem;
             if (VersionHelper.isOrAbove1_21_4()) {
-                droppedItem = ServerPlayerProxy.INSTANCE.drop(serverPlayer, original.copyWithCount(1).getLiteralObject(), false, false, false, null);
+                droppedItem = ServerPlayerProxy.INSTANCE.drop(serverPlayer, original.copyWithCount(1).getMinecraftItem(), false, false, false, null);
             } else if (VersionHelper.isOrAbove1_20_3()) {
-                droppedItem = ServerPlayerProxy.INSTANCE.drop$1(serverPlayer, original.copyWithCount(1).getLiteralObject(), false, false, false);
+                droppedItem = ServerPlayerProxy.INSTANCE.drop$1(serverPlayer, original.copyWithCount(1).getMinecraftItem(), false, false, false);
             } else {
-                droppedItem = PlayerProxy.INSTANCE.drop$0(serverPlayer, original.copyWithCount(1).getLiteralObject(), false, false, true);
+                droppedItem = PlayerProxy.INSTANCE.drop$0(serverPlayer, original.copyWithCount(1).getMinecraftItem(), false, false, true);
             }
             if (droppedItem != null) {
                 ItemEntityProxy.INSTANCE.makeFakeItem(droppedItem);
@@ -69,11 +69,11 @@ public final class PlayerUtils {
         } else {
             Object droppedItem;
             if (VersionHelper.isOrAbove1_21_4()) {
-                droppedItem = ServerPlayerProxy.INSTANCE.drop(serverPlayer, item.getLiteralObject(), false, false, !VersionHelper.isOrAbove1_21_5(), null);
+                droppedItem = ServerPlayerProxy.INSTANCE.drop(serverPlayer, item.getMinecraftItem(), false, false, !VersionHelper.isOrAbove1_21_5(), null);
             } else if (VersionHelper.isOrAbove1_20_3()) {
-                droppedItem = ServerPlayerProxy.INSTANCE.drop$1(serverPlayer, item.getLiteralObject(), false, false, true);
+                droppedItem = ServerPlayerProxy.INSTANCE.drop$1(serverPlayer, item.getMinecraftItem(), false, false, true);
             } else {
-                droppedItem = PlayerProxy.INSTANCE.drop$0(serverPlayer, item.getLiteralObject(), false, false, true);
+                droppedItem = PlayerProxy.INSTANCE.drop$0(serverPlayer, item.getMinecraftItem(), false, false, true);
             }
             if (droppedItem != null) {
                 ItemEntityProxy.INSTANCE.setNoPickUpDelay(droppedItem);
@@ -82,20 +82,20 @@ public final class PlayerUtils {
         }
     }
 
-    public static void sendTotemAnimation(Player player, Item<?> totem, @Nullable SoundData sound, boolean silent) {
+    public static void sendTotemAnimation(Player player, Item totem, @Nullable SoundData sound, boolean silent) {
         List<Object> packets = new ArrayList<>();
-        Object totemItem = totem.getLiteralObject();
-        Item<?> previousMainHandItem = player.getItemInHand(InteractionHand.MAIN_HAND);
+        Object totemItem = totem.getMinecraftItem();
+        Item previousMainHandItem = player.getItemInHand(InteractionHand.MAIN_HAND);
         boolean isMainHandTotem;
         if (VersionHelper.isOrAbove1_21_2()) {
             isMainHandTotem = previousMainHandItem.hasComponent(DataComponentTypes.DEATH_PROTECTION);
         } else {
             isMainHandTotem = previousMainHandItem.id().equals(ItemKeys.TOTEM_OF_UNDYING);
         }
-        Object previousOffHandItem = player.getItemInHand(InteractionHand.OFF_HAND).getLiteralObject();
+        Object previousOffHandItem = player.getItemInHand(InteractionHand.OFF_HAND).getMinecraftItem();
         if (isMainHandTotem) {
             packets.add(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(
-                    player.entityId(), List.of(Pair.of(EquipmentSlotProxy.MAINHAND, BukkitItemManager.instance().uniqueEmptyItem().item().getLiteralObject()))
+                    player.entityId(), List.of(Pair.of(EquipmentSlotProxy.MAINHAND, ItemStackProxy.EMPTY))
             ));
         }
         packets.add(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(
@@ -104,7 +104,7 @@ public final class PlayerUtils {
         packets.add(ClientboundEntityEventPacketProxy.INSTANCE.newInstance(player.serverPlayer(), (byte) 35));
         if (isMainHandTotem) {
             packets.add(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(
-                    player.entityId(), List.of(Pair.of(EquipmentSlotProxy.MAINHAND, previousMainHandItem.getLiteralObject()))
+                    player.entityId(), List.of(Pair.of(EquipmentSlotProxy.MAINHAND, previousMainHandItem.getMinecraftItem()))
             ));
         }
         packets.add(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(

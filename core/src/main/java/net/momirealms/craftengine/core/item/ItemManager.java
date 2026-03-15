@@ -4,7 +4,6 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
 import net.momirealms.craftengine.core.item.equipment.Equipment;
 import net.momirealms.craftengine.core.item.recipe.DatapackRecipeResult;
-import net.momirealms.craftengine.core.item.recipe.UniqueIdItem;
 import net.momirealms.craftengine.core.item.updater.ItemUpdateResult;
 import net.momirealms.craftengine.core.pack.model.definition.ModernItemModel;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerator;
@@ -20,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 
-public interface ItemManager<T> extends Manageable, ModelGenerator {
+public interface ItemManager extends Manageable, ModelGenerator {
 
     Map<Key, Equipment> equipments();
 
@@ -37,23 +36,17 @@ public interface ItemManager<T> extends Manageable, ModelGenerator {
     Collection<Key> vanillaItems();
 
     @Nullable
-    T buildCustomItemStack(Key id, @Nullable Player player);
+    Item createCustomWrappedItem(Key id, @Nullable Player player);
 
     @Nullable
-    T buildItemStack(Key id, @Nullable Player player);
-
-    @Nullable
-    Item<T> createCustomWrappedItem(Key id, @Nullable Player player);
-
-    @Nullable
-    Item<T> createWrappedItem(Key id, @Nullable Player player);
+    Item createWrappedItem(Key id, @Nullable Player player);
 
     @NotNull
-    Item<T> wrap(T itemStack);
+    Item wrap(Object itemStack);
 
-    Item<T> fromByteArray(byte[] bytes);
+    Item fromByteArray(byte[] bytes);
 
-    Map<Key, CustomItem<T>> loadedItems();
+    Map<Key, CustomItem> loadedItems();
 
     @Deprecated(forRemoval = true)
     default Collection<Key> items() {
@@ -62,25 +55,27 @@ public interface ItemManager<T> extends Manageable, ModelGenerator {
 
     Optional<Equipment> getEquipment(Key key);
 
-    Optional<CustomItem<T>> getCustomItem(Key key);
+    Optional<CustomItem> getCustomItem(Key key);
 
     Optional<List<ItemBehavior>> getItemBehavior(Key key);
 
-    Optional<? extends BuildableItem<T>> getVanillaItem(Key key);
+    Optional<? extends BuildableItem> getVanillaItem(Key key);
 
-    NetworkItemHandler<T> networkItemHandler();
+    UniqueKey getIngredientKey(Item item);
 
-    default Optional<? extends BuildableItem<T>> getBuildableItem(Key key) {
-        Optional<CustomItem<T>> item = getCustomItem(key);
+    NetworkItemHandler networkItemHandler();
+
+    default Optional<? extends BuildableItem> getBuildableItem(Key key) {
+        Optional<CustomItem> item = getCustomItem(key);
         if (item.isPresent()) {
             return item;
         }
         return getVanillaItem(key);
     }
 
-    Optional<CustomItem<T>> getCustomItemByPathOnly(String path);
+    Optional<CustomItem> getCustomItemByPathOnly(String path);
 
-    boolean addCustomItem(CustomItem<T> customItem);
+    boolean addCustomItem(CustomItem customItem);
 
     default List<UniqueKey> itemIdsByTag(Key tag) {
         List<UniqueKey> items = new ArrayList<>();
@@ -93,9 +88,7 @@ public interface ItemManager<T> extends Manageable, ModelGenerator {
 
     List<UniqueKey> customItemIdsByTag(Key tag);
 
-    int fuelTime(T itemStack);
-
-    int fuelTime(Key id);
+    int getFuelTime(Key id);
 
     Collection<Key> itemTags();
 
@@ -107,17 +100,15 @@ public interface ItemManager<T> extends Manageable, ModelGenerator {
 
     boolean isVanillaItem(Key item);
 
-    Optional<Item<T>> c2s(Item<T> item);
+    Optional<Item> c2s(Item item);
 
-    Optional<Item<T>> s2c(Item<T> item, @Nullable Player player);
+    Optional<Item> s2c(Item item, @Nullable Player player);
 
-    UniqueIdItem<T> uniqueEmptyItem();
+    Item applyTrim(Item base, Item addition, Item template, Key pattern);
 
-    Item<T> applyTrim(Item<T> base, Item<T> addition, Item<T> template, Key pattern);
-
-    Item<T> build(DatapackRecipeResult result);
+    Item build(DatapackRecipeResult result);
 
     List<UniqueKey> getIngredientSubstitutes(Key item);
 
-    ItemUpdateResult updateItem(Item<T> item, Supplier<ItemBuildContext> contextSupplier);
+    ItemUpdateResult updateItem(Item item, Supplier<ItemBuildContext> contextSupplier);
 }

@@ -1,20 +1,18 @@
 package net.momirealms.craftengine.bukkit.api;
 
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
+import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.network.BukkitNetworkManager;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
 import net.momirealms.craftengine.bukkit.world.BukkitWorld;
-import net.momirealms.craftengine.core.item.Item;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public final class BukkitAdaptor {
     private BukkitAdaptor() {}
@@ -73,7 +71,7 @@ public final class BukkitAdaptor {
      * @return a non-null Item instance wrapping the provided item
      */
     @NotNull
-    public static Item<ItemStack> adapt(@NotNull final ItemStack item) {
+    public static BukkitItem adapt(@NotNull final ItemStack item) {
         return BukkitItemManager.instance().wrap(item);
     }
 }

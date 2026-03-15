@@ -25,7 +25,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.pathfinder.PathComputationTypeProxy;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -44,11 +43,11 @@ public final class SlabBlockBehavior extends BukkitBlockBehavior implements IsPa
     @Override
     public boolean canBeReplaced(BlockPlaceContext context, ImmutableBlockState state) {
         SlabType type = state.get(this.typeProperty);
-        Item<ItemStack> item = (Item<ItemStack>) context.getItem();
+        Item item = (Item) context.getItem();
         if (type == SlabType.DOUBLE || ItemUtils.isEmpty(item)) return false;
-        Optional<CustomItem<ItemStack>> itemInHand = item.getCustomItem();
+        Optional<CustomItem> itemInHand = item.getCustomItem();
         if (itemInHand.isEmpty()) return false;
-        CustomItem<ItemStack> customItem = itemInHand.get();
+        CustomItem customItem = itemInHand.get();
         Key blockId = null;
         for (ItemBehavior itemBehavior : customItem.behaviors()) {
             if (itemBehavior instanceof BlockBoundItemBehavior behavior) {

@@ -7,20 +7,20 @@ import net.momirealms.craftengine.core.util.Key;
 
 import java.util.function.Function;
 
-public record AdvancementHolder<I>(Key id, Advancement<I> advancement) {
+public record AdvancementHolder(Key id, Advancement advancement) {
 
-    public static <I> AdvancementHolder<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static AdvancementHolder read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         Key key = buf.readKey();
-        Advancement<I> ad = Advancement.read(buf, reader);
-        return new AdvancementHolder<>(key, ad);
+        Advancement ad = Advancement.read(buf, reader);
+        return new AdvancementHolder(key, ad);
     }
 
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeKey(this.id);
         this.advancement.write(buf, writer);
     }
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.advancement.applyClientboundData(function);
     }
 

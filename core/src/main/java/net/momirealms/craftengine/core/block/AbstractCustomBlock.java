@@ -26,14 +26,14 @@ public abstract class AbstractCustomBlock implements CustomBlock {
     protected final ImmutableBlockState defaultState;
     protected final Map<EventTrigger, List<Function<Context>>> events;
     @Nullable
-    protected final LootTable<?> lootTable;
+    protected final LootTable lootTable;
     protected BlockBehavior behavior;
 
     protected AbstractCustomBlock(
             @NotNull Holder.Reference<CustomBlock> holder,
             @NotNull BlockStateVariantProvider variantProvider,
             @NotNull Map<EventTrigger, List<Function<Context>>> events,
-            @Nullable LootTable<?> lootTable
+            @Nullable LootTable lootTable
     ) {
         this.id = holder.key().location();
         this.holder = holder;
@@ -67,7 +67,7 @@ public abstract class AbstractCustomBlock implements CustomBlock {
     }
 
     @Override
-    public @Nullable LootTable<?> lootTable() {
+    public @Nullable LootTable lootTable() {
         return this.lootTable;
     }
 

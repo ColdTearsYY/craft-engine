@@ -28,11 +28,11 @@ public final class BukkitAdvancementManager extends AbstractAdvancementManager {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void sendToast(Player player, Item<?> icon, Component message, AdvancementType type) {
+    public void sendToast(Player player, Item icon, Component message, AdvancementType type) {
         Object displayInfo;
         if (VersionHelper.isOrAbove1_20_3()) {
             displayInfo = DisplayInfoProxy.INSTANCE.newInstance(
-                    icon.getLiteralObject(),
+                    icon.getMinecraftItem(),
                     ComponentUtils.adventureToMinecraft(message),  // title
                     ComponentProxy.INSTANCE.empty(), // description
                     Optional.empty(), // background
@@ -43,7 +43,7 @@ public final class BukkitAdvancementManager extends AbstractAdvancementManager {
             );
         } else {
             displayInfo = DisplayInfoProxy.INSTANCE.newInstance$legacy(
-                    icon.getLiteralObject(),
+                    icon.getMinecraftItem(),
                     ComponentUtils.adventureToMinecraft(message),  // title
                     ComponentProxy.INSTANCE.empty(), // description
                     null, // background

@@ -24,7 +24,7 @@ public final class TableBonusCondition<CTX extends Context> implements Condition
 
     @Override
     public boolean test(CTX ctx) {
-        Optional<Item<?>> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
+        Optional<Item> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
         int level = item.map(value -> value.getEnchantment(this.enchantmentType).map(Enchantment::level).orElse(0)).orElse(0);
         float f = this.values.get(Math.min(level, this.values.size() - 1));
         return RandomUtils.generateRandomFloat(0, 1) < f;

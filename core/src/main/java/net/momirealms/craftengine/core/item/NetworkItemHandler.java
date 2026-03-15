@@ -12,15 +12,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 import java.util.Optional;
 
-public interface NetworkItemHandler<T> {
+public interface NetworkItemHandler {
     Operation[] BY_INDEX = new Operation[] {Operation.ADD, Operation.REMOVE, Operation.RESET};
     String NETWORK_ITEM_TAG = "craftengine:network_modifiers";
     String NETWORK_OPERATION = "type";
     String NETWORK_VALUE = "value";
 
-    Optional<Item<T>> s2c(Item<T> itemStack, @Nullable Player player);
+    Optional<Item> s2c(Item itemStack, @Nullable Player player);
 
-    Optional<Item<T>> c2s(Item<T> itemStack);
+    Optional<Item> c2s(Item itemStack);
 
     static CompoundTag pack(Operation operation, @Nullable Tag value) {
         if (value == null) {
@@ -34,7 +34,7 @@ public interface NetworkItemHandler<T> {
         return new CompoundTag(Map.of(NETWORK_OPERATION, operation.tag()));
     }
 
-    static <T> void apply(String tagPath, CompoundTag networkData, Item<T> item) {
+    static void apply(String tagPath, CompoundTag networkData, Item item) {
         byte index = networkData.getByte(NETWORK_OPERATION);
         Operation operation = BY_INDEX[index];
         operation.consumer.accept(item, tagPath, operation == Operation.ADD ? networkData.get(NETWORK_VALUE) : null);
@@ -47,9 +47,9 @@ public interface NetworkItemHandler<T> {
 
         private final int id;
         private final ByteTag tag;
-        private final TriConsumer<Item<?>, String, Tag> consumer;
+        private final TriConsumer<Item, String, Tag> consumer;
 
-        Operation(int id, TriConsumer<Item<?>, String, Tag> componentConsumer, TriConsumer<Item<?>, String, Tag> nbtConsumer) {
+        Operation(int id, TriConsumer<Item, String, Tag> componentConsumer, TriConsumer<Item, String, Tag> nbtConsumer) {
             this.id = id;
             this.tag = new ByteTag((byte) id);
             this.consumer = VersionHelper.isOrAbove1_20_5() ? componentConsumer : nbtConsumer;

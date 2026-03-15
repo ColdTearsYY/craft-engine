@@ -11,6 +11,7 @@ import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifie
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
 import net.momirealms.craftengine.core.font.FontManager;
+import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemManager;
 import net.momirealms.craftengine.core.item.ItemSettingsModifiers;
 import net.momirealms.craftengine.core.item.recipe.RecipeManager;
@@ -77,8 +78,8 @@ public abstract class CraftEngine implements Plugin {
     protected NetworkManager networkManager;
     protected FontManager fontManager;
     protected PackManager packManager;
-    protected ItemManager<?> itemManager;
-    protected RecipeManager<?> recipeManager;
+    protected ItemManager itemManager;
+    protected RecipeManager recipeManager;
     protected BlockManager blockManager;
     protected TranslationManager translationManager;
     protected WorldManager worldManager;
@@ -589,10 +590,9 @@ public abstract class CraftEngine implements Plugin {
         return this.dependencyManager;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T> ItemManager<T> itemManager() {
-        return (ItemManager<T>) this.itemManager;
+    public ItemManager itemManager() {
+        return this.itemManager;
     }
 
     @Override

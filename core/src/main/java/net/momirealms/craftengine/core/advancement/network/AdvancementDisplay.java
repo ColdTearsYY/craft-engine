@@ -9,13 +9,13 @@ import net.momirealms.craftengine.core.util.Key;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class AdvancementDisplay<I> {
+public final class AdvancementDisplay {
     public static final int FLAG_BACKGROUND = 0b001;
     public static final int FLAG_SHOW_TOAST = 0b010;
     public static final int FLAG_HIDDEN = 0b100;
     private Component title;
     private Component description;
-    private Item<I> icon;
+    private Item icon;
     private Optional<Key> background;
     private final AdvancementType type;
     private final boolean showToast;
@@ -25,7 +25,7 @@ public final class AdvancementDisplay<I> {
 
     public AdvancementDisplay(Component title,
                               Component description,
-                              Item<I> icon,
+                              Item icon,
                               Optional<Key> background,
                               AdvancementType type,
                               boolean showToast,
@@ -43,7 +43,7 @@ public final class AdvancementDisplay<I> {
         this.y = y;
     }
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.icon = function.apply(this.icon);
     }
 
@@ -52,7 +52,7 @@ public final class AdvancementDisplay<I> {
         this.description = function.apply(this.description);
     }
 
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeComponent(this.title);
         buf.writeComponent(this.description);
         writer.accept(buf, this.icon);
@@ -73,10 +73,10 @@ public final class AdvancementDisplay<I> {
         buf.writeFloat(this.y);
     }
 
-    public static <I> AdvancementDisplay<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static AdvancementDisplay read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         Component title = buf.readComponent();
         Component description = buf.readComponent();
-        Item<I> icon = reader.apply(buf);
+        Item icon = reader.apply(buf);
         AdvancementType type = AdvancementType.byId(buf.readVarInt());
         int flags = buf.readInt();
         boolean hasBackground = (flags & 1) != 0;
@@ -85,6 +85,6 @@ public final class AdvancementDisplay<I> {
         boolean hidden = (flags & 4) != 0;
         float x = buf.readFloat();
         float y = buf.readFloat();
-        return new AdvancementDisplay<>(title, description, icon, background, type, showToast, hidden, x, y);
+        return new AdvancementDisplay(title, description, icon, background, type, showToast, hidden, x, y);
     }
 }

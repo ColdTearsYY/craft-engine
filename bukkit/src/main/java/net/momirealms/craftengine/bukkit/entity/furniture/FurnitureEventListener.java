@@ -28,7 +28,6 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.List;
@@ -129,7 +128,7 @@ public final class FurnitureEventListener implements Listener {
         Player bukkitPlayer = event.getPlayer();
         BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
-        Item<ItemStack> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+        Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;
         if (!(player.canInstabuild() && player.hasPermission("minecraft.debugstick")) && !player.hasPermission("minecraft.debugstick.always")) {
             return;
@@ -161,7 +160,7 @@ public final class FurnitureEventListener implements Listener {
         Player bukkitPlayer = event.getPlayer();
         BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
-        Item<ItemStack> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+        Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;
         if (!(player.canInstabuild() && player.hasPermission("minecraft.debugstick")) && !player.hasPermission("minecraft.debugstick.always")) {
             return;

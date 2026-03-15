@@ -18,23 +18,23 @@ public final class CustomModelDataProcessor implements SimpleNetworkItemProcesso
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         item.customModelData(this.argument.getInt(context));
         return item;
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.CUSTOM_MODEL_DATA;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"CustomModelData"};
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "CustomModelData";
     }
 

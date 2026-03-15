@@ -55,7 +55,7 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
     private final BukkitCraftEngine plugin;
     private final Map<String, ModelProvider> modelProviders;
     private final Map<String, TagResolverProvider> tagResolverProviders;
-    private final Map<String, ItemSource<ItemStack>> itemSources;
+    private final Map<String, ItemSource> itemSources;
     private final Map<String, LevelerProvider> levelerProviders;
     private final Map<String, EntityProvider> entityProviders;
     private TagResolverProvider[] tagResolverProviderArray = null;
@@ -84,14 +84,13 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
     }
 
     @Override
-    public ItemSource<?> getItemSource(String id) {
+    public ItemSource getItemSource(String id) {
         return this.itemSources.get(id);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public void registerItemSource(ItemSource<?> itemSource) {
-        this.itemSources.put(itemSource.plugin(), (ItemSource<ItemStack>) itemSource);
+    public void registerItemSource(ItemSource itemSource) {
+        this.itemSources.put(itemSource.plugin(), itemSource);
     }
 
     @Override

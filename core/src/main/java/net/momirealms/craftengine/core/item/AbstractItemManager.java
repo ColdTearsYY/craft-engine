@@ -43,15 +43,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public abstract class AbstractItemManager<I> extends AbstractModelGenerator implements ItemManager<I> {
+public abstract class AbstractItemManager extends AbstractModelGenerator implements ItemManager {
     protected static final Map<Key, List<ItemBehavior>> VANILLA_ITEM_EXTRA_BEHAVIORS = new HashMap<>();
     protected static final Set<Key> VANILLA_ITEMS = new HashSet<>(1024);
     protected static final Map<Key, List<UniqueKey>> VANILLA_ITEM_TAGS = new HashMap<>();
 
     private final ItemParser itemParser;
     private final EquipmentParser equipmentParser;
-    protected final Map<Key, CustomItem<I>> customItemsById = new HashMap<>();
-    protected final Map<String, CustomItem<I>> customItemsByPath = new HashMap<>();
+    protected final Map<Key, CustomItem> customItemsById = new HashMap<>();
+    protected final Map<String, CustomItem> customItemsByPath = new HashMap<>();
     protected final Map<Key, List<UniqueKey>> customItemTags = new HashMap<>();
     protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new ConcurrentHashMap<>();
     protected final Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2 = new ConcurrentHashMap<>();
@@ -121,12 +121,12 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
     }
 
     @Override
-    public Optional<CustomItem<I>> getCustomItem(Key key) {
+    public Optional<CustomItem> getCustomItem(Key key) {
         return Optional.ofNullable(this.customItemsById.get(key));
     }
 
     @Override
-    public Optional<CustomItem<I>> getCustomItemByPathOnly(String path) {
+    public Optional<CustomItem> getCustomItemByPathOnly(String path) {
         return Optional.ofNullable(this.customItemsByPath.get(path));
     }
 
@@ -140,10 +140,10 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
     }
 
     @Override
-    public ItemUpdateResult updateItem(Item<I> item, Supplier<ItemBuildContext> contextSupplier) {
-        Optional<CustomItem<I>> optionalCustomItem = item.getCustomItem();
+    public ItemUpdateResult updateItem(Item item, Supplier<ItemBuildContext> contextSupplier) {
+        Optional<CustomItem> optionalCustomItem = item.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<I> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             Optional<ItemUpdateConfig> updater = customItem.updater();
             if (updater.isPresent()) {
                 return updater.get().update(item, contextSupplier);
@@ -153,7 +153,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
     }
 
     @Override
-    public boolean addCustomItem(CustomItem<I> customItem) {
+    public boolean addCustomItem(CustomItem customItem) {
         Key id = customItem.id();
         if (this.customItemsById.containsKey(id)) return false;
         this.customItemsById.put(id, customItem);
@@ -226,9 +226,9 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
 
     @Override
     public Optional<List<ItemBehavior>> getItemBehavior(Key key) {
-        Optional<CustomItem<I>> customItemOptional = getCustomItem(key);
+        Optional<CustomItem> customItemOptional = getCustomItem(key);
         if (customItemOptional.isPresent()) {
-            CustomItem<I> customItem = customItemOptional.get();
+            CustomItem customItem = customItemOptional.get();
             Key vanillaMaterial = customItem.material();
             List<ItemBehavior> behavior = VANILLA_ITEM_EXTRA_BEHAVIORS.get(vanillaMaterial);
             if (behavior != null) {
@@ -253,7 +253,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
     }
 
     @Override
-    public Map<Key, CustomItem<I>> loadedItems() {
+    public Map<Key, CustomItem> loadedItems() {
         return Collections.unmodifiableMap(this.customItemsById);
     }
 
@@ -295,7 +295,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         return featureFlag$destroyOnDeathChance;
     }
 
-    protected abstract CustomItem.Builder<I> createPlatformItemBuilder(UniqueKey id, Key material, Key clientBoundMaterial);
+    protected abstract CustomItem.Builder createPlatformItemBuilder(UniqueKey id, Key material, Key clientBoundMaterial);
 
     protected abstract void registerArmorTrimPattern(Collection<Key> equipments);
 
@@ -358,7 +358,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
         public static final String[] CONFIG_SECTION_NAME = new String[] {"items", "item"};
         private final Map<Key, IdAllocator> idAllocators = new HashMap<>();
         private final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
-        private final List<CustomItem<I>> customItems = Collections.synchronizedList(new ArrayList<>());
+        private final List<CustomItem> customItems = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         public int count() {
@@ -426,7 +426,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 }
             }
             CompletableFutures.allOf(this.futures).join();
-            for (CustomItem<I> customItem : this.customItems) {
+            for (CustomItem customItem : this.customItems) {
                 addCustomItem(customItem);
             }
             this.futures.clear();
@@ -563,7 +563,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 // 是否使用客户端侧模型
                 boolean clientBoundModel = VersionHelper.PREMIUM && section.getBoolean(CLIENT_BOUND_MODEL, Config.globalClientboundModel());
 
-                CustomItem.Builder<I> itemBuilder = createPlatformItemBuilder(uniqueId, material, clientBoundMaterial);
+                CustomItem.Builder itemBuilder = createPlatformItemBuilder(uniqueId, material, clientBoundMaterial);
 
                 // 模型配置区域，如果这里被配置了，那么用户可以配置custom-model-data或item-model
                 // model可以是一个string也可以是一个区域
@@ -704,7 +704,7 @@ public abstract class AbstractItemManager<I> extends AbstractModelGenerator impl
                 }
 
                 // 构建自定义物品
-                CustomItem<I> customItem = itemBuilder
+                CustomItem customItem = itemBuilder
                         .isVanillaItem(isVanillaItem)
                         .behaviors(behaviors)
                         .settings(settings)

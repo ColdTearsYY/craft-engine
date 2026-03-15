@@ -27,7 +27,7 @@ public final class BukkitCustomBlock extends AbstractCustomBlock {
             @NotNull Holder.Reference<CustomBlock> holder,
             @NotNull BlockStateVariantProvider variantProvider,
             @NotNull Map<EventTrigger, List<Function<Context>>> events,
-            @Nullable LootTable<?> lootTable
+            @Nullable LootTable lootTable
     ) {
         super(holder, variantProvider, events, lootTable);
     }
@@ -40,7 +40,7 @@ public final class BukkitCustomBlock extends AbstractCustomBlock {
                     LocationUtils.toBlockPos(context.getClickedPos()),
                     state.customBlockState().literalObject(),
                     Optional.ofNullable(context.getPlayer()).map(Player::serverPlayer).orElse(null),
-                    context.getItem().getLiteralObject()
+                    context.getItem().getMinecraftItem()
             }, () -> null);
         } catch (Throwable t) {
             CraftEngine.instance().logger().warn("Failed to run setPlacedBy ", t);

@@ -21,7 +21,7 @@ public final class ApplyDataOperation implements ItemUpdater {
     }
 
     @Override
-    public <I> Item<I> update(Item<I> item, ItemBuildContext context) {
+    public Item update(Item item, ItemBuildContext context) {
         if (this.modifiers != null) {
             for (ItemProcessor modifier : this.modifiers) {
                 modifier.apply(item, context);

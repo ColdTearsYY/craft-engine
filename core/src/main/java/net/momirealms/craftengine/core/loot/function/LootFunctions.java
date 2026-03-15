@@ -15,38 +15,38 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 public final class LootFunctions {
-    public static final LootFunctionType<?> APPLY_BONUS = register(Key.ce("apply_bonus"), ApplyBonusCountFunction.FACTORY);
-    public static final LootFunctionType<?> APPLY_DATA = register(Key.ce("apply_data"), ApplyDataFunction.FACTORY);
-    public static final LootFunctionType<?> SET_COUNT = register(Key.ce("set_count"), SetCountFunction.FACTORY);
-    public static final LootFunctionType<?> EXPLOSION_DECAY = register(Key.ce("explosion_decay"), ExplosionDecayFunction.FACTORY);
-    public static final LootFunctionType<?> DROP_EXP = register(Key.ce("drop_exp"), DropExpFunction.FACTORY);
-    public static final LootFunctionType<?> LIMIT_COUNT = register(Key.ce("limit_count"), LimitCountFunction.FACTORY);
+    public static final LootFunctionType<ApplyBonusCountFunction> APPLY_BONUS = register(Key.ce("apply_bonus"), ApplyBonusCountFunction.FACTORY);
+    public static final LootFunctionType<ApplyDataFunction> APPLY_DATA = register(Key.ce("apply_data"), ApplyDataFunction.FACTORY);
+    public static final LootFunctionType<SetCountFunction> SET_COUNT = register(Key.ce("set_count"), SetCountFunction.FACTORY);
+    public static final LootFunctionType<ExplosionDecayFunction> EXPLOSION_DECAY = register(Key.ce("explosion_decay"), ExplosionDecayFunction.FACTORY);
+    public static final LootFunctionType<DropExpFunction> DROP_EXP = register(Key.ce("drop_exp"), DropExpFunction.FACTORY);
+    public static final LootFunctionType<LimitCountFunction> LIMIT_COUNT = register(Key.ce("limit_count"), LimitCountFunction.FACTORY);
 
     private LootFunctions() {}
 
-    public static <T> LootFunctionType<T> register(Key key, LootFunctionFactory<T> factory) {
+    public static <T extends LootFunction> LootFunctionType<T> register(Key key, LootFunctionFactory<T> factory) {
         LootFunctionType<T> type = new LootFunctionType<>(key, factory);
-        ((WritableRegistry<LootFunctionType<?>>) BuiltInRegistries.LOOT_FUNCTION_TYPE)
+        ((WritableRegistry<LootFunctionType<? extends LootFunction>>) BuiltInRegistries.LOOT_FUNCTION_TYPE)
                 .register(ResourceKey.create(Registries.LOOT_FUNCTION_TYPE.location(), key), type);
         return type;
     }
 
-    public static <T> BiFunction<Item<T>, LootContext, Item<T>> identity() {
+    public static BiFunction<Item, LootContext, Item> identity() {
         return (item, context) -> item;
     }
 
-    public static <T> BiFunction<Item<T>, LootContext, Item<T>> compose(List<? extends BiFunction<Item<T>, LootContext, Item<T>>> terms) {
-        List<BiFunction<Item<T>, LootContext, Item<T>>> list = List.copyOf(terms);
+    public static BiFunction<Item, LootContext, Item> compose(List<? extends BiFunction<Item, LootContext, Item>> terms) {
+        List<BiFunction<Item, LootContext, Item>> list = List.copyOf(terms);
         return switch (list.size()) {
             case 0 -> identity();
             case 1 -> list.get(0);
             case 2 -> {
-                BiFunction<Item<T>, LootContext, Item<T>> f1 = list.get(0);
-                BiFunction<Item<T>, LootContext, Item<T>> f2 = list.get(1);
+                BiFunction<Item, LootContext, Item> f1 = list.get(0);
+                BiFunction<Item, LootContext, Item> f2 = list.get(1);
                 yield (item, context) -> f2.apply(f1.apply(item, context), context);
             }
             default -> (item, context) -> {
-                for (BiFunction<Item<T>, LootContext, Item<T>> function : list) {
+                for (BiFunction<Item, LootContext, Item> function : list) {
                     item = function.apply(item, context);
                 }
                 return item;
@@ -54,15 +54,14 @@ public final class LootFunctions {
         };
     }
 
-    public static <T> LootFunction<T> fromConfig(ConfigValue value) {
+    public static LootFunction fromConfig(ConfigValue value) {
         return fromConfig(value.getAsSection());
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> LootFunction<T> fromConfig(ConfigSection section) {
+    public static LootFunction fromConfig(ConfigSection section) {
         String type = section.getNonNullString("type");
         Key key = Key.ce(type);
-        LootFunctionType<T> functionType = (LootFunctionType<T>) BuiltInRegistries.LOOT_FUNCTION_TYPE.getValue(key);
+        LootFunctionType<? extends LootFunction> functionType = BuiltInRegistries.LOOT_FUNCTION_TYPE.getValue(key);
         if (functionType == null) {
             throw new KnownResourceException("loot.function.unknown_type", section.assemblePath("type"), key.asString());
         }

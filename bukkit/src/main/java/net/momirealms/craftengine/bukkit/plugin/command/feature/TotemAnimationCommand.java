@@ -24,7 +24,6 @@ import net.momirealms.craftengine.proxy.minecraft.sounds.SoundSourceProxy;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.CommandManager;
@@ -75,7 +74,7 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
                 .handler(context -> {
                     NamespacedKey namespacedKey = context.get("id");
                     Key key = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    CustomItem<ItemStack> customItem = plugin().itemManager().getCustomItem(key).orElse(null);
+                    CustomItem customItem = plugin().itemManager().getCustomItem(key).orElse(null);
                     if (customItem == null || (!VersionHelper.isOrAbove1_21_2() && customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING))) {
                         handleFeedback(context, MessageConstants.COMMAND_TOTEM_NOT_TOTEM, Component.text(key.toString()));
                         return;
@@ -95,7 +94,7 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
                     for (Player player : players) {
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) continue;
-                        Item<ItemStack> item = customItem.buildItem(serverPlayer);
+                        Item item = customItem.buildItem(serverPlayer);
                         if (VersionHelper.isOrAbove1_21_2()) {
                             item.setJavaComponent(DataComponentTypes.DEATH_PROTECTION, Map.of());
                         }

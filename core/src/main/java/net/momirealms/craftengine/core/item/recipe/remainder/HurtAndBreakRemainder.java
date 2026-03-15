@@ -13,7 +13,7 @@ public final class HurtAndBreakRemainder implements CraftRemainder {
     }
 
     @Override
-    public <T> Item<T> remainder(Key recipeId, Item<T> item) {
+    public <T> Item remainder(Key recipeId, Item item) {
         int damage = item.damage().orElse(0);
         int maxDamage = item.maxDamage();
         damage += amount;

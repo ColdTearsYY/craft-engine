@@ -47,7 +47,7 @@ public final class PlayTotemAnimationFunction<CTX extends Context> extends Abstr
 
     @Override
     protected void runInternal(CTX ctx) {
-        CustomItem<?> customItem = CraftEngine.instance().itemManager().getCustomItem(this.item).orElse(null);
+        CustomItem customItem = CraftEngine.instance().itemManager().getCustomItem(this.item).orElse(null);
         if (customItem == null) {
             return;
         }
@@ -60,7 +60,7 @@ public final class PlayTotemAnimationFunction<CTX extends Context> extends Abstr
             );
         }
         for (Player player : this.selector.get(ctx)) {
-            Item<?> buildItem = customItem.buildItem(player);
+            Item buildItem = customItem.buildItem(player);
             if (VersionHelper.isOrAbove1_21_2()) {
                 buildItem.setJavaComponent(DataComponentKeys.DEATH_PROTECTION, Map.of());
             }

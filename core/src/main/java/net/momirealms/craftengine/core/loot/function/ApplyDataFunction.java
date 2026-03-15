@@ -12,8 +12,8 @@ import net.momirealms.craftengine.core.plugin.context.Condition;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ApplyDataFunction<T> extends AbstractLootConditionalFunction<T> {
-    public static final LootFunctionFactory<?> FACTORY = new Factory<>();
+public final class ApplyDataFunction extends AbstractLootConditionalFunction {
+    public static final LootFunctionFactory<ApplyDataFunction> FACTORY = new Factory();
     public final ItemProcessor[] modifiers;
 
     private ApplyDataFunction(List<Condition<LootContext>> conditions, ItemProcessor[] modifiers) {
@@ -22,7 +22,7 @@ public final class ApplyDataFunction<T> extends AbstractLootConditionalFunction<
     }
 
     @Override
-    protected Item<T> applyInternal(Item<T> item, LootContext context) {
+    protected Item applyInternal(Item item, LootContext context) {
         ItemBuildContext ctx = ItemBuildContext.of(context.player());
         for (ItemProcessor modifier : this.modifiers) {
             item = modifier.apply(item, ctx);
@@ -30,13 +30,13 @@ public final class ApplyDataFunction<T> extends AbstractLootConditionalFunction<
         return item;
     }
 
-    private static class Factory<A> implements LootFunctionFactory<A> {
+    private static class Factory implements LootFunctionFactory<ApplyDataFunction> {
 
         @Override
-        public LootFunction<A> create(ConfigSection section) {
+        public ApplyDataFunction create(ConfigSection section) {
             List<ItemProcessor> modifiers = new ArrayList<>();
             ItemProcessors.collectProcessors(section.getNonNullSection("data"), modifiers::add);
-            return new ApplyDataFunction<>(
+            return new ApplyDataFunction(
                     section.getList("conditions", CommonConditions::fromConfig),
                     modifiers.toArray(new ItemProcessor[0])
             );

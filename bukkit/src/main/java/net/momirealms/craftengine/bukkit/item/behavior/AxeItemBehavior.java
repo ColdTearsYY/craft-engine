@@ -11,6 +11,7 @@ import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
@@ -30,7 +31,6 @@ import org.bukkit.GameEvent;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.nio.file.Path;
@@ -43,15 +43,15 @@ public final class AxeItemBehavior extends ItemBehavior {
 
     private AxeItemBehavior() {}
 
-    private boolean canBlockAttack(Item<ItemStack> item) {
+    private boolean canBlockAttack(Item item) {
         if (VersionHelper.isOrAbove1_21_5()) {
-            return item.hasComponent("minecraft:blocks_attacks");
+            return item.hasComponent(DataComponentKeys.BLOCKS_ATTACK);
         } else {
             return item.vanillaId().equals(ItemKeys.SHIELD);
         }
     }
 
-    @SuppressWarnings({"UnstableApiUsage", "unchecked"})
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public InteractionResult useOnBlock(UseOnContext context) {
         Player player = context.getPlayer();
@@ -67,9 +67,9 @@ public final class AxeItemBehavior extends ItemBehavior {
         ImmutableBlockState customState = optionalCustomState.get();
         Optional<StrippableBlockBehavior> behaviorOptional = customState.behavior().getAs(StrippableBlockBehavior.class);
         if (behaviorOptional.isEmpty()) return InteractionResult.PASS;
-        Item<ItemStack> offHandItem = player != null ? (Item<ItemStack>) player.getItemInHand(InteractionHand.OFF_HAND) : BukkitItemManager.instance().uniqueEmptyItem().item();
+        Item offHandItem = player != null ? player.getItemInHand(InteractionHand.OFF_HAND) : null;
         // is using a shield
-        if (context.getHand() == InteractionHand.MAIN_HAND && !ItemUtils.isEmpty(offHandItem) && canBlockAttack(offHandItem) && player != null && !player.isSecondaryUseActive()) {
+        if (context.getHand() == InteractionHand.MAIN_HAND && !ItemUtils.isEmpty(offHandItem) && canBlockAttack(offHandItem) && !player.isSecondaryUseActive()) {
             return InteractionResult.PASS;
         }
 
@@ -91,7 +91,7 @@ public final class AxeItemBehavior extends ItemBehavior {
             }
         }
 
-        Item<ItemStack> item = (Item<ItemStack>) context.getItem();
+        Item item = context.getItem();
         // 理论不可能出现
         if (ItemUtils.isEmpty(item)) return InteractionResult.FAIL;
         BlockPos pos = context.getClickedPos();

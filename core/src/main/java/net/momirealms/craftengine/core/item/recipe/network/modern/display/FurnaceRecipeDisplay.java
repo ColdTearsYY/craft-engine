@@ -7,21 +7,21 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
 
-public record FurnaceRecipeDisplay<I>(SlotDisplay<I> ingredient, SlotDisplay<I> fuel, SlotDisplay<I> result, SlotDisplay<I> craftingStation, int duration, float experience)
-        implements RecipeDisplay<I> {
+public record FurnaceRecipeDisplay(SlotDisplay ingredient, SlotDisplay fuel, SlotDisplay result, SlotDisplay craftingStation, int duration, float experience)
+        implements RecipeDisplay {
 
-    public static <I> FurnaceRecipeDisplay<I> read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item<I>> reader) {
-        SlotDisplay<I> ingredient = SlotDisplay.read(buffer, reader);
-        SlotDisplay<I> fuel = SlotDisplay.read(buffer, reader);
-        SlotDisplay<I> result = SlotDisplay.read(buffer, reader);
-        SlotDisplay<I> craftingStation = SlotDisplay.read(buffer, reader);
+    public static FurnaceRecipeDisplay read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
+        SlotDisplay ingredient = SlotDisplay.read(buffer, reader);
+        SlotDisplay fuel = SlotDisplay.read(buffer, reader);
+        SlotDisplay result = SlotDisplay.read(buffer, reader);
+        SlotDisplay craftingStation = SlotDisplay.read(buffer, reader);
         int duration = buffer.readVarInt();
         float experience = buffer.readFloat();
-        return new FurnaceRecipeDisplay<>(ingredient, fuel, result, craftingStation, duration, experience);
+        return new FurnaceRecipeDisplay(ingredient, fuel, result, craftingStation, duration, experience);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(2);
         this.ingredient.write(buf, writer);
         this.fuel.write(buf, writer);
@@ -32,7 +32,7 @@ public record FurnaceRecipeDisplay<I>(SlotDisplay<I> ingredient, SlotDisplay<I> 
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.ingredient.applyClientboundData(function);
         this.fuel.applyClientboundData(function);
         this.result.applyClientboundData(function);

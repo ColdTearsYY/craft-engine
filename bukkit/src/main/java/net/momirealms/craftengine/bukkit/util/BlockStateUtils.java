@@ -16,7 +16,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.StateDefinitionProxy;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,12 +43,12 @@ public final class BlockStateUtils {
         return BlockRegistryMirror.byId(id);
     }
 
-    public static boolean isCorrectTool(@NotNull ImmutableBlockState state, @Nullable Item<ItemStack> itemInHand) {
+    public static boolean isCorrectTool(@NotNull ImmutableBlockState state, @Nullable Item itemInHand) {
         BlockSettings settings = state.settings();
         if (settings.requireCorrectTool()) {
             if (itemInHand == null || itemInHand.isEmpty()) return false;
             return settings.isCorrectTool(itemInHand.id()) ||
-                    (settings.respectToolComponent() && ItemStackProxy.INSTANCE.isCorrectToolForDrops(itemInHand.getLiteralObject(), state.customBlockState().literalObject()));
+                    (settings.respectToolComponent() && ItemStackProxy.INSTANCE.isCorrectToolForDrops(itemInHand.getMinecraftItem(), state.customBlockState().literalObject()));
         }
         return true;
     }

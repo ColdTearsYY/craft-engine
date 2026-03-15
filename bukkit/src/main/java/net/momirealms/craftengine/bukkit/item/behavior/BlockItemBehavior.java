@@ -145,7 +145,7 @@ public class BlockItemBehavior extends BlockBoundItemBehavior {
 
         if (player != null) {
             // call bukkit event
-            BlockPlaceEvent bukkitPlaceEvent = new BlockPlaceEvent(bukkitBlock, previousState, againstBlock, (ItemStack) context.getItem().getItem(), bukkitPlayer, true, context.getHand() == InteractionHand.MAIN_HAND ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND);
+            BlockPlaceEvent bukkitPlaceEvent = new BlockPlaceEvent(bukkitBlock, previousState, againstBlock, ItemStackUtils.getBukkitStack(context.getItem()), bukkitPlayer, true, context.getHand() == InteractionHand.MAIN_HAND ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND);
             if (EventUtils.fireAndCheckCancel(bukkitPlaceEvent)) {
                 // revert changes
                 for (BlockState state : revertStates) {
@@ -182,7 +182,7 @@ public class BlockItemBehavior extends BlockBoundItemBehavior {
 
         if (player != null) {
             if (!player.isCreativeMode()) {
-                Item<?> item = context.getItem();
+                Item item = context.getItem();
                 item.count(item.count() - 1);
             }
             player.swingHand(context.getHand());

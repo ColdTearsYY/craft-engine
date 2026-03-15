@@ -19,7 +19,7 @@ public final class JukeboxSongProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         item.jukeboxSong(this.song);
         return item;
     }

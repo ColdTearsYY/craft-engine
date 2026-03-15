@@ -2,7 +2,6 @@ package net.momirealms.craftengine.bukkit.compatibility.papi;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
@@ -72,12 +71,12 @@ public final class CheckItemExpansion extends PlaceholderExpansion {
                 yield String.valueOf(getItemCount(player, param) >= requiredAmount);
             }
             case "id" -> {
-                Item<?> item = getItem(player, param);
+                Item item = getItem(player, param);
                 if (item == null) yield null;
                 yield item.id().asString();
             }
             case "iscustom" -> {
-                Item<?> item = getItem(player, param);
+                Item item = getItem(player, param);
                 if (item == null) yield null;
                 yield String.valueOf(item.isCustomItem());
             }
@@ -86,7 +85,7 @@ public final class CheckItemExpansion extends PlaceholderExpansion {
     }
 
     @Nullable
-    private Item<?> getItem(BukkitServerPlayer player, String[] param) {
+    private Item getItem(BukkitServerPlayer player, String[] param) {
         if (param.length < 1 || param[0] == null || param[0].isEmpty()) {
             return player.getItemInHand(InteractionHand.MAIN_HAND);
         }

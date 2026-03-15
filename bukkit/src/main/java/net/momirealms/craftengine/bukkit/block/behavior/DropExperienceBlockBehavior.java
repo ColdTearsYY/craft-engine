@@ -2,6 +2,7 @@ package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.block.BlockSettings;
@@ -25,7 +26,6 @@ import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
@@ -46,7 +46,7 @@ public final class DropExperienceBlockBehavior extends BukkitBlockBehavior {
     @Override
     public void spawnAfterBreak(Object thisBlock, Object[] args, Callable<Object> superMethod) {
         boolean dropExperience = (boolean) args[4]; // 通常来说是 false
-        Item<ItemStack> item = BukkitItemManager.instance().wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(args[3]));
+        Item item = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(args[3]));
         if (!dropExperience) {
             ImmutableBlockState state = BlockStateUtils.getOptionalCustomBlockState(args[0]).orElse(null);
             if (state == null) {
@@ -70,7 +70,7 @@ public final class DropExperienceBlockBehavior extends BukkitBlockBehavior {
         tryDropExperience(world, pos, item);
     }
 
-    private void tryDropExperience(World world, BlockPos pos, Item<ItemStack> item) {
+    private void tryDropExperience(World world, BlockPos pos, Item item) {
         Vec3d dropPos = Vec3d.atCenterOf(pos);
         ContextHolder holder = ContextHolder.builder()
                 .withParameter(DirectContextParameters.POSITION, new WorldPosition(world, dropPos))

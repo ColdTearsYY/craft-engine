@@ -25,7 +25,7 @@ public final class RemoveComponentProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         for (Key argument : this.arguments) {
             item.removeComponent(argument);
         }
@@ -33,7 +33,7 @@ public final class RemoveComponentProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
+    public Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
         for (Key component : this.arguments) {
             Tag previous = item.getSparrowNBTComponent(component);
             if (previous != null) {

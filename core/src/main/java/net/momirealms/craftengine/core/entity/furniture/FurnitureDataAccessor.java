@@ -59,7 +59,7 @@ public final class FurnitureDataAccessor {
         this.data.remove(key);
     }
 
-    public Optional<Item<?>> item() {
+    public Optional<Item> item() {
         byte[] data = this.data.getByteArray(ITEM);
         if (data == null) return Optional.empty();
         try {
@@ -70,7 +70,7 @@ public final class FurnitureDataAccessor {
         }
     }
 
-    public void setItem(Item<?> item) {
+    public void setItem(Item item) {
         this.data.putByteArray(ITEM, item.toByteArray());
     }
 

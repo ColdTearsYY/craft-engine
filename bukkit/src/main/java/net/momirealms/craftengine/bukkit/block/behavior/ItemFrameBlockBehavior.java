@@ -31,7 +31,6 @@ import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import org.bukkit.Location;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
 import java.util.concurrent.Callable;
@@ -47,16 +46,15 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
     public final SoundData rotateSound;
     public final Property<Direction> directionProperty;
 
-    private ItemFrameBlockBehavior(
-            CustomBlock customBlock,
-            Vector3f position,
-            boolean glow,
-            boolean invisible,
-            boolean renderMapItem,
-            SoundData putSound,
-            SoundData takeSound,
-            SoundData rotateSound,
-            Property<Direction> directionProperty) {
+    private ItemFrameBlockBehavior(CustomBlock customBlock,
+                                   Vector3f position,
+                                   boolean glow,
+                                   boolean invisible,
+                                   boolean renderMapItem,
+                                   SoundData putSound,
+                                   SoundData takeSound,
+                                   SoundData rotateSound,
+                                   Property<Direction> directionProperty) {
         super(customBlock);
         this.position = position;
         this.glow = glow;
@@ -142,7 +140,7 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
         }
         // 当主手为空的时候右键取下
         if (context.getHand() == InteractionHand.MAIN_HAND && ItemUtils.isEmpty(context.getItem())) {
-            Item<ItemStack> item = itemFrame.item();
+            Item item = itemFrame.item();
             if (ItemUtils.isEmpty(item)) { // 空的不管
                 return InteractionResult.SUCCESS_AND_CANCEL;
             }
@@ -156,9 +154,8 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
         }
         // 当方块实体内部没有物品切换手上物品不为空则放入
         if (ItemUtils.isEmpty(itemFrame.item()) && !ItemUtils.isEmpty(context.getItem())) {
-            @SuppressWarnings("unchecked")
-            Item<ItemStack> item = (Item<ItemStack>) context.getItem();
-            Item<ItemStack> copied = item.copyWithCount(1);
+            Item item = context.getItem();
+            Item copied = item.copyWithCount(1);
             if (!player.canInstabuild()) {
                 item.shrink(1); // 先扣物品
             }
@@ -177,7 +174,7 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
     }
 
     private static class Factory implements BlockBehaviorFactory<ItemFrameBlockBehavior> {
-        private static final String[] RENDER_MAP_ITEM = new String[] {"render_map_item", "render-map-item"};
+        private static final String[] RENDER_MAP_ITEM = new String[]{"render_map_item", "render-map-item"};
 
         @Override
         public ItemFrameBlockBehavior create(CustomBlock block, ConfigSection section) {

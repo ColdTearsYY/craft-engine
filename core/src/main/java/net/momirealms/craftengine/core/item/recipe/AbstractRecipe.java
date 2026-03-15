@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class AbstractRecipe<T> implements Recipe<T> {
+public abstract class AbstractRecipe implements Recipe {
     protected final Key id;
     protected final boolean showNotification;
 
@@ -23,7 +23,7 @@ public abstract class AbstractRecipe<T> implements Recipe<T> {
         return this.id;
     }
 
-    protected void takeIngredient(@NotNull Ingredient<T> ingredient, Item<T> item, int ignore) {
+    protected void takeIngredient(@NotNull Ingredient ingredient, Item item, int ignore) {
         int i = ingredient.count() - ignore;
         if (i > 0) {
             item.shrink(i);

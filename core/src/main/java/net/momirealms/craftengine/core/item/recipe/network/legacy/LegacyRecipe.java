@@ -8,15 +8,15 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public interface LegacyRecipe<I> {
+public interface LegacyRecipe {
 
-    default void applyClientboundData(Function<Item<I>, Item<I>> function) {}
+    default void applyClientboundData(Function<Item, Item> function) {}
 
-    void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer);
+    void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer);
 
-    record Type<I>(BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<I>, LegacyRecipe<I>> reader) {
+    record Type<I>(BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<I>, LegacyRecipe> reader) {
 
-        public LegacyRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<I> reader) {
+        public LegacyRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<I> reader) {
             return this.reader.apply(buf, reader);
         }
     }

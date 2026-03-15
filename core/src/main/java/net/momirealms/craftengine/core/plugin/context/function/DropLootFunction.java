@@ -19,14 +19,14 @@ public final class DropLootFunction<CTX extends Context> extends AbstractConditi
     private final NumberProvider x;
     private final NumberProvider y;
     private final NumberProvider z;
-    private final LootTable<?> lootTable;
+    private final LootTable lootTable;
     private final boolean toInv;
 
     private DropLootFunction(List<Condition<CTX>> predicates,
                              NumberProvider x,
                              NumberProvider y,
                              NumberProvider z,
-                             LootTable<?> lootTable,
+                             LootTable lootTable,
                              boolean toInv) {
         super(predicates);
         this.x = x;
@@ -43,13 +43,13 @@ public final class DropLootFunction<CTX extends Context> extends AbstractConditi
             World world = optionalWorldPosition.get().world();
             WorldPosition position = new WorldPosition(world, x.getDouble(ctx), y.getDouble(ctx), z.getDouble(ctx));
             Player player = ctx.getOptionalParameter(DirectContextParameters.PLAYER).orElse(null);
-            List<? extends Item<?>> items = lootTable.getRandomItems(ctx.contexts(), world, player);
+            List<? extends Item> items = lootTable.getRandomItems(ctx.contexts(), world, player);
             if (this.toInv && player != null) {
-                for (Item<?> item : items) {
+                for (Item item : items) {
                     player.giveItem(item);
                 }
             } else {
-                for (Item<?> item : items) {
+                for (Item item : items) {
                     world.dropItemNaturally(position, item);
                 }
             }

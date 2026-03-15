@@ -23,16 +23,11 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.*;
 import net.momirealms.craftengine.core.item.recipe.DatapackRecipeResult;
 import net.momirealms.craftengine.core.item.recipe.IngredientUnlockable;
-import net.momirealms.craftengine.core.item.recipe.UniqueIdItem;
 import net.momirealms.craftengine.core.pack.AbstractPackManager;
 import net.momirealms.craftengine.core.plugin.compatibility.ItemSource;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.GsonHelper;
-import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.UniqueKey;
-import net.momirealms.craftengine.core.util.VersionHelper;
-import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
+import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.MappedRegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
@@ -59,24 +54,25 @@ import java.nio.file.Path;
 import java.util.*;
 
 @SuppressWarnings("unchecked")
-public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
+public final class BukkitItemManager extends AbstractItemManager {
     static {
         registerVanillaItemExtraBehavior(FlintAndSteelItemBehavior.INSTANCE, ItemKeys.FLINT_AND_STEEL);
         registerVanillaItemExtraBehavior(AxeItemBehavior.INSTANCE, ItemKeys.AXES);
     }
 
     private static BukkitItemManager instance;
-    private final BukkitItemFactory<? extends ItemWrapper<ItemStack>> factory;
+    private final BukkitItemFactory<? extends BukkitItemWrapper> factory;
     private final BukkitCraftEngine plugin;
     private final ItemEventListener itemEventListener;
     private final DebugStickListener debugStickListener;
     private final ArmorEventListener armorEventListener;
     private final SlotChangeListener slotChangeListener;
-    private final NetworkItemHandler<ItemStack> networkItemHandler;
+    private final NetworkItemHandler networkItemHandler;
     private final Object bedrockItemHolder;
-    private final Item<ItemStack> emptyItem;
-    private final UniqueIdItem<ItemStack> emptyUniqueItem;
+    private final BukkitItem emptyItem;
     private Set<Key> lastRegisteredPatterns = Set.of();
+    private boolean hasExternalRecipeSource = false;
+    private ItemSource[] recipeIngredientSources = null;
 
     public BukkitItemManager(BukkitCraftEngine plugin) {
         super(plugin);
@@ -96,29 +92,43 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
         }
         this.registerCustomTrimMaterial();
         this.loadLastRegisteredPatterns();
-        ItemStack emptyStack = CraftItemStackProxy.INSTANCE.asCraftMirror(ItemStackProxy.EMPTY);
-        this.emptyItem = this.factory.wrap(emptyStack);
-        this.emptyUniqueItem = UniqueIdItem.of(this.emptyItem);
+        this.emptyItem = wrap(ItemStackProxy.EMPTY);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void delayedLoad() {
         super.delayedLoad();
-        List<ItemSource<ItemStack>> sources = new ArrayList<>();
+        List<ItemSource> sources = new ArrayList<>();
         for (String externalSource : Config.recipeIngredientSources()) {
             String sourceId = externalSource.toLowerCase(Locale.ENGLISH);
-            ItemSource<?> itemSource = this.plugin.compatibilityManager().getItemSource(sourceId);
+            ItemSource itemSource = this.plugin.compatibilityManager().getItemSource(sourceId);
             if (itemSource != null) {
-                sources.add((ItemSource<ItemStack>) itemSource);
+                sources.add(itemSource);
             }
         }
-        this.factory.resetRecipeIngredientSources(sources.isEmpty() ? null : sources.toArray(new ItemSource[0]));
+        if (sources.isEmpty()) {
+            this.recipeIngredientSources = null;
+            this.hasExternalRecipeSource = false;
+        } else {
+            this.recipeIngredientSources = sources.toArray(new ItemSource[0]);
+            this.hasExternalRecipeSource = true;
+        }
     }
 
     @Override
-    public UniqueIdItem<ItemStack> uniqueEmptyItem() {
-        return this.emptyUniqueItem;
+    public UniqueKey getIngredientKey(Item item) {
+        if (item.isEmpty()) {
+            return null;
+        }
+        if (this.hasExternalRecipeSource) {
+            for (ItemSource source : this.recipeIngredientSources) {
+                String id = source.id(item);
+                if (id != null) {
+                    return UniqueKey.create(Key.of(source.plugin(), StringUtils.normalizeString(id)));
+                }
+            }
+        }
+        return UniqueKey.create(item.id());
     }
 
     @Override
@@ -130,7 +140,7 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
     }
 
     @Override
-    public NetworkItemHandler<ItemStack> networkItemHandler() {
+    public NetworkItemHandler networkItemHandler() {
         return this.networkItemHandler;
     }
 
@@ -139,29 +149,29 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
     }
 
     @Override
-    public Optional<Item<ItemStack>> s2c(Item<ItemStack> item, @Nullable Player player) {
+    public Optional<Item> s2c(Item item, @Nullable Player player) {
         if (item.isEmpty()) return Optional.empty();
         return this.networkItemHandler.s2c(item, player);
     }
 
     @Override
-    public Optional<Item<ItemStack>> c2s(Item<ItemStack> item) {
+    public Optional<Item> c2s(Item item) {
         if (item.isEmpty()) return Optional.empty();
         return this.networkItemHandler.c2s(item);
     }
 
     public Optional<ItemStack> s2c(ItemStack item, Player player) {
         if (item.isEmpty()) return Optional.empty();
-        return this.networkItemHandler.s2c(wrap(item), player).map(Item::getItem);
+        return this.networkItemHandler.s2c(wrap(item), player).map(ItemStackUtils::getBukkitStack);
     }
 
     public Optional<ItemStack> c2s(ItemStack item) {
         if (item.isEmpty()) return Optional.empty();
-        return this.networkItemHandler.c2s(wrap(item)).map(Item::getItem);
+        return this.networkItemHandler.c2s(wrap(item)).map(ItemStackUtils::getBukkitStack);
     }
 
     @Override
-    public Item<ItemStack> build(DatapackRecipeResult result) {
+    public Item build(DatapackRecipeResult result) {
         if (result.components() == null) {
             ItemStack itemStack = createVanillaItemStack(Key.of(result.id()));
             return wrap(itemStack).count(result.count());
@@ -176,12 +186,12 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
             if (nmsStack == null) {
                 return this.emptyItem;
             }
-            return wrap(CraftItemStackProxy.INSTANCE.asCraftMirror(nmsStack));
+            return wrap(ItemStackUtils.getBukkitStack(nmsStack));
         }
     }
 
     @Override
-    public Optional<BuildableItem<ItemStack>> getVanillaItem(Key key) {
+    public Optional<BuildableItem> getVanillaItem(Key key) {
         ItemStack vanilla = createVanillaItemStack(key);
         if (vanilla == null) {
             return Optional.empty();
@@ -190,14 +200,7 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
     }
 
     @Override
-    public int fuelTime(ItemStack itemStack) {
-        if (ItemStackUtils.isEmpty(itemStack)) return 0;
-        Optional<CustomItem<ItemStack>> customItem = wrap(itemStack).getCustomItem();
-        return customItem.map(it -> it.settings().fuelTime()).orElse(0);
-    }
-
-    @Override
-    public int fuelTime(Key id) {
+    public int getFuelTime(Key id) {
         return getCustomItem(id).map(it -> it.settings().fuelTime()).orElse(0);
     }
 
@@ -320,38 +323,32 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
 
     @SuppressWarnings("deprecation")
     @Override
-    public Item<ItemStack> fromByteArray(byte[] bytes) {
-        return this.factory.wrap(Bukkit.getUnsafe().deserializeItem(bytes));
+    public BukkitItem fromByteArray(byte[] bytes) {
+        return wrap(Bukkit.getUnsafe().deserializeItem(bytes));
     }
 
     @Override
-    public ItemStack buildCustomItemStack(Key id, Player player) {
-        return Optional.ofNullable(this.customItemsById.get(id)).map(it -> it.buildItemStack(ItemBuildContext.of(player), 1)).orElse(null);
+    public BukkitItem createCustomWrappedItem(Key id, Player player) {
+        return Optional.ofNullable(customItemsById.get(id)).map(it -> (BukkitItem) it.buildItem(player)).orElse(null);
     }
 
     @Override
-    public ItemStack buildItemStack(Key id, @Nullable Player player) {
-        ItemStack customItem = buildCustomItemStack(id, player);
+    public BukkitItem createWrappedItem(Key id, @Nullable Player player) {
+        CustomItem customItem = this.customItemsById.get(id);
         if (customItem != null) {
-            return customItem;
-        }
-        return createVanillaItemStack(id);
-    }
-
-    @Override
-    public Item<ItemStack> createCustomWrappedItem(Key id, Player player) {
-        return Optional.ofNullable(customItemsById.get(id)).map(it -> it.buildItem(player)).orElse(null);
-    }
-
-    @Override
-    public Item<ItemStack> createWrappedItem(Key id, @Nullable Player player) {
-        CustomItem<ItemStack> customItem = this.customItemsById.get(id);
-        if (customItem != null) {
-            return customItem.buildItem(player);
+            return (BukkitItem) customItem.buildItem(player);
         }
         ItemStack itemStack = this.createVanillaItemStack(id);
         if (itemStack != null) {
             return wrap(itemStack);
+        }
+        return null;
+    }
+
+    public ItemStack buildItemStack(Key id, Player player) {
+        BukkitItem wrappedItem = createWrappedItem(id, player);
+        if (wrappedItem != null) {
+            return wrappedItem.getBukkitItem();
         }
         return null;
     }
@@ -362,17 +359,17 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
         if (item == ItemsProxy.AIR && !id.equals(ItemKeys.AIR)) {
             return null;
         }
-        return CraftItemStackProxy.INSTANCE.asCraftMirror(ItemStackProxy.INSTANCE.newInstance(item, 1));
+        return ItemStackUtils.getBukkitStack(ItemStackProxy.INSTANCE.newInstance(item, 1));
     }
 
     @Override
-    public @NotNull Item<ItemStack> wrap(ItemStack itemStack) {
-        if (itemStack == null || itemStack.isEmpty()) return this.emptyItem;
-        return this.factory.wrap(itemStack);
+    public @NotNull BukkitItem wrap(Object itemStack) {
+        if (itemStack == null) return this.emptyItem;
+        return new BukkitItem((ItemFactory<BukkitItemWrapper>) this.factory, this.factory.wrap(itemStack));
     }
 
     @Override
-    protected CustomItem.Builder<ItemStack> createPlatformItemBuilder(UniqueKey id, Key materialId, Key clientBoundMaterialId) {
+    protected CustomItem.Builder createPlatformItemBuilder(UniqueKey id, Key materialId, Key clientBoundMaterialId) {
         Object item = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ITEM, KeyUtils.toIdentifier(materialId));
         Object clientBoundItem = materialId == clientBoundMaterialId ? item : RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ITEM, KeyUtils.toIdentifier(clientBoundMaterialId));
         if (item == ItemsProxy.AIR) {
@@ -411,21 +408,21 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
     // 1.20-1.21.4 template 不为空
     // 1.21.5+ pattern 不为空
     @Override
-    public Item<ItemStack> applyTrim(Item<ItemStack> base, Item<ItemStack> addition, Item<ItemStack> template, Key pattern) {
+    public Item applyTrim(Item base, Item addition, Item template, Key pattern) {
         Object registryAccess = RegistryUtils.getRegistryAccess();
         Optional<?> optionalMaterial;
         if (VersionHelper.isOrAbove1_20_5()) {
-            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$0(registryAccess, addition.getLiteralObject());
+            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$0(registryAccess, addition.getMinecraftItem());
         } else {
-            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$1(registryAccess, addition.getLiteralObject());
+            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$1(registryAccess, addition.getMinecraftItem());
         }
         Optional<?> optionalPattern;
         if (VersionHelper.isOrAbove1_21_5()) {
             optionalPattern = RegistryProxy.INSTANCE.get$0(RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.TRIM_PATTERN), KeyUtils.toIdentifier(pattern));
         } else if (VersionHelper.isOrAbove1_20_5()) {
-            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$1(registryAccess, template.getLiteralObject());
+            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$1(registryAccess, template.getMinecraftItem());
         } else {
-            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$0(registryAccess, template.getLiteralObject());
+            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$0(registryAccess, template.getMinecraftItem());
         }
         if (optionalMaterial.isPresent() && optionalPattern.isPresent()) {
             Object armorTrim = ArmorTrimProxy.INSTANCE.newInstance(optionalMaterial.get(), optionalPattern.get());
@@ -434,26 +431,26 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
                 previousTrim = base.getExactComponent(DataComponentKeys.TRIM);
             } else {
                 if (VersionHelper.isOrAbove1_20_2()) {
-                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.getLiteralObject(), true);
+                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.getMinecraftItem(), true);
                 } else {
-                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.getLiteralObject());
+                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.getMinecraftItem());
                 }
             }
             if (armorTrim.equals(previousTrim)) {
                 return this.emptyItem;
             }
-            Item<ItemStack> newItem = base.copyWithCount(1);
+            Item newItem = base.copyWithCount(1);
             if (VersionHelper.isOrAbove1_20_5()) {
                 newItem.setExactComponent(DataComponentKeys.TRIM, armorTrim);
             } else {
-                ArmorTrimProxy.INSTANCE.setTrim(registryAccess, newItem.getLiteralObject(), armorTrim);
+                ArmorTrimProxy.INSTANCE.setTrim(registryAccess, newItem.getMinecraftItem(), armorTrim);
             }
             return newItem;
         }
         return this.emptyItem;
     }
 
-    public void unlockRecipeOnInventoryChanged(org.bukkit.entity.Player player, Item<ItemStack> item) {
+    public void unlockRecipeOnInventoryChanged(org.bukkit.entity.Player player, Item item) {
         Key itemId = item.id();
         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;

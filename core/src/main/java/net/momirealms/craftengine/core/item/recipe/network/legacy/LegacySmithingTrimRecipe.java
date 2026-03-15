@@ -7,34 +7,33 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public final class LegacySmithingTrimRecipe<I> implements LegacyRecipe<I> {
-    private final LegacyIngredient<I> template;
-    private final LegacyIngredient<I> base;
-    private final LegacyIngredient<I> addition;
+public final class LegacySmithingTrimRecipe implements LegacyRecipe {
+    private final LegacyIngredient template;
+    private final LegacyIngredient base;
+    private final LegacyIngredient addition;
 
-    public LegacySmithingTrimRecipe(LegacyIngredient<I> addition, LegacyIngredient<I> template, LegacyIngredient<I> base) {
+    public LegacySmithingTrimRecipe(LegacyIngredient addition, LegacyIngredient template, LegacyIngredient base) {
         this.addition = addition;
         this.template = template;
         this.base = base;
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.template.applyClientboundData(function);
         this.base.applyClientboundData(function);
         this.addition.applyClientboundData(function);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I> LegacySmithingTrimRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
-        LegacyIngredient<I> template = LegacyIngredient.read(buf, reader);
-        LegacyIngredient<I> base = LegacyIngredient.read(buf, reader);
-        LegacyIngredient<I> addition = LegacyIngredient.read(buf, reader);
+    public static LegacySmithingTrimRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
+        LegacyIngredient template = LegacyIngredient.read(buf, reader);
+        LegacyIngredient base = LegacyIngredient.read(buf, reader);
+        LegacyIngredient addition = LegacyIngredient.read(buf, reader);
         return new LegacySmithingTrimRecipe(template, base, addition);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         this.template.write(buf, writer);
         this.base.write(buf, writer);
         this.addition.write(buf, writer);

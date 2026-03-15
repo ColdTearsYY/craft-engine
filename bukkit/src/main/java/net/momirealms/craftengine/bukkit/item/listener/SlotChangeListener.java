@@ -20,10 +20,10 @@ public final class SlotChangeListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onSlotChange(final PlayerInventorySlotChangeEvent event) {
         ItemStack newItemStack = event.getNewItemStack();
-        Item<ItemStack> wrap = this.itemManager.wrap(newItemStack);
-        Optional<CustomItem<ItemStack>> optionalCustomItem = wrap.getCustomItem();
+        Item wrap = this.itemManager.wrap(newItemStack);
+        Optional<CustomItem> optionalCustomItem = wrap.getCustomItem();
         if (optionalCustomItem.isPresent()) {
-            CustomItem<ItemStack> customItem = optionalCustomItem.get();
+            CustomItem customItem = optionalCustomItem.get();
             if (!customItem.settings().triggerAdvancement()) {
                 event.setShouldTriggerAdvancements(false);
             }

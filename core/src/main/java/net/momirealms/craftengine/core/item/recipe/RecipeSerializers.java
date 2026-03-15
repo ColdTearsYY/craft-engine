@@ -36,16 +36,16 @@ public final class RecipeSerializers {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <T, R extends Recipe<T>> void register(Key key, RecipeSerializer<T, R> serializer) {
-        WritableRegistry<RecipeSerializer<T, R>> registry = (WritableRegistry) BuiltInRegistries.RECIPE_SERIALIZER;
+    public static <T, R extends Recipe> void register(Key key, RecipeSerializer<R> serializer) {
+        WritableRegistry<RecipeSerializer<R>> registry = (WritableRegistry) BuiltInRegistries.RECIPE_SERIALIZER;
         registry.register(ResourceKey.create(Registries.RECIPE_SERIALIZER.location(), key), serializer);
     }
 
     @SuppressWarnings("unchecked")
-    public static <T, R extends Recipe<T>> Recipe<T> fromConfig(Key id, ConfigSection section) {
+    public static <T, R extends Recipe> Recipe fromConfig(Key id, ConfigSection section) {
         String type = section.getNonEmptyString("type");
         Key key = Key.of(type);
-        RecipeSerializer<T, R> factory = (RecipeSerializer<T, R>) BuiltInRegistries.RECIPE_SERIALIZER.getValue(key);
+        RecipeSerializer<R> factory = (RecipeSerializer<R>) BuiltInRegistries.RECIPE_SERIALIZER.getValue(key);
         if (factory == null) {
             throw new KnownResourceException("resource.recipe.unknown_type", section.assemblePath("type"), key.asString());
         }

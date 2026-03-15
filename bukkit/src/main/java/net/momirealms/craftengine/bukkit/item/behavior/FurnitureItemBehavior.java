@@ -176,7 +176,7 @@ public class FurnitureItemBehavior extends ItemBehavior {
                 return InteractionResult.FAIL;
             }
         }
-        Item<?> item = context.getItem();
+        Item item = context.getItem();
         if (ItemUtils.isEmpty(item)) return InteractionResult.FAIL;
         // 获取家具物品的一些属性
         FurnitureDataAccessor dataAccessor = FurnitureDataAccessor.of(new CompoundTag());

@@ -7,15 +7,15 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
-public final class CustomBlastingRecipe<T> extends CustomCookingRecipe<T> {
-    public static final Serializer<?> SERIALIZER = new Serializer<>();
+public final class CustomBlastingRecipe extends CustomCookingRecipe {
+    public static final Serializer SERIALIZER = new Serializer();
 
     public CustomBlastingRecipe(Key id,
                                 boolean showNotification,
-                                CustomRecipeResult<T> result,
+                                CustomRecipeResult result,
                                 String group,
                                 CookingRecipeCategory category,
-                                Ingredient<T> ingredient,
+                                Ingredient ingredient,
                                 int cookingTime,
                                 float experience) {
         super(id, showNotification, result, group, category, ingredient, cookingTime, experience);
@@ -31,11 +31,11 @@ public final class CustomBlastingRecipe<T> extends CustomCookingRecipe<T> {
         return RecipeType.BLASTING;
     }
 
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomBlastingRecipe<A>> {
+    public static class Serializer extends AbstractRecipeSerializer<CustomBlastingRecipe> {
 
-        @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
+        @SuppressWarnings("DuplicatedCode")
         @Override
-        public CustomBlastingRecipe<A> readConfig(Key id, ConfigSection section) {
+        public CustomBlastingRecipe readConfig(Key id, ConfigSection section) {
             return new CustomBlastingRecipe(
                     id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
@@ -49,8 +49,8 @@ public final class CustomBlastingRecipe<T> extends CustomCookingRecipe<T> {
         }
 
         @Override
-        public CustomBlastingRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomBlastingRecipe<>(id,
+        public CustomBlastingRecipe readJson(Key id, JsonObject json) {
+            return new CustomBlastingRecipe(id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.cookingResult(json.get("result"))), VANILLA_RECIPE_HELPER.readGroup(json), VANILLA_RECIPE_HELPER.cookingCategory(json),
                     toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("ingredient"))),

@@ -7,15 +7,15 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
-public final class CustomCampfireRecipe<T> extends CustomCookingRecipe<T> {
-    public static final Serializer<?> SERIALIZER = new Serializer<>();
+public final class CustomCampfireRecipe extends CustomCookingRecipe {
+    public static final Serializer SERIALIZER = new Serializer();
 
     public CustomCampfireRecipe(Key id,
                                 boolean showNotification,
-                                CustomRecipeResult<T> result,
+                                CustomRecipeResult result,
                                 String group,
                                 CookingRecipeCategory category,
-                                Ingredient<T> ingredient,
+                                Ingredient ingredient,
                                 int cookingTime,
                                 float experience) {
         super(id, showNotification, result, group, category, ingredient, cookingTime, experience);
@@ -31,11 +31,11 @@ public final class CustomCampfireRecipe<T> extends CustomCookingRecipe<T> {
         return RecipeType.CAMPFIRE_COOKING;
     }
 
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomCampfireRecipe<A>> {
+    public static class Serializer extends AbstractRecipeSerializer<CustomCampfireRecipe> {
 
-        @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
+        @SuppressWarnings("DuplicatedCode")
         @Override
-        public CustomCampfireRecipe<A> readConfig(Key id, ConfigSection section) {
+        public CustomCampfireRecipe readConfig(Key id, ConfigSection section) {
             return new CustomCampfireRecipe(
                     id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
@@ -49,8 +49,8 @@ public final class CustomCampfireRecipe<T> extends CustomCookingRecipe<T> {
         }
 
         @Override
-        public CustomCampfireRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomCampfireRecipe<>(
+        public CustomCampfireRecipe readJson(Key id, JsonObject json) {
+            return new CustomCampfireRecipe(
                     id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.cookingResult(json.get("result"))), VANILLA_RECIPE_HELPER.readGroup(json), VANILLA_RECIPE_HELPER.cookingCategory(json),

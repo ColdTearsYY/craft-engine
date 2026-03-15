@@ -12,16 +12,16 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
+public final class CustomBrewingRecipe extends AbstractFixedResultRecipe {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
-    private final Ingredient<T> container;
-    private final Ingredient<T> ingredient;
+    private final Ingredient container;
+    private final Ingredient ingredient;
 
     public CustomBrewingRecipe(@NotNull Key id,
                                boolean showNotification,
-                               @NotNull Ingredient<T> ingredient,
-                               @NotNull CustomRecipeResult<T> result,
-                               @NotNull Ingredient<T> container) {
+                               @NotNull Ingredient ingredient,
+                               @NotNull CustomRecipeResult result,
+                               @NotNull Ingredient container) {
         super(id, showNotification, result);
         this.container = container;
         this.ingredient = ingredient;
@@ -31,13 +31,13 @@ public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
     @SuppressWarnings("unchecked")
     @Override
     public boolean matches(RecipeInput input) {
-        BrewingInput<T> brewingInput = (BrewingInput<T>) input;
+        BrewingInput<Object> brewingInput = (BrewingInput<Object>) input;
         return this.container.test(brewingInput.container()) && this.ingredient.test(brewingInput.ingredient());
     }
 
     @Override
-    public List<Ingredient<T>> ingredientsInUse() {
-        List<Ingredient<T>> ingredients = new ArrayList<>();
+    public List<Ingredient> ingredientsInUse() {
+        List<Ingredient> ingredients = new ArrayList<>();
         ingredients.add(this.container);
         ingredients.add(this.ingredient);
         return ingredients;
@@ -46,7 +46,7 @@ public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
     @SuppressWarnings("unchecked")
     @Override
     public void takeInput(@NotNull RecipeInput input, int ignore) {
-        BrewingInput<T> brewingInput = (BrewingInput<T>) input;
+        BrewingInput<Object> brewingInput = (BrewingInput<Object>) input;
         takeIngredient(this.container, brewingInput.container().item(), ignore);
         takeIngredient(this.ingredient, brewingInput.ingredient().item(), ignore);
     }
@@ -62,21 +62,21 @@ public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
     }
 
     @NotNull
-    public Ingredient<T> container() {
+    public Ingredient container() {
         return this.container;
     }
 
     @NotNull
-    public Ingredient<T> ingredient() {
+    public Ingredient ingredient() {
         return this.ingredient;
     }
 
     @SuppressWarnings({"DuplicatedCode"})
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomBrewingRecipe<A>> {
+    public static class Serializer<A> extends AbstractRecipeSerializer<CustomBrewingRecipe> {
 
         @Override
-        public CustomBrewingRecipe<A> readConfig(Key id, ConfigSection section) {
-            return new CustomBrewingRecipe<>(
+        public CustomBrewingRecipe readConfig(Key id, ConfigSection section) {
+            return new CustomBrewingRecipe(
                     id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
                     section.getNonNullValue(INGREDIENTS, ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
@@ -86,7 +86,7 @@ public final class CustomBrewingRecipe<T> extends AbstractFixedResultRecipe<T> {
         }
 
         @Override
-        public CustomBrewingRecipe<A> readJson(Key id, JsonObject json) {
+        public CustomBrewingRecipe readJson(Key id, JsonObject json) {
             throw new UnsupportedOperationException();
         }
     }

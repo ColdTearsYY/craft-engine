@@ -16,7 +16,6 @@ import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.util.FileUtils;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.command.CommandSender;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.context.CommandContext;
@@ -151,7 +150,7 @@ public final class CleanCacheCommand extends BukkitCommandFeature<CommandSender>
     private void handleCustomModelData(CommandContext<CommandSender> context) {
         BukkitItemManager instance = BukkitItemManager.instance();
         Map<Key, Set<String>> idsMap = new HashMap<>();
-        for (CustomItem<ItemStack> item : instance.loadedItems().values()) {
+        for (CustomItem item : instance.loadedItems().values()) {
             Set<String> ids = idsMap.computeIfAbsent(item.clientBoundMaterial(), k -> new HashSet<>());
             ids.add(item.id().asString());
         }

@@ -50,10 +50,7 @@ import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
@@ -340,32 +337,52 @@ public final class BukkitCraftEngine extends CraftEngine {
 
     @Override
     public SchedulerAdapter<World> scheduler() {
-        return (SchedulerAdapter<World>) scheduler;
+        return (SchedulerAdapter<World>) this.scheduler;
     }
 
     @Override
-    public ItemManager<ItemStack> itemManager() {
-        return (ItemManager<ItemStack>) itemManager;
+    public BukkitItemManager itemManager() {
+        return (BukkitItemManager) this.itemManager;
     }
 
     @Override
     public BukkitBlockManager blockManager() {
-        return (BukkitBlockManager) blockManager;
+        return (BukkitBlockManager) this.blockManager;
     }
 
     @Override
     public BukkitAdvancementManager advancementManager() {
-        return (BukkitAdvancementManager) advancementManager;
+        return (BukkitAdvancementManager) this.advancementManager;
     }
 
     @Override
     public BukkitFurnitureManager furnitureManager() {
-        return (BukkitFurnitureManager) furnitureManager;
+        return (BukkitFurnitureManager) this.furnitureManager;
+    }
+
+    @Override
+    public BukkitNetworkManager networkManager() {
+        return (BukkitNetworkManager) this.networkManager;
+    }
+
+    @Override
+    public BukkitPackManager packManager() {
+        return (BukkitPackManager) this.packManager;
+    }
+
+    @Override
+    public BukkitFontManager fontManager() {
+        return (BukkitFontManager) this.fontManager;
+    }
+
+    @Override
+    public BukkitWorldManager worldManager() {
+        return (BukkitWorldManager) this.worldManager;
     }
 
     @Override
     public SenderFactory<CraftEngine, CommandSender> senderFactory() {
-        return (SenderFactory<CraftEngine, CommandSender>) senderFactory;
+        return (SenderFactory<CraftEngine, CommandSender>) this.senderFactory;
     }
 
     public JavaPlugin javaPlugin() {
@@ -374,26 +391,6 @@ public final class BukkitCraftEngine extends CraftEngine {
 
     public static BukkitCraftEngine instance() {
         return instance;
-    }
-
-    @Override
-    public BukkitNetworkManager networkManager() {
-        return (BukkitNetworkManager) networkManager;
-    }
-
-    @Override
-    public BukkitPackManager packManager() {
-        return (BukkitPackManager) packManager;
-    }
-
-    @Override
-    public BukkitFontManager fontManager() {
-        return (BukkitFontManager) fontManager;
-    }
-
-    @Override
-    public BukkitWorldManager worldManager() {
-        return (BukkitWorldManager) worldManager;
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

@@ -33,7 +33,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
 
 import java.nio.file.Path;
@@ -94,14 +93,14 @@ public final class BukkitLootManager extends AbstractLootManager implements List
                     optionalPlayer = BukkitAdaptor.adapt(player);
                     builder.withOptionalParameter(DirectContextParameters.PLAYER, optionalPlayer);
                     if (optionalPlayer != null) {
-                        Item<ItemStack> itemInHand = optionalPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+                        Item itemInHand = optionalPlayer.getItemInHand(InteractionHand.MAIN_HAND);
                         builder.withOptionalParameter(DirectContextParameters.ITEM_IN_HAND, ItemUtils.isEmpty(itemInHand) ? null : itemInHand);
                     }
                 }
             }
             ContextHolder contextHolder = builder.build();
-            for (LootTable<?> lootTable : loot.lootTables()) {
-                for (Item<?> item : lootTable.getRandomItems(contextHolder, world, optionalPlayer)) {
+            for (LootTable lootTable : loot.lootTables()) {
+                for (Item item : lootTable.getRandomItems(contextHolder, world, optionalPlayer)) {
                     world.dropItemNaturally(position, item);
                 }
             }
@@ -171,7 +170,7 @@ public final class BukkitLootManager extends AbstractLootManager implements List
             }
             boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault("override", false), "override");
             List<String> targets = MiscUtils.getAsStringList(section.getOrDefault("target", List.of()));
-            LootTable<?> lootTable = LootTable.fromConfig(section.getNonNullSection("loot"));
+            LootTable lootTable = LootTable.fromConfig(section.getNonNullSection("loot"));
             switch (typeEnum) {
                 case BLOCK -> {
                     for (String target : targets) {

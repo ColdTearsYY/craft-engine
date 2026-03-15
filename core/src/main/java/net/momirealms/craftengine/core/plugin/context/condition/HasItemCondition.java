@@ -17,9 +17,9 @@ public final class HasItemCondition<CTX extends Context> implements Condition<CT
 
     @Override
     public boolean test(CTX ctx) {
-        Optional<Item<?>> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
+        Optional<Item> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
         if (item.isEmpty()) return false;
-        Item<?> itemInHand = item.get();
+        Item itemInHand = item.get();
         return !ItemUtils.isEmpty(itemInHand);
     }
 

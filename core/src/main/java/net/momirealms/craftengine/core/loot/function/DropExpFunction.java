@@ -12,8 +12,8 @@ import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextPar
 
 import java.util.List;
 
-public final class DropExpFunction<T> extends AbstractLootConditionalFunction<T> {
-    public static final LootFunctionFactory<?> FACTORY = new Factory<>();
+public final class DropExpFunction extends AbstractLootConditionalFunction {
+    public static final LootFunctionFactory<DropExpFunction> FACTORY = new Factory();
     private final NumberProvider value;
 
     private DropExpFunction(List<Condition<LootContext>> predicates, NumberProvider value) {
@@ -22,18 +22,18 @@ public final class DropExpFunction<T> extends AbstractLootConditionalFunction<T>
     }
 
     @Override
-    protected Item<T> applyInternal(Item<T> item, LootContext context) {
+    protected Item applyInternal(Item item, LootContext context) {
         context.getOptionalParameter(DirectContextParameters.POSITION)
                 .ifPresent(it -> it.world().dropExp(it, value.getInt(context)));
         return item;
     }
 
-    private static class Factory<T> implements LootFunctionFactory<T> {
+    private static class Factory implements LootFunctionFactory<DropExpFunction> {
         private static final String[] COUNT = new String[] {"count", "amount"};
 
         @Override
-        public LootFunction<T> create(ConfigSection section) {
-            return new DropExpFunction<>(
+        public DropExpFunction create(ConfigSection section) {
+            return new DropExpFunction(
                     section.getList("conditions", CommonConditions::fromConfig),
                     NumberProviders.fromConfig(section.getNonNullValue(COUNT, ConfigConstants.ARGUMENT_NUMBER))
             );

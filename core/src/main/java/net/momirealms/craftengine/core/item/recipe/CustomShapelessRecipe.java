@@ -20,19 +20,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
-public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T> {
-    public static final Serializer<?> SERIALIZER = new Serializer<>();
-    private final List<Ingredient<T>> ingredients;
-    private final PlacementInfo<T> placementInfo;
+public final class CustomShapelessRecipe extends CustomCraftingTableRecipe {
+    public static final Serializer SERIALIZER = new Serializer();
+    private final List<Ingredient> ingredients;
+    private final PlacementInfo placementInfo;
     private final boolean ingredientCountSupport;
 
     public CustomShapelessRecipe(Key id,
                                  boolean showNotification,
-                                 CustomRecipeResult<T> result,
-                                 CustomRecipeResult<T> visualResult,
+                                 CustomRecipeResult result,
+                                 CustomRecipeResult visualResult,
                                  String group,
                                  CraftingRecipeCategory category,
-                                 List<Ingredient<T>> ingredients,
+                                 List<Ingredient> ingredients,
                                  Function<Context>[] craftingFunctions,
                                  Predicate<Context> craftingCondition,
                                  boolean alwaysRebuildOutput,
@@ -43,22 +43,22 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
         this.ingredientCountSupport = ingredientCountSupport;
     }
 
-    public PlacementInfo<T> placementInfo() {
+    public PlacementInfo placementInfo() {
         return this.placementInfo;
     }
 
     @Override
-    public List<Ingredient<T>> ingredientsInUse() {
+    public List<Ingredient> ingredientsInUse() {
         return this.ingredients;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public boolean matches(RecipeInput input) {
-        return matches((CraftingInput<T>) input);
+        return matches((CraftingInput) input);
     }
 
-    private boolean matches(CraftingInput<T> input) {
+    private boolean matches(CraftingInput input) {
         if (input.ingredientCount() != this.ingredients.size()) {
             return false;
         }
@@ -71,25 +71,25 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
     @SuppressWarnings("unchecked")
     @Override
     public void takeInput(@NotNull RecipeInput in, int ignore) {
-        CraftingInput<T> input = (CraftingInput<T>) in;
+        CraftingInput input = (CraftingInput) in;
         if (input.ingredientCount() != this.ingredients.size()) {
             return;
         }
         if (input.size() == 1 && this.ingredients.size() == 1) {
-            UniqueIdItem<T> item = input.getItem(0);
-            Ingredient<T> first = this.ingredients.getFirst();
+            UniqueIdItem item = input.getItem(0);
+            Ingredient first = this.ingredients.getFirst();
             item.item().shrink(first.count() - ignore);
             return;
         }
-        List<UniqueIdItem<T>> inputItems = new ArrayList<>(input.items);
+        List<UniqueIdItem> inputItems = new ArrayList<>(input.items);
         // 数量多的排前面
         inputItems.sort((o1, o2) -> Integer.compare(o2.item().count(), o1.item().count()));
         boolean[] taken = new boolean[inputItems.size()];
         outer:
-        for (Ingredient<T> ingredient : this.ingredients) {
+        for (Ingredient ingredient : this.ingredients) {
             for (int j = 0; j < taken.length; j++) {
                 if (!taken[j]) {
-                    UniqueIdItem<T> inputItem = inputItems.get(j);
+                    UniqueIdItem inputItem = inputItems.get(j);
                     if (ingredient.test(inputItem)) {
                         int toShrink = ingredient.count() - ignore;
                         if (toShrink > 0) {
@@ -112,19 +112,19 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
         return RecipeSerializers.SHAPELESS;
     }
 
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomShapelessRecipe<A>> {
+    public static class Serializer extends AbstractRecipeSerializer<CustomShapelessRecipe> {
 
-        @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
+        @SuppressWarnings({"unchecked", "DuplicatedCode"})
         @Override
-        public CustomShapelessRecipe<A> readConfig(Key id, ConfigSection section) {
-            List<Ingredient<A>> ingredients;
+        public CustomShapelessRecipe readConfig(Key id, ConfigSection section) {
+            List<Ingredient> ingredients;
             boolean hasAdditionalInput = false;
             ConfigValue ingredientsValue = section.getNonNullValue(INGREDIENTS, ConfigConstants.ARGUMENT_LIST);
             if (ingredientsValue.is(Map.class)) {
                 ingredients = new ArrayList<>();
                 ConfigSection ingredientSection = ingredientsValue.getAsSection();
                 for (String key : ingredientSection.keySet()) {
-                    Ingredient<A> value = ingredientSection.getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
+                    Ingredient value = ingredientSection.getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, super::parseIngredient);
                     ingredients.add(value);
                     if (value.count() > 1) {
                         hasAdditionalInput = true;
@@ -132,14 +132,14 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
                 }
             } else if (ingredientsValue.is(List.class)) {
                 ingredients = ingredientsValue.getAsList(super::parseIngredient);
-                for (Ingredient<A> ingredient : ingredients) {
+                for (Ingredient ingredient : ingredients) {
                     if (ingredient.count() > 1) {
                         hasAdditionalInput = true;
                         break;
                     }
                 }
             } else {
-                Ingredient<A> ingredient = super.parseIngredient(ingredientsValue);
+                Ingredient ingredient = super.parseIngredient(ingredientsValue);
                 ingredients = List.of(ingredient);
                 if (ingredient.count() > 1) {
                     hasAdditionalInput = true;
@@ -165,8 +165,8 @@ public final class CustomShapelessRecipe<T> extends CustomCraftingTableRecipe<T>
         }
 
         @Override
-        public CustomShapelessRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomShapelessRecipe<>(
+        public CustomShapelessRecipe readJson(Key id, JsonObject json) {
+            return new CustomShapelessRecipe(
                     id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.craftingResult(json.get("result"))),

@@ -11,8 +11,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public final class LimitCountFunction<T> extends AbstractLootConditionalFunction<T> {
-    public static final LootFunctionFactory<?> FACTORY = new Factory<>();
+public final class LimitCountFunction extends AbstractLootConditionalFunction {
+    public static final LootFunctionFactory<LimitCountFunction> FACTORY = new Factory();
     @Nullable
     public final NumberProvider min;
     @Nullable
@@ -25,7 +25,7 @@ public final class LimitCountFunction<T> extends AbstractLootConditionalFunction
     }
 
     @Override
-    protected Item<T> applyInternal(Item<T> item, LootContext context) {
+    protected Item applyInternal(Item item, LootContext context) {
         int amount = item.count();
         if (this.min != null) {
             int minAmount = this.min.getInt(context);
@@ -42,11 +42,11 @@ public final class LimitCountFunction<T> extends AbstractLootConditionalFunction
         return item;
     }
 
-    private static class Factory<A> implements LootFunctionFactory<A> {
+    private static class Factory implements LootFunctionFactory<LimitCountFunction> {
 
         @Override
-        public LootFunction<A> create(ConfigSection section) {
-            return new LimitCountFunction<>(
+        public LimitCountFunction create(ConfigSection section) {
+            return new LimitCountFunction(
                     section.getList("conditions", CommonConditions::fromConfig),
                     section.getValue("min", ConfigValue::getAsNumber),
                     section.getValue("max", ConfigValue::getAsNumber)

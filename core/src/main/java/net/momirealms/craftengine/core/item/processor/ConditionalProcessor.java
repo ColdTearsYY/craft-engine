@@ -26,7 +26,7 @@ public final class ConditionalProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         if (this.condition.test(context)) {
             for (ItemProcessor m : this.modifiers) {
                 item = item.apply(m, context);
@@ -36,7 +36,7 @@ public final class ConditionalProcessor implements ItemProcessor {
     }
 
     @Override
-    public <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
+    public Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
         if (this.condition.test(context)) {
             for (ItemProcessor m : this.modifiers) {
                 item = m.prepareNetworkItem(item, context, networkData);

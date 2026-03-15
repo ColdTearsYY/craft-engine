@@ -50,12 +50,12 @@ public final class RemoveFurnitureFunction<CTX extends Context> extends Abstract
             Optional<Player> optionalPlayer = ctx.getOptionalParameter(DirectContextParameters.PLAYER);
             Player player = optionalPlayer.orElse(null);
             if (player != null) {
-                Item<?> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+                Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
                 builder.withParameter(DirectContextParameters.PLAYER, player)
                         .withOptionalParameter(DirectContextParameters.ITEM_IN_HAND, itemInHand.isEmpty() ? null : itemInHand);
             }
-            List<Item<?>> items = lootTable.getRandomItems(builder.build(), world, player);
-            for (Item<?> item : items) {
+            List<Item> items = lootTable.getRandomItems(builder.build(), world, player);
+            for (Item item : items) {
                 world.dropItemNaturally(position, item);
             }
         }

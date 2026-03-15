@@ -20,7 +20,6 @@ import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LegacyChatFormatter;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
@@ -72,8 +71,8 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
         };
     }
 
-    public Item<?> item(Player player, FurnitureColorSource colorSource) {
-        Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
+    public Item item(Player player, FurnitureColorSource colorSource) {
+        Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
         if (applyDyedColor && colorSource != null && wrappedItem != null) {
             Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
             Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(

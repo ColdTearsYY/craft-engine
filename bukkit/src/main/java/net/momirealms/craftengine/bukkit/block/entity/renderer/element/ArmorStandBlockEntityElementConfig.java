@@ -15,7 +15,6 @@ import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LegacyChatFormatter;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
@@ -91,8 +90,8 @@ public final class ArmorStandBlockEntityElementConfig implements BlockEntityElem
         return ArmorStandBlockEntityElement.class;
     }
 
-    public Item<?> item(Player player) {
-        Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(this.itemId, player);
+    public Item item(Player player) {
+        Item wrappedItem = BukkitItemManager.instance().createWrappedItem(this.itemId, player);
         return wrappedItem == null ? BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, player) : wrappedItem ;
     }
 

@@ -8,10 +8,10 @@ import net.momirealms.craftengine.core.util.UniqueKey;
 import java.util.Set;
 
 public final class IngredientUnlockable {
-    private final Recipe<?> recipe;
+    private final Recipe recipe;
     private final Requirement[] requirements;
 
-    public IngredientUnlockable(Recipe<?> recipe, Requirement[] requirements) {
+    public IngredientUnlockable(Recipe recipe, Requirement[] requirements) {
         this.recipe = recipe;
         this.requirements = requirements;
     }
@@ -26,7 +26,7 @@ public final class IngredientUnlockable {
                 return false;
             }
         }
-        if (this.recipe instanceof ConditionalRecipe<?> conditional) {
+        if (this.recipe instanceof ConditionalRecipe conditional) {
             return conditional.canUse(PlayerOptionalContext.of(player));
         }
         return true;

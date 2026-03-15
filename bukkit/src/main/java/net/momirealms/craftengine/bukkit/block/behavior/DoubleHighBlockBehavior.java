@@ -26,7 +26,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelAccessorProxy
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -86,7 +85,7 @@ public final class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavi
         if (cePlayer == null) {
             return superMethod.call();
         }
-        Item<ItemStack> item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (cePlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBottomPart(level, pos, blockState, player);
         }

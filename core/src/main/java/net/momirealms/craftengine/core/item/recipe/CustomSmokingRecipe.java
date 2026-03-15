@@ -7,15 +7,15 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.NotNull;
 
-public final class CustomSmokingRecipe<T> extends CustomCookingRecipe<T> {
+public final class CustomSmokingRecipe extends CustomCookingRecipe {
     public static final Serializer<?> SERIALIZER = new Serializer<>();
 
     public CustomSmokingRecipe(Key id,
                                boolean showNotification,
-                               CustomRecipeResult<T> result,
+                               CustomRecipeResult result,
                                String group,
                                CookingRecipeCategory category,
-                               Ingredient<T> ingredient,
+                               Ingredient ingredient,
                                int cookingTime,
                                float experience) {
         super(id, showNotification, result, group, category, ingredient, cookingTime, experience);
@@ -31,11 +31,11 @@ public final class CustomSmokingRecipe<T> extends CustomCookingRecipe<T> {
         return RecipeType.SMOKING;
     }
 
-    public static class Serializer<A> extends AbstractRecipeSerializer<A, CustomSmokingRecipe<A>> {
+    public static class Serializer<A> extends AbstractRecipeSerializer<CustomSmokingRecipe> {
 
-        @SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
+        @SuppressWarnings("DuplicatedCode")
         @Override
-        public CustomSmokingRecipe<A> readConfig(Key id, ConfigSection section) {
+        public CustomSmokingRecipe readConfig(Key id, ConfigSection section) {
             return new CustomSmokingRecipe(
                     id,
                     section.getBoolean(SHOW_NOTIFICATIONS, true),
@@ -49,8 +49,8 @@ public final class CustomSmokingRecipe<T> extends CustomCookingRecipe<T> {
         }
 
         @Override
-        public CustomSmokingRecipe<A> readJson(Key id, JsonObject json) {
-            return new CustomSmokingRecipe<>(
+        public CustomSmokingRecipe readJson(Key id, JsonObject json) {
+            return new CustomSmokingRecipe(
                     id,
                     true,
                     parseResult(VANILLA_RECIPE_HELPER.cookingResult(json.get("result"))), VANILLA_RECIPE_HELPER.readGroup(json), VANILLA_RECIPE_HELPER.cookingCategory(json),

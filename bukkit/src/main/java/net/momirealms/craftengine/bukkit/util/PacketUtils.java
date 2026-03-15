@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.bukkit.util;
 
 import io.netty.buffer.ByteBuf;
+import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.FriendlyByteBufProxy;
@@ -53,29 +54,29 @@ public final class PacketUtils {
         return packet;
     }
 
-    public static ItemStack readItem(ByteBuf buf) {
+    public static Item readItem(ByteBuf buf) {
         if (VersionHelper.isOrAbove1_20_5()) {
-            return CraftItemStackProxy.INSTANCE.asCraftMirror(StreamDecoderProxy.INSTANCE.decode(ItemStack$OPTIONAL_STREAM_CODEC, ensureNMSFriendlyByteBuf(buf)));
+            return ItemStackUtils.wrap(StreamDecoderProxy.INSTANCE.decode(ItemStack$OPTIONAL_STREAM_CODEC, ensureNMSFriendlyByteBuf(buf)));
         } else {
-            return CraftItemStackProxy.INSTANCE.asCraftMirror(FriendlyByteBufProxy.INSTANCE.readItem(ensureNMSFriendlyByteBuf(buf)));
+            return ItemStackUtils.wrap(FriendlyByteBufProxy.INSTANCE.readItem(ensureNMSFriendlyByteBuf(buf)));
         }
     }
 
-    public static void writeItem(ByteBuf buf, ItemStack itemStack) {
+    public static void writeItem(ByteBuf buf, Item item) {
         if (VersionHelper.isOrAbove1_20_5()) {
-            StreamEncoderProxy.INSTANCE.encode(ItemStack$OPTIONAL_STREAM_CODEC, ensureNMSFriendlyByteBuf(buf), CraftItemStackProxy.INSTANCE.unwrap(itemStack));
+            StreamEncoderProxy.INSTANCE.encode(ItemStack$OPTIONAL_STREAM_CODEC, ensureNMSFriendlyByteBuf(buf), item.getMinecraftItem());
         } else {
-            FriendlyByteBufProxy.INSTANCE.writeItem(ensureNMSFriendlyByteBuf(buf), CraftItemStackProxy.INSTANCE.unwrap(itemStack));
+            FriendlyByteBufProxy.INSTANCE.writeItem(ensureNMSFriendlyByteBuf(buf), item.getMinecraftItem());
         }
     }
 
-    public static ItemStack readUntrustedItem(ByteBuf buf) {
+    public static Item readUntrustedItem(ByteBuf buf) {
         if (!VersionHelper.isOrAbove1_20_5()) throw new UnsupportedOperationException("This feature is only available on 1.20.5+");
-        return CraftItemStackProxy.INSTANCE.asCraftMirror(StreamDecoderProxy.INSTANCE.decode(ITEM_UNTRUSTED_CODEC, ensureNMSFriendlyByteBuf(buf)));
+        return ItemStackUtils.wrap(StreamDecoderProxy.INSTANCE.decode(ITEM_UNTRUSTED_CODEC, ensureNMSFriendlyByteBuf(buf)));
     }
 
-    public static void writeUntrustedItem(ByteBuf buf, ItemStack itemStack) {
+    public static void writeUntrustedItem(ByteBuf buf, Item item) {
         if (!VersionHelper.isOrAbove1_20_5()) throw new UnsupportedOperationException("This feature is only available on 1.20.5+");
-        StreamEncoderProxy.INSTANCE.encode(ITEM_UNTRUSTED_CODEC, ensureNMSFriendlyByteBuf(buf), CraftItemStackProxy.INSTANCE.unwrap(itemStack));
+        StreamEncoderProxy.INSTANCE.encode(ITEM_UNTRUSTED_CODEC, ensureNMSFriendlyByteBuf(buf), item.getMinecraftItem());
     }
 }

@@ -6,21 +6,20 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import org.jetbrains.annotations.ApiStatus;
 
 @ApiStatus.Obsolete
-public final class LegacyCustomRecipe<I> implements LegacyRecipe<I> {
+public final class LegacyCustomRecipe implements LegacyRecipe {
     private final CraftingRecipeCategory category;
 
     public LegacyCustomRecipe(CraftingRecipeCategory category) {
         this.category = category;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I> LegacyCustomRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<I> reader) {
+    public static <I> LegacyCustomRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<I> reader) {
         CraftingRecipeCategory category = CraftingRecipeCategory.byId(buf.readVarInt());
         return new LegacyCustomRecipe(category);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(this.category.ordinal());
     }
 }

@@ -22,12 +22,12 @@ public final class EquippableProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         return item.equippable(this.data);
     }
 
     @Override
-    public <I> @NotNull Key componentType(Item<I> item, ItemBuildContext context) {
+    public <I> @NotNull Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.EQUIPPABLE;
     }
 

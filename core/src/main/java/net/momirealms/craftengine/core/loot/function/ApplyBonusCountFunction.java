@@ -14,8 +14,8 @@ import net.momirealms.craftengine.core.util.Key;
 import java.util.List;
 import java.util.Optional;
 
-public final class ApplyBonusCountFunction<T> extends AbstractLootConditionalFunction<T> {
-    public static final LootFunctionFactory<?> FACTORY = new Factory<>();
+public final class ApplyBonusCountFunction extends AbstractLootConditionalFunction {
+    public static final LootFunctionFactory<ApplyBonusCountFunction> FACTORY = new Factory();
     public final Key enchantment;
     public final Formula formula;
 
@@ -28,19 +28,19 @@ public final class ApplyBonusCountFunction<T> extends AbstractLootConditionalFun
     }
 
     @Override
-    protected Item<T> applyInternal(Item<T> item, LootContext context) {
-        Optional<Item<?>> itemInHand = context.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
+    protected Item applyInternal(Item item, LootContext context) {
+        Optional<Item> itemInHand = context.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
         int level = itemInHand.map(value -> value.getEnchantment(this.enchantment).map(Enchantment::level).orElse(0)).orElse(0);
         int newCount = this.formula.apply(item.count(), level);
         item.count(newCount);
         return item;
     }
 
-    private static class Factory<T> implements LootFunctionFactory<T> {
+    private static class Factory implements LootFunctionFactory<ApplyBonusCountFunction> {
 
         @Override
-        public LootFunction<T> create(ConfigSection section) {
-            return new ApplyBonusCountFunction<>(
+        public ApplyBonusCountFunction create(ConfigSection section) {
+            return new ApplyBonusCountFunction(
                     section.getList("conditions", CommonConditions::fromConfig),
                     section.getNonNullIdentifier("enchantment"),
                     Formulas.fromConfig(section.getNonNullSection("formula"))

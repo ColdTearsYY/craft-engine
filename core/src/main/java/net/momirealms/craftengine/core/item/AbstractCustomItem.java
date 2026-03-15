@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public abstract class AbstractCustomItem<I> implements CustomItem<I> {
+public abstract class AbstractCustomItem<I> implements CustomItem {
     protected final boolean isVanillaItem;
     protected final UniqueKey id;
     protected final Key material;

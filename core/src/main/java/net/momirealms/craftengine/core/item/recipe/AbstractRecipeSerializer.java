@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implements RecipeSerializer<T, R> {
+public abstract class AbstractRecipeSerializer<R extends Recipe> implements RecipeSerializer<R> {
     protected static final VanillaRecipeReader VANILLA_RECIPE_HELPER =
             VersionHelper.isOrAbove26_1() ?
             new VanillaRecipeReader26_1() :
@@ -37,29 +37,27 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
     protected static final String[] CONDITIONS = new String[] {"conditions", "condition"};
     protected static final String[] ALWAYS_REBUILD_RESULT = new String[] {"always_rebuild_result", "always-rebuild-result"};
 
-    @SuppressWarnings("unchecked")
-    protected CustomRecipeResult<T> parseResult(DatapackRecipeResult recipeResult) {
-        Item<T> result = (Item<T>) CraftEngine.instance().itemManager().build(recipeResult);
-        return new CustomRecipeResult<>(CloneableConstantItem.of(result), recipeResult.count(), null);
+    protected CustomRecipeResult parseResult(DatapackRecipeResult recipeResult) {
+        Item result = CraftEngine.instance().itemManager().build(recipeResult);
+        return new CustomRecipeResult(CloneableConstantItem.of(result), recipeResult.count(), null);
     }
 
-    @SuppressWarnings("unchecked")
-    protected CustomRecipeResult<T> parseResult(ConfigSection section) {
+    protected CustomRecipeResult parseResult(ConfigSection section) {
         Key id = section.getNonNullIdentifier("id");
         int count = section.getInt("count", 1);
-        Optional<? extends BuildableItem<T>> buildableItem = (Optional<? extends BuildableItem<T>>) CraftEngine.instance().itemManager().getBuildableItem(id);
+        Optional<? extends BuildableItem> buildableItem = CraftEngine.instance().itemManager().getBuildableItem(id);
         if (buildableItem.isEmpty()) {
             throw new KnownResourceException("resource.recipe.result.item_not_exist", section.assemblePath("id"), id.asString());
         }
         List<PostProcessor> processors = section.getList(POST_PROCESSOR, v -> PostProcessors.fromConfig(v.getAsSection()));
-        return new CustomRecipeResult<>(
+        return new CustomRecipeResult(
                 buildableItem.get(),
                 count,
                 processors.isEmpty() ? null : processors.toArray(new PostProcessor[0])
         );
     }
 
-    protected Ingredient<T> parseIngredient(ConfigValue value) {
+    protected Ingredient parseIngredient(ConfigValue value) {
         int count = 1;
         ConfigValue itemsValue;
         if (value.is(Map.class)) {
@@ -72,7 +70,7 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
         Set<UniqueKey> itemIds = new HashSet<>();
         Set<UniqueKey> minecraftItemIds = new HashSet<>();
         List<IngredientElement> elements = new ArrayList<>();
-        ItemManager<T> itemManager = CraftEngine.instance().itemManager();
+        ItemManager itemManager = CraftEngine.instance().itemManager();
         itemsValue.forEach(v -> {
             String itemOrTag = v.getAsString();
             if (itemOrTag.charAt(0) == '#') {
@@ -105,10 +103,10 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
         });
         boolean hasCustomItem = false;
         for (UniqueKey holder : itemIds) {
-            Optional<CustomItem<T>> optionalCustomItem = itemManager.getCustomItem(holder.key());
+            Optional<CustomItem> optionalCustomItem = itemManager.getCustomItem(holder.key());
             UniqueKey vanillaItem = holder;
             if (optionalCustomItem.isPresent()) {
-                CustomItem<T> customItem = optionalCustomItem.get();
+                CustomItem customItem = optionalCustomItem.get();
                 if (!customItem.isVanillaItem()) {
                     vanillaItem = UniqueKey.create(customItem.material());
                     hasCustomItem = true;
@@ -120,15 +118,15 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
     }
 
     @Nullable
-    protected Ingredient<T> toIngredient(List<String> items) {
+    protected Ingredient toIngredient(List<String> items) {
         return toIngredient(items, 1);
     }
 
     @Nullable
-    protected Ingredient<T> toIngredient(List<String> items, int count) {
+    protected Ingredient toIngredient(List<String> items, int count) {
         Set<UniqueKey> itemIds = new HashSet<>();
         Set<UniqueKey> minecraftItemIds = new HashSet<>();
-        ItemManager<T> itemManager = CraftEngine.instance().itemManager();
+        ItemManager itemManager = CraftEngine.instance().itemManager();
         List<IngredientElement> elements = new ArrayList<>();
         for (String item : items) {
             if (item.charAt(0) == '#') {
@@ -160,10 +158,10 @@ public abstract class AbstractRecipeSerializer<T, R extends Recipe<T>> implement
         }
         boolean hasCustomItem = false;
         for (UniqueKey holder : itemIds) {
-            Optional<CustomItem<T>> optionalCustomItem = itemManager.getCustomItem(holder.key());
+            Optional<CustomItem> optionalCustomItem = itemManager.getCustomItem(holder.key());
             UniqueKey vanillaItem;
             if (optionalCustomItem.isPresent()) {
-                CustomItem<T> customItem = optionalCustomItem.get();
+                CustomItem customItem = optionalCustomItem.get();
                 if (customItem.isVanillaItem()) {
                     vanillaItem = holder;
                 } else {

@@ -79,65 +79,63 @@ public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> 
                 return recipe;
             };
 
-    private static final Map<Key, Function<Recipe<ItemStack>, Object>> ADD_RECIPE_FOR_MINECRAFT_RECIPE_HOLDER = Map.of(
+    private static final Map<Key, Function<Recipe, Object>> ADD_RECIPE_FOR_MINECRAFT_RECIPE_HOLDER = Map.of(
             RecipeSerializers.SHAPED, recipe -> {
-                CustomShapedRecipe<ItemStack> shapedRecipe = (CustomShapedRecipe<ItemStack>) recipe;
+                CustomShapedRecipe shapedRecipe = (CustomShapedRecipe) recipe;
                 Object mcRecipe = FastNMS.INSTANCE.createShapedRecipe(shapedRecipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.SHAPELESS, recipe -> {
-                CustomShapelessRecipe<ItemStack> shapelessRecipe = (CustomShapelessRecipe<ItemStack>) recipe;
+                CustomShapelessRecipe shapelessRecipe = (CustomShapelessRecipe) recipe;
                 Object mcRecipe = FastNMS.INSTANCE.createShapelessRecipe(shapelessRecipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.SMELTING, recipe -> {
-                CustomSmeltingRecipe<ItemStack> smeltingRecipe = (CustomSmeltingRecipe<ItemStack>) recipe;
+                CustomSmeltingRecipe smeltingRecipe = (CustomSmeltingRecipe) recipe;
                 Object mcRecipe = FastNMS.INSTANCE.createSmeltingRecipe(smeltingRecipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.BLASTING, recipe -> {
-                CustomBlastingRecipe<ItemStack> blastingRecipe = (CustomBlastingRecipe<ItemStack>) recipe;
+                CustomBlastingRecipe blastingRecipe = (CustomBlastingRecipe) recipe;
                 Object mcRecipe = FastNMS.INSTANCE.createBlastingRecipe(blastingRecipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.SMOKING, recipe -> {
-                CustomSmokingRecipe<ItemStack> smokingRecipe = (CustomSmokingRecipe<ItemStack>) recipe;
+                CustomSmokingRecipe smokingRecipe = (CustomSmokingRecipe) recipe;
                 Object mcRecipe = FastNMS.INSTANCE.createSmokingRecipe(smokingRecipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.CAMPFIRE_COOKING, recipe -> {
-                CustomCampfireRecipe<ItemStack> campfireRecipe = (CustomCampfireRecipe<ItemStack>) recipe;
+                CustomCampfireRecipe campfireRecipe = (CustomCampfireRecipe) recipe;
                 Object mcRecipe = FastNMS.INSTANCE.createCampfireRecipe(campfireRecipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.STONECUTTING, recipe -> {
-                Object mcRecipe = FastNMS.INSTANCE.createStonecuttingRecipe((CustomStoneCuttingRecipe<ItemStack>) recipe);
+                Object mcRecipe = FastNMS.INSTANCE.createStonecuttingRecipe((CustomStoneCuttingRecipe) recipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.SMITHING_TRIM, recipe -> {
-                Object mcRecipe = FastNMS.INSTANCE.createSmithingTrimRecipe((CustomSmithingTrimRecipe<ItemStack>) recipe);
+                Object mcRecipe = FastNMS.INSTANCE.createSmithingTrimRecipe((CustomSmithingTrimRecipe) recipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             },
             RecipeSerializers.SMITHING_TRANSFORM, recipe -> {
-                Object mcRecipe = FastNMS.INSTANCE.createSmithingTransformRecipe((CustomSmithingTransformRecipe<ItemStack>) recipe);
+                Object mcRecipe = FastNMS.INSTANCE.createSmithingTransformRecipe((CustomSmithingTransformRecipe) recipe);
                 return MINECRAFT_RECIPE_ADDER.apply(recipe.id(), mcRecipe);
             }
     );
 
     // nms 模块需要使用此方法
-    public static List<Object> getIngredientLooks(Ingredient<ItemStack> ingredient) {
+    public static List<Object> getIngredientLooks(Ingredient ingredient) {
         List<Object> itemStacks = new ArrayList<>();
         for (UniqueKey holder : ingredient.items()) {
-            Optional<? extends BuildableItem<ItemStack>> buildableItem = BukkitItemManager.instance().getBuildableItem(holder.key());
+            Optional<? extends BuildableItem> buildableItem = BukkitItemManager.instance().getBuildableItem(holder.key());
             if (buildableItem.isPresent()) {
-                ItemStack itemStack = buildableItem.get().buildItemStack(ItemBuildContext.empty(), ingredient.count());
-                Object nmsStack = CraftItemStackProxy.INSTANCE.unwrap(ItemStackUtils.ensureCraftItemStack(itemStack));
-                itemStacks.add(nmsStack);
+                itemStacks.add(buildableItem.get().buildItem(ItemBuildContext.empty(), ingredient.count()).getMinecraftItem());
             } else {
-                Item<ItemStack> barrier = BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, null);
+                Item barrier = BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, null);
                 assert barrier != null;
                 barrier.customNameJson(AdventureHelper.componentToJson(Component.text(holder.key().asString()).color(NamedTextColor.RED)));
-                itemStacks.add(barrier.getLiteralObject());
+                itemStacks.add(barrier.getMinecraftItem());
             }
         }
         return itemStacks;
@@ -207,11 +205,11 @@ public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> 
         if (!Config.enableRecipeSystem()) return;
         // 安排卸载任务，这些任务会在load后执行。如果没有load说明服务器已经关闭了，那就不需要管卸载了。
         if (!Bukkit.isStopping()) {
-            for (Map.Entry<Key, Recipe<ItemStack>> entry : this.byId.entrySet()) {
+            for (Map.Entry<Key, Recipe> entry : this.byId.entrySet()) {
                 Key id = entry.getKey();
                 // 不要卸载数据包配方，只记录自定义的配方
                 if (isDataPackRecipe(id)) continue;
-                boolean isBrewingRecipe = entry.getValue() instanceof CustomBrewingRecipe<ItemStack>;
+                boolean isBrewingRecipe = entry.getValue() instanceof CustomBrewingRecipe;
                 this.recipesToUnregister.add(Pair.of(id, isBrewingRecipe));
             }
         }
@@ -240,18 +238,18 @@ public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> 
     }
 
     @Override
-    protected void registerPlatformRecipeMainThread(Recipe<ItemStack> recipe) {
+    protected void registerPlatformRecipeMainThread(Recipe recipe) {
         Key id = recipe.id();
-        if (recipe instanceof CustomBrewingRecipe<ItemStack> brewingRecipe) {
+        if (recipe instanceof CustomBrewingRecipe brewingRecipe) {
             if (!VersionHelper.isOrAbove1_20_2()) return;
             PotionMix potionMix = new PotionMix(new NamespacedKey(id.namespace(), id.value()),
-                    brewingRecipe.result(ItemBuildContext.empty()),
+                    ItemStackUtils.getBukkitStack(brewingRecipe.result(ItemBuildContext.empty())),
                     PotionMix.createPredicateChoice(container -> {
-                        Item<ItemStack> wrapped = this.plugin.itemManager().wrap(container);
+                        Item wrapped = this.plugin.itemManager().wrap(container);
                         return brewingRecipe.container().test(UniqueIdItem.of(wrapped));
                     }),
                     PotionMix.createPredicateChoice(ingredient -> {
-                        Item<ItemStack> wrapped = this.plugin.itemManager().wrap(ingredient);
+                        Item wrapped = this.plugin.itemManager().wrap(ingredient);
                         return brewingRecipe.ingredient().test(UniqueIdItem.of(wrapped));
                     })
             );
@@ -262,7 +260,7 @@ public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> 
                 // 如果这个数据包配方已经被换成了注入配方，那么是否需要重新注册取决于其是否含有tag，且tag里有自定义物品
                 if (!this.replacedDatapackRecipes.add(id)) {
                     outer: {
-                        for (Ingredient<ItemStack> ingredient : recipe.ingredientsInUse()) {
+                        for (Ingredient ingredient : recipe.ingredientsInUse()) {
                             if (ingredient.hasCustomItem()) {
                                 break outer;
                             }
@@ -305,13 +303,13 @@ public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> 
             JsonObject jsonObject = entry.getValue();
             Key serializerType = Key.of(jsonObject.get("type").getAsString());
             @SuppressWarnings("unchecked")
-            RecipeSerializer<ItemStack, ? extends Recipe<ItemStack>> serializer = (RecipeSerializer<ItemStack, ? extends Recipe<ItemStack>>) BuiltInRegistries.RECIPE_SERIALIZER.getValue(serializerType);
+            RecipeSerializer<? extends Recipe> serializer = (RecipeSerializer<? extends Recipe>) BuiltInRegistries.RECIPE_SERIALIZER.getValue(serializerType);
             if (serializer == null) {
                 continue;
             }
 
             try {
-                Recipe<ItemStack> recipe = serializer.readJson(id, jsonObject);
+                Recipe recipe = serializer.readJson(id, jsonObject);
                 markAsDataPackRecipe(id);
                 registerInternalRecipe(recipe, false);
             } catch (Exception e) {
@@ -366,7 +364,7 @@ public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> 
         this.recipesToUnregister.clear();
 
         // 注册新的配方
-        for (Recipe<ItemStack> recipe : this.byId.values()) {
+        for (Recipe recipe : this.byId.values()) {
             try {
                 registerPlatformRecipeMainThread(recipe);
             } catch (Exception e) {

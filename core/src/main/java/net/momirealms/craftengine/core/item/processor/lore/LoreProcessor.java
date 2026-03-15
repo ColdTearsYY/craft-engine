@@ -31,18 +31,18 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
 
     @Override
     @Nullable
-    default <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    default <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.LORE;
     }
 
     @Override
     @Nullable
-    default <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    default <I> Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"display", "Lore"};
     }
 
     @Override
-    default <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    default <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "display.Lore";
     }
 
@@ -117,7 +117,7 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
     non-sealed class EmptyLoreProcessor implements LoreProcessor {
 
         @Override
-        public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+        public Item apply(Item item, ItemBuildContext context) {
             return item;
         }
 
@@ -135,7 +135,7 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
         }
 
         @Override
-        public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+        public Item apply(Item item, ItemBuildContext context) {
             item.loreComponent(this.modification.parseAsList(context));
             return item;
         }
@@ -156,7 +156,7 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
         }
 
         @Override
-        public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+        public Item apply(Item item, ItemBuildContext context) {
             item.loreComponent(this.modification2.apply(this.modification1.apply(Stream.empty(), context), context).toList());
             return item;
         }
@@ -175,7 +175,7 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
         }
 
         @Override
-        public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+        public Item apply(Item item, ItemBuildContext context) {
             item.loreComponent(Arrays.stream(this.modifications).reduce(Stream.<Component>empty(), (stream, modification) -> modification.apply(stream, context), Stream::concat).toList());
             return item;
         }

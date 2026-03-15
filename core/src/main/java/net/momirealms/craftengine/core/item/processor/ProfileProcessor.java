@@ -32,7 +32,7 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         if (this.profileName != null) {
             String resultString = this.profileName.get(context);
             if (VersionHelper.isOrAbove1_20_5()) {
@@ -88,17 +88,17 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public <I> String nbtPathString(Item item, ItemBuildContext context) {
         return "SkullOwner";
     }
 
     @Override
-    public <I> @NotNull Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public <I> @NotNull Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public @NotNull <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public @NotNull <I> Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.PROFILE;
     }
 }

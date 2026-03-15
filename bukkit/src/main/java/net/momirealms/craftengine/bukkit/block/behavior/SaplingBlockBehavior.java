@@ -177,7 +177,7 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
     @SuppressWarnings("DuplicatedCode")
     @Override
     public InteractionResult useOnBlock(UseOnContext context, ImmutableBlockState state) {
-        Item<?> item = context.getItem();
+        Item item = context.getItem();
         Player player = context.getPlayer();
         if (ItemUtils.isEmpty(item) || !item.vanillaId().equals(ItemKeys.BONE_MEAL) || player == null || player.isAdventureMode())
             return InteractionResult.PASS;

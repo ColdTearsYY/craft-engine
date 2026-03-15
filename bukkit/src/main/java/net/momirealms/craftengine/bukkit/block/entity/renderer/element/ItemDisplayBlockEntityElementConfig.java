@@ -17,7 +17,6 @@ import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -84,11 +83,11 @@ public final class ItemDisplayBlockEntityElementConfig implements BlockEntityEle
                 ItemDisplayEntityData.SharedFlags.addEntityData((byte) 0x0, dataValues);
                 ItemDisplayEntityData.GlowColorOverride.addEntityData(-1, dataValues);
             }
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
+            Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
             if (wrappedItem == null) {
                 wrappedItem = java.util.Objects.requireNonNull(BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, player));
             }
-            ItemDisplayEntityData.DisplayedItem.addEntityData(wrappedItem.getLiteralObject(), dataValues);
+            ItemDisplayEntityData.DisplayedItem.addEntityData(wrappedItem.getMinecraftItem(), dataValues);
             ItemDisplayEntityData.Scale.addEntityData(this.scale, dataValues);
             ItemDisplayEntityData.RotationLeft.addEntityData(this.rotation, dataValues);
             ItemDisplayEntityData.BillboardConstraints.addEntityData(this.billboard.id(), dataValues);

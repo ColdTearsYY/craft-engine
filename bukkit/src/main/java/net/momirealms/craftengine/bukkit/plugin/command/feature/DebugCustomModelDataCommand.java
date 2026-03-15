@@ -17,7 +17,6 @@ import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.CommandManager;
@@ -59,20 +58,20 @@ public final class DebugCustomModelDataCommand extends BukkitCommandFeature<Comm
 
         if (namespacedKey != null) {
             Key itemId = KeyUtils.namespacedKeyToKey(namespacedKey);
-            CustomItem<ItemStack> customItem = CraftEngineItems.byId(itemId);
+            CustomItem customItem = CraftEngineItems.byId(itemId);
             if (customItem == null) return;
-            Item<ItemStack> item = customItem.buildItem(player);
+            Item item = customItem.buildItem(player);
             sendMessage(context, getCustomModelData(item, player));
             return;
         }
 
         if (player != null) {
-            Item<ItemStack> item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
+            Item item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
             sendMessage(context, getCustomModelData(item, player));
         }
     }
 
-    private int getCustomModelData(Item<ItemStack> itemStack, BukkitServerPlayer player) {
+    private int getCustomModelData(Item itemStack, BukkitServerPlayer player) {
         return plugin().itemManager().s2c(itemStack, player)
                 .map(Item::customModelData)
                 .orElse(itemStack.customModelData())

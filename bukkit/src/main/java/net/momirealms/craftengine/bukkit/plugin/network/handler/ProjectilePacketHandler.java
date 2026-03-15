@@ -23,7 +23,6 @@ import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.Clientbo
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundSetEntityDataPacketProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityTypeProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.PositionMoveRotationProxy;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -105,12 +104,12 @@ public final class ProjectilePacketHandler implements EntityPacketHandler {
 
     public List<Object> createCustomProjectileEntityDataValues(Player player) {
         List<Object> itemDisplayValues = new ArrayList<>();
-        Optional<CustomItem<ItemStack>> customItem = BukkitItemManager.instance().getCustomItem(this.projectile.metadata().item());
+        Optional<CustomItem> customItem = BukkitItemManager.instance().getCustomItem(this.projectile.metadata().item());
         if (customItem.isEmpty()) return itemDisplayValues;
         ProjectileMeta meta = this.projectile.metadata();
-        Item<ItemStack> displayedItem = customItem.get().buildItem(ItemBuildContext.empty());
+        Item displayedItem = customItem.get().buildItem(ItemBuildContext.empty());
         // 我们应当使用新的展示物品的组件覆盖原物品的组件，以完成附魔，附魔光效等组件的继承
-        Item<ItemStack> item = this.projectile.item().mergeCopy(displayedItem);
+        Item item = this.projectile.item().mergeCopy(displayedItem);
         displayedItem = BukkitItemManager.instance().s2c(item, player).orElse(item);
         ItemDisplayEntityData.InterpolationDelay.addEntityDataIfNotDefaultValue(-1, itemDisplayValues);
         ItemDisplayEntityData.Translation.addEntityDataIfNotDefaultValue(meta.translation(), itemDisplayValues);
@@ -123,7 +122,7 @@ public final class ProjectilePacketHandler implements EntityPacketHandler {
             ItemDisplayEntityData.InterpolationDuration.addEntityDataIfNotDefaultValue(1, itemDisplayValues);
         }
 
-        Object literalItem = displayedItem.getLiteralObject();
+        Object literalItem = displayedItem.getMinecraftItem();
         ItemDisplayEntityData.DisplayedItem.addEntityDataIfNotDefaultValue(literalItem, itemDisplayValues);
         ItemDisplayEntityData.DisplayType.addEntityDataIfNotDefaultValue(meta.displayType().id(), itemDisplayValues);
         ItemDisplayEntityData.BillboardConstraints.addEntityDataIfNotDefaultValue(meta.billboard().id(), itemDisplayValues);

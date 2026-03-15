@@ -17,17 +17,17 @@ public interface RecipeManager<T> extends Manageable {
 
     boolean isCustomRecipe(Key key);
 
-    Optional<Recipe<T>> recipeById(Key id);
+    Optional<Recipe> recipeById(Key id);
 
-    List<Recipe<T>> recipesByType(RecipeType type);
+    List<Recipe> recipesByType(RecipeType type);
 
-    List<Recipe<T>> recipeByResult(Key result);
+    List<Recipe> recipeByResult(Key result);
 
-    List<Recipe<T>> recipeByIngredient(Key ingredient);
-
-    @Nullable
-    Recipe<T> recipeByInput(RecipeType type, RecipeInput input);
+    List<Recipe> recipeByIngredient(Key ingredient);
 
     @Nullable
-    Recipe<T> recipeByInput(RecipeType type, RecipeInput input, @Nullable Key lastRecipe);
+    Recipe recipeByInput(RecipeType type, RecipeInput input);
+
+    @Nullable
+    Recipe recipeByInput(RecipeType type, RecipeInput input, @Nullable Key lastRecipe);
 }

@@ -8,19 +8,19 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public final class LegacyCookingRecipe<I> implements LegacyRecipe<I> {
-    private Item<I> result;
+public final class LegacyCookingRecipe implements LegacyRecipe {
+    private Item result;
     private final CookingRecipeCategory category;
     private final String group;
-    private final LegacyIngredient<I> ingredient;
+    private final LegacyIngredient ingredient;
     private final float experience;
     private final int cookingTime;
 
-    public LegacyCookingRecipe(LegacyIngredient<I> ingredient,
+    public LegacyCookingRecipe(LegacyIngredient ingredient,
                                CookingRecipeCategory category,
                                float experience,
                                int cookingTime,
-                               Item<I> result,
+                               Item result,
                                String group) {
         this.ingredient = ingredient;
         this.category = category;
@@ -31,24 +31,23 @@ public final class LegacyCookingRecipe<I> implements LegacyRecipe<I> {
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.result = function.apply(this.result);
         this.ingredient.applyClientboundData(function);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I> LegacyCookingRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static LegacyCookingRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         String group = buf.readUtf();
         CookingRecipeCategory category = CookingRecipeCategory.byId(buf.readVarInt());
-        LegacyIngredient<I> ingredient = LegacyIngredient.read(buf, reader);
-        Item<I> result = reader.apply(buf);
+        LegacyIngredient ingredient = LegacyIngredient.read(buf, reader);
+        Item result = reader.apply(buf);
         float experience = buf.readFloat();
         int cookingTime = buf.readVarInt();
         return new LegacyCookingRecipe(ingredient, category, experience, cookingTime, result, group);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeUtf(this.group);
         buf.writeVarInt(this.category.ordinal());
         this.ingredient.write(buf, writer);

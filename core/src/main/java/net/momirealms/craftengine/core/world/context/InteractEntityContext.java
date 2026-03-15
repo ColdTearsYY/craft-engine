@@ -14,7 +14,7 @@ public final class InteractEntityContext {
     private final InteractionHand hand;
     private final EntityHitResult hitResult;
     private final World level;
-    private final Item<?> itemStack;
+    private final Item itemStack;
 
     public InteractEntityContext(Player player, InteractionHand hand, EntityHitResult hitResult) {
         this.player = player;
@@ -40,7 +40,7 @@ public final class InteractEntityContext {
         return this.level;
     }
 
-    public Item<?> getItem() {
+    public Item getItem() {
         return this.itemStack;
     }
 

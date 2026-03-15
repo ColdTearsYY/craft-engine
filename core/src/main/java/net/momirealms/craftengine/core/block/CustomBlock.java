@@ -18,7 +18,7 @@ public interface CustomBlock {
     Key id();
 
     @Nullable
-    LootTable<?> lootTable();
+    LootTable lootTable();
 
     @NotNull
     default String translationKey() {

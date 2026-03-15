@@ -21,8 +21,8 @@ public final class FixedCraftRemainder implements CraftRemainder {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Item<T> remainder(Key recipeId, Item<T> item) {
-        Item<T> wrappedItem = (Item<T>) CraftEngine.instance().itemManager().createWrappedItem(this.item, null);
+    public <T> Item remainder(Key recipeId, Item item) {
+        Item wrappedItem = (Item) CraftEngine.instance().itemManager().createWrappedItem(this.item, null);
         if (wrappedItem != null) {
             wrappedItem.count(this.count.getInt(ThreadLocalRandomSource.INSTANCE));
         }

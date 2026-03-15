@@ -42,7 +42,7 @@ public final class StackableBlockBehavior extends BukkitBlockBehavior implements
         if (context.isSecondaryUseActive()) {
             return false;
         }
-        Item<?> item = context.getItem();
+        Item item = context.getItem();
         if (ItemUtils.isEmpty(item)) {
             return false;
         }

@@ -47,7 +47,6 @@ import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
@@ -142,7 +141,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
         org.bukkit.entity.Player bukkitPlayer = ServerPlayerProxy.INSTANCE.getBukkitEntity(player);
         BukkitServerPlayer cePlayer = BukkitAdaptor.adapt(bukkitPlayer);
         if (cePlayer == null) return superMethod.call();
-        Item<ItemStack> item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (cePlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBottomPart(level, pos, blockState, player);
         }

@@ -258,7 +258,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             }
 
             // 解析战利品表 （可异常）
-            LootTable<?> lootTable = null;
+            LootTable lootTable = null;
             try {
                 lootTable = section.getValue(LOOT, v -> LootTable.fromConfig(v.getAsSection()));
             } catch (KnownResourceException e) {
