@@ -50,7 +50,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
     private final ItemParser itemParser;
     private final EquipmentParser equipmentParser;
-    protected final Map<Key, CustomItem> customItemsById = new HashMap<>();
+    protected final Map<Key, CustomItem> customItemsById = new LinkedHashMap<>();
     protected final Map<String, CustomItem> customItemsByPath = new HashMap<>();
     protected final Map<Key, List<UniqueKey>> customItemTags = new HashMap<>();
     protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new ConcurrentHashMap<>();

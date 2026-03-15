@@ -96,7 +96,7 @@ public interface TranslationManager extends Manageable {
 
     void log(String id, String... args);
 
-    Map<String, LangData> clientLangData();
+    Map<String, ClientLangData> clientLangData();
 
     void addClientTranslation(String langId, Map<String, String> translations);
 }

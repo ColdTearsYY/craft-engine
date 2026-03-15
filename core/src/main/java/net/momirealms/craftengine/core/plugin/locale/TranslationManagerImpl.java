@@ -47,11 +47,10 @@ public final class TranslationManagerImpl implements TranslationManager {
     private final Set<String> supportedLanguages;
     private final Map<String, String> translationFallback = new LinkedHashMap<>();
     private Locale selectedLocale = DEFAULT_LOCALE;
-    private final Map<String, LangData> clientLangData = new HashMap<>();
-    private final Map<Locale, LangData> serverLangData = new HashMap<>();
+    private final Map<String, ClientLangData> clientLangData = new HashMap<>();
+    private final Map<String, ServerLangData> serverLangData = new HashMap<>();
     private final LangParser langParser;
     private final TranslationParser translationParser;
-    private final Set<String> translationKeys = new HashSet<>();
     private Map<Locale, CachedTranslation> cachedTranslations = Map.of();
 
     public TranslationManagerImpl(Plugin plugin) {
@@ -95,7 +94,7 @@ public final class TranslationManagerImpl implements TranslationManager {
 
     @Override
     public void delayedLoad() {
-        this.clientLangData.values().forEach(LangData::processTranslations);
+        this.clientLangData.values().forEach(ClientLangData::processTranslations);
     }
 
     @Override
@@ -104,7 +103,6 @@ public final class TranslationManagerImpl implements TranslationManager {
         this.clientLangData.clear();
         this.serverLangData.clear();
         this.installed.clear();
-        this.translationKeys.clear();
 
         // save resources
         for (String lang : this.supportedLanguages) {
@@ -140,7 +138,14 @@ public final class TranslationManagerImpl implements TranslationManager {
 
     @Override
     public String miniMessageTranslation(String key, @Nullable Locale locale) {
-        return getServerLangData(locale).translate(key);
+        ServerLangData serverLangData = this.serverLangData.get(key);
+        if (serverLangData == null) {
+            return key;
+        }
+        if (locale == null) {
+            locale = this.selectedLocale;
+        }
+        return Optional.ofNullable(serverLangData.translate(locale)).orElse(key);
     }
 
     @Override
@@ -165,24 +170,9 @@ public final class TranslationManagerImpl implements TranslationManager {
         }
     }
 
-    @NotNull
-    private LangData getServerLangData(@Nullable Locale locale) {
-        if (locale == null) {
-            locale = this.selectedLocale;
-        }
-        LangData langData = this.serverLangData.get(locale);
-        if (langData == null) {
-            langData = this.serverLangData.get(Locale.of(locale.getLanguage()));
-            if (langData == null) {
-                langData = this.serverLangData.get(DEFAULT_LOCALE);
-            }
-        }
-        return langData;
-    }
-
     @Override
     public Set<String> translationKeys() {
-        return this.translationKeys;
+        return this.serverLangData.keySet();
     }
 
     private void loadFromCache() {
@@ -191,9 +181,7 @@ public final class TranslationManagerImpl implements TranslationManager {
             Locale locale = entry.getKey();
             // 只处理没有国家/地区的locale
             if (locale.getCountry().isEmpty()) {
-                Map<String, String> translations = entry.getValue().translations();
-                this.serverLangData.computeIfAbsent(locale, k -> new LangData(this.translationFallback::get)).addTranslations(translations);
-                this.installed.add(locale);
+                registerAll(locale, entry.getValue().translations);
             }
         }
 
@@ -202,18 +190,23 @@ public final class TranslationManagerImpl implements TranslationManager {
             Locale locale = entry.getKey();
             // 跳过已经注册的无国家locale
             if (!locale.getCountry().isEmpty()) {
-                Map<String, String> translations = entry.getValue().translations();
-                this.serverLangData.computeIfAbsent(locale, k -> new LangData(this.translationFallback::get)).addTranslations(translations);
-                this.installed.add(locale);
+                registerAll(locale, entry.getValue().translations);
 
                 // 如果需要，为有国家/地区的locale也注册无国家版本，可以提升一定的兼容性
                 Locale localeWithoutCountry = Locale.of(locale.getLanguage());
                 if (!this.installed.contains(localeWithoutCountry) && !localeWithoutCountry.equals(DEFAULT_LOCALE)) {
-                    this.serverLangData.computeIfAbsent(locale, k -> new LangData()).addTranslations(translations);
-                    this.installed.add(localeWithoutCountry);
+                    registerAll(localeWithoutCountry, entry.getValue().translations);
                 }
             }
         }
+    }
+
+    private void registerAll(Locale locale, Map<String, String> cachedTranslation) {
+        for (Map.Entry<String, String> translation : cachedTranslation.entrySet()) {
+            this.serverLangData.computeIfAbsent(translation.getKey(), k -> new ServerLangData(this.translationFallback.get(translation.getKey())))
+                    .addTranslation(locale, translation.getValue());
+        }
+        this.installed.add(locale);
     }
 
     public void loadFromFileSystem(Path directory) {
@@ -290,27 +283,27 @@ public final class TranslationManagerImpl implements TranslationManager {
     }
 
     @Override
-    public Map<String, LangData> clientLangData() {
+    public Map<String, ClientLangData> clientLangData() {
         return Collections.unmodifiableMap(this.clientLangData);
     }
 
     @Override
     public void addClientTranslation(String langId, Map<String, String> translations) {
         if ("all".equals(langId)) {
-            ALL_LANG.forEach(lang -> this.clientLangData.computeIfAbsent(lang, k -> new LangData())
+            ALL_LANG.forEach(lang -> this.clientLangData.computeIfAbsent(lang, k -> new ClientLangData())
                     .addTranslations(translations));
             return;
         }
 
         if (ALL_LANG.contains(langId)) {
-            this.clientLangData.computeIfAbsent(langId, k -> new LangData())
+            this.clientLangData.computeIfAbsent(langId, k -> new ClientLangData())
                     .addTranslations(translations);
             return;
         }
 
         List<String> langCountries = LOCALE_2_COUNTRIES.getOrDefault(langId, Collections.emptyList());
         for (String lang : langCountries) {
-            this.clientLangData.computeIfAbsent(langId + "_" + lang, k -> new LangData())
+            this.clientLangData.computeIfAbsent(langId + "_" + lang, k -> new ClientLangData())
                     .addTranslations(translations);
         }
     }
@@ -338,6 +331,8 @@ public final class TranslationManagerImpl implements TranslationManager {
 
     private final class TranslationParser extends SectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"translations", "translation", "l10n", "localization", "i18n", "internationalization"};
+        private final Map<Locale, List<Map<String, String>>> withoutCountry = new HashMap<>();
+        private final Map<Locale, List<Map<String, String>>> withCountry = new HashMap<>();
         private int count;
 
         @Override
@@ -353,6 +348,8 @@ public final class TranslationManagerImpl implements TranslationManager {
         @Override
         public void preProcess() {
             this.count = 0;
+            this.withoutCountry.clear();
+            this.withCountry.clear();
         }
 
         @Override
@@ -375,12 +372,30 @@ public final class TranslationManagerImpl implements TranslationManager {
                 }
                 ConfigSection dataSection = section.getNonNullSection(langId);
                 Map<String, String> bundle = new HashMap<>();
-                loadLangKeyDeeply("", dataSection.values(), (key, value) -> {
-                    bundle.put(key, value);
-                    TranslationManagerImpl.this.translationKeys.add(key);
-                });
+                loadLangKeyDeeply("", dataSection.values(), bundle::put);
                 this.count += bundle.size();
-                TranslationManagerImpl.this.serverLangData.computeIfAbsent(locale, k -> new LangData()).addTranslations(bundle);
+                if (locale.getCountry().isEmpty()) {
+                    this.withoutCountry.computeIfAbsent(locale, k -> new ArrayList<>()).add(bundle);
+                } else {
+                    this.withCountry.computeIfAbsent(locale, k -> new ArrayList<>()).add(bundle);
+                }
+            }
+        }
+
+        @Override
+        public void postProcess() {
+            for (Map.Entry<Locale, List<Map<String, String>>> entry : this.withoutCountry.entrySet()) {
+                for (Map<String, String> bundle : entry.getValue()) {
+                    registerAll(entry.getKey(), bundle);
+                }
+            }
+            for (Map.Entry<Locale, List<Map<String, String>>> entry : this.withCountry.entrySet()) {
+                Locale locale = entry.getKey();
+                Locale withoutCountry = Locale.of(locale.getLanguage());
+                for (Map<String, String> bundle : entry.getValue()) {
+                    registerAll(locale, bundle);
+                    registerAll(withoutCountry, bundle);
+                }
             }
         }
     }
