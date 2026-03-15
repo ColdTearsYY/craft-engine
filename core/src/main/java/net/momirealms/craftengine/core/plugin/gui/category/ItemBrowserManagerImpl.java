@@ -17,6 +17,7 @@ import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.gui.*;
 import net.momirealms.craftengine.core.plugin.gui.Ingredient;
 import net.momirealms.craftengine.core.util.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -124,7 +125,7 @@ public final class ItemBrowserManagerImpl implements ItemBrowserManager {
         private static final String[] ALL_ITEMS = new String[] {"all_items", "all-items"};
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             String name = section.getString("name", id.asString());
             List<String> members;
             if (section.getBoolean(ALL_ITEMS)) {

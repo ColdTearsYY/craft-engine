@@ -389,7 +389,6 @@ public final class BukkitItemManager extends AbstractItemManager {
             Object identifier = RegistryProxy.INSTANCE.getKey(BuiltInRegistriesProxy.ITEM, item);
             Key itemKey = KeyUtils.identifierToKey(identifier);
             VANILLA_ITEMS.add(itemKey);
-            super.cachedVanillaItemSuggestions.add(Suggestion.suggestion(itemKey.asString()));
             UniqueKey uniqueKey = UniqueKey.create(itemKey);
             Object mcHolder;
             if (VersionHelper.isOrAbove1_21_2()) {

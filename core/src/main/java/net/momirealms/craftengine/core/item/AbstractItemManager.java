@@ -34,14 +34,13 @@ import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
 import net.momirealms.craftengine.core.util.*;
 import org.incendo.cloud.suggestion.Suggestion;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -50,27 +49,26 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     protected static final Map<Key, List<ItemBehavior>> VANILLA_ITEM_EXTRA_BEHAVIORS = new HashMap<>();
     protected static final Set<Key> VANILLA_ITEMS = new HashSet<>(1024);
     protected static final Map<Key, List<UniqueKey>> VANILLA_ITEM_TAGS = new HashMap<>();
-
+    // 解析器
     private final ItemParser itemParser;
     private final EquipmentParser equipmentParser;
-    protected final Map<Key, CustomItem> customItemsById = new HashMap<>();
-    protected final Map<String, CustomItem> customItemsByPath = new HashMap<>();
+    // 缓存
+    protected final Map<Key, CustomItem> customItemsById = new ConcurrentHashMap<>();
+    protected final Map<String, CustomItem> customItemsByPath = new ConcurrentHashMap<>();
     protected final Map<Key, List<UniqueKey>> customItemTags = new HashMap<>();
     protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new ConcurrentHashMap<>();
     protected final Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2 = new ConcurrentHashMap<>();
     protected final Map<Key, TreeSet<LegacyOverridesModel>> legacyOverrides = new ConcurrentHashMap<>();
     protected final Map<Key, TreeMap<Integer, ModernItemModel>> modernOverrides = new ConcurrentHashMap<>();
     protected final Map<Key, Equipment> equipments = new ConcurrentHashMap<>();
-    // Cached command suggestions
+    // 指令补全
     protected final List<Suggestion> cachedCustomItemSuggestions = new ArrayList<>();
-    protected final List<Suggestion> cachedAllItemSuggestions = new ArrayList<>();
-    protected final List<Suggestion> cachedVanillaItemSuggestions = new ArrayList<>();
     protected final List<Suggestion> cachedTotemSuggestions = new ArrayList<>();
     // 替代配方材料
     protected final Map<Key, List<UniqueKey>> ingredientSubstitutes = new HashMap<>();
-
+    // 有序物品id
     protected List<Key> orderedItemIds = List.of();
-
+    // 其他设置
     protected boolean featureFlag$keepOnDeathChance = false;
     protected boolean featureFlag$destroyOnDeathChance = false;
 
@@ -99,7 +97,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         this.customItemsById.clear();
         this.customItemsByPath.clear();
         this.cachedCustomItemSuggestions.clear();
-        this.cachedAllItemSuggestions.clear();
         this.cachedTotemSuggestions.clear();
         this.legacyOverrides.clear();
         this.modernOverrides.clear();
@@ -158,46 +155,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     }
 
     @Override
-    public boolean addCustomItem(CustomItem customItem) {
-        Key id = customItem.id();
-        if (this.customItemsById.containsKey(id)) return false;
-        this.customItemsById.put(id, customItem);
-        this.customItemsByPath.put(id.value(), customItem);
-        if (!customItem.isVanillaItem()) {
-            // cache command suggestions
-            this.cachedCustomItemSuggestions.add(Suggestion.suggestion(id.toString()));
-            // totem animations
-            if (VersionHelper.isOrAbove1_21_2()) {
-                this.cachedTotemSuggestions.add(Suggestion.suggestion(id.toString()));
-            } else if (customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING)) {
-                this.cachedTotemSuggestions.add(Suggestion.suggestion(id.toString()));
-            }
-            // tags
-            ItemSettings settings = customItem.settings();
-            Set<Key> tags = settings.tags();
-            for (Key tag : tags) {
-                this.customItemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(customItem.uniqueId());
-            }
-            // ingredient substitutes
-            List<Key> substitutes = settings.ingredientSubstitutes();
-            if (!substitutes.isEmpty()) {
-                for (Key key : substitutes) {
-                    if (VANILLA_ITEMS.contains(key)) {
-                        AbstractItemManager.this.ingredientSubstitutes.computeIfAbsent(key, k -> new ArrayList<>()).add(customItem.uniqueId());
-                    }
-                }
-            }
-            if (settings.keepOnDeathChance != 0) {
-                this.featureFlag$keepOnDeathChance = true;
-            }
-            if (settings.destroyOnDeathChance != 0) {
-                this.featureFlag$destroyOnDeathChance = true;
-            }
-        }
-        return true;
-    }
-
-    @Override
     public List<UniqueKey> vanillaItemIdsByTag(Key tag) {
         return Collections.unmodifiableList(VANILLA_ITEM_TAGS.getOrDefault(tag, List.of()));
     }
@@ -217,11 +174,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     @Override
     public Collection<Suggestion> cachedCustomItemSuggestions() {
         return Collections.unmodifiableCollection(this.cachedCustomItemSuggestions);
-    }
-
-    @Override
-    public Collection<Suggestion> cachedAllItemSuggestions() {
-        return Collections.unmodifiableCollection(this.cachedAllItemSuggestions);
     }
 
     @Override
@@ -253,8 +205,39 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
     @Override
     public void delayedLoad() {
-        this.cachedAllItemSuggestions.addAll(this.cachedVanillaItemSuggestions);
-        this.cachedAllItemSuggestions.addAll(this.cachedCustomItemSuggestions);
+        for (CustomItem customItem : this.customItemsById.values()) {
+            if (customItem.isVanillaItem()) continue;
+            Key id = customItem.id();
+            // cache command suggestions
+            this.cachedCustomItemSuggestions.add(Suggestion.suggestion(id.asString()));
+            // totem animations
+            if (VersionHelper.isOrAbove1_21_2()) {
+                this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
+            } else if (customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING)) {
+                this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
+            }
+            // tags
+            ItemSettings settings = customItem.settings();
+            Set<Key> tags = settings.tags();
+            for (Key tag : tags) {
+                this.customItemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(customItem.uniqueId());
+            }
+            // ingredient substitutes
+            List<Key> substitutes = settings.ingredientSubstitutes();
+            if (!substitutes.isEmpty()) {
+                for (Key key : substitutes) {
+                    if (VANILLA_ITEMS.contains(key)) {
+                        AbstractItemManager.this.ingredientSubstitutes.computeIfAbsent(key, k -> new ArrayList<>()).add(customItem.uniqueId());
+                    }
+                }
+            }
+            if (settings.keepOnDeathChance != 0) {
+                this.featureFlag$keepOnDeathChance = true;
+            }
+            if (settings.destroyOnDeathChance != 0) {
+                this.featureFlag$destroyOnDeathChance = true;
+            }
+        }
     }
 
     @Override
@@ -317,7 +300,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             Equipment equipment = Equipments.fromConfig(id, section);
             AbstractItemManager.this.equipments.put(id, equipment);
         }
@@ -367,7 +350,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         public static final String[] CONFIG_SECTION_NAME = new String[] {"items", "item"};
         private final Map<Key, IdAllocator> idAllocators = new HashMap<>();
         private final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
-        private final List<CustomItem> customItems = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         public int count() {
@@ -418,9 +400,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             if (!this.futures.isEmpty()) {
                 this.futures.clear();
             }
-            if (!this.customItems.isEmpty()) {
-                this.customItems.clear();
-            }
         }
 
         @Override
@@ -436,12 +415,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             }
 
             CompletableFutures.allOf(this.futures).join();
-            for (CustomItem customItem : this.customItems) {
-                addCustomItem(customItem);
-            }
-
             this.futures.clear();
-            this.customItems.clear();
 
             // 获取有序的物品id
             int size = this.pendingConfigSections.size();
@@ -486,7 +460,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         private static final String[] SWAP_ANIMATION_SCALE = new String[] {"swap_animation_scale", "swap-animation-scale"};
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             // 创建UniqueKey，仅缓存用
             UniqueKey uniqueId = UniqueKey.create(id);
             // 判断是不是原版物品
@@ -734,8 +708,9 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                         .events(events)
                         .build();
 
-                // 添加到缓存
-                this.customItems.add(customItem);
+
+                AbstractItemManager.this.customItemsById.put(id, customItem);
+                AbstractItemManager.this.customItemsByPath.put(id.value(), customItem);
 
                 // 如果有类别，则添加
                 if (section.containsKey("category")) {

@@ -1441,7 +1441,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                 if (locale == null) return;
                 ((BukkitServerPlayer) user).setClientLocale(TranslationManager.parseLocale(locale));
             } else {
-                String locale = (String) ServerboundClientInformationPacketProxy.INSTANCE.getLanguage(packet);
+                String locale = ServerboundClientInformationPacketProxy.INSTANCE.getLanguage(packet);
                 if (locale == null) return;
                 ((BukkitServerPlayer) user).setClientLocale(TranslationManager.parseLocale(locale));
             }

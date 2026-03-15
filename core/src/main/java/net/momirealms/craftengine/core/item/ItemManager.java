@@ -75,8 +75,6 @@ public interface ItemManager extends Manageable, ModelGenerator {
 
     Optional<CustomItem> getCustomItemByPathOnly(String path);
 
-    boolean addCustomItem(CustomItem customItem);
-
     default List<UniqueKey> itemIdsByTag(Key tag) {
         List<UniqueKey> items = new ArrayList<>();
         items.addAll(vanillaItemIdsByTag(tag));
@@ -93,8 +91,6 @@ public interface ItemManager extends Manageable, ModelGenerator {
     Collection<Key> itemTags();
 
     Collection<Suggestion> cachedCustomItemSuggestions();
-
-    Collection<Suggestion> cachedAllItemSuggestions();
 
     Collection<Suggestion> cachedTotemSuggestions();
 

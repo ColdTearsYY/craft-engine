@@ -34,6 +34,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -160,7 +161,7 @@ public final class BukkitLootManager extends AbstractLootManager implements List
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("type"), "warning.config.loot.missing_type");
             VanillaLoot.Type typeEnum;
             try {

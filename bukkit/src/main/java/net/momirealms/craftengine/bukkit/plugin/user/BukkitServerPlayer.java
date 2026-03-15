@@ -1466,7 +1466,7 @@ public class BukkitServerPlayer extends Player {
             if (player != null) {
                 return player.locale();
             } else {
-                return Locale.US;
+                return Locale.ENGLISH;
             }
         }
     }

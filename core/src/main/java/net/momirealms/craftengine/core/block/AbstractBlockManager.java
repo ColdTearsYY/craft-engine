@@ -394,7 +394,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             if (isVanillaBlock(id)) {
                 parseVanillaBlock(id, section);
             } else {

@@ -10,6 +10,7 @@ import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -96,5 +97,5 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
         this.pendingConfigSections.clear();
     }
 
-    protected abstract void parseSection(Pack pack, Path path, Key id, ConfigSection section);
+    protected abstract void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section);
 }

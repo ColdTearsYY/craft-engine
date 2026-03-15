@@ -22,6 +22,7 @@ import net.momirealms.craftengine.core.plugin.scheduler.SchedulerTask;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.TickersList;
 import org.incendo.cloud.suggestion.Suggestion;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
@@ -209,7 +210,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
         private static final String[] RAY_TRACING = new String[] {"ray_tracing", "ray-tracing"};
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             // 获取家具设置 （可异常）
             FurnitureSettings settings = FurnitureSettings.of().itemId(id);
             try {

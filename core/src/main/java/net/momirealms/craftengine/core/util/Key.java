@@ -15,10 +15,12 @@ public final class Key {
         this.value = value;
     }
 
+    @NotNull
     public String namespace() {
         return this.namespace;
     }
 
+    @NotNull
     public String value() {
         return this.value;
     }

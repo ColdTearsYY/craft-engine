@@ -12,6 +12,7 @@ import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.incendo.cloud.suggestion.Suggestion;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -112,7 +113,7 @@ public abstract class AbstractSoundManager implements SoundManager {
         private static final String[] COMPARATOR = new String[] {"comparator-output", "comparator_output"};
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             Key sound = section.getNonNullIdentifier("sound");
             Component description = AdventureHelper.miniMessage().deserialize(section.getString("description", ""));
             float length = section.getNonNullFloat("length");
@@ -149,7 +150,7 @@ public abstract class AbstractSoundManager implements SoundManager {
         private static final String[] SOUNDS = new String[] {"sounds", "sound"};
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             boolean replace = section.getBoolean("replace");
             String subtitle = section.getString("subtitle");
             List<Sound> sounds = section.getList(SOUNDS, v -> {

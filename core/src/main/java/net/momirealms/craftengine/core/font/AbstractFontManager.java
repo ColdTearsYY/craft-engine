@@ -369,7 +369,7 @@ public abstract class AbstractFontManager implements FontManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             String permission = section.getString("permission");
             List<String> keywords = section.getNonNullStringList("keywords");
             Object rawContent = section.getOrDefault(CONTENT, "<white><arg:emoji></white>");
@@ -473,7 +473,7 @@ public abstract class AbstractFontManager implements FontManager {
         private static final String[] GRID_SIZE = new String[] {"grid_size", "grid-size"};
 
         @Override
-        public void parseSection(Pack pack, Path path, Key id, ConfigSection section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             // 引用类型的
             boolean special = false; // 只填了个id没填命名空间的傻缺
             String ref = section.getString("ref");

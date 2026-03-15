@@ -650,7 +650,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"configured-feature", "configured-features", "configured_feature", "configured_features"};
 
         @Override
-        protected void parseSection(Pack pack, Path path, Key id, ConfigSection rawSection) {
+        protected void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection rawSection) {
             ConfigSection section = ConfigSection.ofSamePath(rawSection, processFeatureSection(rawSection.values()));
             Object feature;
             JsonElement json = GsonHelper.get().toJsonTree(section.values());
@@ -736,7 +736,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         private static final String[] ENVIRONMENT = new String[] {"environment", "environments", "dimension-type", "dimension-types", "dimension_type", "dimension_types"};
 
         @Override
-        protected void parseSection(Pack pack, Path path, Key id, ConfigSection rawSection) {
+        protected void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection rawSection) {
             ConfigSection section = ConfigSection.ofSamePath(rawSection, processFeatureSection(rawSection.values()));
 
             // 自定义筛选条件
