@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.entity.BukkitBlockEntityTypes;
 import net.momirealms.craftengine.bukkit.block.entity.ItemFrameBlockEntity;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -103,7 +103,7 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
         if (state.get(blockBehavior.directionProperty) != DirectionUtils.fromNMSDirection(side)) {
             return 0;
         }
-        BukkitWorld world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(blockAccess));
+        BukkitWorld world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(blockAccess));
         BlockEntity blockEntity = world.storageWorld().getBlockEntityAtIfLoaded(LocationUtils.fromBlockPos(pos));
         if (!(blockEntity instanceof ItemFrameBlockEntity itemFrame && itemFrame.isValid())) {
             return 0;

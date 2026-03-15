@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.item.listener;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -48,7 +48,7 @@ public final class DebugStickListener implements Listener {
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;
         Player bukkitPlayer = event.getPlayer();
-        BukkitServerPlayer player = BukkitAdaptors.adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
         Item<ItemStack> itemInHand = player.getItemInHand(event.getHand() == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;

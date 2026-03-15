@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.util;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -95,7 +95,7 @@ public final class EntityUtils {
             double x = location.getX() + direction.x;
             double y = location.getY();
             double z = location.getZ() + direction.z;
-            Object serverLevel = BukkitAdaptors.adapt(player.getWorld()).serverWorld();
+            Object serverLevel = BukkitAdaptor.adapt(player.getWorld()).serverWorld();
             Object serverPlayer = CraftEntityProxy.INSTANCE.getEntity(player);
             for (Object pose : List.of(PoseProxy.STANDING, PoseProxy.CROUCHING, PoseProxy.SWIMMING)) {
                 BlockPos pos = new BlockPos(MiscUtils.floor(x), MiscUtils.floor(y), MiscUtils.floor(z));

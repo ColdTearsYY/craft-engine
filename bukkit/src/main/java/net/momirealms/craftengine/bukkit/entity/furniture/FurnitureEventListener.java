@@ -3,7 +3,7 @@ package net.momirealms.craftengine.bukkit.entity.furniture;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.event.FurnitureHitEvent;
 import net.momirealms.craftengine.bukkit.api.event.FurnitureInteractEvent;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -127,7 +127,7 @@ public final class FurnitureEventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onFurniturePreBreak(FurnitureHitEvent event) {
         Player bukkitPlayer = event.getPlayer();
-        BukkitServerPlayer player = BukkitAdaptors.adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
         Item<ItemStack> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;
@@ -159,7 +159,7 @@ public final class FurnitureEventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onInteractFurniture(FurnitureInteractEvent event) {
         Player bukkitPlayer = event.getPlayer();
-        BukkitServerPlayer player = BukkitAdaptors.adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
         Item<ItemStack> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;

@@ -8,7 +8,6 @@ import net.momirealms.craftengine.core.block.BlockSettingsModifiers;
 import net.momirealms.craftengine.core.entity.culling.EntityCullingManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifiers;
-import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
 import net.momirealms.craftengine.core.font.FontManager;
@@ -52,7 +51,6 @@ import net.momirealms.craftengine.core.world.score.TeamManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
@@ -63,7 +61,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -525,11 +522,6 @@ public abstract class CraftEngine implements Plugin {
 
     protected abstract List<Dependency> platformDependencies();
 
-    @Nullable
-    public Player getPlayer(@NotNull UUID uuid) {
-        return (Player) this.networkManager.getOnlineUser(uuid);
-    }
-
     protected List<Dependency> commonDependencies() {
         return List.of(
                 Dependencies.BSTATS_BASE,
@@ -559,160 +551,160 @@ public abstract class CraftEngine implements Plugin {
     @SuppressWarnings("unchecked")
     @Override
     public <W> SchedulerAdapter<W> scheduler() {
-        return (SchedulerAdapter<W>) scheduler;
+        return (SchedulerAdapter<W>) this.scheduler;
     }
 
     @Override
     public ClassPathAppender sharedClassPathAppender() {
-        return sharedClassPathAppender;
+        return this.sharedClassPathAppender;
     }
 
     @Override
     public ClassPathAppender privateClassPathAppender() {
-        return privateClassPathAppender;
+        return this.privateClassPathAppender;
     }
 
     @Override
     public Config config() {
-        return config;
+        return this.config;
     }
 
     @Override
     public PluginLogger logger() {
-        return logger;
+        return this.logger;
     }
 
     @Override
     public boolean isReloading() {
-        return isReloading;
+        return this.isReloading;
     }
 
     @Override
     public boolean isInitializing() {
-        return isInitializing;
+        return this.isInitializing;
     }
 
     @Override
     public DependencyManager dependencyManager() {
-        return dependencyManager;
+        return this.dependencyManager;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> ItemManager<T> itemManager() {
-        return (ItemManager<T>) itemManager;
+        return (ItemManager<T>) this.itemManager;
     }
 
     @Override
     public BlockManager blockManager() {
-        return blockManager;
+        return this.blockManager;
     }
 
     @Override
     public NetworkManager networkManager() {
-        return networkManager;
+        return this.networkManager;
     }
 
     @Override
     public FontManager fontManager() {
-        return fontManager;
+        return this.fontManager;
     }
 
     @Override
     public AdvancementManager advancementManager() {
-        return advancementManager;
+        return this.advancementManager;
     }
 
     @Override
     public TranslationManager translationManager() {
-        return translationManager;
+        return this.translationManager;
     }
 
     @Override
     public TemplateManager templateManager() {
-        return templateManager;
+        return this.templateManager;
     }
 
     @Override
     public FurnitureManager furnitureManager() {
-        return furnitureManager;
+        return this.furnitureManager;
     }
 
     @Override
     public PackManager packManager() {
-        return packManager;
+        return this.packManager;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T> RecipeManager<T> recipeManager() {
-        return (RecipeManager<T>) recipeManager;
+        return (RecipeManager<T>) this.recipeManager;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <P extends Plugin, C> SenderFactory<P, C> senderFactory() {
-        return (SenderFactory<P, C>) senderFactory;
+        return (SenderFactory<P, C>) this.senderFactory;
     }
 
     @Override
     public WorldManager worldManager() {
-        return worldManager;
+        return this.worldManager;
     }
 
     @Override
     public ItemBrowserManager itemBrowserManager() {
-        return itemBrowserManager;
+        return this.itemBrowserManager;
     }
 
     @Override
     public GuiManager guiManager() {
-        return guiManager;
+        return this.guiManager;
     }
 
     @Override
     public SoundManager soundManager() {
-        return soundManager;
+        return this.soundManager;
     }
 
     @Override
     public LootManager vanillaLootManager() {
-        return lootManager;
+        return this.lootManager;
     }
 
     @Override
     public CompatibilityManager compatibilityManager() {
-        return compatibilityManager;
+        return this.compatibilityManager;
     }
 
     @Override
     public GlobalVariableManager globalVariableManager() {
-        return globalVariableManager;
+        return this.globalVariableManager;
     }
 
     @Override
     public ProjectileManager projectileManager() {
-        return projectileManager;
+        return this.projectileManager;
     }
 
     @Override
     public EntityCullingManager entityCullingManager() {
-        return entityCullingManager;
+        return this.entityCullingManager;
     }
 
     @Override
     public TeamManager teamManager() {
-        return teamManager;
+        return this.teamManager;
     }
 
     @Override
     public SeatManager seatManager() {
-        return seatManager;
+        return this.seatManager;
     }
 
     @Override
     public Platform platform() {
-        return platform;
+        return this.platform;
     }
 
     /**

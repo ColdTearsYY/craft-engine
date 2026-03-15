@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command;
 
 import net.kyori.adventure.util.Index;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.command.feature.*;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -89,7 +89,7 @@ public final class BukkitCommandManager extends AbstractCommandManager<CommandSe
     @Override
     protected Locale getLocale(CommandSender sender) {
         if (sender instanceof Player player) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
             if (serverPlayer == null) return null;
             return serverPlayer.selectedLocale();
         }

@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.entity.furniture;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.furniture.hitbox.InteractionFurnitureHitboxConfig;
 import net.momirealms.craftengine.bukkit.nms.CollisionEntity;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -286,7 +286,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
 
         // 补发一次包，修复
         for (Player player : entity.getTrackedPlayers()) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
             if (serverPlayer == null) continue;
             serverPlayer.sendPacket(ClientboundAddEntityPacketProxy.INSTANCE.newInstance(
                     entity.getEntityId(), entity.getUniqueId(), location.getX(), location.getY(), location.getZ(), location.getPitch(), location.getYaw(),

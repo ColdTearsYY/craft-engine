@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -48,7 +48,7 @@ public final class SetLocaleCommand extends BukkitCommandFeature<CommandSender> 
                         handleFeedback(context, MessageConstants.COMMAND_LOCALE_SET_FAILURE, Component.text(localeName));
                         return;
                     }
-                    BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                     if (serverPlayer == null) return;
                     serverPlayer.setSelectedLocale(locale);
                     handleFeedback(context, MessageConstants.COMMAND_LOCALE_SET_SUCCESS, Component.text(TranslationManager.formatLocale(locale)), Component.text(player.getName()));

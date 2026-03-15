@@ -27,7 +27,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.DataComponentValue;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.api.event.FurnitureBreakEvent;
@@ -1563,7 +1563,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             Object identifier = ResourceKeyProxy.INSTANCE.getIdentifier(dimensionKey);
             World world = Bukkit.getWorld(Objects.requireNonNull(NamespacedKey.fromString(identifier.toString())));
             if (world != null) {
-                player.setClientSideWorld(BukkitAdaptors.adapt(world));
+                player.setClientSideWorld(BukkitAdaptor.adapt(world));
             }
             if (VersionHelper.isOrAbove1_20_5() && Config.disableChatReport()) {
                 // 去除弹窗警告
@@ -1646,7 +1646,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             Object identifier = ResourceKeyProxy.INSTANCE.getIdentifier(dimensionKey);
             World world = Bukkit.getWorld(Objects.requireNonNull(NamespacedKey.fromString(identifier.toString())));
             if (world != null) {
-                player.setClientSideWorld(BukkitAdaptors.adapt(world));
+                player.setClientSideWorld(BukkitAdaptor.adapt(world));
                 player.clearTrackedChunks();
                 player.clearTrackedBlockEntities();
                 player.clearTrackedEntities();
@@ -1860,7 +1860,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             if (entityId != EntityProxy.INSTANCE.getId(player)) return;
             byte eventId = ClientboundEntityEventPacketProxy.INSTANCE.getEventId(packet);
             if (eventId >= 24 && eventId <= 28) {
-                CraftEngine.instance().fontManager().refreshEmojiSuggestions(user.uuid());
+                CraftEngine.instance().fontManager().refreshEmojiSuggestions((BukkitServerPlayer) user);
             }
         }
     }

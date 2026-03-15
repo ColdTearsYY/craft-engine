@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.world;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
@@ -171,7 +171,7 @@ public final class BukkitWorld implements World {
         if (players.isEmpty()) return Collections.emptyList();
         List<Player> tracked = new ArrayList<>(players.size());
         for (Object player : players) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
             if (serverPlayer == null) continue;
             tracked.add(serverPlayer);
         }

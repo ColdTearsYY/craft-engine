@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -23,7 +24,7 @@ public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandS
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("players");
                     for (Player player : selector.values()) {
-                        BukkitServerPlayer serverPlayer = plugin().adapt(player);
+                        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) return;
                         plugin().itemBrowserManager().open(serverPlayer);
                     }

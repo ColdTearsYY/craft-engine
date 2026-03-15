@@ -280,17 +280,25 @@ public abstract class AbstractPackManager implements PackManager {
     @Override
     public void load() {
         Object hostingObj = Config.instance().settings().get("resource-pack.delivery.hosting");
+        if (hostingObj == null) {
+            this.resourcePackHost = NoneHost.INSTANCE;
+            return;
+        }
         ConfigValue configValue = new ConfigValue("resource-pack.delivery.hosting", hostingObj);
-        ResourceConfigUtils.runCatching(this.plugin.dataFolderPath().resolve("config.yml"), "resource-pack.delivery.hosting", () -> {
+        try {
             List<ResourcePackHost> hosts = configValue.getAsList(v -> ResourcePackHosts.fromConfig(v.getAsSection()));
             if (hosts.isEmpty()) {
                 this.resourcePackHost = NoneHost.INSTANCE;
             } else {
                 this.resourcePackHost = hosts.getFirst();
             }
-        }, e -> {
-            // todo 转移到config里
-        });
+        } catch (KnownResourceException e) {
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("config.errors_detected", e.getMessage()));
+            this.resourcePackHost = NoneHost.INSTANCE;
+        } catch (Throwable e) {
+            this.plugin.logger().warn("Failed to load resource-pack.delivery.hosting", e);
+            this.resourcePackHost = NoneHost.INSTANCE;
+        }
     }
 
     @Override

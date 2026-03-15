@@ -2,7 +2,7 @@ package net.momirealms.craftengine.bukkit.item.recipe;
 
 import com.destroystokyo.paper.event.inventory.PrepareResultEvent;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -482,7 +482,7 @@ public final class RecipeEventListener implements Listener {
 
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
 
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
         if (finalCost >= maxRepairCost && !serverPlayer.canInstabuild()) {
             hasResult = false;
@@ -571,7 +571,7 @@ public final class RecipeEventListener implements Listener {
                     return;
                 }
                 Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-                Item<ItemStack> newItem = customItemOptional.get().buildItem(BukkitAdaptors.adapt(player));
+                Item<ItemStack> newItem = customItemOptional.get().buildItem(BukkitAdaptor.adapt(player));
                 newItem.maxDamage(max);
                 newItem.damage(Math.max(max - finalDurability, 0));
                 inventory.setResult(newItem.getItem());
@@ -618,7 +618,7 @@ public final class RecipeEventListener implements Listener {
             return;
         }
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (craftingTableRecipe.hasCondition()) {
             if (!craftingTableRecipe.canUse(PlayerOptionalContext.of(serverPlayer))) {
                 inventory.setResult(null);
@@ -661,7 +661,7 @@ public final class RecipeEventListener implements Listener {
         }
 
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
 
         // 对低版本nothing不全的兼容
@@ -840,7 +840,7 @@ public final class RecipeEventListener implements Listener {
                 return;
             }
             Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptors.adapt(player));
+            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptor.adapt(player));
             if (!smithingTrimRecipe.canUse(itemBuildContext)) {
                 event.setResult(null);
                 return;
@@ -858,7 +858,7 @@ public final class RecipeEventListener implements Listener {
                 return;
             }
             Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptors.adapt(player));
+            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptor.adapt(player));
             if (!smithingTransformRecipe.canUse(itemBuildContext)) {
                 event.setResult(null);
                 return;
@@ -882,7 +882,7 @@ public final class RecipeEventListener implements Listener {
 
         org.bukkit.inventory.Recipe recipe = inventory.getRecipe();
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
 
         if (recipe instanceof SmithingTransformRecipe transformRecipe) {

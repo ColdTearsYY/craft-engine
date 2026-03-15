@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.entity.BedBlockEntity;
 import net.momirealms.craftengine.bukkit.block.entity.BukkitBlockEntityTypes;
 import net.momirealms.craftengine.bukkit.entity.seat.BukkitSeat;
@@ -111,7 +111,7 @@ public final class BedBlockBehavior extends BukkitBlockBehavior implements Entit
         if (blockState == null || blockState.isEmpty()) {
             return superMethod.call();
         }
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
         if (serverPlayer == null) {
             return superMethod.call();
         }

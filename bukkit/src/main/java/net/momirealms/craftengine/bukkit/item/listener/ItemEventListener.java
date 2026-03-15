@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.item.listener;
 
 import io.papermc.paper.event.block.CompostItemEvent;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.event.CustomBlockInteractEvent;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.entity.BukkitItemEntity;
@@ -82,7 +82,7 @@ public final class ItemEventListener implements Listener {
     public void onInteractEntity(PlayerInteractEntityEvent event) {
         Player player = event.getPlayer();
         Entity entity = event.getRightClicked();
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
 
         InteractionHand hand = event.getHand() == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
@@ -121,7 +121,7 @@ public final class ItemEventListener implements Listener {
             return;
         }
 
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
         InteractionHand hand = event.getHand() == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
         // 如果本tick内主手已被处理，则不处理副手
@@ -382,7 +382,7 @@ public final class ItemEventListener implements Listener {
         if (action != Action.RIGHT_CLICK_AIR && action != Action.LEFT_CLICK_AIR)
             return;
         Player player = event.getPlayer();
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null || serverPlayer.isSpectatorMode()) {
             return;
         }
@@ -444,7 +444,7 @@ public final class ItemEventListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         Cancellable cancellable = Cancellable.of(event::isCancelled, event::setCancelled);
         CustomItem<ItemStack> customItem = optionalCustomItem.get();
         PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer, ContextHolder.builder()
@@ -547,7 +547,7 @@ public final class ItemEventListener implements Listener {
         if (optionalCustomItem.isEmpty()) return;
         BukkitCustomItem customItem = (BukkitCustomItem) optionalCustomItem.get();
         if (customItem.clientItem() == ItemStackProxy.INSTANCE.getItem(wrapped.getLiteralObject())) return;
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
         this.plugin.scheduler().sync().runDelayed(() -> {
             Object container = PlayerProxy.INSTANCE.getContainerMenu(serverPlayer.serverPlayer());
@@ -572,7 +572,7 @@ public final class ItemEventListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onDropItem(PlayerDropItemEvent event) {
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(event.getPlayer());
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(event.getPlayer());
         if (serverPlayer == null) return;
         serverPlayer.stopMiningBlock();
         if (!Config.triggerUpdateDrop()) return;
@@ -597,7 +597,7 @@ public final class ItemEventListener implements Listener {
         }
         Optional<CustomItem<ItemStack>> optionalCustomItem = wrapped.getCustomItem();
         if (optionalCustomItem.isEmpty()) return;
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         CustomItem<ItemStack> customItem = optionalCustomItem.get();
         if (Config.triggerUpdatePickUp() && customItem.updater().isPresent()) {
             ItemUpdateResult result = this.itemManager.updateItem(wrapped, () -> ItemBuildContext.of(serverPlayer));
@@ -630,7 +630,7 @@ public final class ItemEventListener implements Listener {
             this.itemManager.unlockRecipeOnInventoryChanged(player, wrapped);
         }
         if (Config.triggerUpdateClick()) {
-            ItemUpdateResult result = this.itemManager.updateItem(wrapped, () -> ItemBuildContext.of(BukkitAdaptors.adapt(player)));
+            ItemUpdateResult result = this.itemManager.updateItem(wrapped, () -> ItemBuildContext.of(BukkitAdaptor.adapt(player)));
             if (!result.updated() || !result.replaced()) {
                 return;
             }
@@ -641,7 +641,7 @@ public final class ItemEventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerChangeWorld(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
         serverPlayer.stopMiningBlock();
     }

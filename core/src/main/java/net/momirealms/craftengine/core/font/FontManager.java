@@ -107,7 +107,7 @@ public interface FontManager extends Manageable {
         return createOffsets(offset, (raw, font) -> raw);
     }
 
-    void refreshEmojiSuggestions(@NotNull UUID uuid);
+    void refreshEmojiSuggestions(@NotNull Player player);
 
     List<String> getEmojiSuggestions(@NotNull Player player);
 

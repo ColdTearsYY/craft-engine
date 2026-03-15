@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.behavior.AxeItemBehavior;
 import net.momirealms.craftengine.bukkit.item.behavior.FlintAndSteelItemBehavior;
 import net.momirealms.craftengine.bukkit.item.factory.BukkitItemFactory;
@@ -455,7 +455,7 @@ public final class BukkitItemManager extends AbstractItemManager<ItemStack> {
 
     public void unlockRecipeOnInventoryChanged(org.bukkit.entity.Player player, Item<ItemStack> item) {
         Key itemId = item.id();
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
         serverPlayer.addObtainedItem(itemId);
         List<IngredientUnlockable> recipes = BukkitRecipeManager.instance().ingredientUnlockablesByChangedItem(itemId);

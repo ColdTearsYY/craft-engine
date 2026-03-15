@@ -9,7 +9,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.block.entity.BedBlockEntity;
 import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
@@ -1073,7 +1073,7 @@ public class BukkitServerPlayer extends Player {
             double d1 = (double) hitPos.y() - other.getY();
             double d2 = (double) hitPos.z() - other.getZ();
             if (d0 * d0 + d1 * d1 + d2 * d2 < 32 * 32) {
-                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(other);
+                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(other);
                 if (serverPlayer == null) continue;
                 serverPlayer.sendPacket(packet, false);
             }
@@ -1164,7 +1164,7 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public World world() {
-        return BukkitAdaptors.adapt(platformPlayer().getWorld());
+        return BukkitAdaptor.adapt(platformPlayer().getWorld());
     }
 
     @Override

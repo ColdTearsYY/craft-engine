@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.loot;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -75,7 +75,7 @@ public final class BukkitLootManager extends AbstractLootManager implements List
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
         Entity entity = event.getEntity();
-        BukkitEntity bukkitEntity = BukkitAdaptors.adapt(entity);
+        BukkitEntity bukkitEntity = BukkitAdaptor.adapt(entity);
         Key key = getEntityId(bukkitEntity);
         Optional.ofNullable(this.entityLoots.get(key)).ifPresent(loot -> {
             if (loot.override()) {
@@ -83,7 +83,7 @@ public final class BukkitLootManager extends AbstractLootManager implements List
                 event.setDroppedExp(0);
             }
             Location location = entity.getLocation();
-            net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(entity.getWorld());
+            net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(entity.getWorld());
             WorldPosition position = new WorldPosition(world, location.getX(), location.getY(), location.getZ());
             ContextHolder.Builder builder = ContextHolder.builder()
                     .withParameter(DirectContextParameters.ENTITY, bukkitEntity)
@@ -91,7 +91,7 @@ public final class BukkitLootManager extends AbstractLootManager implements List
             BukkitServerPlayer optionalPlayer = null;
             if (VersionHelper.isOrAbove1_20_5()) {
                 if (event.getDamageSource().getCausingEntity() instanceof Player player) {
-                    optionalPlayer = BukkitAdaptors.adapt(player);
+                    optionalPlayer = BukkitAdaptor.adapt(player);
                     builder.withOptionalParameter(DirectContextParameters.PLAYER, optionalPlayer);
                     if (optionalPlayer != null) {
                         Item<ItemStack> itemInHand = optionalPlayer.getItemInHand(InteractionHand.MAIN_HAND);

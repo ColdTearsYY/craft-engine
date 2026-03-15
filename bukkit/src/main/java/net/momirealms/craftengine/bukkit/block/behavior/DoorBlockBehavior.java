@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -140,7 +140,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
         ImmutableBlockState blockState = BukkitBlockManager.instance().getImmutableBlockState(BlockStateUtils.blockStateToId(state));
         if (blockState == null || blockState.isEmpty()) return superMethod.call();
         org.bukkit.entity.Player bukkitPlayer = ServerPlayerProxy.INSTANCE.getBukkitEntity(player);
-        BukkitServerPlayer cePlayer = BukkitCraftEngine.instance().adapt(bukkitPlayer);
+        BukkitServerPlayer cePlayer = BukkitAdaptor.adapt(bukkitPlayer);
         if (cePlayer == null) return superMethod.call();
         Item<ItemStack> item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (cePlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
@@ -272,7 +272,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             world.sendGameEvent(player == null ? null : (org.bukkit.entity.Player) player.platformPlayer(), isOpen ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(pos.x(), pos.y(), pos.z()));
             SoundData soundData = isOpen ? this.openSound : this.closeSound;
             if (soundData != null) {
-                BukkitAdaptors.adapt(world).playBlockSound(
+                BukkitAdaptor.adapt(world).playBlockSound(
                         new Vec3d(pos.x() + 0.5, pos.y() + 0.5, pos.z() + 0.5),
                         soundData
                 );
@@ -333,7 +333,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
                 world.sendGameEvent(null, flag ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(bukkitBlock.getX(), bukkitBlock.getY(), bukkitBlock.getZ()));
                 SoundData soundData = flag ? this.openSound : this.closeSound;
                 if (soundData != null) {
-                    BukkitAdaptors.adapt(world).playBlockSound(
+                    BukkitAdaptor.adapt(world).playBlockSound(
                             new Vec3d(Vec3iProxy.INSTANCE.getX(blockPos) + 0.5, Vec3iProxy.INSTANCE.getY(blockPos) + 0.5, Vec3iProxy.INSTANCE.getZ(blockPos) + 0.5),
                             soundData
                     );

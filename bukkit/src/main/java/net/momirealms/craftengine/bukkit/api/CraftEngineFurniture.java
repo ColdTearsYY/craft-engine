@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 
 public final class CraftEngineFurniture {
-
     private CraftEngineFurniture() {}
 
     /**
@@ -71,7 +70,7 @@ public final class CraftEngineFurniture {
      */
     @Nullable
     public static BukkitFurniture rayTrace(Player player, double maxDistance) {
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return null;
         Location eyeLocation = serverPlayer.getEyeLocation();
         RayTraceResult result = player.getWorld().rayTrace(eyeLocation, eyeLocation.getDirection(), maxDistance, FluidCollisionMode.NEVER, true, 0d, CraftEngineFurniture::isCollisionEntity);
@@ -91,7 +90,7 @@ public final class CraftEngineFurniture {
      */
     @Nullable
     public static BukkitFurniture rayTrace(Player player) {
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return null;
         Location eyeLocation = serverPlayer.getEyeLocation();
         RayTraceResult result = player.getWorld().rayTrace(eyeLocation, eyeLocation.getDirection(), serverPlayer.getCachedInteractionRange(), FluidCollisionMode.NEVER, true, 0d, CraftEngineFurniture::isCollisionEntity);
@@ -414,7 +413,7 @@ public final class CraftEngineFurniture {
                               @Nullable Player player,
                               boolean dropLoot,
                               boolean playSound) {
-        remove(furniture, player == null ? null : BukkitCraftEngine.instance().adapt(player), dropLoot, playSound);
+        remove(furniture, player == null ? null : BukkitAdaptor.adapt(player), dropLoot, playSound);
     }
 
     /**
@@ -434,7 +433,7 @@ public final class CraftEngineFurniture {
         Location location = ((BukkitFurniture) furniture).getDropLocation();
         furniture.destroy();
         LootTable<ItemStack> lootTable = (LootTable<ItemStack>) furniture.config.lootTable();
-        World world = BukkitAdaptors.adapt(location.getWorld());
+        World world = BukkitAdaptor.adapt(location.getWorld());
         WorldPosition position = new WorldPosition(world, location.getX(), location.getY(), location.getZ());
         if (dropLoot && lootTable != null) {
             ContextHolder.Builder builder = ContextHolder.builder()

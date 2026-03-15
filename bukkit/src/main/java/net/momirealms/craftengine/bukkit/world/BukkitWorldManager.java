@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.world;
 
 import com.google.gson.JsonElement;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.injector.WorldStorageInjector;
@@ -442,7 +442,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
     @Override
     public <T> BukkitWorld wrap(T world) {
         if (world instanceof World w) {
-            return BukkitAdaptors.adapt(w);
+            return BukkitAdaptor.adapt(w);
         } else {
             throw new IllegalArgumentException(world.getClass() + " is not a Bukkit World");
         }

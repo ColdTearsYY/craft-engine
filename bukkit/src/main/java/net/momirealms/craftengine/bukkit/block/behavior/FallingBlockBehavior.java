@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.entity.data.BaseEntityData;
@@ -92,12 +92,12 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
     public void onBrokenAfterFall(Object thisBlock, Object[] args) {
         Object level = args[0];
         Object fallingBlockEntity = args[2];
-        BukkitEntity entity = BukkitAdaptors.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlockEntity));
+        BukkitEntity entity = BukkitAdaptor.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlockEntity));
         if (!entity.getEntityData(BaseEntityData.Silent)) {
             Object blockState = FallingBlockEntityProxy.INSTANCE.getBlockState(fallingBlockEntity);
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(blockState);
             if (optionalCustomState.isEmpty()) return;
-            net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+            net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             WorldPosition position = new WorldPosition(world, EntityProxy.INSTANCE.getXo(fallingBlockEntity), EntityProxy.INSTANCE.getYo(fallingBlockEntity), EntityProxy.INSTANCE.getZo(fallingBlockEntity));
             if (this.destroySound != null) {
                 world.playBlockSound(position, this.destroySound);
@@ -110,13 +110,13 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
         Object fallingBlock = args[4];
         Object level = args[0];
         Object pos = args[1];
-        BukkitEntity entity = BukkitAdaptors.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlock));
+        BukkitEntity entity = BukkitAdaptor.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlock));
         Object blockState = args[2];
         int stateId = BlockStateUtils.blockStateToId(blockState);
         ImmutableBlockState immutableBlockState = BukkitBlockManager.instance().getImmutableBlockState(stateId);
         if (immutableBlockState == null || immutableBlockState.isEmpty()) return;
         if (!entity.getEntityData(BaseEntityData.Silent)) {
-            net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+            net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             if (this.landSound != null) {
                 world.playBlockSound(Vec3d.atCenterOf(LocationUtils.fromBlockPos(pos)), this.landSound);
             }

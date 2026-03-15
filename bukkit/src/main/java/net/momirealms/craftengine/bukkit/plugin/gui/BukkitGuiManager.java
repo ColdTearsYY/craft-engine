@@ -2,6 +2,7 @@ package net.momirealms.craftengine.bukkit.plugin.gui;
 
 import io.papermc.paper.event.player.PlayerPurchaseEvent;
 import net.kyori.adventure.text.Component;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
 import net.momirealms.craftengine.bukkit.block.entity.SimpleStorageBlockEntity;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
@@ -129,7 +130,7 @@ public final class BukkitGuiManager implements GuiManager, Listener {
             return;
         }
         if (event.getPlayer() instanceof Player player && holder.blockEntity() instanceof SimpleStorageBlockEntity simpleStorageBlockEntity) {
-            simpleStorageBlockEntity.onPlayerClose(this.plugin.adapt(player));
+            simpleStorageBlockEntity.onPlayerClose(BukkitAdaptor.adapt(player));
         }
     }
 
@@ -142,7 +143,7 @@ public final class BukkitGuiManager implements GuiManager, Listener {
             return;
         }
         if (holder.blockEntity() instanceof SimpleStorageBlockEntity simpleStorageBlockEntity) {
-            simpleStorageBlockEntity.onPlayerClose(this.plugin.adapt(player));
+            simpleStorageBlockEntity.onPlayerClose(BukkitAdaptor.adapt(player));
         }
     }
 

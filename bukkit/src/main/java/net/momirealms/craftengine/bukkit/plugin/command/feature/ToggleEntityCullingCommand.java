@@ -2,7 +2,7 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -36,7 +36,7 @@ public final class ToggleEntityCullingCommand extends BukkitCommandFeature<Comma
                         return;
                     }
                     Player player = context.get("player");
-                    BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                     if (serverPlayer == null) return;
                     Optional<Boolean> state = context.optional("state");
                     boolean isEnabled = serverPlayer.enableEntityCulling();

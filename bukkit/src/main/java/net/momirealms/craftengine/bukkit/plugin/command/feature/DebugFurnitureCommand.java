@@ -2,7 +2,7 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -22,7 +22,7 @@ public final class DebugFurnitureCommand extends BukkitCommandFeature<CommandSen
         return builder
                 .senderType(Player.class)
                 .handler(context -> {
-                    BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(context.sender());
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(context.sender());
                     if (serverPlayer == null) return;
                     boolean b = !serverPlayer.enableFurnitureDebug();
                     serverPlayer.setEnableFurnitureDebug(b);

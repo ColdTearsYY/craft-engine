@@ -29,7 +29,6 @@ import net.momirealms.craftengine.bukkit.compatibility.slimeworld.SlimeFormatSto
 import net.momirealms.craftengine.bukkit.compatibility.viaversion.ViaVersionUtils;
 import net.momirealms.craftengine.bukkit.compatibility.worldedit.WorldEditBlockRegister;
 import net.momirealms.craftengine.bukkit.compatibility.worldguard.WorldGuardRegionCondition;
-import net.momirealms.craftengine.bukkit.font.BukkitFontManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.core.block.BlockManager;
 import net.momirealms.craftengine.core.entity.furniture.ExternalModel;

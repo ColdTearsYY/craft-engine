@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
@@ -62,7 +62,7 @@ public final class GetItemCommand extends BukkitCommandFeature<CommandSender> {
                             itemId = customItem.id();
                         }
                     }
-                    BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                     Item<ItemStack> builtItem = customItem.buildItem(serverPlayer);
                     if (builtItem != null) {
                         PlayerUtils.giveItem(serverPlayer, amount, builtItem);

@@ -35,7 +35,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 public final class CraftEngineBlocks {
-
     private CraftEngineBlocks() {}
 
     /**
@@ -203,7 +202,7 @@ public final class CraftEngineBlocks {
                                  boolean sendLevelEvent) {
         ImmutableBlockState state = getCustomBlockState(block);
         if (state == null || state.isEmpty()) return false;
-        World world = BukkitAdaptors.adapt(block.getWorld());
+        World world = BukkitAdaptor.adapt(block.getWorld());
         Location location = block.getLocation();
         WorldPosition position = new WorldPosition(world, location.getBlockX() + 0.5, location.getBlockY() + 0.5, location.getBlockZ() + 0.5);
         if (dropLoot) {
@@ -211,7 +210,7 @@ public final class CraftEngineBlocks {
                     .withParameter(DirectContextParameters.POSITION, position);
             BukkitServerPlayer serverPlayer = null;
             if (player != null) {
-                serverPlayer = BukkitCraftEngine.instance().adapt(player);
+                serverPlayer = BukkitAdaptor.adapt(player);
                 builder.withOptionalParameter(DirectContextParameters.PLAYER, serverPlayer);
             }
             for (Item<?> item : state.getDrops(builder, world, serverPlayer)) {

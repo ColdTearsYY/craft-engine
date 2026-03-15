@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.entity;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.behavior.SimpleStorageBlockBehavior;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
@@ -179,7 +179,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         int validViewers = 0;
         for (HumanEntity viewer : viewers) {
             if (viewer instanceof org.bukkit.entity.Player player) {
-                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                 if (serverPlayer == null) continue;
                 maxInteractionDistance = Math.max(serverPlayer.getCachedInteractionRange(), maxInteractionDistance);
                 if (player.getGameMode() != GameMode.SPECTATOR) {

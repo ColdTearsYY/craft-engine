@@ -1,11 +1,12 @@
 package net.momirealms.craftengine.bukkit.plugin;
 
 import com.google.gson.JsonElement;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.util.ParticleUtils;
 import net.momirealms.craftengine.bukkit.util.RegistryOps;
 import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.bukkit.world.particle.BukkitParticleType;
+import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.Platform;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -14,6 +15,8 @@ import net.momirealms.craftengine.core.world.particle.ParticleType;
 import net.momirealms.sparrow.nbt.Tag;
 import org.bukkit.Bukkit;
 import org.bukkit.Particle;
+
+import java.util.UUID;
 
 public final class BukkitPlatform implements Platform {
     private final BukkitCraftEngine plugin;
@@ -47,12 +50,21 @@ public final class BukkitPlatform implements Platform {
     }
 
     @Override
+    public Player getPlayer(UUID uuid) {
+        org.bukkit.entity.Player player = Bukkit.getPlayer(uuid);
+        if (player == null) {
+            return null;
+        }
+        return BukkitAdaptor.adapt(player);
+    }
+
+    @Override
     public World getWorld(String name) {
         org.bukkit.World world = Bukkit.getWorld(name);
         if (world == null) {
             return null;
         }
-        return BukkitAdaptors.adapt(world);
+        return BukkitAdaptor.adapt(world);
     }
 
     @Override

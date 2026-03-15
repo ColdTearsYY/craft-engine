@@ -11,7 +11,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 public final class CraftEngineItems {
-
     private CraftEngineItems() {}
 
     /**

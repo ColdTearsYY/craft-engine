@@ -5,9 +5,8 @@ import com.google.gson.JsonObject;
 import io.papermc.paper.event.player.AsyncChatCommandDecorateEvent;
 import io.papermc.paper.event.player.AsyncChatDecorateEvent;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
-import net.momirealms.craftengine.bukkit.plugin.network.BukkitNetworkManager;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
 import net.momirealms.craftengine.bukkit.util.InventoryUtils;
@@ -37,7 +36,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.view.AnvilView;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -69,7 +67,12 @@ public final class BukkitFontManager extends AbstractFontManager implements List
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        this.plugin.scheduler().async().execute(() -> refreshEmojiSuggestions(event.getPlayer().getUniqueId()));
+        this.plugin.scheduler().async().execute(() -> {
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(event.getPlayer());
+            if (serverPlayer != null) {
+                refreshEmojiSuggestions(serverPlayer);
+            }
+        });
     }
 
     @Override
@@ -137,7 +140,7 @@ public final class BukkitFontManager extends AbstractFontManager implements List
 
         if (renameText == null || renameText.isEmpty()) return;
         Component itemName = Component.text(renameText);
-        EmojiComponentProcessResult replaceProcessResult = replaceComponentEmoji(itemName, BukkitAdaptors.adapt(player), renameText);
+        EmojiComponentProcessResult replaceProcessResult = replaceComponentEmoji(itemName, BukkitAdaptor.adapt(player), renameText);
         if (replaceProcessResult.changed()) {
             Item<ItemStack> wrapped = this.plugin.itemManager().wrap(result);
             wrapped.customNameJson(AdventureHelper.componentToJson(replaceProcessResult.newText()));
@@ -154,7 +157,7 @@ public final class BukkitFontManager extends AbstractFontManager implements List
             JsonElement json = ComponentUtils.paperAdventureToJsonElement(lines.get(i));
             if (json == null) continue;
             Component line = AdventureHelper.jsonElementToComponent(json);
-            EmojiComponentProcessResult result = replaceComponentEmoji(line, BukkitAdaptors.adapt(player));
+            EmojiComponentProcessResult result = replaceComponentEmoji(line, BukkitAdaptor.adapt(player));
             if (result.changed()) {
                 SignChangeEventProxy.INSTANCE.line(event, i, ComponentUtils.jsonElementToPaperAdventure(AdventureHelper.componentToJsonElement(result.newText())));
             } else if (AdventureHelper.isPureTextComponent(line)) {
@@ -177,7 +180,7 @@ public final class BukkitFontManager extends AbstractFontManager implements List
         for (int i = 0; i < pages.size(); i++) {
             JsonElement json = ComponentUtils.paperAdventureToJsonElement(pages.get(i));
             Component page = AdventureHelper.jsonElementToComponent(json);
-            EmojiComponentProcessResult result = replaceComponentEmoji(page, BukkitAdaptors.adapt(player));
+            EmojiComponentProcessResult result = replaceComponentEmoji(page, BukkitAdaptor.adapt(player));
             if (result.changed()) {
                 changed = true;
                 BookMetaProxy.INSTANCE.page(newBookMeta, i + 1, ComponentUtils.jsonElementToPaperAdventure(AdventureHelper.componentToJsonElement(result.newText())));
@@ -204,7 +207,7 @@ public final class BukkitFontManager extends AbstractFontManager implements List
             }
         }
         if (Config.allowEmojiChat()/* && !Config.disableChatReport()*/) {
-            EmojiTextProcessResult result = replaceJsonEmoji(rawJsonMessage, BukkitAdaptors.adapt(player));
+            EmojiTextProcessResult result = replaceJsonEmoji(rawJsonMessage, BukkitAdaptor.adapt(player));
             if (result.replaced()) {
                 rawJsonMessage = result.text();
                 changed = true;

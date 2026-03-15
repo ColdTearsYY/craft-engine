@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.entity;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.behavior.ItemFrameBlockBehavior;
 import net.momirealms.craftengine.bukkit.block.entity.renderer.DynamicItemFrameRenderer;
 import net.momirealms.craftengine.bukkit.entity.data.ItemFrameData;
@@ -64,7 +64,7 @@ public class ItemFrameBlockEntity extends BlockEntity {
         if (itemTag == null) return;
         ItemStack itemStack = ItemStackUtils.parseItemStack(itemTag, dataVersion);
         if (itemStack == null) return;
-        this.item = BukkitAdaptors.adapt(itemStack);
+        this.item = BukkitAdaptor.adapt(itemStack);
         this.updateMetadata();
     }
 

@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
@@ -37,7 +37,7 @@ public final class DebugItemDataCommand extends BukkitCommandFeature<CommandSend
                     }
                     boolean toClientSide = context.flags().hasFlag(FlagKeys.CLIENT_SIDE_FLAG);
                     if (toClientSide) {
-                        itemInHand = BukkitItemManager.instance().s2c(itemInHand, BukkitAdaptors.adapt(context.sender())).orElse(itemInHand);
+                        itemInHand = BukkitItemManager.instance().s2c(itemInHand, BukkitAdaptor.adapt(context.sender())).orElse(itemInHand);
                     }
                     Map<String, Object> readableMap = toMap(itemInHand);
                     List<String> readableList = mapToList(readableMap);

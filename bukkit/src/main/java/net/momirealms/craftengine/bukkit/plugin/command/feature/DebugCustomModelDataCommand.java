@@ -3,7 +3,7 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -55,7 +55,7 @@ public final class DebugCustomModelDataCommand extends BukkitCommandFeature<Comm
 
     private void handleCommand(CommandContext<CommandSender> context) {
         NamespacedKey namespacedKey = context.getOrDefault("id", null);
-        @Nullable BukkitServerPlayer player = context.sender() instanceof Player p ? BukkitAdaptors.adapt(p) : null;
+        @Nullable BukkitServerPlayer player = context.sender() instanceof Player p ? BukkitAdaptor.adapt(p) : null;
 
         if (namespacedKey != null) {
             Key itemId = KeyUtils.namespacedKeyToKey(namespacedKey);

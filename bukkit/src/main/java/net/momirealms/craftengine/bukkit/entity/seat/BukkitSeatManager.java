@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.entity.seat;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.furniture.DismountListener1_20;
 import net.momirealms.craftengine.bukkit.entity.furniture.DismountListener1_20_3;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -124,7 +124,7 @@ public final class BukkitSeatManager implements SeatManager, Listener {
         location.add(0, 0.301, 0); // 防止座椅较低卡进地下
         EntityUtils.safeDismount(player, location);
         // 床方块实体特殊处理
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
         serverPlayer.setBedBlockEntity(null);
         serverPlayer.platformPlayer().updateInventory();

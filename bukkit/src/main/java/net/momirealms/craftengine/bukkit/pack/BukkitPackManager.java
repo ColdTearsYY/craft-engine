@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.pack;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.event.AsyncResourcePackCacheEvent;
 import net.momirealms.craftengine.bukkit.api.event.AsyncResourcePackGenerateEvent;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -56,7 +56,7 @@ public final class BukkitPackManager extends AbstractPackManager implements List
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (Config.sendPackOnJoin() && !VersionHelper.isOrAbove1_20_2()) {
-            Player player = BukkitAdaptors.adapt(event.getPlayer());
+            Player player = BukkitAdaptor.adapt(event.getPlayer());
             // 可能有假人
             if (player == null) return;
             this.sendResourcePack(player);

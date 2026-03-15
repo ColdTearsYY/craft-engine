@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LevelUtils;
@@ -63,7 +63,7 @@ public final class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavi
             return BlocksProxy.AIR$defaultState;
         } else if (half == DoubleBlockHalf.LOWER && direction == DirectionProxy.DOWN && !canSurvive(thisBlock, blockState, level, blockPos)) {
             BlockPos pos = LocationUtils.fromBlockPos(blockPos);
-            World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+            World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             WorldPosition position = new WorldPosition(world, Vec3d.atCenterOf(pos));
             world.playBlockSound(position, customState.settings().sounds().breakSound());
             LevelAccessorProxy.INSTANCE.levelEvent(level, WorldEvents.BLOCK_BREAK_EFFECT, blockPos, customState.customBlockState().registryId());
@@ -82,7 +82,7 @@ public final class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavi
         if (blockState == null || blockState.isEmpty()) {
             return superMethod.call();
         }
-        BukkitServerPlayer cePlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+        BukkitServerPlayer cePlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
         if (cePlayer == null) {
             return superMethod.call();
         }

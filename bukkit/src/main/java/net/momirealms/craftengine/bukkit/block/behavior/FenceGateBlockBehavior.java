@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
@@ -181,7 +181,7 @@ public final class FenceGateBlockBehavior extends BukkitBlockBehavior implements
         if (this.canOpenByWindCharge && ExplosionProxy.INSTANCE.canTriggerBlocks(args[3])) {
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(args[0]);
             if (optionalCustomState.isEmpty()) return;
-            this.toggle(optionalCustomState.get(), BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(args[1])), LocationUtils.fromBlockPos(args[2]), null);
+            this.toggle(optionalCustomState.get(), BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(args[1])), LocationUtils.fromBlockPos(args[2]), null);
         }
     }
 
@@ -208,7 +208,7 @@ public final class FenceGateBlockBehavior extends BukkitBlockBehavior implements
             hasSignal = event.getNewCurrent() > 0;
         }
 
-        World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+        World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
         boolean changed = isOpen(customState) != hasSignal;
         if (hasSignal && changed) {
             Object abovePos = LocationUtils.above(blockPos);

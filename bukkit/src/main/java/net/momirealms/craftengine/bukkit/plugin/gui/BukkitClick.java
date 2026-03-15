@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.plugin.gui;
 
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
@@ -59,7 +60,7 @@ public final class BukkitClick implements Click {
 
     @Override
     public Player clicker() {
-        return BukkitCraftEngine.instance().adapt((org.bukkit.entity.Player) event.getWhoClicked());
+        return BukkitAdaptor.adapt((org.bukkit.entity.Player) event.getWhoClicked());
     }
 
     @SuppressWarnings("deprecation")

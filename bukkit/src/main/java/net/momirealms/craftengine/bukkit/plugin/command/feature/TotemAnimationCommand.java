@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -93,7 +93,7 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
                     MultiplePlayerSelector selector = context.get("players");
                     Collection<Player> players = selector.values();
                     for (Player player : players) {
-                        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) continue;
                         Item<ItemStack> item = customItem.buildItem(serverPlayer);
                         if (VersionHelper.isOrAbove1_21_2()) {

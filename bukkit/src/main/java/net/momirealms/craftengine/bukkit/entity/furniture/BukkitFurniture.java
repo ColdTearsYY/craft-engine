@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.entity.furniture;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.CollisionUtils;
@@ -138,7 +138,7 @@ public final class BukkitFurniture extends Furniture {
             this.location = LocationUtils.toLocation(position);
             Object removePacket = ClientboundRemoveEntitiesPacketProxy.INSTANCE.newInstance(MiscUtils.init(new IntArrayList(), l -> l.add(itemDisplay.getEntityId())));
             for (Player player : itemDisplay.getTrackedPlayers()) {
-                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                 if (serverPlayer == null) continue;
                 serverPlayer.sendPacket(removePacket, false);
             }
@@ -151,7 +151,7 @@ public final class BukkitFurniture extends Furniture {
                         Object addPacket = ClientboundAddEntityPacketProxy.INSTANCE.newInstance(itemDisplay.getEntityId(), itemDisplay.getUniqueId(),
                                 itemDisplay.getX(), itemDisplay.getY(), itemDisplay.getZ(), itemDisplay.getPitch(), itemDisplay.getYaw(), EntityTypeProxy.ITEM_DISPLAY, 0, Vec3Proxy.ZERO, 0);
                         for (Player player : itemDisplay.getTrackedPlayers()) {
-                            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                             if (serverPlayer == null) continue;
                             serverPlayer.sendPacket(addPacket, false);
                         }
@@ -178,7 +178,7 @@ public final class BukkitFurniture extends Furniture {
         Object addPacket = ClientboundAddEntityPacketProxy.INSTANCE.newInstance(itemDisplay.getEntityId(), itemDisplay.getUniqueId(),
                 itemDisplay.getX(), itemDisplay.getY(), itemDisplay.getZ(), itemDisplay.getPitch(), itemDisplay.getYaw(), EntityTypeProxy.ITEM_DISPLAY, 0, Vec3Proxy.ZERO, 0);
         for (Player player : itemDisplay.getTrackedPlayers()) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
             if (serverPlayer == null) continue;
             serverPlayer.sendPacket(removePacket, false);
             serverPlayer.sendPacket(addPacket, false);
@@ -244,7 +244,7 @@ public final class BukkitFurniture extends Furniture {
         Set<Player> trackedPlayers = itemDisplay.getTrackedPlayers();
         Set<net.momirealms.craftengine.core.entity.player.Player> players = new HashSet<>();
         for (Player player : trackedPlayers) {
-            players.add(BukkitAdaptors.adapt(player));
+            players.add(BukkitAdaptor.adapt(player));
         }
         return players;
     }

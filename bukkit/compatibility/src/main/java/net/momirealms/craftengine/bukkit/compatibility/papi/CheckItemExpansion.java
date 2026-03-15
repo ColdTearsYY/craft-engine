@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.bukkit.compatibility.papi;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
@@ -52,7 +53,7 @@ public final class CheckItemExpansion extends PlaceholderExpansion {
     @Override
     public @Nullable String onPlaceholderRequest(Player bukkitPlayer, @NotNull String params) {
         if (bukkitPlayer == null) return null;
-        BukkitServerPlayer player = BukkitCraftEngine.instance().adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return null;
         int index = params.indexOf('_');
         String action = index > 0 ? params.substring(0, index) : params;

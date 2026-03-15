@@ -14,7 +14,7 @@ import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -125,13 +125,13 @@ public final class BlockStateGenerator {
             }
 
             Object serverLevel = LootParamsProxy.BuilderProxy.INSTANCE.getLevel(builder);
-            World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(serverLevel));
+            World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(serverLevel));
             ContextHolder.Builder lootBuilder = new ContextHolder.Builder()
                     .withParameter(DirectContextParameters.POSITION, new WorldPosition(world, Vec3Proxy.INSTANCE.getX(vec3), Vec3Proxy.INSTANCE.getY(vec3), Vec3Proxy.INSTANCE.getZ(vec3)));
             if (!item.isEmpty()) {
                 lootBuilder.withParameter(DirectContextParameters.ITEM_IN_HAND, item);
             }
-            BukkitServerPlayer player = optionalPlayer != null ? BukkitCraftEngine.instance().adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(optionalPlayer)) : null;
+            BukkitServerPlayer player = optionalPlayer != null ? BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(optionalPlayer)) : null;
             if (player != null) {
                 lootBuilder.withParameter(DirectContextParameters.PLAYER, player);
             }

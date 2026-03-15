@@ -21,6 +21,5 @@ publishing {
     }
 
     publications {
-
     }
 }

@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.compatibility.papi;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.context.CooldownData;
@@ -43,7 +43,7 @@ public final class CraftEngineExpansion extends PlaceholderExpansion {
      */
     @Override
     public @Nullable String onPlaceholderRequest(Player bukkitPlayer, @NotNull String params) {
-        BukkitServerPlayer player = bukkitPlayer != null ? BukkitAdaptors.adapt(bukkitPlayer) : null;
+        BukkitServerPlayer player = bukkitPlayer != null ? BukkitAdaptor.adapt(bukkitPlayer) : null;
         String[] split = params.split("_", 2);
         if (split.length == 2) {
             return switch (split[0]) {

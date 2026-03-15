@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -32,7 +33,7 @@ public final class SendResourcePackCommand extends BukkitCommandFeature<CommandS
                     MultiplePlayerSelector selector = context.get("player");
                     Collection<Player> players = selector.values();
                     for (Player player : players) {
-                        BukkitServerPlayer bukkitServerPlayer = plugin().adapt(player);
+                        BukkitServerPlayer bukkitServerPlayer = BukkitAdaptor.adapt(player);
                         if (bukkitServerPlayer == null) continue;
                         BukkitCraftEngine.instance().packManager().sendResourcePack(bukkitServerPlayer);
                     }
