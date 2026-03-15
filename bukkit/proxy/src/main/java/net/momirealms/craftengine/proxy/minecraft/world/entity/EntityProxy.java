@@ -134,4 +134,10 @@ public interface EntityProxy {
 
     @FieldSetter(name = "level")
     void setLevel(Object target, Object level);
+
+    @MethodInvoker(name = "discard")
+    void discard(Object target);
+
+    @MethodInvoker(name = "isAlive")
+    boolean isAlive(Object target);
 }

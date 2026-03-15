@@ -18,7 +18,7 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
     private final int customModelData;
 
     public LegacyOverridesModel(@Nullable Map<String, Object> predicate, @NotNull Key model, int customModelData) {
-        this.predicate = predicate == null ? Map.of() : predicate;
+        this.predicate = predicate == null ? new HashMap<>() : predicate;
         this.model = model;
         this.customModelData = customModelData;
         if (customModelData > 0 && !this.predicate.containsKey("custom_model_data")) {

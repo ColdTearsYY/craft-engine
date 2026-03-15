@@ -1,12 +1,14 @@
 package net.momirealms.craftengine.proxy.minecraft.world.phys;
 
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.*;
 
 @ReflectionProxy(name = "net.minecraft.world.phys.AABB")
 public interface AABBProxy {
     AABBProxy INSTANCE = ASMProxyFactory.create(AABBProxy.class);
+    Class<?> CLASS = SparrowClass.find("net.minecraft.world.phys.AABB");
 
     @ConstructorInvoker
     Object newInstance(double x1, double y1, double z1, double x2, double y2, double z2);
@@ -55,4 +57,7 @@ public interface AABBProxy {
 
     @MethodInvoker(name = "move")
     Object move$2(Object target, @Type(clazz = Vec3Proxy.class) Object vec);
+
+    @MethodInvoker(name = "ofSize", isStatic = true)
+    Object ofSize(@Type(clazz = Vec3Proxy.class) Object center, double dx, double dy, double dz);
 }
