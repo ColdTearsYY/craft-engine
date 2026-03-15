@@ -21,7 +21,6 @@ public final class LuckPermsEventListeners {
     private final JavaPlugin plugin;
     private final LuckPerms luckPerms;
     private final Consumer<UUID> playerCallback;
-    private final List<EventSubscription<?>> subscriptions = new ArrayList<>();
 
     public LuckPermsEventListeners(JavaPlugin plugin, Consumer<UUID> playerCallback) {
         this.plugin = plugin;
@@ -35,22 +34,12 @@ public final class LuckPermsEventListeners {
         }
     }
 
+    @SuppressWarnings("resource")
     private void registerEventListeners() {
         EventBus eventBus = this.luckPerms.getEventBus();
-        this.subscriptions.add(eventBus.subscribe(this.plugin, UserDataRecalculateEvent.class, this::onUserPermissionChange));
-        this.subscriptions.add(eventBus.subscribe(this.plugin, GroupDataRecalculateEvent.class, this::onGroupPermissionChange));
+        eventBus.subscribe(this.plugin, UserDataRecalculateEvent.class, this::onUserPermissionChange);
+        eventBus.subscribe(this.plugin, GroupDataRecalculateEvent.class, this::onGroupPermissionChange);
     }
-
-//    public void unregisterListeners() {
-//        this.subscriptions.forEach(subscription -> {
-//            try {
-//                subscription.close();
-//            } catch (Exception e) {
-//                this.plugin.getLogger().log(Level.WARNING, "Failed to close event subscription", e);
-//            }
-//        });
-//        this.subscriptions.clear();
-//    }
 
     private void onUserPermissionChange(UserDataRecalculateEvent event) {
         CraftEngine.instance().scheduler().async().execute(() -> this.playerCallback.accept(event.getUser().getUniqueId()));

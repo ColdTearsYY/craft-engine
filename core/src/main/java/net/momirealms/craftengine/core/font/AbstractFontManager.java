@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.font;
 
+import com.google.common.collect.ImmutableList;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.pack.Identifier;
@@ -116,13 +117,20 @@ public abstract class AbstractFontManager implements FontManager {
 
     @Override
     public void delayedLoad() {
+        Player[] players = CraftEngine.instance().networkManager().onlineUsers();
+        for (Player player : players) {
+            this.removeEmojiSuggestions(player);
+        }
         Optional.ofNullable(this.fonts.get(DEFAULT_FONT)).ifPresent(font -> this.illegalChars.addAll(font.codepointsInUse()));
         // global shift l10n image
         this.buildEmojiKeywordsTrie();
         this.emojiList = new ArrayList<>(this.emojis.values());
         this.allEmojiSuggestions = this.emojis.values().stream()
                 .flatMap(emoji -> emoji.keywords().stream())
-                .collect(Collectors.toList());
+                .collect(ImmutableList.toImmutableList());
+        for (Player player : players) {
+            this.addEmojiSuggestions(player);
+        }
     }
 
     @Override
@@ -306,6 +314,27 @@ public abstract class AbstractFontManager implements FontManager {
         return Collections.unmodifiableCollection(this.cachedImagesSuggestions);
     }
 
+    @Override
+    public void refreshEmojiSuggestions(@NotNull UUID uuid) {
+        Player player = CraftEngine.instance().getPlayer(uuid);
+        if (player == null) return;
+        this.removeEmojiSuggestions(player);
+        this.addEmojiSuggestions(player);
+    }
+
+    @Override
+    public List<String> getEmojiSuggestions(@NotNull Player player) {
+        List<String> suggestions = new ArrayList<>();
+        if (this.emojiList == null) return suggestions;
+        for (Emoji emoji : this.emojiList) {
+            if (!emoji.chatCompletion()) continue;
+            String permission = emoji.permission();
+            if (permission != null && !player.hasPermission(permission)) continue;
+            suggestions.addAll(emoji.keywords());
+        }
+        return suggestions;
+    }
+
     private synchronized Font getOrCreateFont(Key key) {
         return this.fonts.computeIfAbsent(key, Font::new);
     }
@@ -334,6 +363,7 @@ public abstract class AbstractFontManager implements FontManager {
         }
 
         private static final String[] CONTENT = new String[] {"content", "format"};
+        private static final String[] CHAT_COMPLETION = new String[] {"chat_completion", "chat-completion"};
 
         @Override
         public boolean async() {
@@ -377,7 +407,8 @@ public abstract class AbstractFontManager implements FontManager {
                     throw new KnownResourceException("resource.emoji.invalid_image_format", section.assemblePath("image"), imageValue.getAsString());
                 }
             }
-            Emoji emoji = new Emoji(content, permission, image, keywords);
+            boolean chatCompletion = section.getBoolean(CHAT_COMPLETION, true);
+            Emoji emoji = new Emoji(content, permission, image, keywords, chatCompletion);
             AbstractFontManager.this.emojis.put(id, emoji);
         }
     }

@@ -436,7 +436,7 @@ public final class BukkitCraftEngine extends CraftEngine {
     @Nullable
     public BukkitServerPlayer adapt(@Nullable Player player) {
         if (player == null) return null;
-        return (BukkitServerPlayer) networkManager().getOnlineUser(player);
+        return (BukkitServerPlayer) super.getPlayer(player.getUniqueId());
     }
 
     public AntiGriefLib antiGriefProvider() {

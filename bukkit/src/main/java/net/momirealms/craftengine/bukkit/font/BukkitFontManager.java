@@ -7,6 +7,8 @@ import io.papermc.paper.event.player.AsyncChatDecorateEvent;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
+import net.momirealms.craftengine.bukkit.plugin.network.BukkitNetworkManager;
+import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
 import net.momirealms.craftengine.bukkit.util.InventoryUtils;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
@@ -19,6 +21,7 @@ import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.event.block.SignChangeEventProxy;
 import net.momirealms.craftengine.proxy.bukkit.inventory.meta.BookMetaProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacketProxy;
 import net.momirealms.craftengine.proxy.paper.event.player.AsyncChatDecorateEventProxy;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -34,6 +37,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.view.AnvilView;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -62,49 +67,29 @@ public final class BukkitFontManager extends AbstractFontManager implements List
         HandlerList.unregisterAll(this);
     }
 
-    @Override
-    public void delayedLoad() {
-        Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-        for (Player player : players) {
-            removeEmojiSuggestions(player);
-        }
-        super.delayedLoad();
-        for (Player player : players) {
-            this.addEmojiSuggestions(player, getEmojiSuggestion(player));
-        }
-    }
-
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        this.plugin.scheduler().async().execute(() -> this.addEmojiSuggestions(event.getPlayer(), getEmojiSuggestion(event.getPlayer())));
+        this.plugin.scheduler().async().execute(() -> refreshEmojiSuggestions(event.getPlayer().getUniqueId()));
     }
 
     @Override
-    public void refreshEmojiSuggestions(UUID uuid) {
-        Player player = Bukkit.getPlayer(uuid);
-        if (player == null) return;
-        removeEmojiSuggestions(player);
-        addEmojiSuggestions(player, getEmojiSuggestion(player));
+    public void addEmojiSuggestions(@Nullable net.momirealms.craftengine.core.entity.player.Player player) {
+        if (player == null || super.emojiList == null) return;
+        Object packet = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.newInstance(
+                ClientboundCustomChatCompletionsPacketProxy.ActionProxy.ADD,
+                super.getEmojiSuggestions(player)
+        );
+        player.sendPacket(packet, false);
     }
 
-    private List<String> getEmojiSuggestion(Player player) {
-        List<String> suggestions = new ArrayList<>();
-        for (Emoji emoji : super.emojiList) {
-            if (emoji.permission() == null || player.hasPermission(Objects.requireNonNull(emoji.permission()))) {
-                suggestions.addAll(emoji.keywords());
-            }
-        }
-        return suggestions;
-    }
-
-    private void addEmojiSuggestions(Player player, List<String> suggestions) {
-        player.addCustomChatCompletions(suggestions);
-    }
-
-    private void removeEmojiSuggestions(Player player) {
-        if (super.allEmojiSuggestions != null) {
-            player.removeCustomChatCompletions(super.allEmojiSuggestions);
-        }
+    @Override
+    public void removeEmojiSuggestions(@Nullable net.momirealms.craftengine.core.entity.player.Player player) {
+        if (player == null || super.allEmojiSuggestions == null) return;
+        Object packet = ClientboundCustomChatCompletionsPacketProxy.INSTANCE.newInstance(
+                ClientboundCustomChatCompletionsPacketProxy.ActionProxy.REMOVE,
+                super.allEmojiSuggestions
+        );
+        player.sendPacket(packet, false);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

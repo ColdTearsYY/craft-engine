@@ -250,10 +250,7 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
     }
 
     private void initLuckPermsHook() {
-        new LuckPermsEventListeners(this.plugin.javaPlugin(), (uuid) -> {
-            BukkitFontManager fontManager = this.plugin.fontManager();
-            fontManager.refreshEmojiSuggestions(uuid);
-        });
+        new LuckPermsEventListeners(this.plugin.javaPlugin(), this.plugin.fontManager()::refreshEmojiSuggestions);
     }
 
     private void initSlimeWorldHook() {
