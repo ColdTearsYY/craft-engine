@@ -1,9 +1,9 @@
 package net.momirealms.craftengine.bukkit.util;
 
 import io.netty.buffer.ByteBuf;
+import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.VersionHelper;
-import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.FriendlyByteBufProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.RegistryFriendlyByteBufProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.codec.StreamDecoderProxy;
@@ -11,13 +11,12 @@ import net.momirealms.craftengine.proxy.minecraft.network.codec.StreamEncoderPro
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundSetEntityDataPacketProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundSetPassengersPacketProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
 
 public final class PacketUtils {
     public static final Object ItemStack$OPTIONAL_STREAM_CODEC = VersionHelper.isOrAbove1_20_5() ? ItemStackProxy.INSTANCE.getOptionalStreamCodec() : null;
-    public static final Object ITEM_UNTRUSTED_CODEC = VersionHelper.isOrAbove1_20_5() ? ItemStackProxy.INSTANCE.validatedStreamCodec(ItemStack$OPTIONAL_STREAM_CODEC) : null;
+    public static final Object UNTRUSTED_ITEM_CODEC = VersionHelper.isOrAbove1_20_5() ? FastNMS.INSTANCE.createUntrustedItemCodec() : null;
 
     private PacketUtils() {}
 
@@ -72,11 +71,11 @@ public final class PacketUtils {
 
     public static Item readUntrustedItem(ByteBuf buf) {
         if (!VersionHelper.isOrAbove1_20_5()) throw new UnsupportedOperationException("This feature is only available on 1.20.5+");
-        return ItemStackUtils.wrap(StreamDecoderProxy.INSTANCE.decode(ITEM_UNTRUSTED_CODEC, ensureNMSFriendlyByteBuf(buf)));
+        return ItemStackUtils.wrap(StreamDecoderProxy.INSTANCE.decode(UNTRUSTED_ITEM_CODEC, ensureNMSFriendlyByteBuf(buf)));
     }
 
     public static void writeUntrustedItem(ByteBuf buf, Item item) {
         if (!VersionHelper.isOrAbove1_20_5()) throw new UnsupportedOperationException("This feature is only available on 1.20.5+");
-        StreamEncoderProxy.INSTANCE.encode(ITEM_UNTRUSTED_CODEC, ensureNMSFriendlyByteBuf(buf), item.getMinecraftItem());
+        StreamEncoderProxy.INSTANCE.encode(UNTRUSTED_ITEM_CODEC, ensureNMSFriendlyByteBuf(buf), item.getMinecraftItem());
     }
 }

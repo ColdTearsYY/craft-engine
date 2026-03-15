@@ -40,10 +40,12 @@ public final class UniversalItemFactory extends BukkitItemFactory<LegacyItemWrap
 
     @Override
     public LegacyItemWrapper wrap(Object item) {
-        if (item instanceof ItemStack itemStack) {
+        if (ItemStackProxy.CLASS.isInstance(item)) {
+            return new LegacyItemWrapper(item);
+        } else if (item instanceof ItemStack itemStack) {
             return new LegacyItemWrapper(itemStack);
         } else {
-            return new LegacyItemWrapper(item);
+            throw new IllegalArgumentException("Unsupported item type: " + item.getClass());
         }
     }
 

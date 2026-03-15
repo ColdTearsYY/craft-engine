@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.momirealms.craftengine.bukkit.item.ComponentItemWrapper;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
+import net.momirealms.craftengine.bukkit.item.LegacyItemWrapper;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.attribute.AttributeModifier;
 import net.momirealms.craftengine.core.item.DataComponentKeys;
@@ -37,10 +38,12 @@ public class ComponentItemFactory1_20_5 extends BukkitItemFactory<ComponentItemW
 
     @Override
     public ComponentItemWrapper wrap(Object item) {
-        if (item instanceof ItemStack itemStack) {
+        if (ItemStackProxy.CLASS.isInstance(item)) {
+            return new ComponentItemWrapper(item);
+        } else if (item instanceof ItemStack itemStack) {
             return new ComponentItemWrapper(itemStack);
         } else {
-            return new ComponentItemWrapper(item);
+            throw new IllegalArgumentException("Unsupported item type: " + item.getClass());
         }
     }
 

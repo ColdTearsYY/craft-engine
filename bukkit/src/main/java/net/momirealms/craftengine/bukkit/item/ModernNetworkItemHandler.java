@@ -44,9 +44,9 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler {
             List<Object> newItems = new ArrayList<>();
             boolean changed = false;
             for (Object previousItem : BundleContentsProxy.INSTANCE.getItems(bundleContents)) {
-                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.getBukkitStack(previousItem));
+                Optional<Item> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.wrap(previousItem));
                 if (itemStack.isPresent()) {
-                    newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
+                    newItems.add(itemStack.get().getMinecraftItem());
                     changed = true;
                 } else {
                     newItems.add(previousItem);
@@ -64,9 +64,9 @@ public final class ModernNetworkItemHandler implements NetworkItemHandler {
             List<Object> newItems = new ArrayList<>();
             boolean changed = false;
             for (Object previousItem : ItemContainerContentsProxy.INSTANCE.getItems(containerContents)) {
-                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.getBukkitStack(previousItem));
+                Optional<Item> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.wrap(previousItem));
                 if (itemStack.isPresent()) {
-                    newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
+                    newItems.add(itemStack.get().getMinecraftItem());
                     changed = true;
                 } else {
                     newItems.add(previousItem);

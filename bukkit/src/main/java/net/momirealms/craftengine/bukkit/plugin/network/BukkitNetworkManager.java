@@ -1092,7 +1092,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         }
     }
 
-    protected void handleReceiveNMSPacket(NetWorkUser user, NMSPacketEvent event, Object packet) {
+    private void handleReceiveNMSPacket(NetWorkUser user, NMSPacketEvent event, Object packet) {
         NMSPacketListener nmsPacketListener = this.nmsPacketListeners.get(packet.getClass());
         if (nmsPacketListener != null) {
             try {
@@ -1103,7 +1103,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         }
     }
 
-    protected void handleSendNMSPacket(NetWorkUser user, NMSPacketEvent event, Object packet) {
+    private void handleSendNMSPacket(NetWorkUser user, NMSPacketEvent event, Object packet) {
         NMSPacketListener nmsPacketListener = this.nmsPacketListeners.get(packet.getClass());
         if (nmsPacketListener != null) {
             try {
@@ -1115,7 +1115,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
     }
 
     // outbound(encode|s2c)
-    protected void handleS2CByteBufPacket(NetWorkUser user, ByteBufPacketEvent event) {
+    private void handleS2CByteBufPacket(NetWorkUser user, ByteBufPacketEvent event) {
         int packetID = event.packetID();
         ByteBufferPacketListenerHolder[] listener = s2cPacketListeners[user.encoderState().ordinal()];
         if (packetID >= listener.length) {
@@ -1135,7 +1135,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
     }
 
     // inbound(decode|c2s)
-    protected void handleC2SByteBufPacket(NetWorkUser user, ByteBufPacketEvent event) {
+    private void handleC2SByteBufPacket(NetWorkUser user, ByteBufPacketEvent event) {
         int packetID = event.packetID();
         ByteBufferPacketListenerHolder[] listener = c2sPacketListeners[user.decoderState().ordinal()];
         if (packetID >= listener.length) {
@@ -1366,15 +1366,15 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             if (optionalState.isEmpty()) return;
             ImmutableBlockState customBlockState = optionalState.get();
             Item item = customBlockState.behavior().itemToPickup(player.world(), LocationUtils.fromBlockPos(pos), customBlockState, player);
-            ItemStack itemStack;
+            Object itemStack;
             if (item == null) {
                 Key itemId = customBlockState.settings().itemId();
                 if (itemId == null) return;
                 BukkitItem wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
                 if (wrappedItem == null) return;
-                itemStack = wrappedItem.getBukkitItem();
+                itemStack = wrappedItem.getMinecraftItem();
             } else {
-                itemStack = ((BukkitItem) item).getBukkitItem();
+                itemStack = item.getMinecraftItem();
             }
             tryPickItem(player.platformPlayer(), itemStack, pos, null);
         }
@@ -1406,27 +1406,25 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
 
         private static void handlePickItemFromEntityOnMainThread(BukkitServerPlayer player, BukkitFurniture furniture) throws Throwable {
             Item item = furniture.config().behavior().itemToPickup(furniture, player);
-            ItemStack itemStack;
+            Object itemStack;
             if (item == null) {
                 Key itemId = furniture.config().settings().itemId();
                 if (itemId == null) return;
                 BukkitItem wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
                 if (wrappedItem == null) return;
-                itemStack = wrappedItem.getBukkitItem();
+                itemStack = wrappedItem.getMinecraftItem();
             } else {
-                itemStack = ((BukkitItem) item).getBukkitItem();
+                itemStack = item.getMinecraftItem();
             }
             tryPickItem(player.platformPlayer(), itemStack, null, CraftEntityProxy.INSTANCE.getEntity(furniture.bukkitEntity()));
         }
     }
 
-    private static void tryPickItem(Player player, ItemStack itemStack, @Nullable Object blockPos, @Nullable Object entity) {
+    private static void tryPickItem(Player player, Object itemStack, @Nullable Object blockPos, @Nullable Object entity) {
         if (VersionHelper.isOrAbove1_21_5()) {
-            ServerGamePacketListenerImplProxy.INSTANCE.tryPickItem(ServerPlayerProxy.INSTANCE.getConnection(CraftEntityProxy.INSTANCE.getEntity(player)),
-                    CraftItemStackProxy.INSTANCE.asNMSCopy(itemStack), blockPos, entity, true);
+            ServerGamePacketListenerImplProxy.INSTANCE.tryPickItem(ServerPlayerProxy.INSTANCE.getConnection(CraftEntityProxy.INSTANCE.getEntity(player)), itemStack, blockPos, entity, true);
         } else if (VersionHelper.isOrAbove1_21_4()) {
-            ServerGamePacketListenerImplProxy.INSTANCE.tryPickItem(ServerPlayerProxy.INSTANCE.getConnection(CraftEntityProxy.INSTANCE.getEntity(player)),
-                    CraftItemStackProxy.INSTANCE.asNMSCopy(itemStack));
+            ServerGamePacketListenerImplProxy.INSTANCE.tryPickItem(ServerPlayerProxy.INSTANCE.getConnection(CraftEntityProxy.INSTANCE.getEntity(player)), itemStack);
         }
     }
 
@@ -3860,21 +3858,21 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             if (!serverPlayer.isCreativeMode()) return;
             FriendlyByteBuf buf = event.getBuffer();
             short slotNum = buf.readShort();
-            Item itemStack;
+            Item item;
             try {
-                itemStack = VersionHelper.isOrAbove1_20_5() ? PacketUtils.readUntrustedItem(buf) : PacketUtils.readItem(buf);
+                item = VersionHelper.isOrAbove1_20_5() ? PacketUtils.readUntrustedItem(buf) : PacketUtils.readItem(buf);
             } catch (Exception e) {
                 return;
             }
-            BukkitItemManager.instance().c2s(itemStack).ifPresent((newItemStack) -> {
+            BukkitItemManager.instance().c2s(item).ifPresent((newItem) -> {
                 event.setChanged(true);
                 buf.clear();
                 buf.writeVarInt(event.packetID());
                 buf.writeShort(slotNum);
                 if (VersionHelper.isOrAbove1_20_5()) {
-                    PacketUtils.writeUntrustedItem(buf, newItemStack);
+                    PacketUtils.writeUntrustedItem(buf, newItem);
                 } else {
-                    PacketUtils.writeItem(buf, newItemStack);
+                    PacketUtils.writeItem(buf, newItem);
                 }
             });
         }
@@ -4506,7 +4504,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             BukkitItemManager manager = BukkitItemManager.instance();
             ByteBuf friendlyBuf = PacketUtils.ensureNMSFriendlyByteBuf(buf.source());
             List<MerchantOffer> merchantOffers = buf.readCollection(ArrayList::new, byteBuf -> {
-                ItemStack cost1 = ItemStackUtils.getBukkitStack(ItemCostProxy.INSTANCE.getItemStack(StreamDecoderProxy.INSTANCE.decode(ItemCostProxy.STREAM_CODEC, friendlyBuf)));
+                Item cost1 = ItemStackUtils.wrap(ItemCostProxy.INSTANCE.getItemStack(StreamDecoderProxy.INSTANCE.decode(ItemCostProxy.STREAM_CODEC, friendlyBuf)));
                 Item result = PacketUtils.readItem(friendlyBuf);
                 Optional<Item> cost2 = ((Optional<Object>) StreamDecoderProxy.INSTANCE.decode(ItemCostProxy.OPTIONAL_STREAM_CODEC, friendlyBuf))
                         .map(cost -> ItemStackUtils.wrap(ItemCostProxy.INSTANCE.getItemStack(cost)));
@@ -4517,7 +4515,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                 int specialPrice = byteBuf.readInt();
                 float priceMultiplier = byteBuf.readFloat();
                 int demand = byteBuf.readInt();
-                return new MerchantOffer(manager.wrap(cost1), cost2.map(manager::wrap), manager.wrap(result), outOfStock, uses, maxUses, xp, specialPrice, priceMultiplier, demand);
+                return new MerchantOffer(cost1, cost2, manager.wrap(result), outOfStock, uses, maxUses, xp, specialPrice, priceMultiplier, demand);
             });
 
             MutableBoolean changed = new MutableBoolean(false);
