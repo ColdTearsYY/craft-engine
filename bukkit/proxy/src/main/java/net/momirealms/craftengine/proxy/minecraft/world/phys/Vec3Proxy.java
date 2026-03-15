@@ -1,11 +1,13 @@
 package net.momirealms.craftengine.proxy.minecraft.world.phys;
 
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.*;
 
 @ReflectionProxy(name = "net.minecraft.world.phys.Vec3")
 public interface Vec3Proxy {
     Vec3Proxy INSTANCE = ASMProxyFactory.create(Vec3Proxy.class);
+    Class<?> CLASS = SparrowClass.find("net.minecraft.world.phys.Vec3");
     Object ZERO = INSTANCE.getZero();
 
     @ConstructorInvoker

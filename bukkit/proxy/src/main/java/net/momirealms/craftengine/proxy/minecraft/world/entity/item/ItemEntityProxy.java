@@ -1,16 +1,20 @@
 package net.momirealms.craftengine.proxy.minecraft.world.entity.item;
 
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
-import net.momirealms.sparrow.reflection.proxy.annotation.FieldGetter;
-import net.momirealms.sparrow.reflection.proxy.annotation.FieldSetter;
-import net.momirealms.sparrow.reflection.proxy.annotation.MethodInvoker;
-import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
+import net.momirealms.sparrow.reflection.proxy.annotation.*;
 
 import java.util.UUID;
 
 @ReflectionProxy(name = "net.minecraft.world.entity.item.ItemEntity")
 public interface ItemEntityProxy {
     ItemEntityProxy INSTANCE = ASMProxyFactory.create(ItemEntityProxy.class);
+    Class<?> CLASS = SparrowClass.find("net.minecraft.world.entity.item.ItemEntity");
+
+    @ConstructorInvoker
+    Object newInstance(@Type(clazz = LevelProxy.class) Object world, double x, double y, double z, @Type(clazz = ItemStackProxy.class) Object stack);
 
     @FieldGetter(name = "target")
     UUID getTarget(Object target);
@@ -44,4 +48,7 @@ public interface ItemEntityProxy {
 
     @MethodInvoker(name = "setTarget")
     void setTarget$1(Object target0, UUID target$1);
+
+    @MethodInvoker(name = "setDefaultPickUpDelay")
+    void setDefaultPickUpDelay(Object target);
 }
