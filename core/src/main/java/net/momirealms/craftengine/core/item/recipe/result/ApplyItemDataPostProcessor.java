@@ -18,7 +18,7 @@ public final class ApplyItemDataPostProcessor implements PostProcessor {
     }
 
     @Override
-    public <I> Item process(Item item, ItemBuildContext context) {
+    public Item process(Item item, ItemBuildContext context) {
         for (ItemProcessor modifier : this.modifiers) {
             item.apply(modifier, context);
         }

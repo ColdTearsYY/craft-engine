@@ -88,17 +88,17 @@ public final class ProfileProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> String nbtPathString(Item item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "SkullOwner";
     }
 
     @Override
-    public <I> @NotNull Object[] nbtPath(Item item, ItemBuildContext context) {
+    public @NotNull Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public @NotNull <I> Key componentType(Item item, ItemBuildContext context) {
+    public @NotNull Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.PROFILE;
     }
 }

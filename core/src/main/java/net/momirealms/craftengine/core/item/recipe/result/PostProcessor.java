@@ -5,5 +5,5 @@ import net.momirealms.craftengine.core.item.ItemBuildContext;
 
 public interface PostProcessor {
 
-    <I> Item process(Item item, ItemBuildContext context);
+    Item process(Item item, ItemBuildContext context);
 }

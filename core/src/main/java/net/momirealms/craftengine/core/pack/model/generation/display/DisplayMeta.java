@@ -7,8 +7,8 @@ public record DisplayMeta(Vector3f rotation, Vector3f translation, Vector3f scal
 
     public static DisplayMeta fromConfig(ConfigSection section) {
         Vector3f rotation = section.getVector3f("rotation");
-        Vector3f scale = section.getVector3f("scale");
         Vector3f translation = section.getVector3f("translation");
-        return new DisplayMeta(rotation, scale, translation);
+        Vector3f scale = section.getVector3f("scale");
+        return new DisplayMeta(rotation, translation, scale);
     }
 }

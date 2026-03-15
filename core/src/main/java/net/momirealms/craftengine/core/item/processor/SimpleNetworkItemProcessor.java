@@ -38,16 +38,16 @@ public interface SimpleNetworkItemProcessor extends ItemProcessor {
     }
 
     @Nullable
-    default <I> Key componentType(Item item, ItemBuildContext context) {
+    default Key componentType(Item item, ItemBuildContext context) {
         return null;
     }
 
     @Nullable
-    default <I> Object[] nbtPath(Item item, ItemBuildContext context) {
+    default Object[] nbtPath(Item item, ItemBuildContext context) {
         return null;
     }
 
-    default <I> String nbtPathString(Item item, ItemBuildContext context) {
+    default String nbtPathString(Item item, ItemBuildContext context) {
         Object[] path = nbtPath(item, context);
         if (path != null && path.length > 0) {
             StringBuilder builder = new StringBuilder();

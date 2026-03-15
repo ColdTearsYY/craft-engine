@@ -28,7 +28,6 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.MerchantRecipe;
 
@@ -160,10 +159,10 @@ public final class BukkitGuiManager implements GuiManager, Listener {
     }
 
     @Override
-    public void openMerchant(net.momirealms.craftengine.core.entity.player.Player player, Component title, List<MerchantOffer<?>> offers) {
+    public void openMerchant(net.momirealms.craftengine.core.entity.player.Player player, Component title, List<MerchantOffer> offers) {
         Merchant merchant = VersionHelper.isOrAbove1_21_4() ? Bukkit.createMerchant() : LegacyInventoryUtils.createMerchant();
         List<MerchantRecipe> recipes = new ArrayList<>();
-        for (MerchantOffer<?> offer : offers) {
+        for (MerchantOffer offer : offers) {
             MerchantRecipe merchantRecipe = new MerchantRecipe(ItemStackUtils.getBukkitStack(offer.result()), 0, CRAFT_ENGINE_MAGIC_MERCHANT_NUMBER, false, offer.xp(), 0);
             merchantRecipe.addIngredient(ItemStackUtils.getBukkitStack(offer.cost1()));
             offer.cost2().ifPresent(it -> merchantRecipe.addIngredient(ItemStackUtils.getBukkitStack(it)));

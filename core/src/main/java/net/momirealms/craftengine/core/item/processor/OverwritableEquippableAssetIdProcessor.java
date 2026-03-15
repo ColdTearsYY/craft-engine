@@ -65,7 +65,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.EQUIPPABLE;
     }
 

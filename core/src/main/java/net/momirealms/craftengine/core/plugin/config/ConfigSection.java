@@ -700,12 +700,14 @@ public final class ConfigSection {
 
     // 三维向量 (Float)
 
+    @Nullable
     public Vector3f getVector3f(String key) {
-        return getValue(key, ConfigValue::getAsVector3f, ConfigConstants.NORMAL_SCALE);
+        return getValue(key, ConfigValue::getAsVector3f);
     }
 
+    @Nullable
     public Vector3f getVector3f(String[] keys) {
-        return getValue(keys, ConfigValue::getAsVector3f, ConfigConstants.NORMAL_SCALE);
+        return getValue(keys, ConfigValue::getAsVector3f);
     }
 
     @NotNull

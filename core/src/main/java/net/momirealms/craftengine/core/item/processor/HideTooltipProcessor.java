@@ -127,13 +127,13 @@ public final class HideTooltipProcessor implements ItemProcessor {
 
     public interface Applier {
 
-        <I> void apply(Item item);
+        void apply(Item item);
     }
 
     public static class DummyApplier implements Applier {
 
         @Override
-        public <I> void apply(Item item) {
+        public void apply(Item item) {
         }
     }
 
@@ -145,7 +145,7 @@ public final class HideTooltipProcessor implements ItemProcessor {
         }
 
         @Override
-        public <I> void apply(Item item) {
+        public void apply(Item item) {
             Tag previous = item.getSparrowNBTComponent(this.component);
             if (previous instanceof CompoundTag compoundTag) {
                 compoundTag.putBoolean("show_in_tooltip", false);
@@ -157,7 +157,7 @@ public final class HideTooltipProcessor implements ItemProcessor {
     public record CompoundApplier(List<Applier> appliers) implements Applier {
 
         @Override
-        public <I> void apply(Item item) {
+        public void apply(Item item) {
             for (Applier applier : appliers) {
                 applier.apply(item);
             }
@@ -183,7 +183,7 @@ public final class HideTooltipProcessor implements ItemProcessor {
         }
 
         @Override
-        public <I> void apply(Item item) {
+        public void apply(Item item) {
             Integer previousFlags = (Integer) item.getJavaTag("HideFlags");
             if (previousFlags != null) {
                 item.setTag(this.legacyValue | previousFlags, "HideFlags");
@@ -205,7 +205,7 @@ public final class HideTooltipProcessor implements ItemProcessor {
         }
 
         @Override
-        public <I> void apply(Item item) {
+        public void apply(Item item) {
             Object tooltipDisplayJava = item.getJavaComponent(DataComponentKeys.TOOLTIP_DISPLAY);
             if (tooltipDisplayJava == null) {
                 item.setJavaComponent(DataComponentKeys.TOOLTIP_DISPLAY, Map.of("hidden_components", this.components));

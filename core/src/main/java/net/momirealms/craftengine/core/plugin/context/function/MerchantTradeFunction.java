@@ -31,12 +31,12 @@ import java.util.function.BiFunction;
 public final class MerchantTradeFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final String title;
     private final PlayerSelector<CTX> selector;
-    private final BiFunction<Player, Context, List<MerchantOffer<?>>> offers;
+    private final BiFunction<Player, Context, List<MerchantOffer>> offers;
 
     private MerchantTradeFunction(List<Condition<CTX>> predicates,
                                   @Nullable PlayerSelector<CTX> selector,
                                   String title,
-                                  BiFunction<Player, Context, List<MerchantOffer<?>>> offers) {
+                                  BiFunction<Player, Context, List<MerchantOffer>> offers) {
         super(predicates);
         this.title = title;
         this.selector = selector;
@@ -87,12 +87,12 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
                     getPlayerSelector(section),
                     section.getString("title"),
                     (player, context) -> {
-                        List<MerchantOffer<?>> offers = new ArrayList<>(merchantOffers.size());
+                        List<MerchantOffer> offers = new ArrayList<>(merchantOffers.size());
                         for (TempOffer offer : merchantOffers) {
                             Item cost1 = offer.cost1.build(player, context);
                             Optional cost2 = Optional.ofNullable(offer.cost2).map(it -> it.build(player, context));
                             Item result = offer.result.build(player, context);
-                            offers.add(new MerchantOffer<>(cost1, cost2, result, false, 0, Integer.MAX_VALUE, offer.exp.getInt(context), 0, 0, 0));
+                            offers.add(new MerchantOffer(cost1, cost2, result, false, 0, Integer.MAX_VALUE, offer.exp.getInt(context), 0, 0, 0));
                         }
                         return offers;
                     });

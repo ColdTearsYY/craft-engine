@@ -13,7 +13,7 @@ public final class LegacyCustomRecipe implements LegacyRecipe {
         this.category = category;
     }
 
-    public static <I> LegacyCustomRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<I> reader) {
+    public static LegacyCustomRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         CraftingRecipeCategory category = CraftingRecipeCategory.byId(buf.readVarInt());
         return new LegacyCustomRecipe(category);
     }

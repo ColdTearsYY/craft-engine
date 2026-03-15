@@ -107,7 +107,7 @@ public final class Registries {
     public static final ResourceKey<Registry<EquipmentType<? extends Equipment>>> EQUIPMENT_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("equipment_type"));
     public static final ResourceKey<Registry<SlotDisplay.Type<? extends SlotDisplay>>> SLOT_DISPLAY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("slot_display_type"));
     public static final ResourceKey<Registry<RecipeDisplay.Type<? extends RecipeDisplay>>> RECIPE_DISPLAY_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_display_type"));
-    public static final ResourceKey<Registry<LegacyRecipe.Type<?>>> LEGACY_RECIPE_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("legacy_recipe_type"));
+    public static final ResourceKey<Registry<LegacyRecipe.Type<? extends LegacyRecipe>>> LEGACY_RECIPE_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("legacy_recipe_type"));
     public static final ResourceKey<Registry<PostProcessorType<? extends PostProcessor>>> RECIPE_POST_PROCESSOR_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("recipe_post_processor_type"));
     public static final ResourceKey<Registry<ItemUpdaterType<? extends ItemUpdater>>> ITEM_UPDATER_TYPE = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("item_updater_type"));
     public static final ResourceKey<Registry<NetworkCodec<FriendlyByteBuf, ? extends ModPacket>>> MOD_PACKET = ResourceKey.create(ROOT_REGISTRY, Key.withCraftEngineNamespace("mod_packet_type"));

@@ -3762,13 +3762,12 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             if (Config.disableItemOperations()) return;
             if (!(user instanceof BukkitServerPlayer serverPlayer)) return;
             FriendlyByteBuf buf = event.getBuffer();
-            Item itemStack = PacketUtils.readItem(buf);
+            Item item = PacketUtils.readItem(buf);
 
             // 为了避免其他插件造成的手感冲突
             if (VersionHelper.isOrAbove1_21_5()) {
-                Item wrapped = BukkitItemManager.instance().wrap(itemStack);
                 // 发出来的是非空物品
-                if (!wrapped.isEmpty()) {
+                if (!item.isEmpty()) {
                     Object containerMenu = PlayerProxy.INSTANCE.getContainerMenu(serverPlayer.serverPlayer());
                     if (containerMenu != null) {
                         Item carried = ItemStackUtils.wrap(AbstractContainerMenuProxy.INSTANCE.getCarried(containerMenu));
@@ -3784,7 +3783,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                 }
             }
 
-            BukkitItemManager.instance().s2c(itemStack, serverPlayer).ifPresent((newItemStack) -> {
+            BukkitItemManager.instance().s2c(item, serverPlayer).ifPresent((newItemStack) -> {
                 event.setChanged(true);
                 buf.clear();
                 buf.writeVarInt(event.packetID());
@@ -4438,7 +4437,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             FriendlyByteBuf buf = event.getBuffer();
             int containerId = buf.readContainerId();
             BukkitItemManager manager = BukkitItemManager.instance();
-            List<MerchantOffer<ItemStack>> merchantOffers = buf.readCollection(ArrayList::new, byteBuf -> {
+            List<MerchantOffer> merchantOffers = buf.readCollection(ArrayList::new, byteBuf -> {
                 Item cost1 = PacketUtils.readItem(buf);
                 Item result = PacketUtils.readItem(buf);
                 Item cost2 = PacketUtils.readItem(buf);
@@ -4449,11 +4448,11 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                 int specialPrice = byteBuf.readInt();
                 float priceMultiplier = byteBuf.readFloat();
                 int demand = byteBuf.readInt();
-                return new MerchantOffer<>(cost1, Optional.of(cost2), result, outOfStock, uses, maxUses, xp, specialPrice, priceMultiplier, demand);
+                return new MerchantOffer(cost1, Optional.of(cost2), result, outOfStock, uses, maxUses, xp, specialPrice, priceMultiplier, demand);
             });
 
             MutableBoolean changed = new MutableBoolean(false);
-            for (MerchantOffer<ItemStack> offer : merchantOffers) {
+            for (MerchantOffer offer : merchantOffers) {
                 offer.applyClientboundData(item -> {
                     Optional<Item> remapped = manager.s2c(item, serverPlayer);
                     if (remapped.isEmpty()) {
@@ -4506,7 +4505,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             int containerId = buf.readContainerId();
             BukkitItemManager manager = BukkitItemManager.instance();
             ByteBuf friendlyBuf = PacketUtils.ensureNMSFriendlyByteBuf(buf.source());
-            List<MerchantOffer<ItemStack>> merchantOffers = buf.readCollection(ArrayList::new, byteBuf -> {
+            List<MerchantOffer> merchantOffers = buf.readCollection(ArrayList::new, byteBuf -> {
                 ItemStack cost1 = ItemStackUtils.getBukkitStack(ItemCostProxy.INSTANCE.getItemStack(StreamDecoderProxy.INSTANCE.decode(ItemCostProxy.STREAM_CODEC, friendlyBuf)));
                 Item result = PacketUtils.readItem(friendlyBuf);
                 Optional<Item> cost2 = ((Optional<Object>) StreamDecoderProxy.INSTANCE.decode(ItemCostProxy.OPTIONAL_STREAM_CODEC, friendlyBuf))
@@ -4518,11 +4517,11 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                 int specialPrice = byteBuf.readInt();
                 float priceMultiplier = byteBuf.readFloat();
                 int demand = byteBuf.readInt();
-                return new MerchantOffer<>(manager.wrap(cost1), cost2.map(manager::wrap), manager.wrap(result), outOfStock, uses, maxUses, xp, specialPrice, priceMultiplier, demand);
+                return new MerchantOffer(manager.wrap(cost1), cost2.map(manager::wrap), manager.wrap(result), outOfStock, uses, maxUses, xp, specialPrice, priceMultiplier, demand);
             });
 
             MutableBoolean changed = new MutableBoolean(false);
-            for (MerchantOffer<ItemStack> offer : merchantOffers) {
+            for (MerchantOffer offer : merchantOffers) {
                 offer.applyClientboundData(item -> {
                     Optional<Item> remapped = manager.s2c(item, serverPlayer);
                     if (remapped.isEmpty()) {

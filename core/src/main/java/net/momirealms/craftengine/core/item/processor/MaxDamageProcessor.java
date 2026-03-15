@@ -23,7 +23,7 @@ public final class MaxDamageProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.MAX_DAMAGE;
     }
 

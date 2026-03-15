@@ -33,17 +33,17 @@ public final class OverwritableLoreProcessor implements SimpleNetworkItemProcess
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.LORE;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"display", "Lore"};
     }
 
     @Override
-    public <I> String nbtPathString(Item item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "display.Lore";
     }
 

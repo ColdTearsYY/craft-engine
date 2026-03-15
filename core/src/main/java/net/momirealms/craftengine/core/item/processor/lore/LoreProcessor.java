@@ -31,18 +31,18 @@ public sealed interface LoreProcessor extends SimpleNetworkItemProcessor
 
     @Override
     @Nullable
-    default <I> Key componentType(Item item, ItemBuildContext context) {
+    default Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.LORE;
     }
 
     @Override
     @Nullable
-    default <I> Object[] nbtPath(Item item, ItemBuildContext context) {
+    default Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"display", "Lore"};
     }
 
     @Override
-    default <I> String nbtPathString(Item item, ItemBuildContext context) {
+    default String nbtPathString(Item item, ItemBuildContext context) {
         return "display.Lore";
     }
 

@@ -31,17 +31,17 @@ public final class OverwritableItemNameProcessor implements SimpleNetworkItemPro
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ITEM_NAME;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"display", "Name"};
     }
 
     @Override
-    public <I> String nbtPathString(Item item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "display.Name";
     }
 

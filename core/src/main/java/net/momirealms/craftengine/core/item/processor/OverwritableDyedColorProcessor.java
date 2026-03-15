@@ -31,17 +31,17 @@ public final class OverwritableDyedColorProcessor implements SimpleNetworkItemPr
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.DYED_COLOR;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "display.color";
     }
 

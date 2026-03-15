@@ -5,7 +5,7 @@ import net.momirealms.craftengine.core.item.Item;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class MerchantOffer<I> {
+public final class MerchantOffer {
     private Item cost1;
     private Optional<Item> cost2;
     private Item result;

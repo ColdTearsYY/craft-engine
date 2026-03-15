@@ -26,7 +26,7 @@ public final class TooltipStyleProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.TOOLTIP_STYLE;
     }
 

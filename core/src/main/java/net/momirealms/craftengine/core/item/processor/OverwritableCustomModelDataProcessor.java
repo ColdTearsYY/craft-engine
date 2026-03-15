@@ -24,17 +24,17 @@ public final class OverwritableCustomModelDataProcessor implements SimpleNetwork
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.CUSTOM_MODEL_DATA;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"CustomModelData"};
     }
 
     @Override
-    public <I> String nbtPathString(Item item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "CustomModelData";
     }
 

@@ -12,70 +12,40 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.BiFunction;
 
 @ApiStatus.Obsolete
-@SuppressWarnings({"unchecked", "rawtypes"})
 public final class LegacyRecipeTypes {
     private LegacyRecipeTypes() {}
 
-    public static final Key SHAPED_RECIPE = Key.of("crafting_shaped");
-    public static final Key SHAPELESS_RECIPE = Key.of("crafting_shapeless");
-    public static final Key ARMOR_DYE = Key.of("crafting_special_armordye");
-    public static final Key BOOK_CLONING = Key.of("crafting_special_bookcloning");
-    public static final Key MAP_CLONING = Key.of("crafting_special_mapcloning");
-    public static final Key MAP_EXTENDING = Key.of("crafting_special_mapextending");
-    public static final Key FIREWORK_ROCKET = Key.of("crafting_special_firework_rocket");
-    public static final Key FIREWORK_STAR = Key.of("crafting_special_firework_star");
-    public static final Key FIREWORK_STAR_FADE = Key.of("crafting_special_firework_star_fade");
-    public static final Key TIPPED_ARROW = Key.of("crafting_special_tippedarrow");
-    public static final Key BANNER_DUPLICATE = Key.of("crafting_special_bannerduplicate");
-    public static final Key SHIELD_DECORATION = Key.of("crafting_special_shielddecoration");
-    public static final Key SHULKER_BOX_COLORING = Key.of("crafting_special_shulkerboxcoloring");
-    public static final Key SUSPICIOUS_STEW = Key.of("crafting_special_suspiciousstew");
-    public static final Key REPAIR_ITEM = Key.of("crafting_special_repairitem");
-    public static final Key SMELTING_RECIPE = Key.of("smelting");
-    public static final Key BLASTING_RECIPE = Key.of("blasting");
-    public static final Key SMOKING_RECIPE = Key.of("smoking");
-    public static final Key CAMPFIRE_COOKING_RECIPE = Key.of("campfire_cooking");
-    public static final Key STONECUTTER = Key.of("stonecutting");
-    public static final Key SMITHING_TRANSFORM = Key.of("smithing_transform");
-    public static final Key SMITHING_TRIM = Key.of("smithing_trim");
-    public static final Key DECORATED_POT_RECIPE = Key.of("crafting_decorated_pot");
+    public static final LegacyRecipe.Type<LegacyShapedRecipe> SHAPED_RECIPE = register(Key.of("crafting_shaped"), LegacyShapedRecipe::read);
+    public static final LegacyRecipe.Type<LegacyShapelessRecipe> SHAPELESS_RECIPE = register(Key.of("crafting_shapeless"), LegacyShapelessRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> ARMOR_DYE = register(Key.of("crafting_special_armordye"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> BOOK_CLONING = register(Key.of("crafting_special_bookcloning"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> MAP_CLONING = register(Key.of("crafting_special_mapcloning"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> MAP_EXTENDING = register(Key.of("crafting_special_mapextending"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> FIREWORK_ROCKET = register(Key.of("crafting_special_firework_rocket"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> FIREWORK_STAR = register(Key.of("crafting_special_firework_star"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> FIREWORK_STAR_FADE = register(Key.of("crafting_special_firework_star_fade"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> TIPPED_ARROW = register(Key.of("crafting_special_tippedarrow"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> BANNER_DUPLICATE = register(Key.of("crafting_special_bannerduplicate"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> SHIELD_DECORATION = register(Key.of("crafting_special_shielddecoration"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> SHULKER_BOX_COLORING = register(Key.of("crafting_special_shulkerboxcoloring"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> SUSPICIOUS_STEW = register(Key.of("crafting_special_suspiciousstew"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> REPAIR_ITEM = register(Key.of("crafting_special_repairitem"), LegacyCustomRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCookingRecipe> SMELTING_RECIPE = register(Key.of("smelting"), LegacyCookingRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCookingRecipe> BLASTING_RECIPE = register(Key.of("blasting"), LegacyCookingRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCookingRecipe> SMOKING_RECIPE = register(Key.of("smoking"), LegacyCookingRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCookingRecipe> CAMPFIRE_COOKING_RECIPE = register(Key.of("campfire_cooking"), LegacyCookingRecipe::read);
+    public static final LegacyRecipe.Type<LegacyStoneCuttingRecipe> STONECUTTER = register(Key.of("stonecutting"), LegacyStoneCuttingRecipe::read);
+    public static final LegacyRecipe.Type<LegacySmithingTransformRecipe> SMITHING_TRANSFORM = register(Key.of("smithing_transform"), LegacySmithingTransformRecipe::read);
+    public static final LegacyRecipe.Type<LegacySmithingTrimRecipe> SMITHING_TRIM = register(Key.of("smithing_trim"), LegacySmithingTrimRecipe::read);
+    public static final LegacyRecipe.Type<LegacyCustomRecipe> DECORATED_POT_RECIPE = register(Key.of("crafting_decorated_pot"), LegacyCustomRecipe::read);
 
     public static void init() {
     }
 
-    static {
-        register(SHAPED_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyShapedRecipe::read)));
-        register(SHAPELESS_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyShapelessRecipe::read)));
-        register(ARMOR_DYE, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(BOOK_CLONING, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(MAP_CLONING, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(MAP_EXTENDING, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(FIREWORK_ROCKET, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(FIREWORK_STAR, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(FIREWORK_STAR_FADE, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(TIPPED_ARROW, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(BANNER_DUPLICATE, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(SHIELD_DECORATION, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(SHULKER_BOX_COLORING, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(SUSPICIOUS_STEW, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(REPAIR_ITEM, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-        register(SMELTING_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyCookingRecipe::read)));
-        register(BLASTING_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyCookingRecipe::read)));
-        register(SMOKING_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyCookingRecipe::read)));
-        register(CAMPFIRE_COOKING_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyCookingRecipe::read)));
-        register(STONECUTTER, new LegacyRecipe.Type(createReaderFunction(LegacyStoneCuttingRecipe::read)));
-        register(SMITHING_TRANSFORM, new LegacyRecipe.Type(createReaderFunction(LegacySmithingTransformRecipe::read)));
-        register(SMITHING_TRIM, new LegacyRecipe.Type(createReaderFunction(LegacySmithingTrimRecipe::read)));
-        register(DECORATED_POT_RECIPE, new LegacyRecipe.Type(createReaderFunction(LegacyCustomRecipe::read)));
-    }
-    
-    private static BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<Item>, LegacyRecipe> createReaderFunction(
-            BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader, LegacyRecipe> function) {
-        return (BiFunction) function;
-    }
-
-    public static <T> void register(Key key, LegacyRecipe.Type<T> type) {
-        ((WritableRegistry<LegacyRecipe.Type<?>>) BuiltInRegistries.LEGACY_RECIPE_TYPE)
+    public static <T extends LegacyRecipe> LegacyRecipe.Type<T> register(Key key, BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<Item>, T> function) {
+        LegacyRecipe.Type<T> type = new LegacyRecipe.Type<>(key, function);
+        ((WritableRegistry<LegacyRecipe.Type<? extends LegacyRecipe>>) BuiltInRegistries.LEGACY_RECIPE_TYPE)
                 .register(ResourceKey.create(Registries.LEGACY_RECIPE_TYPE.location(), key), type);
+        return type;
     }
 }

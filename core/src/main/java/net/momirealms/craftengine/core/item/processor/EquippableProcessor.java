@@ -27,7 +27,7 @@ public final class EquippableProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> @NotNull Key componentType(Item item, ItemBuildContext context) {
+    public @NotNull Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.EQUIPPABLE;
     }
 

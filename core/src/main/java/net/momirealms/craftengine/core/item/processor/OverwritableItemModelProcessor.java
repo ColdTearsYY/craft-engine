@@ -26,7 +26,7 @@ public final class OverwritableItemModelProcessor implements SimpleNetworkItemPr
     }
 
     @Override
-    public <I> Key componentType(Item item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ITEM_MODEL;
     }
 

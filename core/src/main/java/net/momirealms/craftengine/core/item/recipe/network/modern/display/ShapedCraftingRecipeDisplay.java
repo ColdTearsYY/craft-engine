@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 public record ShapedCraftingRecipeDisplay(int width, int height, List<SlotDisplay> ingredients, SlotDisplay result, SlotDisplay craftingStation) implements RecipeDisplay {
 
-    public static <I> ShapedCraftingRecipeDisplay read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
+    public static ShapedCraftingRecipeDisplay read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
         int width = buffer.readVarInt();
         int height = buffer.readVarInt();
         List<SlotDisplay> ingredients = buffer.readCollection(ArrayList::new, buf -> SlotDisplay.read(buf, reader));
