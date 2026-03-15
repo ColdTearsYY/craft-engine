@@ -3,8 +3,11 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
+import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.RegistryOps;
+import net.momirealms.craftengine.core.entity.player.InteractionHand;
+import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.FlagKeys;
@@ -31,13 +34,14 @@ public final class DebugItemDataCommand extends BukkitCommandFeature<CommandSend
                 .senderType(Player.class)
                 .flag(FlagKeys.CLIENT_SIDE_FLAG)
                 .handler(context -> {
-                    ItemStack itemInHand = context.sender().getInventory().getItemInMainHand().clone();
-                    if (ItemStackUtils.isEmpty(itemInHand)) {
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(context.sender());
+                    Item itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+                    if (itemInHand.isEmpty()) {
                         return;
                     }
                     boolean toClientSide = context.flags().hasFlag(FlagKeys.CLIENT_SIDE_FLAG);
                     if (toClientSide) {
-                        itemInHand = BukkitItemManager.instance().s2c(itemInHand, BukkitAdaptor.adapt(context.sender())).orElse(itemInHand);
+                        itemInHand = BukkitItemManager.instance().s2c(itemInHand, serverPlayer).orElse(itemInHand);
                     }
                     Map<String, Object> readableMap = toMap(itemInHand);
                     List<String> readableList = mapToList(readableMap);
@@ -55,13 +59,13 @@ public final class DebugItemDataCommand extends BukkitCommandFeature<CommandSend
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<String, Object> toMap(ItemStack nmsStack) {
+    private static Map<String, Object> toMap(Item item) {
         if (VersionHelper.COMPONENT_RELEASE) {
-            return (Map<String, Object>) ItemStackProxy.INSTANCE.getCodec().encodeStart(RegistryOps.JAVA, nmsStack)
+            return (Map<String, Object>) ItemStackProxy.INSTANCE.getCodec().encodeStart(RegistryOps.JAVA, item.getMinecraftItem())
                     .resultOrPartial(error -> CraftEngine.instance().logger().severe("Error while saving item: " + error))
                     .orElse(null);
         } else {
-            Object nmsTag = ItemStackProxy.INSTANCE.save(nmsStack, CompoundTagProxy.INSTANCE.newInstance());
+            Object nmsTag = ItemStackProxy.INSTANCE.save(item.getMinecraftItem(), CompoundTagProxy.INSTANCE.newInstance());
             return (Map<String, Object>) RegistryOps.NBT.convertTo(RegistryOps.JAVA, nmsTag);
         }
     }
