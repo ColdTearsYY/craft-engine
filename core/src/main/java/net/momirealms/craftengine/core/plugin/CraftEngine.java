@@ -154,14 +154,13 @@ public abstract class CraftEngine implements Plugin {
         this.config.loadFullSettings();
     }
 
-    public record ReloadResult(boolean success, long asyncTime, long syncTime) {
-
+    public record ReloadResult(boolean success, long asyncTime, long syncTime, int issues) {
         static ReloadResult failure() {
-            return new ReloadResult(false, -1L, -1L);
+            return new ReloadResult(false, -1L, -1L, -1);
         }
 
-        static ReloadResult success(long asyncTime, long syncTime) {
-            return new ReloadResult(true, asyncTime, syncTime);
+        static ReloadResult success(long asyncTime, long syncTime, int issues) {
+            return new ReloadResult(true, asyncTime, syncTime, issues);
         }
     }
 
@@ -216,6 +215,7 @@ public abstract class CraftEngine implements Plugin {
         CompletableFuture<ReloadResult> future = new CompletableFuture<>();
         asyncExecutor.execute(() -> {
             long asyncTime = -1;
+            int issues = 0;
             try {
                 if (this.isReloading) {
                     future.complete(ReloadResult.failure());
@@ -237,13 +237,15 @@ public abstract class CraftEngine implements Plugin {
                     this.packManager.loadPacks();
                     this.packManager.updateCachedConfigFiles();
                     if (reloadRecipe) {
-                        this.packManager.loadResources(p -> true);
+                        issues = this.packManager.loadResources(p -> true);
                     } else {
-                        this.packManager.loadResources(p -> p.loadingStage() != LoadingStages.RECIPE);
+                        issues = this.packManager.loadResources(p -> p.loadingStage() != LoadingStages.RECIPE);
                     }
                     this.packManager.clearResourceConfigs();
                 } catch (Throwable e) {
                     this.logger().warn("Failed to load resources folder", e);
+                    future.complete(ReloadResult.failure());
+                    return;
                 }
                 // 执行延迟任务
                 this.runDelayTasks(reloadRecipe);
@@ -251,8 +253,12 @@ public abstract class CraftEngine implements Plugin {
                 this.networkManager.delayedLoad();
                 long time2 = System.currentTimeMillis();
                 asyncTime = time2 - time1;
+            } catch (Throwable e) {
+                this.logger().warn("Failed to reload", e);
+                future.complete(ReloadResult.failure());
             } finally {
                 long finalAsyncTime = asyncTime;
+                int finalIssues = issues;
                 syncExecutor.execute(() -> {
                     try {
                         long time3 = System.currentTimeMillis();
@@ -267,7 +273,10 @@ public abstract class CraftEngine implements Plugin {
                         long time4 = System.currentTimeMillis();
                         long syncTime = time4 - time3;
                         this.reloadEventDispatcher.accept(this);
-                        future.complete(ReloadResult.success(finalAsyncTime, syncTime));
+                        future.complete(ReloadResult.success(finalAsyncTime, syncTime, finalIssues));
+                    } catch (Throwable e) {
+                        this.logger().warn("Failed to run sync tasks", e);
+                        future.complete(ReloadResult.failure());
                     } finally {
                         this.isReloading = false;
                     }

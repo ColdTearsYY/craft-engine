@@ -424,7 +424,7 @@ public final class Config {
             }
             this.resource_pack$duplicated_files_handler = resolutions;
         } catch (KnownResourceException e) {
-            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("config.errors_detected", e.getMessage()));
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("config.errors_detected", e.getLocalizedMessage()));
             this.resource_pack$duplicated_files_handler = List.of();
         } catch (Throwable e) {
             this.plugin.logger().warn("Failed to load resource-pack.duplicated-files-handler", e);

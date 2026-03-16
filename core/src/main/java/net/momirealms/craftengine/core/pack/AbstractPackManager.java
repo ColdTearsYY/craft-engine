@@ -293,7 +293,7 @@ public abstract class AbstractPackManager implements PackManager {
                 this.resourcePackHost = hosts.getFirst();
             }
         } catch (KnownResourceException e) {
-            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("config.errors_detected", e.getMessage()));
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("config.errors_detected", e.getLocalizedMessage()));
             this.resourcePackHost = NoneHost.INSTANCE;
         } catch (Throwable e) {
             this.plugin.logger().warn("Failed to load resource-pack.delivery.hosting", e);
@@ -307,8 +307,8 @@ public abstract class AbstractPackManager implements PackManager {
     }
 
     @Override
-    public void loadResources(Predicate<ConfigParser> predicate) {
-        this.loadResourceConfigs(predicate);
+    public int loadResources(Predicate<ConfigParser> predicate) {
+        return this.loadResourceConfigs(predicate);
     }
 
     @Override
@@ -549,7 +549,7 @@ public abstract class AbstractPackManager implements PackManager {
         }
     }
 
-    private void loadResourceConfigs(Predicate<ConfigParser> predicate) {
+    private int loadResourceConfigs(Predicate<ConfigParser> predicate) {
         LoadingPyramid pyramid = new LoadingPyramid();
         Map<Path, List<ResourceException>> errorByPath = new ConcurrentHashMap<>();
         for (ConfigParser parser : this.parsers) {
@@ -583,28 +583,22 @@ public abstract class AbstractPackManager implements PackManager {
             });
         }
         pyramid.execute().join();
+        int issueCount = 0;
         for (Map.Entry<Path, List<ResourceException>> entry : errorByPath.entrySet()) {
             List<ResourceException> issues = entry.getValue();
+            issueCount += issues.size();
             Path path = entry.getKey();
-            if (path != null) {
-                this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detected", path.toString(), String.valueOf(issues.size())));
-                for (int i = 0; i < issues.size(); i++) {
-                    ResourceException issue = issues.get(i);
-                    if (issue instanceof KnownResourceException) {
-                        this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
-                    } else {
-                        this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), ""), issue);
-                    }
-                }
-            } else {
-                // todo 异常
-                this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detected", "null", String.valueOf(issues.size())));
-                for (int i = 0; i < issues.size(); i++) {
-                    ResourceException issue = issues.get(i);
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detected", String.valueOf(path), String.valueOf(issues.size())));
+            for (int i = 0; i < issues.size(); i++) {
+                ResourceException issue = issues.get(i);
+                if (issue instanceof KnownResourceException) {
                     this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+                } else {
+                    this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), ""), issue);
                 }
             }
         }
+        return issueCount;
     }
 
     @Override
