@@ -14,8 +14,6 @@ import org.incendo.cloud.parser.standard.EnumParser;
 import java.util.Optional;
 
 public final class ReloadCommand extends BukkitCommandFeature<CommandSender> {
-    private static final TextColor GREEN = TextColor.fromHexString("#90EE90");
-    private static final TextColor YELLOW = TextColor.fromHexString("#FF4500");
     public static boolean RELOAD_PACK_FLAG = false;
 
     public ReloadCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
