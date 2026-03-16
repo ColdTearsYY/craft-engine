@@ -80,7 +80,7 @@ public interface Plugin {
 
     PackManager packManager();
 
-    <T> RecipeManager<T> recipeManager();
+    <T> RecipeManager recipeManager();
 
     <P extends Plugin, C> SenderFactory<P, C> senderFactory();
 

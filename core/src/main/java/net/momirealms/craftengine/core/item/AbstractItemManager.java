@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.item;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import com.mojang.datafixers.util.Either;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviors;
 import net.momirealms.craftengine.core.item.equipment.*;
@@ -62,12 +63,12 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     protected final Map<Key, TreeMap<Integer, ModernItemModel>> modernOverrides = new ConcurrentHashMap<>();
     protected final Map<Key, Equipment> equipments = new ConcurrentHashMap<>();
     // 指令补全
-    protected final List<Suggestion> cachedCustomItemSuggestions = new ArrayList<>();
-    protected final List<Suggestion> cachedTotemSuggestions = new ArrayList<>();
+    protected final List<Suggestion> cachedCustomItemSuggestions = new ObjectArrayList<>();
+    protected final List<Suggestion> cachedTotemSuggestions = new ObjectArrayList<>();
     // 替代配方材料
     protected final Map<Key, List<UniqueKey>> ingredientSubstitutes = new HashMap<>();
     // 有序物品id
-    protected List<Key> orderedItemIds = List.of();
+    protected final List<Key> orderedItemIds = new ObjectArrayList<>();
     // 其他设置
     protected boolean featureFlag$keepOnDeathChance = false;
     protected boolean featureFlag$destroyOnDeathChance = false;
@@ -105,6 +106,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         this.modernItemModels1_21_4.clear();
         this.modernItemModels1_21_2.clear();
         this.ingredientSubstitutes.clear();
+        this.orderedItemIds.clear();
     }
 
     private void clearFeatureFlags() {
@@ -199,43 +201,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 return Optional.of(List.copyOf(behavior));
             } else {
                 return Optional.empty();
-            }
-        }
-    }
-
-    @Override
-    public void delayedLoad() {
-        for (CustomItem customItem : this.customItemsById.values()) {
-            if (customItem.isVanillaItem()) continue;
-            Key id = customItem.id();
-            // cache command suggestions
-            this.cachedCustomItemSuggestions.add(Suggestion.suggestion(id.asString()));
-            // totem animations
-            if (VersionHelper.isOrAbove1_21_2()) {
-                this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
-            } else if (customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING)) {
-                this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
-            }
-            // tags
-            ItemSettings settings = customItem.settings();
-            Set<Key> tags = settings.tags();
-            for (Key tag : tags) {
-                this.customItemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(customItem.uniqueId());
-            }
-            // ingredient substitutes
-            List<Key> substitutes = settings.ingredientSubstitutes();
-            if (!substitutes.isEmpty()) {
-                for (Key key : substitutes) {
-                    if (VANILLA_ITEMS.contains(key)) {
-                        AbstractItemManager.this.ingredientSubstitutes.computeIfAbsent(key, k -> new ArrayList<>()).add(customItem.uniqueId());
-                    }
-                }
-            }
-            if (settings.keepOnDeathChance != 0) {
-                this.featureFlag$keepOnDeathChance = true;
-            }
-            if (settings.destroyOnDeathChance != 0) {
-                this.featureFlag$destroyOnDeathChance = true;
             }
         }
     }
@@ -420,14 +385,44 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             // 获取有序的物品id
             int size = this.pendingConfigSections.size();
             Object[] pendingElements = this.pendingConfigSections.elements();
-            List<Key> orderedKeys = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 PendingConfigSection pending = (PendingConfigSection) pendingElements[i];
-                if (customItemsById.containsKey(pending.id)) {
-                    orderedKeys.add(pending.id);
+                CustomItem customItem = AbstractItemManager.this.customItemsById.get(pending.id);
+                if (customItem != null) {
+                    Key id = customItem.id();
+                    AbstractItemManager.this.orderedItemIds.add(id);
+                    if (customItem.isVanillaItem()) continue;
+                    // cache command suggestions
+                    AbstractItemManager.this.cachedCustomItemSuggestions.add(Suggestion.suggestion(id.asString()));
+                    // totem animations
+                    if (VersionHelper.isOrAbove1_21_2()) {
+                        AbstractItemManager.this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
+                    } else if (customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING)) {
+                        AbstractItemManager.this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
+                    }
+                    // tags
+                    ItemSettings settings = customItem.settings();
+                    Set<Key> tags = settings.tags();
+                    for (Key tag : tags) {
+                        AbstractItemManager.this.customItemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(customItem.uniqueId());
+                    }
+                    // ingredient substitutes
+                    List<Key> substitutes = settings.ingredientSubstitutes();
+                    if (!substitutes.isEmpty()) {
+                        for (Key key : substitutes) {
+                            if (VANILLA_ITEMS.contains(key)) {
+                                AbstractItemManager.this.ingredientSubstitutes.computeIfAbsent(key, k -> new ArrayList<>()).add(customItem.uniqueId());
+                            }
+                        }
+                    }
+                    if (settings.keepOnDeathChance != 0) {
+                        AbstractItemManager.this.featureFlag$keepOnDeathChance = true;
+                    }
+                    if (settings.destroyOnDeathChance != 0) {
+                        AbstractItemManager.this.featureFlag$destroyOnDeathChance = true;
+                    }
                 }
             }
-            AbstractItemManager.this.orderedItemIds = orderedKeys;
         }
 
         // 创建或获取已有的自动分配器

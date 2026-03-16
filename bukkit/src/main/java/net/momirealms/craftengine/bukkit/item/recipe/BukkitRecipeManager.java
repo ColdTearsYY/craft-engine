@@ -21,7 +21,6 @@ import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftServerProxy;
-import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.FileToIdConverterProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
@@ -38,7 +37,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeMapP
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.HandlerList;
-import org.bukkit.inventory.ItemStack;
 
 import java.io.Reader;
 import java.util.*;
@@ -47,7 +45,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 // todo 在folia上替换recipe map使其线程安全
-public final class BukkitRecipeManager extends AbstractRecipeManager<ItemStack> {
+public final class BukkitRecipeManager extends AbstractRecipeManager {
     private static BukkitRecipeManager instance;
 
     private static final Consumer<Key> MINECRAFT_RECIPE_REMOVER = VersionHelper.isOrAbove1_21_2() ?

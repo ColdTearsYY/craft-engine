@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.nio.file.Path;
 import java.util.*;
 
-public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
+public abstract class AbstractRecipeManager implements RecipeManager {
     protected final Map<RecipeType, List<Recipe>> byType = new EnumMap<>(RecipeType.class);
     protected final Map<Key, Recipe> byId = new LinkedHashMap<>();
     protected final Map<Key, List<Recipe>> byResult = new HashMap<>();
@@ -148,7 +148,7 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
 
     private final class RecipeParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"recipes", "recipe"};
-        private final List<TempRecipe<T>> recipes = Collections.synchronizedList(new ArrayList<>());
+        private final List<TempRecipe<Object>> recipes = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         public String[] sectionId() {
@@ -180,7 +180,7 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         @Override
         public void postProcess() {
             if (!this.recipes.isEmpty()) {
-                for (TempRecipe<T> recipe : this.recipes) {
+                for (TempRecipe<Object> recipe : this.recipes) {
                     registerInternalRecipe(recipe.recipe, recipe.unlockOnIngredientObtained);
                 }
                 this.recipes.clear();

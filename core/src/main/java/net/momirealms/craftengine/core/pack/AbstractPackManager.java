@@ -474,38 +474,39 @@ public abstract class AbstractPackManager implements PackManager {
                                 if (cachedFile != null && cachedFile.lastModified() == lastModifiedTime && cachedFile.size() == size) {
                                     AbstractPackManager.this.cachedConfigFiles.put(path, cachedFile);
                                 } else {
-                                    try (InputStreamReader inputStream = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
-                                        LoaderOptions loaderOptions = new LoaderOptions();
-                                        loaderOptions.setNestingDepthLimit(256);
-                                        Yaml yaml = new Yaml(new StringKeyConstructor(path, loaderOptions));
-                                        Map<String, Object> data = yaml.load(inputStream);
-                                        if (data == null)  return FileVisitResult.CONTINUE;
-                                        cachedFile = new CachedConfigFile(data, pack, lastModifiedTime, size);
-                                        AbstractPackManager.this.cachedConfigFiles.put(path, cachedFile);
+                                    Yaml yaml = new Yaml(new StringKeyConstructor(path, new LoaderOptions()));
+                                    Map<String, Object> data;
+                                    try {
+                                        String content = Files.readString(path);
+                                        try {
+                                            data = yaml.load(content);
+                                        } catch (ScannerException e1) {
+                                            if (e1.getMessage() != null && e1.getMessage().contains("TAB") && e1.getMessage().contains("indentation")) {
+                                                try {
+                                                    content = content.replace("\t", "    ");
+                                                    data = yaml.load(content);
+                                                    Files.writeString(path, content);
+                                                } catch (ScannerException e2) {
+                                                    AbstractPackManager.this.plugin.logger().severe("Error found while reading config file: " + path, e1);
+                                                    return FileVisitResult.CONTINUE;
+                                                }
+                                            } else {
+                                                AbstractPackManager.this.plugin.logger().severe("Error found while reading config file: " + path, e1);
+                                                return FileVisitResult.CONTINUE;
+                                            }
+                                        }
                                     } catch (IOException e) {
                                         AbstractPackManager.this.plugin.logger().severe("Error while reading config file: " + path, e);
-                                        return FileVisitResult.CONTINUE;
-                                    } catch (ScannerException e) {
-                                        if (e.getMessage() != null && e.getMessage().contains("TAB") && e.getMessage().contains("indentation")) {
-                                            try {
-                                                String content = Files.readString(path);
-                                                content = content.replace("\t", "    ");
-                                                Files.writeString(path, content);
-                                            } catch (Exception ex) {
-                                                AbstractPackManager.this.plugin.logger().severe("Failed to fix tab indentation in config file: " + path, ex);
-                                            }
-                                        } else {
-                                            AbstractPackManager.this.plugin.logger().severe("Error found while reading config file: " + path, e);
-                                        }
                                         return FileVisitResult.CONTINUE;
                                     } catch (ParserException e) {
                                         AbstractPackManager.this.plugin.logger().severe("Invalid YAML file found: " + path + ".\n" + e.getMessage() + "\nIt is recommended to use Visual Studio Code as your YAML editor to fix problems more quickly.");
                                         return FileVisitResult.CONTINUE;
-                                    } catch (LocalizedException e) {
-                                        e.setArgument(0, path.toString());
-                                        TranslationManager.instance().log(e.node(), e.arguments());
+                                    }
+                                    if (data == null) {
                                         return FileVisitResult.CONTINUE;
                                     }
+                                    cachedFile = new CachedConfigFile(data, pack, lastModifiedTime, size);
+                                    AbstractPackManager.this.cachedConfigFiles.put(path, cachedFile);
                                 }
                                 for (Map.Entry<String, Object> entry : cachedFile.config().entrySet()) {
                                     processConfigEntry(entry, path, cachedFile.pack(), ConfigParser::addConfig);
@@ -542,7 +543,7 @@ public abstract class AbstractPackManager implements PackManager {
                         }
                     });
                 } catch (IOException e) {
-                    this.plugin.logger().severe("Error while reading config file", e);
+                    this.plugin.logger().severe("Error while reading config files under " + configurationFolderPath, e);
                 }
             }
         }

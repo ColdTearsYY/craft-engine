@@ -266,16 +266,16 @@ public final class TranslationManagerImpl implements TranslationManager {
         options.setPrettyFlow(true);
         options.setIndent(2);
         options.setSplitLines(false);
-        options.setDefaultScalarStyle(DumperOptions.ScalarStyle.DOUBLE_QUOTED);
+        options.setDefaultScalarStyle(DumperOptions.ScalarStyle.PLAIN);
         Yaml yaml = new Yaml(new StringKeyConstructor(translationFile, new LoaderOptions()), new Representer(options), options);
         LinkedHashMap<String, String> newFileContents = new LinkedHashMap<>();
         try (InputStream is = this.plugin.resourceStream("translations/" + translationFile.getFileName())) {
             Map<String, String> newMap = yaml.load(is);
+            previous.remove("lang-version");
+            newFileContents.put("lang-version", this.langVersion);
             newFileContents.putAll(this.translationFallback);
             newFileContents.putAll(newMap);
-            // 思考是否值得特殊处理list类型的dump？似乎并没有这个必要。用户很少会使用list类型，且dump后只改变YAML结构而不影响游戏内效果。
             newFileContents.putAll(previous);
-            newFileContents.put("lang-version", this.langVersion);
             String yamlString = yaml.dump(newFileContents);
             Files.writeString(translationFile, yamlString);
             return newFileContents;

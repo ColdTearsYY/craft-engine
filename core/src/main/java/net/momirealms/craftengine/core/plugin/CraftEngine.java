@@ -11,7 +11,6 @@ import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifie
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
 import net.momirealms.craftengine.core.font.FontManager;
-import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemManager;
 import net.momirealms.craftengine.core.item.ItemSettingsModifiers;
 import net.momirealms.craftengine.core.item.recipe.RecipeManager;
@@ -402,9 +401,9 @@ public abstract class CraftEngine implements Plugin {
             String lv = getLatestVersion();
             if (lv == null) return;
             if (compareVer(lv, pluginVersion())) {
-                this.logger.warn(TranslationManager.instance().plainTranslation("info.update.available", lv, link));
+                this.logger.warn(TranslationManager.instance().plainTranslation("update.available", lv, link));
             } else {
-                this.logger.info(TranslationManager.instance().plainTranslation("info.update.latest"));
+                this.logger.info(TranslationManager.instance().plainTranslation("update.is_latest"));
             }
         } catch (Exception ignored) {
         }
@@ -635,10 +634,9 @@ public abstract class CraftEngine implements Plugin {
         return this.packManager;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T> RecipeManager<T> recipeManager() {
-        return (RecipeManager<T>) this.recipeManager;
+    public RecipeManager recipeManager() {
+        return this.recipeManager;
     }
 
     @SuppressWarnings("unchecked")
@@ -716,7 +714,7 @@ public abstract class CraftEngine implements Plugin {
      */
     @ApiStatus.Experimental
     public PluginTaskRegistry beforeEnableTaskRegistry() {
-        return beforeEnableTaskRegistry;
+        return this.beforeEnableTaskRegistry;
     }
 
     /**
@@ -728,6 +726,6 @@ public abstract class CraftEngine implements Plugin {
      */
     @ApiStatus.Experimental
     public PluginTaskRegistry afterEnableTaskRegistry() {
-        return afterEnableTaskRegistry;
+        return this.afterEnableTaskRegistry;
     }
 }
