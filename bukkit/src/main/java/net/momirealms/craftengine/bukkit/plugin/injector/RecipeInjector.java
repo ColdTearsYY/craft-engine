@@ -43,13 +43,16 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class RecipeInjector {
-    private static Class<?> clazz$InjectedArmorDyeRecipe;
-    private static Class<?> clazz$InjectedRepairItemRecipe;
-    private static Class<?> clazz$InjectedFireworkStarFadeRecipe;
+    public static final Key ARMOR_DYE = Key.of("armor_dye");
+    public static final Key REPAIR_ITEM = Key.of("repair_item");
+    public static final Key FIREWORK_STAR_FADE = Key.of("firework_star_fade");
+    public static Object ARMOR_DYE_RECIPE;
+    public static Object REPAIR_ITEM_RECIPE;
+    public static Object FIREWORK_STAR_FADE_RECIPE;
 
     private RecipeInjector() {}
 
-    public static void init() {
+    public static void init() throws ReflectiveOperationException {
         ByteBuddy byteBuddy = new ByteBuddy(ClassFileVersion.JAVA_V17);
 
         ElementMatcher.Junction<MethodDescription> matches = (VersionHelper.isOrAbove1_21() ?
@@ -64,7 +67,7 @@ public final class RecipeInjector {
                                 ElementMatchers.takesArguments(CraftingContainerProxy.CLASS, RegistryAccessProxy.CLASS)
         ).and(ElementMatchers.returns(ItemStackProxy.CLASS));
 
-        clazz$InjectedArmorDyeRecipe = byteBuddy
+        Class<?> clazz$InjectedArmorDyeRecipe = byteBuddy
                 .subclass(ArmorDyeRecipeProxy.CLASS, ConstructorStrategy.Default.IMITATE_SUPER_CLASS_OPENING)
                 .name("net.momirealms.craftengine.bukkit.item.recipe.ArmorDyeRecipe")
                 .method(matches)
@@ -74,8 +77,20 @@ public final class RecipeInjector {
                 .make()
                 .load(RecipeInjector.class.getClassLoader())
                 .getLoaded();
+        ARMOR_DYE_RECIPE = createSpecialRecipe(ARMOR_DYE, clazz$InjectedArmorDyeRecipe);
 
-        clazz$InjectedFireworkStarFadeRecipe = byteBuddy
+        Class<?> clazz$InjectedRepairItemRecipe = byteBuddy
+                .subclass(RepairItemRecipeProxy.CLASS, ConstructorStrategy.Default.IMITATE_SUPER_CLASS_OPENING)
+                .name("net.momirealms.craftengine.bukkit.item.recipe.RepairItemRecipe")
+                // 只修改match逻辑，合并需要在事件里处理，否则无法应用变量
+                .method(matches)
+                .intercept(MethodDelegation.to(RepairMatchesInterceptor.INSTANCE))
+                .make()
+                .load(RecipeInjector.class.getClassLoader())
+                .getLoaded();
+        REPAIR_ITEM_RECIPE = createSpecialRecipe(REPAIR_ITEM, clazz$InjectedRepairItemRecipe);
+
+        Class<?> clazz$InjectedFireworkStarFadeRecipe = byteBuddy
                 .subclass(FireworkStarFadeRecipeProxy.CLASS)
                 .name("net.momirealms.craftengine.bukkit.item.recipe.FireworkStarFadeRecipe")
                 .method(matches)
@@ -85,37 +100,18 @@ public final class RecipeInjector {
                 .make()
                 .load(RecipeInjector.class.getClassLoader())
                 .getLoaded();
-
-        clazz$InjectedRepairItemRecipe = byteBuddy
-                .subclass(RepairItemRecipeProxy.CLASS, ConstructorStrategy.Default.IMITATE_SUPER_CLASS_OPENING)
-                .name("net.momirealms.craftengine.bukkit.item.recipe.RepairItemRecipe")
-                // 只修改match逻辑，合并需要在事件里处理，否则无法应用变量
-                .method(matches)
-                .intercept(MethodDelegation.to(RepairMatchesInterceptor.INSTANCE))
-                .make()
-                .load(RecipeInjector.class.getClassLoader())
-                .getLoaded();
-    }
-
-    public static Object createRepairItemRecipe(Key id) throws ReflectiveOperationException {
-        return createSpecialRecipe(id, clazz$InjectedRepairItemRecipe);
-    }
-
-    public static Object createCustomDyeRecipe(Key id) throws ReflectiveOperationException {
-        return createSpecialRecipe(id, clazz$InjectedArmorDyeRecipe);
-    }
-
-    public static Object createFireworkStarFadeRecipe(Key id) throws ReflectiveOperationException {
-        return createSpecialRecipe(id, clazz$InjectedFireworkStarFadeRecipe);
+        FIREWORK_STAR_FADE_RECIPE = createSpecialRecipe(FIREWORK_STAR_FADE, clazz$InjectedFireworkStarFadeRecipe);
     }
 
     @NotNull
-    private static Object createSpecialRecipe(Key id, Class<?> clazz$InjectedRepairItemRecipe) throws InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
+    private static Object createSpecialRecipe(Key id, Class<?> clazz) throws InstantiationException, IllegalAccessException, java.lang.reflect.InvocationTargetException {
         if (VersionHelper.isOrAbove1_20_2()) {
-            Constructor<?> constructor = ReflectionUtils.getConstructor(clazz$InjectedRepairItemRecipe, CraftingBookCategoryProxy.CLASS);
+            Constructor<?> constructor = ReflectionUtils.getConstructor(clazz, CraftingBookCategoryProxy.CLASS);
+            assert constructor != null;
             return constructor.newInstance(CraftingBookCategoryProxy.MISC);
         } else {
-            Constructor<?> constructor = ReflectionUtils.getConstructor(clazz$InjectedRepairItemRecipe, IdentifierProxy.CLASS, CraftingBookCategoryProxy.CLASS);
+            Constructor<?> constructor = ReflectionUtils.getConstructor(clazz, IdentifierProxy.CLASS, CraftingBookCategoryProxy.CLASS);
+            assert constructor != null;
             return constructor.newInstance(KeyUtils.toIdentifier(id), CraftingBookCategoryProxy.MISC);
         }
     }
@@ -151,7 +147,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(itemStack);
                 if (isFireworkDye(wrapped)) {
                     hasDye = true;
                 } else {
@@ -182,7 +178,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(itemStack);
                 if (isFireworkDye(wrapped)) {
                     Color color = getFireworkColor(wrapped);
                     if (color == null) {
@@ -225,7 +221,7 @@ public final class RecipeInjector {
             if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                 continue;
             }
-            Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
+            Item wrapped = BukkitItemManager.instance().wrap(itemStack);
             if (item1 == null) {
                 item1 = wrapped;
             } else {
@@ -282,7 +278,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(itemStack);
                 if (isDyeable(wrapped)) {
                     if (itemToDye != null) {
                         return false;
@@ -313,7 +309,7 @@ public final class RecipeInjector {
                 if (ItemStackProxy.INSTANCE.isEmpty(itemStack)) {
                     continue;
                 }
-                Item wrapped = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(itemStack));
+                Item wrapped = BukkitItemManager.instance().wrap(itemStack);
                 if (isDyeable(wrapped)) {
                     itemToDye = wrapped.copyWithCount(1);
                 } else {

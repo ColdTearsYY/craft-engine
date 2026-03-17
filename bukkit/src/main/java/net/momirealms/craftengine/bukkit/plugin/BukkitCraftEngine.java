@@ -116,22 +116,22 @@ public final class BukkitCraftEngine extends CraftEngine {
             BlockGenerator.init();
             BlockStateGenerator.init();
             super.blockManager = new BukkitBlockManager(this);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting blocks", e);
         }
         try {
             LootEntryInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting loot entries", e);
         }
         try {
             FeatureInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting features", e);
         }
         try {
             BlockStateProviderInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting block state providers", e);
         }
     }
@@ -145,7 +145,7 @@ public final class BukkitCraftEngine extends CraftEngine {
         // 注入一些新的类型，但是并不需要太早
         try {
             RecipeInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting recipes", e);
         }
         // 初始化一些注册表

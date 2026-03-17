@@ -22,11 +22,15 @@ public abstract class AbstractRecipeManager implements RecipeManager {
     protected final Map<Key, List<Recipe>> byResult = new HashMap<>();
     protected final Map<Key, List<Recipe>> byIngredient = new HashMap<>();
     protected final Map<Key, List<IngredientUnlockable>> ingredientUnlockable = new HashMap<>();
+    protected final List<Recipe> nativeRecipes = new ArrayList<>();
+    protected final List<CustomBrewingRecipe> brewingRecipes = new ArrayList<>();
     protected final Set<Key> dataPackRecipes = new HashSet<>();
     protected final ConfigParser recipeParser;
+    protected final RecipeRegistry recipeRegistry;
 
-    public AbstractRecipeManager() {
+    public AbstractRecipeManager(RecipeRegistry recipeRegistry) {
         this.recipeParser = new RecipeParser();
+        this.recipeRegistry = recipeRegistry;
     }
 
     @Override
@@ -42,6 +46,8 @@ public abstract class AbstractRecipeManager implements RecipeManager {
         this.byResult.clear();
         this.byIngredient.clear();
         this.ingredientUnlockable.clear();
+        this.nativeRecipes.clear();
+        this.brewingRecipes.clear();
     }
 
     protected void markAsDataPackRecipe(Key key) {
@@ -107,12 +113,18 @@ public abstract class AbstractRecipeManager implements RecipeManager {
         return this.ingredientUnlockable.getOrDefault(item, List.of());
     }
 
-    protected boolean registerInternalRecipe(Recipe recipe, boolean unlockOnIngredientObtained) {
-        if (this.byId.containsKey(recipe.id())) return false;
+    protected void registerRecipeInternal(Recipe recipe, boolean unlockOnIngredientObtained) {
+        // 原版配方被覆写了
+        if (this.byId.containsKey(recipe.id())) return;
         this.byType.computeIfAbsent(recipe.type(), k -> new ArrayList<>()).add(recipe);
         this.byId.put(recipe.id(), recipe);
         if (recipe instanceof AbstractFixedResultRecipe fixedResult) {
             this.byResult.computeIfAbsent(fixedResult.result().item().id(), k -> new ArrayList<>()).add(recipe);
+        }
+        if (recipe instanceof CustomBrewingRecipe brewingRecipe) {
+            this.brewingRecipes.add(brewingRecipe);
+        } else {
+            this.nativeRecipes.add(recipe);
         }
         List<Ingredient> ingredients = recipe.ingredientsInUse();
         if (recipe.canBeSearchedByIngredients()) {
@@ -128,7 +140,7 @@ public abstract class AbstractRecipeManager implements RecipeManager {
         }
         if (unlockOnIngredientObtained) {
             List<IngredientUnlockable.Requirement> requirements =  new ArrayList<>(4);
-            HashSet<UniqueKey> usedKeys = new HashSet<>();
+            Set<UniqueKey> usedKeys = new HashSet<>();
             for (Ingredient ingredient : ingredients) {
                 List<UniqueKey> items = ingredient.items();
                 if (items.size() > 1) {
@@ -143,12 +155,11 @@ public abstract class AbstractRecipeManager implements RecipeManager {
                 this.ingredientUnlockable.computeIfAbsent(usedKey.key(), l -> new ArrayList<>()).add(unlockable);
             }
         }
-        return true;
     }
 
     private final class RecipeParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"recipes", "recipe"};
-        private final List<TempRecipe<Object>> recipes = Collections.synchronizedList(new ArrayList<>());
+        private final List<RecipeConfig> recipes = Collections.synchronizedList(new ArrayList<>());
 
         @Override
         public String[] sectionId() {
@@ -180,8 +191,8 @@ public abstract class AbstractRecipeManager implements RecipeManager {
         @Override
         public void postProcess() {
             if (!this.recipes.isEmpty()) {
-                for (TempRecipe<Object> recipe : this.recipes) {
-                    registerInternalRecipe(recipe.recipe, recipe.unlockOnIngredientObtained);
+                for (RecipeConfig recipe : this.recipes) {
+                    registerRecipeInternal(recipe.recipe, recipe.unlockOnIngredientObtained);
                 }
                 this.recipes.clear();
             }
@@ -199,13 +210,10 @@ public abstract class AbstractRecipeManager implements RecipeManager {
             if (!Config.enableRecipeSystem()) return;
             boolean unlockOnIngredientObtained = section.getBoolean(UNLOCK_ON_INGREDIENT_OBTAINED, Config.unlockOnIngredientObtained());
             Recipe recipe = RecipeSerializers.fromConfig(id, section);
-            this.recipes.add(new TempRecipe<>(recipe, unlockOnIngredientObtained));
+            this.recipes.add(new RecipeConfig(recipe, unlockOnIngredientObtained));
         }
 
-        private record TempRecipe<T>(Recipe recipe, boolean unlockOnIngredientObtained) {}
+        private record RecipeConfig(Recipe recipe, boolean unlockOnIngredientObtained) {}
     }
 
-    protected abstract void unregisterPlatformRecipeMainThread(Key key, boolean isBrewingRecipe);
-
-    protected abstract void registerPlatformRecipeMainThread(Recipe recipe);
 }

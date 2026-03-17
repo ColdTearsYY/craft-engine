@@ -213,6 +213,12 @@ public final class AdventureHelper {
         return c == '§' || c == '&';
     }
 
+    public static boolean isHexColorCode(char c) {
+        return (c >= '0' && c <= '9') ||
+                (c >= 'a' && c <= 'f') ||
+                (c >= 'A' && c <= 'F');
+    }
+
     /**
      * Converts a legacy color code string to a MiniMessage string.
      *
@@ -254,6 +260,28 @@ public final class AdventureHelper {
                 case 'o' -> stringBuilder.append("<i>");
                 case 'n' -> stringBuilder.append("<u>");
                 case 'k' -> stringBuilder.append("<obf>");
+                case '#' -> {
+                    if (i + 7 >= chars.length
+                            || !isHexColorCode(chars[i+2])
+                            || !isHexColorCode(chars[i+3])
+                            || !isHexColorCode(chars[i+4])
+                            || !isHexColorCode(chars[i+5])
+                            || !isHexColorCode(chars[i+6])
+                            || !isHexColorCode(chars[i+7])) {
+                        stringBuilder.append(chars[i]);
+                        continue;
+                    }
+                    stringBuilder
+                            .append("<#")
+                            .append(chars[i+2])
+                            .append(chars[i+3])
+                            .append(chars[i+4])
+                            .append(chars[i+5])
+                            .append(chars[i+6])
+                            .append(chars[i+7])
+                            .append(">");
+                    i += 6;
+                }
                 case 'x' -> {
                     if (i + 13 >= chars.length
                             || !isLegacyColorCode(chars[i+2])

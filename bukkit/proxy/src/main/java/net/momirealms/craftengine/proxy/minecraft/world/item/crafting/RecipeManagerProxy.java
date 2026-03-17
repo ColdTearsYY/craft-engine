@@ -21,6 +21,9 @@ public interface RecipeManagerProxy {
     @FieldGetter(name = "recipes", activeIf = "min_version=1.21.2")
     Object getRecipes(Object target);
 
+    @FieldSetter(name = "recipes", activeIf = "min_version=1.21.2")
+    void setRecipes(Object target, Object value);
+
     @MethodInvoker(name = "removeRecipe", activeIf = "min_version=1.21.2")
     boolean removeRecipe$0(Object target, @Type(clazz = ResourceKeyProxy.class) Object id);
 
