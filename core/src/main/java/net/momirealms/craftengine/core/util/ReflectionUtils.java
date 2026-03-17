@@ -596,42 +596,4 @@ public final class ReflectionUtils {
             return null;
         }
     }
-
-    public static void preCheckASMProxy() {
-        if (!Boolean.getBoolean("net.momirealms.craftengine.pre-check-asm-proxy")) return;
-        CraftEngine.instance().logger().info("Pre-checking ASM proxy...");
-        Throwable throwable = null;
-        ClassLoader classLoader = ReflectionUtils.class.getClassLoader();
-        try (InputStream resourceAsStream = classLoader.getResourceAsStream("proxy.jarinjar")) {
-            if (resourceAsStream == null) return;
-            try (ByteArrayInputStream bais = new ByteArrayInputStream(resourceAsStream.readAllBytes());
-                 ZipInputStream zis = new ZipInputStream(bais)) {
-                ZipEntry entry;
-                while ((entry = zis.getNextEntry()) != null) {
-                    String entryName = entry.getName();
-                    if (!entryName.endsWith(".class")) continue;
-                    String className = entryName.replace('/', '.').substring(0, entryName.length() - 6);
-                    try {
-                        Class.forName(className);
-                    } catch (Throwable e) {
-                        if (throwable == null) {
-                            throwable = e;
-                        } else {
-                            throwable.addSuppressed(e);
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            if (throwable == null) {
-                throwable = e;
-            } else {
-                throwable.addSuppressed(e);
-            }
-        }
-        if (throwable != null) {
-            throw new RuntimeException(throwable);
-        }
-        CraftEngine.instance().logger().info("Pre-checking ASM proxy completed.");
-    }
 }

@@ -131,11 +131,21 @@ public final class CommonFunctions {
         else if (eventValue.is(List.class)) {
             eventValue.forEach(value -> exceptionCollector.runCatching(() -> {
                 ConfigSection innerSection = value.getAsSection();
-                EventTrigger eventTrigger = innerSection.getNonNullEnum("on", EventTrigger.class, EventTrigger::byId);
-                if (innerSection.containsKey("type")) {
-                    consumer.accept(eventTrigger, CommonFunctions.fromConfig(innerSection));
-                } else if (innerSection.containsKey("functions")) {
-                    consumer.accept(eventTrigger, RUN.factory().create(innerSection));
+                ConfigValue triggerValue = innerSection.getNonNullValue("on", ConfigConstants.ARGUMENT_STRING);
+                if (triggerValue.is(List.class)) {
+                    List<EventTrigger> triggers = triggerValue.getAsList(v -> v.getAsEnum(EventTrigger.class, EventTrigger::byId));
+                    if (innerSection.containsKey("type")) {
+                        triggers.forEach(trigger -> consumer.accept(trigger, CommonFunctions.fromConfig(triggerValue)));
+                    } else if (innerSection.containsKey("functions")) {
+                        triggers.forEach(trigger -> consumer.accept(trigger, RUN.factory().create(innerSection)));
+                    }
+                } else {
+                    EventTrigger eventTrigger = triggerValue.getAsEnum(EventTrigger.class, EventTrigger::byId);
+                    if (innerSection.containsKey("type")) {
+                        consumer.accept(eventTrigger, CommonFunctions.fromConfig(innerSection));
+                    } else if (innerSection.containsKey("functions")) {
+                        consumer.accept(eventTrigger, RUN.factory().create(innerSection));
+                    }
                 }
             }));
         }
