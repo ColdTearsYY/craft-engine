@@ -10,7 +10,6 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Vibration;
 import org.bukkit.World;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public final class ParticleUtils {

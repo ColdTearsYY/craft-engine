@@ -18,11 +18,12 @@ import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.item.recipe.*;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.AdventureHelper;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.UniqueKey;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftServerProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.FileToIdConverterProxy;
-import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.MinecraftServerProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.packs.PackTypeProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.packs.repository.PackProxy;
@@ -30,17 +31,13 @@ import net.momirealms.craftengine.proxy.minecraft.server.packs.repository.PackRe
 import net.momirealms.craftengine.proxy.minecraft.server.packs.resources.MultiPackResourceManagerProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.packs.resources.ResourceProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.players.PlayerListProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeHolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeManagerProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeMapProxy;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.potion.PotionBrewer;
 
 import java.io.Reader;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class BukkitRecipeManager extends AbstractRecipeManager {
@@ -75,16 +72,6 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
         return itemStacks;
     }
 
-    /*
-     * 注册全过程：
-     *
-     * 0.准备阶段偷取flag以减少注册的性能开销
-     * 1.先读取用户配置自定义配方
-     * 2.延迟加载中为自定义配方生成转换为nms配方的任务
-     * 3.读取全部的数据包配方并转换为自定义配方，对必要的含有tag配方添加先移除后注册nms配方的任务
-     * 4.主线程完成剩余任务
-     * 5.归还flag
-     */
     private final BukkitCraftEngine plugin;
     private final RecipeEventListener recipeEventListener;
     private final CrafterEventListener crafterEventListener;
@@ -108,8 +95,13 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
     public static RecipeRegistry createRecipeRegistry() {
         if (VersionHelper.isOrAbove1_21_2()) {
             return new RecipeRegistry1_21_2();
+        } else if (VersionHelper.isOrAbove1_20_5()) {
+            return new RecipeRegistry1_20_5();
+        } else if (VersionHelper.isOrAbove1_20_2()) {
+            return new RecipeRegistry1_20_2();
+        } else {
+            return new RecipeRegistry1_20();
         }
-        return null;
     }
 
     public static Object minecraftRecipeManager() {
@@ -154,7 +146,6 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
     @Override
     public void delayedLoad() {
         if (!Config.enableRecipeSystem()) return;
-        this.loadDataPackRecipes();
 
         // 准备注册
         super.recipeRegistry.prepareRegistration();
@@ -198,6 +189,16 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
 
         // 完成注册
         super.recipeRegistry.finalizeRegistration();
+
+        // 刷新配方
+        if (VersionHelper.isOrAbove1_21_2()) {
+            Object manager = minecraftRecipeManager();
+            RecipeManagerProxy.INSTANCE.finalizeRecipeLoading(manager, RecipeManagerProxy.INSTANCE.getFeatureFlagSet(manager));
+        }
+        // 1.21.6以下直接发包
+        if (!VersionHelper.isOrAbove1_21_6() || VersionHelper.isFolia()) {
+            PlayerListProxy.INSTANCE.reloadRecipeData(CraftServerProxy.INSTANCE.getPlayerList(Bukkit.getServer()));
+        }
     }
 
     @Override
@@ -231,16 +232,9 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
             }
         }
 
-        try {
-            // 刷新配方
-            if (VersionHelper.isOrAbove1_21_2()) {
-                RecipeManagerProxy.INSTANCE.finalizeRecipeLoading(minecraftRecipeManager());
-            }
-
-            // 发给玩家
-            PlayerListProxy.INSTANCE.reloadRecipeData(CraftServerProxy.INSTANCE.getPlayerList(Bukkit.getServer()));
-        } catch (Throwable e) {
-            this.plugin.logger().warn("Failed to run delayed recipe tasks", e);
+        // 重载资源
+        if (VersionHelper.isOrAbove1_21_6() && !VersionHelper.isFolia()) {
+            PlayerListProxy.INSTANCE.reloadResources(CraftServerProxy.INSTANCE.getPlayerList(Bukkit.getServer()));
         }
     }
 
@@ -250,7 +244,8 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
         HandlerList.unregisterAll(this.recipeEventListener);
     }
 
-    private void loadDataPackRecipes() {
+    @Override
+    public void loadDataPackRecipes() {
         Object currentRecipeManager = minecraftRecipeManager();
         if (currentRecipeManager != this.lastRecipeManager) {
             this.lastRecipeManager = currentRecipeManager;
@@ -269,21 +264,20 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
 
         Set<Key> disabledRecipes = Config.disabledVanillaRecipes();
         boolean hasDisabledAny = !disabledRecipes.isEmpty();
+
         for (Map.Entry<Key, JsonObject> entry : this.lastDatapackRecipes.entrySet()) {
             Key id = entry.getKey();
             if (hasDisabledAny && disabledRecipes.contains(entry.getKey())) {
                 this.nativeRecipesToUnregister.add(id);
                 continue;
             }
-
             JsonObject jsonObject = entry.getValue();
-            Key serializerType = Key.of(jsonObject.get("type").getAsString());
-            RecipeSerializer<? extends Recipe> serializer = BuiltInRegistries.RECIPE_SERIALIZER.getValue(serializerType);
-            if (serializer == null) {
-                continue;
-            }
-
             try {
+                Key serializerType = Key.of(jsonObject.get("type").getAsString());
+                RecipeSerializer<? extends Recipe> serializer = BuiltInRegistries.RECIPE_SERIALIZER.getValue(serializerType);
+                if (serializer == null) {
+                    continue;
+                }
                 Recipe recipe = serializer.readJson(id, jsonObject);
                 markAsDataPackRecipe(id);
                 registerRecipeInternal(recipe, false);

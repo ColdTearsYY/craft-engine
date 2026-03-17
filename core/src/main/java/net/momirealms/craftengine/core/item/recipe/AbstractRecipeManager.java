@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRecipeManager implements RecipeManager {
     protected final Map<RecipeType, List<Recipe>> byType = new EnumMap<>(RecipeType.class);
@@ -113,7 +114,9 @@ public abstract class AbstractRecipeManager implements RecipeManager {
         return this.ingredientUnlockable.getOrDefault(item, List.of());
     }
 
-    protected void registerRecipeInternal(Recipe recipe, boolean unlockOnIngredientObtained) {
+    protected abstract void loadDataPackRecipes();
+
+    protected synchronized void registerRecipeInternal(Recipe recipe, boolean unlockOnIngredientObtained) {
         // 原版配方被覆写了
         if (this.byId.containsKey(recipe.id())) return;
         this.byType.computeIfAbsent(recipe.type(), k -> new ArrayList<>()).add(recipe);
@@ -159,7 +162,7 @@ public abstract class AbstractRecipeManager implements RecipeManager {
 
     private final class RecipeParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"recipes", "recipe"};
-        private final List<RecipeConfig> recipes = Collections.synchronizedList(new ArrayList<>());
+        private final AtomicInteger count = new AtomicInteger(0);
 
         @Override
         public String[] sectionId() {
@@ -168,7 +171,7 @@ public abstract class AbstractRecipeManager implements RecipeManager {
 
         @Override
         public int count() {
-            return Math.max(0, AbstractRecipeManager.this.byId.size() - AbstractRecipeManager.this.dataPackRecipes.size());
+            return this.count.get();
         }
 
         @Override
@@ -183,19 +186,12 @@ public abstract class AbstractRecipeManager implements RecipeManager {
 
         @Override
         public void preProcess() {
-            if (!this.recipes.isEmpty()) {
-                this.recipes.clear();
-            }
+            this.count.set(0);
         }
 
         @Override
         public void postProcess() {
-            if (!this.recipes.isEmpty()) {
-                for (RecipeConfig recipe : this.recipes) {
-                    registerRecipeInternal(recipe.recipe, recipe.unlockOnIngredientObtained);
-                }
-                this.recipes.clear();
-            }
+            loadDataPackRecipes();
         }
 
         @Override
@@ -210,10 +206,8 @@ public abstract class AbstractRecipeManager implements RecipeManager {
             if (!Config.enableRecipeSystem()) return;
             boolean unlockOnIngredientObtained = section.getBoolean(UNLOCK_ON_INGREDIENT_OBTAINED, Config.unlockOnIngredientObtained());
             Recipe recipe = RecipeSerializers.fromConfig(id, section);
-            this.recipes.add(new RecipeConfig(recipe, unlockOnIngredientObtained));
+            registerRecipeInternal(recipe, unlockOnIngredientObtained);
+            this.count.incrementAndGet();
         }
-
-        private record RecipeConfig(Recipe recipe, boolean unlockOnIngredientObtained) {}
     }
-
 }

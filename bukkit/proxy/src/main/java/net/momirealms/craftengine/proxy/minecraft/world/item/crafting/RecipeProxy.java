@@ -12,4 +12,7 @@ public interface RecipeProxy {
 
     @MethodInvoker(name = "getId", activeIf = "max_version=1.20.1")
     Object getId(Object target);
+
+    @MethodInvoker(name = "getType")
+    Object getType(Object target);
 }

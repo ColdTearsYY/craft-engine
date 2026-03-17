@@ -20,4 +20,7 @@ public interface RecipeHolderProxy {
 
     @FieldGetter(name = "id", activeIf = "min_version=1.20.2")
     Object getId(Object target); // 返回值在 1.20.2~1.21.1 是 ResourceLocation, 1.21.2+ 是 ResourceKey
+
+    @FieldGetter(name = "value", activeIf = "min_version=1.20.2")
+    Object getValue(Object target);
 }

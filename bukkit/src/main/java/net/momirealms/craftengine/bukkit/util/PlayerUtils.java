@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.bukkit.util;
 
 import com.mojang.datafixers.util.Pair;
-import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.Player;

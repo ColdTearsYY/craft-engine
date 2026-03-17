@@ -13,7 +13,6 @@ import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.Clientbo
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
-import org.bukkit.inventory.ItemStack;
 
 public final class BukkitInventory implements Inventory {
     private final org.bukkit.inventory.Inventory inventory;

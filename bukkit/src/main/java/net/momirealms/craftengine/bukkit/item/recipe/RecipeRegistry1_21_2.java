@@ -22,10 +22,9 @@ public final class RecipeRegistry1_21_2 implements RecipeRegistry {
 
     @Override
     public void prepareRegistration() {
-        // 先复制 recipe map，这样才能线程安全地操作
         Object previousRecipeMap = RecipeManagerProxy.INSTANCE.getRecipes(BukkitRecipeManager.minecraftRecipeManager());
         Multimap<Object, Object> byType = LinkedHashMultimap.create(RecipeMapProxy.INSTANCE.getByType(previousRecipeMap));
-        Map<Object, Object> byKey = Maps.newLinkedHashMap(RecipeMapProxy.INSTANCE.getByKey(previousRecipeMap));
+        Map<Object, Object> byKey = Maps.newHashMap(RecipeMapProxy.INSTANCE.getByKey(previousRecipeMap));
         this.mirrorRecipeMap = RecipeMapProxy.INSTANCE.newInstance(byType, byKey);
     }
 
@@ -47,5 +46,6 @@ public final class RecipeRegistry1_21_2 implements RecipeRegistry {
         if (this.mirrorRecipeMap != null) {
             RecipeManagerProxy.INSTANCE.setRecipes(BukkitRecipeManager.minecraftRecipeManager(), this.mirrorRecipeMap);
         }
+        this.mirrorRecipeMap = null;
     }
 }

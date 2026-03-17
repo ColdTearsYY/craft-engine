@@ -10,7 +10,7 @@ public final class Key {
     private final String namespace;
     private final String value;
 
-    private Key(String namespace, String value) {
+    public Key(String namespace, String value) {
         this.namespace = namespace;
         this.value = value;
     }

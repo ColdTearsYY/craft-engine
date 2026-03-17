@@ -24,7 +24,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public final class DebugItemDataCommand extends BukkitCommandFeature<CommandSender> {
     private static final TextColor COLOR_TEXT = TextColor.color(0xF5F5F5);
