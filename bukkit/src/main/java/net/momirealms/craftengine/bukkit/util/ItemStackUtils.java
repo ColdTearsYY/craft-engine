@@ -12,7 +12,6 @@ import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemSt
 import net.momirealms.craftengine.proxy.minecraft.nbt.CompoundTagProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.DataFixersProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.datafix.fixes.ReferencesProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.entity.LivingEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.sparrow.nbt.Tag;
 import org.bukkit.Material;

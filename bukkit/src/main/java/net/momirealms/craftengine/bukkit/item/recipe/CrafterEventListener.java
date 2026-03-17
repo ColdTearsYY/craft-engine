@@ -13,7 +13,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.CrafterCraftEvent;
 import org.bukkit.inventory.CraftingRecipe;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Optional;
 

@@ -13,8 +13,10 @@ import net.momirealms.craftengine.bukkit.util.ComponentUtils;
 import net.momirealms.craftengine.bukkit.util.InventoryUtils;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.LegacyInventoryUtils;
-import net.momirealms.craftengine.core.font.*;
-import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.font.AbstractFontManager;
+import net.momirealms.craftengine.core.font.EmojiComponentProcessResult;
+import net.momirealms.craftengine.core.font.EmojiTextProcessResult;
+import net.momirealms.craftengine.core.font.FontManager;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.network.IllegalCharacterProcessResult;
 import net.momirealms.craftengine.core.util.AdventureHelper;
@@ -39,7 +41,7 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.view.AnvilView;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.List;
 
 public final class BukkitFontManager extends AbstractFontManager implements Listener {
     private static BukkitFontManager instance;

@@ -71,6 +71,7 @@ public final class SelfHostHttpServer {
     private boolean denyNonMinecraft = true;
     private boolean useToken;
     private boolean strictValidation = false;
+    private boolean enabled = false;
 
     private long globalUploadRateLimit = 0;
     private long minDownloadSpeed = 50_000;
@@ -125,11 +126,7 @@ public final class SelfHostHttpServer {
                 this.trafficShapingHandler.setWriteChannelLimit(initSize);
             }
         }
-        if (port <= 0 || port > 65535) {
-            throw new IllegalArgumentException("Invalid port: " + port);
-        }
-
-        if (this.port == port && serverChannel != null) return;
+        if (this.port == port && this.serverChannel != null && this.enabled) return;
         disable();
 
         this.port = port;
@@ -384,6 +381,7 @@ public final class SelfHostHttpServer {
     }
 
     public void disable() {
+        this.enabled = false;
         // 释放流量整形资源
         if (this.trafficShapingHandler != null) {
             this.trafficShapingHandler.release();
