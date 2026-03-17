@@ -13,6 +13,7 @@ import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureDebugStickState;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.util.EnumUtils;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.CEWorld;
@@ -139,7 +140,7 @@ public final class FurnitureEventListener implements Listener {
         if (storedData == null) storedData = new HashMap<>();
         if (storedData instanceof Map<?,?> map) {
             Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
-            FurnitureDebugStickState state = ResourceConfigUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
+            FurnitureDebugStickState state = EnumUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
             state = player.isSecondaryUseActive() ? state.previous() : state.next();
             String propertyName = state.name().toLowerCase(Locale.ROOT);
             data.put("furniture", propertyName);
@@ -169,7 +170,7 @@ public final class FurnitureEventListener implements Listener {
         if (storedData == null) storedData = new HashMap<>();
         if (storedData instanceof Map<?,?> map) {
             Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
-            FurnitureDebugStickState state = ResourceConfigUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
+            FurnitureDebugStickState state = EnumUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
             BukkitFurniture furniture = event.furniture();
             state.handler().onInteract(player.isSecondaryUseActive(), furniture, (s1, s2) -> {
                 Object systemChatPacket = ClientboundSystemChatPacketProxy.INSTANCE.newInstance(

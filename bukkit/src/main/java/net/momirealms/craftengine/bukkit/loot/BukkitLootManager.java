@@ -162,14 +162,14 @@ public final class BukkitLootManager extends AbstractLootManager implements List
 
         @Override
         public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
-            String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("type"), "warning.config.loot.missing_type");
+            String type = section.getNonEmptyString("type");
             VanillaLoot.Type typeEnum;
             try {
                 typeEnum = VanillaLoot.Type.valueOf(type.toUpperCase(Locale.ENGLISH));
             } catch (IllegalArgumentException e) {
                 throw new LocalizedResourceConfigException("warning.config.loot.invalid_type", type, EnumUtils.toString(VanillaLoot.Type.values()));
             }
-            boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault("override", false), "override");
+            boolean override = section.getBoolean("override");
             List<String> targets = MiscUtils.getAsStringList(section.getOrDefault("target", List.of()));
             LootTable lootTable = LootTable.fromConfig(section.getNonNullSection("loot"));
             switch (typeEnum) {

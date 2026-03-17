@@ -44,7 +44,7 @@ public final class LegacyOverridesModel implements Comparable<LegacyOverridesMod
                 }
             }
             if (this.predicate.containsKey("custom_model_data")) {
-                this.customModelData = ResourceConfigUtils.getAsInt(this.predicate.get("custom_model_data"), "custom_model_data");
+                this.customModelData = Integer.parseInt(this.predicate.get("custom_model_data").toString());
             } else {
                 this.customModelData = 0;
             }
