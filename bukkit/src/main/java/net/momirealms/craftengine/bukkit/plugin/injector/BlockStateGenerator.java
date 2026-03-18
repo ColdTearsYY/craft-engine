@@ -17,7 +17,6 @@ import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.block.BlockSettings;
@@ -27,7 +26,6 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
-import net.momirealms.craftengine.core.util.ReflectionUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -53,7 +51,7 @@ public final class BlockStateGenerator {
     private static SConstructor3 constructor$CraftEngineBlockState;
     public static Object instance$StateDefinition$Factory;
 
-    public static void init() throws ReflectiveOperationException {
+    public static void init() {
         ByteBuddy byteBuddy = new ByteBuddy(ClassFileVersion.JAVA_V17);
         String packageWithName = BlockStateGenerator.class.getName();
         String generatedStateClassName = packageWithName.substring(0, packageWithName.lastIndexOf('.')) + ".CraftEngineBlockState";
@@ -61,7 +59,7 @@ public final class BlockStateGenerator {
                 .subclass(BlockStateProxy.CLASS, ConstructorStrategy.Default.IMITATE_SUPER_CLASS_OPENING)
                 .name(generatedStateClassName)
                 .defineField("immutableBlockState", ImmutableBlockState.class, Visibility.PUBLIC)
-                .defineField("blockOwner", BlockProxy.CLASS, Visibility.PUBLIC)
+                .defineField("blockOwner", Object.class, Visibility.PUBLIC)
                 .implement(DelegatingBlockState.class)
                 .method(ElementMatchers.named("blockState"))
                 .intercept(FieldAccessor.ofField("immutableBlockState"))
@@ -101,8 +99,8 @@ public final class BlockStateGenerator {
                 .method(ElementMatchers.named("create"))
                 .intercept(MethodDelegation.to(CreateStateInterceptor.INSTANCE));
 
-        Class<?> clazz$Factory = factoryBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded();
-        instance$StateDefinition$Factory = ReflectionUtils.getTheOnlyConstructor(clazz$Factory).newInstance();
+        SparrowClass<?> clazz$Factory = SparrowClass.of(factoryBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded());
+        instance$StateDefinition$Factory = clazz$Factory.getSparrowConstructor(ConstructorMatcher.any()).asm$0().newInstance();
     }
 
     public static class GetDropsInterceptor {
