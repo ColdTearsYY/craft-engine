@@ -46,7 +46,7 @@ public final class HappyGhastFurnitureHitbox extends AbstractFurnitureHitBox {
         if (config.scale() != 1) {
             Object attributeIns = AttributeInstanceProxy.INSTANCE.newInstance$0(AttributesProxy.SCALE, $ -> {});
             AttributeInstanceProxy.INSTANCE.setBaseValue(attributeIns, config.scale());
-            this.packets.add(ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance(this.entityId, Collections.singletonList(attributeIns)));
+            this.packets.add(ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance$0(this.entityId, Collections.singletonList(attributeIns)));
         }
         this.packets.add(EntityUtils.createUpdatePosPacket(this.entityId, this.pos.x, this.pos.y, this.pos.z, position.yRot, 0, false));
         this.collider = createCollider(furniture.world(), this.pos, aabb, config.hardCollision(), config.blocksBuilding(), config.canBeHitByProjectile());
