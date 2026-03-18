@@ -12,6 +12,7 @@ import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemSt
 import net.momirealms.craftengine.proxy.minecraft.nbt.CompoundTagProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.DataFixersProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.datafix.fixes.ReferencesProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.LivingEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.sparrow.nbt.Tag;
 import org.bukkit.Material;
@@ -114,5 +115,13 @@ public final class ItemStackUtils {
     @Nullable
     public static ItemStack parseBukkitItem(Tag tag, int dataVersion) {
         return asCraftMirror(parseMinecraftItem(tag, dataVersion));
+    }
+
+    public static void hurtAndBreak(Object nmsStack, int amount, Object livingEntity, Object slot) {
+        if (VersionHelper.isOrAbove1_20_5()) {
+            ItemStackProxy.INSTANCE.hurtAndBreak(nmsStack, amount, livingEntity, slot);
+        } else {
+            ItemStackProxy.INSTANCE.hurtAndBreak(nmsStack, amount, livingEntity, entity -> LivingEntityProxy.INSTANCE.broadcastBreakEvent(entity, slot));
+        }
     }
 }

@@ -19,6 +19,7 @@ import java.util.Optional;
 
 public final class SturdyBaseBlockBehavior extends AbstractCanSurviveBlockBehavior {
     public static final BlockBehaviorFactory<SturdyBaseBlockBehavior> FACTORY = new Factory();
+    // todo 添加 max-height
     public final Direction direction;
     public final boolean stackable;
     public final boolean checkFull;

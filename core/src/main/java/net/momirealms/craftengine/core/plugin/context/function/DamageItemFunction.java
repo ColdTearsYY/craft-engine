@@ -10,15 +10,19 @@ import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
+import net.momirealms.craftengine.core.util.ItemUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public final class DamageItemFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final NumberProvider amount;
+    private final EquipmentSlot slot;
 
-    private DamageItemFunction(List<Condition<CTX>> predicates, NumberProvider amount) {
+    private DamageItemFunction(List<Condition<CTX>> predicates, NumberProvider amount, @Nullable EquipmentSlot slot) {
         super(predicates);
         this.amount = amount;
+        this.slot = slot;
     }
 
     @Override
@@ -32,7 +36,12 @@ public final class DamageItemFunction<CTX extends Context> extends AbstractCondi
         } else if (item == null) {
             return;
         }
-        EquipmentSlot slot = hand == null ? null : hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+        EquipmentSlot slot;
+        if (this.slot != null) {
+            slot = this.slot;
+        } else {
+            slot = hand == null ? null : hand == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
+        }
         item.hurtAndBreak(amount.getInt(ctx), player, slot);
     }
 
@@ -51,7 +60,8 @@ public final class DamageItemFunction<CTX extends Context> extends AbstractCondi
         public DamageItemFunction<CTX> create(ConfigSection section) {
             return new DamageItemFunction<>(
                     getPredicates(section),
-                    section.getNumber(AMOUNT, ConfigConstants.CONSTANT_ONE)
+                    section.getNumber(AMOUNT, ConfigConstants.CONSTANT_ONE),
+                    section.getEnum("slot", EquipmentSlot.class)
             );
         }
     }

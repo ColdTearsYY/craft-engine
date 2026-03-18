@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.item;
 
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public interface ItemWrapper {
@@ -18,5 +19,5 @@ public interface ItemWrapper {
 
     void grow(int amount);
 
-    void hurtAndBreak(int amount, @Nullable Player player, @Nullable EquipmentSlot slot);
+    void hurtAndBreak(int amount, @NotNull Player player, @Nullable EquipmentSlot slot);
 }

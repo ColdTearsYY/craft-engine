@@ -1,12 +1,15 @@
 package net.momirealms.craftengine.bukkit.item;
 
+import net.momirealms.craftengine.bukkit.util.EquipmentSlotUtils;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.ItemWrapper;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class BukkitItemWrapper implements ItemWrapper {
@@ -51,7 +54,7 @@ public abstract class BukkitItemWrapper implements ItemWrapper {
     }
 
     @Override
-    public void hurtAndBreak(int amount, @Nullable Player player, @Nullable EquipmentSlot slot) {
-        // todo 重写实现
+    public void hurtAndBreak(int amount, @NotNull Player player, @Nullable EquipmentSlot slot) {
+        ItemStackUtils.hurtAndBreak(this.itemStack, amount, player.serverPlayer(), slot == null ? null : EquipmentSlotUtils.toNMSEquipmentSlot(slot));
     }
 }
