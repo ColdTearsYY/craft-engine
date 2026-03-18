@@ -158,6 +158,7 @@ public final class Config {
     private Key block$deceive_bukkit_material$default;
     private Map<Integer, Key> block$deceive_bukkit_material$overrides;
     private int block$serverside_blocks = -1;
+    private boolean block$inject_bukkit_material;
 
     private boolean recipe$enable;
     private boolean recipe$disable_vanilla_recipes$all;
@@ -553,6 +554,7 @@ public final class Config {
                     }
                 }
             }
+            this.block$inject_bukkit_material = config.getBoolean("block.inject-bukkit-material", false);
             this.block$serverside_blocks = Math.min(config.getInt("block.serverside-blocks", 2000), 10_0000);
             if (this.block$serverside_blocks < 0) this.block$serverside_blocks = 0;
         }
@@ -700,6 +702,10 @@ public final class Config {
 
     public static int serverSideBlocks() {
         return instance.block$serverside_blocks;
+    }
+
+    public static boolean injectBukkitMaterial() {
+        return instance.block$inject_bukkit_material;
     }
 
     public static boolean alwaysUseItemModel() {

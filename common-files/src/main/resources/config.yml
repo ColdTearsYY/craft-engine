@@ -308,6 +308,9 @@ block:
     overrides:
       0: bricks
       1~8: bricks
+  # Inject new enum into Bukkit Material.
+  # A restart is required to apply the changes.
+  inject-bukkit-material: false
 
 furniture:
   # Hide technical entities used for storing furniture metadata.
