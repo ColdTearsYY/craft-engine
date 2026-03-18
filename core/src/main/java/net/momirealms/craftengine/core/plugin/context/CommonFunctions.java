@@ -47,10 +47,12 @@ public final class CommonFunctions {
     public static final CommonFunctionType<ReplaceFurnitureFunction<Context>> REPLACE_FURNITURE = register(Key.ce("replace_furniture"), ReplaceFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<RotateFurnitureFunction<Context>> ROTATE_FURNITURE = register(Key.ce("rotate_furniture"), RotateFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<MythicMobsSkillFunction<Context>> MYTHIC_MOBS_SKILL = register(Key.ce("mythic_mobs_skill"), MythicMobsSkillFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<MythicMobsSpawnFunction<Context>> MYTHIC_MOBS_SPAWN = register(Key.ce("mythic_mobs_spawn"), MythicMobsSpawnFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<TeleportFunction<Context>> TELEPORT = register(Key.ce("teleport"), TeleportFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<SetVariableFunction<Context>> SET_VARIABLE = register(Key.ce("set_variable"), SetVariableFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<ToastFunction<Context>> TOAST = register(Key.ce("toast"), ToastFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<DamageFunction<Context>> DAMAGE = register(Key.ce("damage"), DamageFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<HealFunction<Context>> HEAL = register(Key.ce("heal"), HealFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<MerchantTradeFunction<Context>> MERCHANT_TRADE = register(Key.ce("merchant_trade"), MerchantTradeFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<RemoveEntityFunction<Context>> REMOVE_ENTITY = register(Key.ce("remove_entity"), RemoveEntityFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<IfElseFunction<Context>> IF_ELSE = register(Key.ce("if_else"), IfElseFunction.factory(CommonFunctions::fromConfig, CommonConditions::fromConfig));

@@ -84,7 +84,7 @@ public final class DebugItemDataCommand extends BukkitCommandFeature<CommandSend
     }
 
     @SuppressWarnings("unchecked")
-    private void mapToComponentList(Map<String, Object> map, List<Component> readableList, int loopTimes, boolean isMapList) {
+    static void mapToComponentList(Map<String, Object> map, List<Component> readableList, int loopTimes, boolean isMapList) {
         boolean first = true;
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             Object nbt = entry.getValue();

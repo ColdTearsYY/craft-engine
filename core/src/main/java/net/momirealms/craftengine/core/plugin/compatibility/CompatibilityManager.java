@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.entity.furniture.ExternalModel;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.network.NetWorkUser;
+import net.momirealms.craftengine.core.world.WorldPosition;
 
 public interface CompatibilityManager {
 
@@ -33,6 +34,8 @@ public interface CompatibilityManager {
     int getViaVersionProtocolVersion(NetWorkUser user);
 
     void executeMMSkill(String skill, float power, Player player);
+
+    void summonMMEntity(String mobId, WorldPosition worldPosition, double level);
 
     TagResolver[] createExternalTagResolvers(Context context);
 

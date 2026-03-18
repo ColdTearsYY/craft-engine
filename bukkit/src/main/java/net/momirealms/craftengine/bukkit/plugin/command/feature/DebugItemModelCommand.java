@@ -2,6 +2,7 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
@@ -33,11 +34,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public final class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSender> {
 
-    public DebugCustomModelDataCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
+    public DebugItemModelCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
     }
 
@@ -55,7 +57,7 @@ public final class DebugCustomModelDataCommand extends BukkitCommandFeature<Comm
 
     @Override
     public String getFeatureID() {
-        return "debug_custom_model_data";
+        return "debug_item_model";
     }
 
     private void handleCommand(CommandContext<CommandSender> context) {
@@ -67,37 +69,30 @@ public final class DebugCustomModelDataCommand extends BukkitCommandFeature<Comm
             CustomItem customItem = CraftEngineItems.byId(itemId);
             if (customItem == null) return;
             Item item = customItem.buildItem(player);
-            reportCustomModelData(context, item, player);
+            reportItemModel(context, item, player);
             return;
         }
 
         if (player != null) {
             Item item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
-            reportCustomModelData(context, item, player);
+            reportItemModel(context, item, player);
         }
     }
 
-    private void reportCustomModelData(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
+    private void reportItemModel(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
         Item clientBoundItem = plugin().itemManager().s2c(itemStack, player).orElse(itemStack);
 
-        // 1.20.5+ 打印整个 CUSTOM_MODEL_DATA 组件.
-         if (VersionHelper.COMPONENT_RELEASE) {
-             @SuppressWarnings("unchecked")
-             Map<String, Object> component = (Map<String, Object>) clientBoundItem.getJavaComponent(DataComponentTypes.CUSTOM_MODEL_DATA);
+        // 1.21.2+ 尝试获取.
+        if (VersionHelper.isOrAbove1_21_2()) {
+            String itemModel = Optional.of(clientBoundItem.getJavaComponent(DataComponentTypes.ITEM_MODEL)).orElse("null").toString();
+            TextComponent finalMessage = Component.text(itemModel)
+                    .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))
+                    .clickEvent(ClickEvent.suggestCommand(itemModel));
+            plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
+            return;
+        }
 
-             List<Component> readableComponents = new ArrayList<>();
-             DebugItemDataCommand.mapToComponentList(component, readableComponents, 0, false);
-             Component finalMessage = Component.join(JoinConfiguration.separator(Component.newline()), readableComponents);
-             plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
-             return;
-         }
-
-        // 低版本直接发送值.
-        int customModelData = clientBoundItem.customModelData().orElse(0);
-        Component message = Component.text(customModelData)
-                .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))
-                .clickEvent(ClickEvent.suggestCommand(String.valueOf(customModelData)));
-        plugin().senderFactory().wrap(context.sender()).sendMessage(message);
+        // 低版本没有值.
+        plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text("null"));
     }
-
 }

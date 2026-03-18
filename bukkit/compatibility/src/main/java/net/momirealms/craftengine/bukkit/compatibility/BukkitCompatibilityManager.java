@@ -3,6 +3,8 @@ package net.momirealms.craftengine.bukkit.compatibility;
 import cn.gtemc.itembridge.api.Provider;
 import cn.gtemc.itembridge.core.BukkitItemBridge;
 import cn.gtemc.levelerbridge.core.BukkitLevelerBridge;
+import io.lumine.mythic.api.mobs.entities.SpawnReason;
+import io.lumine.mythic.core.spawning.spawners.MythicSpawner;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.momirealms.craftengine.bukkit.block.entity.renderer.element.BukkitBlockEntityElementConfigs;
 import net.momirealms.craftengine.bukkit.compatibility.bedrock.FloodgateUtils;
@@ -17,7 +19,7 @@ import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEn
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineProvider;
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineUtils;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicItemDropListener;
-import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicSkillHelper;
+import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsHelper;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateHatSettings;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateProviders;
 import net.momirealms.craftengine.bukkit.compatibility.packetevents.WrappedBlockStateHelper;
@@ -44,6 +46,7 @@ import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.WorldManager;
+import net.momirealms.craftengine.core.world.WorldPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -223,7 +226,12 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
 
     @Override
     public void executeMMSkill(String skill, float power, Player player) {
-        MythicSkillHelper.execute(skill, power, player);
+        MythicMobsHelper.execute(skill, power, player);
+    }
+
+    @Override
+    public void summonMMEntity(String mobId, WorldPosition worldPosition, double level) {
+        MythicMobsHelper.summonMob(mobId, worldPosition, level);
     }
 
     @Override
