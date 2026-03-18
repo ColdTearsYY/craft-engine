@@ -50,4 +50,10 @@ public interface BlockProxy extends BlockBehaviourProxy {
 
     @MethodInvoker(name = "canSupportRigidBlock", isStatic = true)
     boolean canSupportRigidBlock(@Type(clazz = BlockGetterProxy.class) Object level, @Type(clazz = BlockPosProxy.class) Object pos);
+
+    @FieldGetter(name = "builtInRegistryHolder")
+    Object getBuiltInRegistryHolder(Object target);
+
+    @FieldSetter(name = "builtInRegistryHolder")
+    void setBuiltInRegistryHolder(Object target, Object value);
 }

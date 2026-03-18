@@ -252,7 +252,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
                     BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
                     onSound,
                     offSound,
-                    section.getValue("sensitivity", it -> PressurePlateSensitivity.byName(it.getAsString()), PressurePlateSensitivity.EVERYTHING),
+                    section.getValue("sensitivity", it -> it.getAsEnum(PressurePlateSensitivity.class, PressurePlateSensitivity::byId), PressurePlateSensitivity.EVERYTHING),
                     section.getInt(PRESSED_TIME, 20)
             );
         }

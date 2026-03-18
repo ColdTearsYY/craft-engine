@@ -360,13 +360,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             unfreezeRegistry();
             for (int i = 0; i < count; i++) {
                 Key customBlockId = BlockManager.createCustomBlockKey(i);
-                DelegatingBlock customBlock;
-                try {
-                    customBlock = BlockGenerator.generateBlock(customBlockId);
-                } catch (Throwable t) {
-                    CraftEngine.instance().logger().warn("Failed to generate custom block " + customBlockId, t);
-                    break;
-                }
+                DelegatingBlock customBlock = BlockGenerator.generateBlock(customBlockId);
                 this.customBlocks[i] = customBlock;
                 Object identifier = KeyUtils.toIdentifier(customBlockId);
                 Object blockHolder = RegistryProxy.INSTANCE.registerForHolder$1(BuiltInRegistriesProxy.BLOCK, identifier, customBlock);

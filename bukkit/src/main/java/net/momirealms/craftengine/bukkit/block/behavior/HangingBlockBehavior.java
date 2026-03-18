@@ -18,9 +18,9 @@ public final class HangingBlockBehavior extends BushBlockBehavior {
                                  boolean blacklist,
                                  boolean stackable,
                                  List<Object> tagsCanSurviveOn,
-                                 List<Object> blocksCansSurviveOn,
-                                 List<Object> blockStatesCansSurviveOn) {
-        super(block, delay, blacklist, stackable, -1, tagsCanSurviveOn, blocksCansSurviveOn, blockStatesCansSurviveOn);
+                                 Set<Object> blocksCansSurviveOn,
+                                 Set<String> customBlocksCansSurviveOn) {
+        super(block, delay, blacklist, stackable, -1, tagsCanSurviveOn, blocksCansSurviveOn, customBlocksCansSurviveOn);
     }
 
     @Override
@@ -34,11 +34,7 @@ public final class HangingBlockBehavior extends BushBlockBehavior {
 
         @Override
         public HangingBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Tuple<List<Object>, List<Object>, List<Object>> tuple = readTagsAndBlockAndState(
-                    section.getValue(new String[]{"above_block_tags", "above-block-tags"}),
-                    section.getValue(new String[]{"above_blocks", "above-blocks"}),
-                    section.getValue(new String[]{"above_block_states", "above-block-states"})
-            );
+            Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(section, true);
             return new HangingBlockBehavior(
                     block,
                     section.getInt("delay", 0),

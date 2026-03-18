@@ -11,6 +11,7 @@ import java.util.Set;
 @ReflectionProxy(name = "net.minecraft.core.Holder")
 public interface HolderProxy {
     HolderProxy INSTANCE = ASMProxyFactory.create(HolderProxy.class);
+    Class<?> CLASS = SparrowClass.find("net.minecraft.core.Holder");
 
     @MethodInvoker(name = "value")
     Object value(Object target);

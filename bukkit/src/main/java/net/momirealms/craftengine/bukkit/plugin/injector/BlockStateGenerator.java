@@ -12,10 +12,12 @@ import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
+import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.block.BlockSettings;
@@ -40,14 +42,15 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.proper
 import net.momirealms.craftengine.proxy.minecraft.world.level.storage.loot.LootParamsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.storage.loot.parameters.LootContextParamsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
+import net.momirealms.sparrow.reflection.constructor.SConstructor3;
+import net.momirealms.sparrow.reflection.constructor.matcher.ConstructorMatcher;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public final class BlockStateGenerator {
-    private static MethodHandle constructor$CraftEngineBlockState;
+    private static SConstructor3 constructor$CraftEngineBlockState;
     public static Object instance$StateDefinition$Factory;
 
     public static void init() throws ReflectiveOperationException {
@@ -58,11 +61,16 @@ public final class BlockStateGenerator {
                 .subclass(BlockStateProxy.CLASS, ConstructorStrategy.Default.IMITATE_SUPER_CLASS_OPENING)
                 .name(generatedStateClassName)
                 .defineField("immutableBlockState", ImmutableBlockState.class, Visibility.PUBLIC)
+                .defineField("blockOwner", BlockProxy.CLASS, Visibility.PUBLIC)
                 .implement(DelegatingBlockState.class)
                 .method(ElementMatchers.named("blockState"))
                 .intercept(FieldAccessor.ofField("immutableBlockState"))
                 .method(ElementMatchers.named("setBlockState"))
                 .intercept(FieldAccessor.ofField("immutableBlockState"))
+                .method(ElementMatchers.named("blockOwner"))
+                .intercept(FieldAccessor.ofField("blockOwner"))
+                .method(ElementMatchers.named("setBlockOwner"))
+                .intercept(FieldAccessor.ofField("blockOwner"))
                 .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getDrops))
                 .intercept(MethodDelegation.to(GetDropsInterceptor.INSTANCE))
                 .method(ElementMatchers.is(BlockReflections.method$StateHolder$hasProperty))
@@ -72,15 +80,18 @@ public final class BlockStateGenerator {
                 .method(ElementMatchers.is(BlockReflections.method$StateHolder$setValue))
                 .intercept(MethodDelegation.to(SetPropertyValueInterceptor.INSTANCE))
                 .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$is))
-                .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE));
-        Class<?> clazz$CraftEngineBlock = stateBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded();
-        constructor$CraftEngineBlockState = VersionHelper.isOrAbove1_20_5() ?
-                MethodHandles.publicLookup().in(clazz$CraftEngineBlock)
-                        .findConstructor(clazz$CraftEngineBlock, MethodType.methodType(void.class, BlockProxy.CLASS, Reference2ObjectArrayMap.class, MapCodec.class))
-                        .asType(MethodType.methodType(BlockStateProxy.CLASS, BlockProxy.CLASS, Reference2ObjectArrayMap.class, MapCodec.class)) :
-                MethodHandles.publicLookup().in(clazz$CraftEngineBlock)
-                        .findConstructor(clazz$CraftEngineBlock, MethodType.methodType(void.class, BlockProxy.CLASS, ImmutableMap.class, MapCodec.class))
-                        .asType(MethodType.methodType(BlockStateProxy.CLASS, BlockProxy.CLASS, ImmutableMap.class, MapCodec.class));
+                .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE))
+                .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getBlock))
+                .intercept(MethodDelegation.to(GetBlockInterceptor.INSTANCE))
+                .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getBlockHolder))
+                .intercept(MethodDelegation.to(GetBlockHolderInterceptor.INSTANCE));
+        SparrowClass<?> clazz$CraftEngineBlock = SparrowClass.of(stateBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded());
+
+        constructor$CraftEngineBlockState = clazz$CraftEngineBlock.getSparrowConstructor(ConstructorMatcher.takeArguments(
+                BlockProxy.CLASS,
+                VersionHelper.isOrAbove1_20_5() ? Reference2ObjectArrayMap.class : ImmutableMap.class,
+                MapCodec.class
+        )).asm$3();
 
         String generatedFactoryClassName = packageWithName.substring(0, packageWithName.lastIndexOf('.')) + ".CraftEngineStateFactory";
         DynamicType.Builder<?> factoryBuilder = byteBuddy
@@ -198,14 +209,36 @@ public final class BlockStateGenerator {
         @RuntimeType
         public boolean intercept(@This Object thisObj, @AllArguments Object[] args) {
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
-            ImmutableBlockState thisState = customState.blockState();
-            if (thisState == null) return false;
+            Object thisBlock = customState.blockOwner();
+            if (thisBlock == null) return false;
             if (BlockProxy.INSTANCE.getDefaultBlockState(args[0]) instanceof DelegatingBlockState holder) {
-                ImmutableBlockState holderState = holder.blockState();
-                if (holderState == null) return false;
-                return holderState.owner().equals(thisState.owner());
+                Object holderBlock = holder.blockOwner();
+                if (holderBlock == null) return false;
+                return thisBlock == holderBlock;
             }
             return false;
+        }
+    }
+
+    public static class GetBlockInterceptor {
+        public static final GetBlockInterceptor INSTANCE = new GetBlockInterceptor();
+
+        @RuntimeType
+        public Object intercept(@This Object thisObj, @SuperCall Callable<Object> superMethod) throws Exception {
+            DelegatingBlockState customState = (DelegatingBlockState) thisObj;
+            Object block = customState.blockOwner();
+            return block != null ? block : superMethod.call();
+        }
+    }
+
+    public static class GetBlockHolderInterceptor {
+        public static final GetBlockHolderInterceptor INSTANCE = new GetBlockHolderInterceptor();
+
+        @RuntimeType
+        public Object intercept(@This Object thisObj, @SuperCall Callable<Object> superMethod) throws Exception {
+            DelegatingBlockState customState = (DelegatingBlockState) thisObj;
+            Object block = customState.blockOwner();
+            return block != null ? BlockProxy.INSTANCE.getBuiltInRegistryHolder(block) : superMethod.call();
         }
     }
 
@@ -213,8 +246,8 @@ public final class BlockStateGenerator {
         public static final CreateStateInterceptor INSTANCE = new CreateStateInterceptor();
 
         @RuntimeType
-        public Object intercept(@AllArguments Object[] args) throws Throwable {
-            return constructor$CraftEngineBlockState.invoke(args[0], args[1], args[2]);
+        public Object intercept(@AllArguments Object[] args) {
+            return constructor$CraftEngineBlockState.newInstance(args[0], args[1], args[2]);
         }
     }
 }
