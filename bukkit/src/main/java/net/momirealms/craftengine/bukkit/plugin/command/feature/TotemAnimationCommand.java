@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -24,7 +24,6 @@ import net.momirealms.craftengine.proxy.minecraft.sounds.SoundSourceProxy;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.CommandManager;
@@ -43,7 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class TotemAnimationCommand extends BukkitCommandFeature<CommandSender> {
+public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSender> {
     public static final Object FIX_TOTEM_SOUND_PACKET = ClientboundSoundPacketProxy.INSTANCE.newInstance(HolderProxy.INSTANCE.direct(SoundEventsProxy.TOTEM_USE), SoundSourceProxy.MUSIC, 0, Integer.MIN_VALUE, 0, 0, 0, 0);
 
     public TotemAnimationCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
@@ -75,7 +74,7 @@ public class TotemAnimationCommand extends BukkitCommandFeature<CommandSender> {
                 .handler(context -> {
                     NamespacedKey namespacedKey = context.get("id");
                     Key key = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    CustomItem<ItemStack> customItem = plugin().itemManager().getCustomItem(key).orElse(null);
+                    CustomItem customItem = plugin().itemManager().getCustomItem(key).orElse(null);
                     if (customItem == null || (!VersionHelper.isOrAbove1_21_2() && customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING))) {
                         handleFeedback(context, MessageConstants.COMMAND_TOTEM_NOT_TOTEM, Component.text(key.toString()));
                         return;
@@ -93,9 +92,9 @@ public class TotemAnimationCommand extends BukkitCommandFeature<CommandSender> {
                     MultiplePlayerSelector selector = context.get("players");
                     Collection<Player> players = selector.values();
                     for (Player player : players) {
-                        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) continue;
-                        Item<ItemStack> item = customItem.buildItem(serverPlayer);
+                        Item item = customItem.buildItem(serverPlayer);
                         if (VersionHelper.isOrAbove1_21_2()) {
                             item.setJavaComponent(DataComponentTypes.DEATH_PROTECTION, Map.of());
                         }

@@ -4,6 +4,7 @@ import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
+import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
@@ -12,15 +13,16 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.util.Direction;
+import net.momirealms.craftengine.core.util.ItemUtils;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
@@ -33,21 +35,20 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
-import java.util.Map;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
-public class GrassBlockBehavior extends BukkitBlockBehavior {
+public final class GrassBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<GrassBlockBehavior> FACTORY = new Factory();
-    private final Key feature;
+    public final Key feature;
 
-    public GrassBlockBehavior(CustomBlock block, Key feature) {
+    private GrassBlockBehavior(CustomBlock block, Key feature) {
         super(block);
         this.feature = feature;
     }
 
     public Key boneMealFeature() {
-        return feature;
+        return this.feature;
     }
 
     @Override
@@ -92,7 +93,7 @@ public class GrassBlockBehavior extends BukkitBlockBehavior {
     @SuppressWarnings("DuplicatedCode")
     @Override
     public InteractionResult useOnBlock(UseOnContext context, ImmutableBlockState state) {
-        Item<?> item = context.getItem();
+        Item item = context.getItem();
         Player player = context.getPlayer();
         if (ItemUtils.isEmpty(item) || !item.vanillaId().equals(ItemKeys.BONE_MEAL) || player == null || player.isAdventureMode())
             return InteractionResult.PASS;
@@ -130,16 +131,8 @@ public class GrassBlockBehavior extends BukkitBlockBehavior {
 
     @Override
     public void performBoneMeal(Object thisBlock, Object[] args) {
-        Object registryAccess = RegistryUtils.getRegistryAccess();
-        Object registry = RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.PLACED_FEATURE);
-        if (registry == null) return;
-        Optional<Object> holder;
-        if (VersionHelper.isOrAbove1_21_2()) {
-            holder = RegistryProxy.INSTANCE.get$1(registry, FeatureUtils.createPlacedFeatureKey(boneMealFeature()));
-        } else {
-            holder = RegistryProxy.INSTANCE.getHolder$1(registry, FeatureUtils.createPlacedFeatureKey(boneMealFeature()));
-        }
-        if (holder.isEmpty()) {
+        Object holder = BukkitWorldManager.instance().placedFeatureById(boneMealFeature());
+        if (holder == null) {
             CraftEngine.instance().logger().warn("Placed feature not found: " + boneMealFeature());
             return;
         }
@@ -173,7 +166,7 @@ public class GrassBlockBehavior extends BukkitBlockBehavior {
                 }
                 if (BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isAir(currentState)) {
                     Object chunkGenerator = ServerChunkCacheProxy.INSTANCE.getGenerator(ServerLevelProxy.INSTANCE.getChunkSource(world));
-                    Object placedFeature = HolderProxy.INSTANCE.value(holder.get());
+                    Object placedFeature = HolderProxy.INSTANCE.value(holder);
                     PlacedFeatureProxy.INSTANCE.place(placedFeature, world, chunkGenerator, random, nmsCurrentPos);
                 }
             }
@@ -181,10 +174,14 @@ public class GrassBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<GrassBlockBehavior> {
+        private static final String[] FEATURE = new String[]{"feature", "placed_feature", "placed-feature"};
+
         @Override
-        public GrassBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String feature = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(arguments, "feature", "placed-feature"), "warning.config.block.behavior.grass.missing_feature");
-            return new GrassBlockBehavior(block, Key.of(feature));
+        public GrassBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new GrassBlockBehavior(
+                    block,
+                    section.getNonNullIdentifier(FEATURE)
+            );
         }
     }
 }

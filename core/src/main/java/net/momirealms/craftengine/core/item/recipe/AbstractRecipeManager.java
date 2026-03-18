@@ -2,31 +2,36 @@ package net.momirealms.craftengine.core.item.recipe;
 
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.UniqueKey;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
-    protected final Map<RecipeType, List<Recipe<T>>> byType = new EnumMap<>(RecipeType.class);
-    protected final Map<Key, Recipe<T>> byId = new LinkedHashMap<>();
-    protected final Map<Key, List<Recipe<T>>> byResult = new HashMap<>();
-    protected final Map<Key, List<Recipe<T>>> byIngredient = new HashMap<>();
+public abstract class AbstractRecipeManager implements RecipeManager {
+    protected final Map<RecipeType, List<Recipe>> byType = new EnumMap<>(RecipeType.class);
+    protected final Map<Key, Recipe> byId = new LinkedHashMap<>();
+    protected final Map<Key, List<Recipe>> byResult = new HashMap<>();
+    protected final Map<Key, List<Recipe>> byIngredient = new HashMap<>();
     protected final Map<Key, List<IngredientUnlockable>> ingredientUnlockable = new HashMap<>();
+    protected final List<Recipe> nativeRecipes = new ArrayList<>();
+    protected final List<CustomBrewingRecipe> brewingRecipes = new ArrayList<>();
     protected final Set<Key> dataPackRecipes = new HashSet<>();
-    protected final RecipeParser recipeParser;
+    protected final ConfigParser recipeParser;
+    protected final RecipeRegistry recipeRegistry;
 
-    public AbstractRecipeManager() {
+    public AbstractRecipeManager(RecipeRegistry recipeRegistry) {
         this.recipeParser = new RecipeParser();
+        this.recipeRegistry = recipeRegistry;
     }
 
     @Override
@@ -42,6 +47,8 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         this.byResult.clear();
         this.byIngredient.clear();
         this.ingredientUnlockable.clear();
+        this.nativeRecipes.clear();
+        this.brewingRecipes.clear();
     }
 
     protected void markAsDataPackRecipe(Key key) {
@@ -59,31 +66,31 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
     }
 
     @Override
-    public Optional<Recipe<T>> recipeById(Key key) {
+    public Optional<Recipe> recipeById(Key key) {
         return Optional.ofNullable(this.byId.get(key));
     }
 
     @Override
-    public List<Recipe<T>> recipesByType(RecipeType type) {
+    public List<Recipe> recipesByType(RecipeType type) {
         return this.byType.getOrDefault(type, List.of());
     }
 
     @Override
-    public List<Recipe<T>> recipeByResult(Key result) {
+    public List<Recipe> recipeByResult(Key result) {
         return this.byResult.getOrDefault(result, List.of());
     }
 
     @Override
-    public List<Recipe<T>> recipeByIngredient(Key ingredient) {
+    public List<Recipe> recipeByIngredient(Key ingredient) {
         return this.byIngredient.getOrDefault(ingredient, List.of());
     }
 
     @Nullable
     @Override
-    public Recipe<T> recipeByInput(RecipeType type, RecipeInput input) {
-        List<Recipe<T>> recipes = this.byType.get(type);
+    public Recipe recipeByInput(RecipeType type, RecipeInput input) {
+        List<Recipe> recipes = this.byType.get(type);
         if (recipes == null) return null;
-        for (Recipe<T> recipe : recipes) {
+        for (Recipe recipe : recipes) {
             if (recipe.matches(input)) {
                 return recipe;
             }
@@ -93,9 +100,9 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
 
     @Nullable
     @Override
-    public Recipe<T> recipeByInput(RecipeType type, RecipeInput input, Key lastRecipe) {
+    public Recipe recipeByInput(RecipeType type, RecipeInput input, Key lastRecipe) {
         if (lastRecipe != null) {
-            Recipe<T> last = this.byId.get(lastRecipe);
+            Recipe last = this.byId.get(lastRecipe);
             if (last != null && last.matches(input)) {
                 return last;
             }
@@ -107,17 +114,25 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         return this.ingredientUnlockable.getOrDefault(item, List.of());
     }
 
-    protected boolean registerInternalRecipe(Key id, Recipe<T> recipe, boolean unlockOnIngredientObtained) {
-        if (this.byId.containsKey(id)) return false;
+    protected abstract void loadDataPackRecipes();
+
+    protected synchronized void registerRecipeInternal(Recipe recipe, boolean unlockOnIngredientObtained) {
+        // 原版配方被覆写了
+        if (this.byId.containsKey(recipe.id())) return;
         this.byType.computeIfAbsent(recipe.type(), k -> new ArrayList<>()).add(recipe);
-        this.byId.put(id, recipe);
-        if (recipe instanceof AbstractFixedResultRecipe<?> fixedResult) {
+        this.byId.put(recipe.id(), recipe);
+        if (recipe instanceof AbstractFixedResultRecipe fixedResult) {
             this.byResult.computeIfAbsent(fixedResult.result().item().id(), k -> new ArrayList<>()).add(recipe);
         }
-        List<Ingredient<T>> ingredients = recipe.ingredientsInUse();
+        if (recipe instanceof CustomBrewingRecipe brewingRecipe) {
+            this.brewingRecipes.add(brewingRecipe);
+        } else {
+            this.nativeRecipes.add(recipe);
+        }
+        List<Ingredient> ingredients = recipe.ingredientsInUse();
         if (recipe.canBeSearchedByIngredients()) {
             HashSet<Key> usedKeys = new HashSet<>();
-            for (Ingredient<T> ingredient : ingredients) {
+            for (Ingredient ingredient : ingredients) {
                 for (UniqueKey holder : ingredient.items()) {
                     Key key = holder.key();
                     if (usedKeys.add(key)) {
@@ -128,8 +143,8 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         }
         if (unlockOnIngredientObtained) {
             List<IngredientUnlockable.Requirement> requirements =  new ArrayList<>(4);
-            HashSet<UniqueKey> usedKeys = new HashSet<>();
-            for (Ingredient<T> ingredient : ingredients) {
+            Set<UniqueKey> usedKeys = new HashSet<>();
+            for (Ingredient ingredient : ingredients) {
                 List<UniqueKey> items = ingredient.items();
                 if (items.size() > 1) {
                     requirements.add(new IngredientUnlockable.Multiple(items.toArray(new UniqueKey[0])));
@@ -143,11 +158,11 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
                 this.ingredientUnlockable.computeIfAbsent(usedKey.key(), l -> new ArrayList<>()).add(unlockable);
             }
         }
-        return true;
     }
 
-    public final class RecipeParser extends IdSectionConfigParser {
+    private final class RecipeParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"recipes", "recipe"};
+        private final AtomicInteger count = new AtomicInteger(0);
 
         @Override
         public String[] sectionId() {
@@ -156,7 +171,12 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
 
         @Override
         public int count() {
-            return Math.max(0, AbstractRecipeManager.this.byId.size() - AbstractRecipeManager.this.dataPackRecipes.size());
+            return this.count.get();
+        }
+
+        @Override
+        public boolean async() {
+            return true;
         }
 
         @Override
@@ -165,29 +185,29 @@ public abstract class AbstractRecipeManager<T> implements RecipeManager<T> {
         }
 
         @Override
+        public void preProcess() {
+            this.count.set(0);
+        }
+
+        @Override
+        public void postProcess() {
+            loadDataPackRecipes();
+        }
+
+        @Override
         public List<LoadingStage> dependencies() {
             return List.of(LoadingStages.TEMPLATE, LoadingStages.ITEM);
         }
 
+        private static final String[] UNLOCK_ON_INGREDIENT_OBTAINED = new String[] {"unlock_on_ingredient_obtained", "unlock-on-ingredient-obtained"};
+
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
             if (!Config.enableRecipeSystem()) return;
-            if (AbstractRecipeManager.this.byId.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.recipe.duplicate");
-            }
-            boolean unlockOnIngredientObtained = (boolean) section.getOrDefault("unlock-on-ingredient-obtained", Config.unlockOnIngredientObtained());
-            Recipe<T> recipe = RecipeSerializers.fromMap(id, section);
-            try {
-                registerInternalRecipe(id, recipe, unlockOnIngredientObtained);
-            } catch (LocalizedResourceConfigException e) {
-                throw e;
-            } catch (Exception e) {
-                CraftEngine.instance().logger().warn("Failed to register custom recipe " + id, e);
-            }
+            boolean unlockOnIngredientObtained = section.getBoolean(UNLOCK_ON_INGREDIENT_OBTAINED, Config.unlockOnIngredientObtained());
+            Recipe recipe = RecipeSerializers.fromConfig(id, section);
+            registerRecipeInternal(recipe, unlockOnIngredientObtained);
+            this.count.incrementAndGet();
         }
     }
-
-    protected abstract void unregisterPlatformRecipeMainThread(Key key, boolean isBrewingRecipe);
-
-    protected abstract void registerPlatformRecipeMainThread(Recipe<T> recipe);
 }

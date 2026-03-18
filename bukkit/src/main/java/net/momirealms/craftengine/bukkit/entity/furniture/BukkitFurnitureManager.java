@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.entity.furniture;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.furniture.hitbox.InteractionFurnitureHitboxConfig;
 import net.momirealms.craftengine.bukkit.nms.CollisionEntity;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -41,7 +41,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
-public class BukkitFurnitureManager extends AbstractFurnitureManager {
+public final class BukkitFurnitureManager extends AbstractFurnitureManager {
     public static final NamespacedKey FURNITURE_KEY = KeyUtils.toNamespacedKey(FurnitureManager.FURNITURE_KEY);
     public static final NamespacedKey FURNITURE_EXTRA_DATA_KEY = KeyUtils.toNamespacedKey(FurnitureManager.FURNITURE_EXTRA_DATA_KEY);
     public static final NamespacedKey FURNITURE_COLLISION = KeyUtils.toNamespacedKey(FurnitureManager.FURNITURE_COLLISION);
@@ -286,7 +286,7 @@ public class BukkitFurnitureManager extends AbstractFurnitureManager {
 
         // 补发一次包，修复
         for (Player player : entity.getTrackedPlayers()) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
             if (serverPlayer == null) continue;
             serverPlayer.sendPacket(ClientboundAddEntityPacketProxy.INSTANCE.newInstance(
                     entity.getEntityId(), entity.getUniqueId(), location.getX(), location.getY(), location.getZ(), location.getPitch(), location.getYaw(),

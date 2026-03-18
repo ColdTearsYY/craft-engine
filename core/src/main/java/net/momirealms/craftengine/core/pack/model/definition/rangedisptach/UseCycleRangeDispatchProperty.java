@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class UseCycleRangeDispatchProperty implements RangeDispatchProperty {
     public static final RangeDispatchPropertyFactory<UseCycleRangeDispatchProperty> FACTORY = new Factory();
@@ -26,17 +24,15 @@ public final class UseCycleRangeDispatchProperty implements RangeDispatchPropert
 
     private static class Factory implements RangeDispatchPropertyFactory<UseCycleRangeDispatchProperty> {
         @Override
-        public UseCycleRangeDispatchProperty create(Map<String, Object> arguments) {
-            float period = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("period", 0), "period");
-            return new UseCycleRangeDispatchProperty(period);
+        public UseCycleRangeDispatchProperty create(ConfigSection section) {
+            return new UseCycleRangeDispatchProperty(section.getFloat("source"));
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<UseCycleRangeDispatchProperty> {
         @Override
         public UseCycleRangeDispatchProperty read(JsonObject json) {
-            float period = json.has("period") ? json.get("period").getAsFloat() : 1.0f;
-            return new UseCycleRangeDispatchProperty(period);
+            return new UseCycleRangeDispatchProperty(json.has("period") ? json.get("period").getAsFloat() : 1.0f);
         }
     }
 }

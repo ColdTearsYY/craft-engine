@@ -10,14 +10,14 @@ import java.util.List;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public class LegacyShapelessRecipe<I> implements LegacyRecipe<I> {
-    private final List<LegacyIngredient<I>> ingredients;
-    private Item<I> result;
+public final class LegacyShapelessRecipe implements LegacyRecipe {
+    private final List<LegacyIngredient> ingredients;
+    private Item result;
     private final String group;
     private final CraftingRecipeCategory category;
 
-    public LegacyShapelessRecipe(List<LegacyIngredient<I>> ingredients,
-                                 Item<I> result,
+    public LegacyShapelessRecipe(List<LegacyIngredient> ingredients,
+                                 Item result,
                                  String group,
                                  CraftingRecipeCategory category) {
         this.category = category;
@@ -26,16 +26,16 @@ public class LegacyShapelessRecipe<I> implements LegacyRecipe<I> {
         this.group = group;
     }
 
-    public static <I> LegacyShapelessRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static LegacyShapelessRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         String group = buf.readUtf();
         CraftingRecipeCategory category = CraftingRecipeCategory.byId(buf.readVarInt());
-        List<LegacyIngredient<I>> ingredient = buf.readCollection(ArrayList::new, (byteBuffer) -> LegacyIngredient.read(byteBuffer, reader));
-        Item<I> result = reader.apply(buf);
-        return new LegacyShapelessRecipe<>(ingredient, result, group, category);
+        List<LegacyIngredient> ingredient = buf.readCollection(ArrayList::new, (byteBuffer) -> LegacyIngredient.read(byteBuffer, reader));
+        Item result = reader.apply(buf);
+        return new LegacyShapelessRecipe(ingredient, result, group, category);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeUtf(this.group);
         buf.writeVarInt(this.category.ordinal());
         buf.writeCollection(this.ingredients, (byteBuf, legacyIngredient) -> legacyIngredient.write(buf, writer));
@@ -43,9 +43,9 @@ public class LegacyShapelessRecipe<I> implements LegacyRecipe<I> {
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.result = function.apply(this.result);
-        for (LegacyIngredient<I> ingredient : this.ingredients) {
+        for (LegacyIngredient ingredient : this.ingredients) {
             ingredient.applyClientboundData(function);
         }
     }

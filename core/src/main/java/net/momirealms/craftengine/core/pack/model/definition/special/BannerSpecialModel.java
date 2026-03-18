@@ -2,11 +2,10 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class BannerSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<BannerSpecialModel> FACTORY = new Factory();
@@ -36,17 +35,15 @@ public final class BannerSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<BannerSpecialModel> {
         @Override
-        public BannerSpecialModel create(Map<String, Object> arguments) {
-            String color = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("color"), "warning.config.item.model.special.banner.missing_color");
-            return new BannerSpecialModel(color);
+        public BannerSpecialModel create(ConfigSection section) {
+            return new BannerSpecialModel(section.getNonNullString("color"));
         }
     }
 
     private static class Reader implements SpecialModelReader<BannerSpecialModel> {
         @Override
         public BannerSpecialModel read(JsonObject json) {
-            String color = json.get("color").getAsString();
-            return new BannerSpecialModel(color);
+            return new BannerSpecialModel(json.get("color").getAsString());
         }
     }
 }

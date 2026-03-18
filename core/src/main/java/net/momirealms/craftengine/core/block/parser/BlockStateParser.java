@@ -128,7 +128,7 @@ public final class BlockStateParser {
             input = reader.readString();
             if (property.possibleValues().stream().noneMatch
                     (value -> value.toString().equalsIgnoreCase(input))
-            ){
+            ) {
                 suggestValue();
                 return;
             }
@@ -152,6 +152,7 @@ public final class BlockStateParser {
         suggestPropertyName();
 
     }
+
     private void suggestPropertyName() {
         if (!reader.getRemaining().isEmpty()) return;
         String front = readPrefix();

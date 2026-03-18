@@ -3,16 +3,15 @@ package net.momirealms.craftengine.core.item.recipe.network.modern.display.slot;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 
-public class EmptySlotDisplay<I> implements SlotDisplay<I> {
-    public static final EmptySlotDisplay<?> INSTANCE = new EmptySlotDisplay<>();
+public final class EmptySlotDisplay implements SlotDisplay {
+    public static final EmptySlotDisplay INSTANCE = new EmptySlotDisplay();
 
-    @SuppressWarnings("unchecked")
-    public static <I> EmptySlotDisplay<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
-        return (EmptySlotDisplay<I>) INSTANCE;
+    public static EmptySlotDisplay read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
+        return INSTANCE;
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(0);
     }
 

@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
@@ -14,7 +14,7 @@ import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.parser.PlayerParser;
 import org.incendo.cloud.parser.standard.DoubleParser;
 
-public class SetEntityCullingDistanceScaleCommand extends BukkitCommandFeature<CommandSender> {
+public final class SetEntityCullingDistanceScaleCommand extends BukkitCommandFeature<CommandSender> {
 
     public SetEntityCullingDistanceScaleCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
@@ -29,7 +29,7 @@ public class SetEntityCullingDistanceScaleCommand extends BukkitCommandFeature<C
                 .handler(context -> {
                     Player player = context.get("player");
                     double scale = context.get("scale");
-                    BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                     if (serverPlayer == null) return;
                     serverPlayer.setEntityCullingDistanceScale(scale);
                     handleFeedback(context, MessageConstants.COMMAND_ENTITY_CULLING_DISTANCE_SCALE_SET_SUCCESS, Component.text(scale), Component.text(player.getName()));

@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface ConfigParser {
 
@@ -27,11 +28,17 @@ public interface ConfigParser {
 
     void clearConfigs();
 
+    void setErrorHandler(Consumer<ResourceException> errorHandler);
+
     default int count() {
         return -1;
     }
 
     default boolean silentIfNotExists() {
         return true;
+    }
+
+    default boolean async() {
+        return false;
     }
 }

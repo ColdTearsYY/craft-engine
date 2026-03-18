@@ -5,9 +5,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.GsonHelper;
+import net.momirealms.craftengine.core.util.HashUtils;
+import net.momirealms.craftengine.core.util.Pair;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -83,7 +85,7 @@ public final class AlistHost implements ResourcePackHost {
                     new TypeToken<Map<String, String>>(){}.getType()
             );
             this.cachedSha1 = cache.get("sha1");
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.host.cache.load", "Alist"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "Alist"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn("[Alist] Failed to load cache " + cachePath, e);
         }
@@ -282,26 +284,24 @@ public final class AlistHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<AlistHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] API_URL = new String[] {"api_url", "api-url"};
+        private static final String[] JWT_TOKEN_EXPIRATION = new String[] {"jwt_token_expiration", "jwt-token-expiration"};
+        private static final String[] UPLOAD_PATH = new String[] {"upload_path", "upload-path"};
+        private static final String[] DISABLE_UPLOAD = new String[] {"disable_upload", "disable-upload"};
 
         @Override
-        public AlistHost create(Map<String, Object> arguments) {
-            boolean useEnv = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-environment-variables", false), "use-environment-variables");
-            String apiUrl = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("api-url"), () -> new LocalizedException("warning.config.host.alist.missing_api_url"));
-            String userName = useEnv ? System.getenv("CE_ALIST_USERNAME") : Optional.ofNullable(arguments.get("username")).map(String::valueOf).orElse(null);
-            if (userName == null || userName.isEmpty()) {
-                throw new LocalizedException("warning.config.host.alist.missing_username");
-            }
-            String password =  useEnv ? System.getenv("CE_ALIST_PASSWORD") : Optional.ofNullable(arguments.get("password")).map(String::valueOf).orElse(null);
-            if (password == null || password.isEmpty()) {
-                throw new LocalizedException("warning.config.host.alist.missing_password");
-            }
-            String filePassword = useEnv ? System.getenv("CE_ALIST_FILE_PASSWORD") : arguments.getOrDefault("file-password", "").toString();
-            String otpCode = Optional.ofNullable(arguments.get("otp-code")).map(String::valueOf).orElse(null);
-            Duration jwtTokenExpiration = Duration.ofHours((int) arguments.getOrDefault("jwt-token-expiration", 48));
-            String uploadPath = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("upload-path"), () -> new LocalizedException("warning.config.host.alist.missing_upload_path"));
-            boolean disableUpload = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("disable-upload", false), "disable-upload");
-            ProxySelector proxy = getProxySelector(MiscUtils.castToMap(arguments.get("proxy"), true));
-            return new AlistHost(apiUrl, userName, password, filePassword, otpCode, jwtTokenExpiration, uploadPath, disableUpload, proxy);
+        public AlistHost create(ConfigSection section) {
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String apiUrl = section.getNonEmptyString(API_URL);
+            String userName = useEnv ? getNonNullEnvironmentVariable(section, "CE_ALIST_USERNAME") : section.getNonEmptyString("username");
+            String password = useEnv ? getNonNullEnvironmentVariable(section, "CE_ALIST_PASSWORD") : section.getNonEmptyString("password");
+            String filePassword = useEnv ? getNonNullEnvironmentVariable(section, "CE_ALIST_FILE_PASSWORD") : section.getString("file_password", "");
+            String otpCode = section.getString("otp_code", "otp-code");
+            Duration jwtTokenExpiration = Duration.ofHours(section.getInt(JWT_TOKEN_EXPIRATION, 48));
+            String uploadPath = section.getNonEmptyString(UPLOAD_PATH);
+            boolean disableUpload = section.getBoolean(DISABLE_UPLOAD);
+            return new AlistHost(apiUrl, userName, password, filePassword, otpCode, jwtTokenExpiration, uploadPath, disableUpload, getProxySelector(section.getSection("proxy")));
         }
     }
 }

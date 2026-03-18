@@ -6,13 +6,13 @@ import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 
-public interface LegacyRecipeHolder<I> {
+public interface LegacyRecipeHolder {
 
-    void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer);
+    void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer);
 
-    LegacyRecipe<I> recipe();
+    LegacyRecipe recipe();
 
-    static <I> LegacyRecipeHolder<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    static LegacyRecipeHolder read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         if (VersionHelper.isOrAbove1_20_5()) {
             return ModernRecipeHolderImpl.read(buf, reader);
         } else {
@@ -20,34 +20,34 @@ public interface LegacyRecipeHolder<I> {
         }
     }
 
-    record LegacyRecipeHolderImpl<I>(Key id, Key type, LegacyRecipe<I> recipe) implements LegacyRecipeHolder<I> {
+    record LegacyRecipeHolderImpl(Key id, Key type, LegacyRecipe recipe) implements LegacyRecipeHolder {
 
         @Override
-        public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+        public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
             buf.writeKey(this.type);
             buf.writeKey(this.id);
             this.recipe.write(buf, writer);
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
-        public static <I> LegacyRecipeHolder<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+        public static LegacyRecipeHolder read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
             Key type = buf.readKey();
             Key id = buf.readKey();
             return new LegacyRecipeHolderImpl(id, type, BuiltInRegistries.LEGACY_RECIPE_TYPE.getValue(type).read(buf, (FriendlyByteBuf.Reader) reader));
         }
     }
 
-    record ModernRecipeHolderImpl<I>(Key id, int type, LegacyRecipe<I> recipe) implements LegacyRecipeHolder<I> {
+    record ModernRecipeHolderImpl(Key id, int type, LegacyRecipe recipe) implements LegacyRecipeHolder {
 
         @Override
-        public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+        public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
             buf.writeKey(this.id);
             buf.writeVarInt(this.type);
             this.recipe.write(buf, writer);
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
-        public static <I> LegacyRecipeHolder<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+        public static LegacyRecipeHolder read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
             Key id = buf.readKey();
             int type = buf.readVarInt();
             return new ModernRecipeHolderImpl(id, type, BuiltInRegistries.LEGACY_RECIPE_TYPE.getValue(type).read(buf, (FriendlyByteBuf.Reader) reader));

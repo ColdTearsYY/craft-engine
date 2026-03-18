@@ -1,5 +1,7 @@
 package net.momirealms.craftengine.core.registry;
 
+import net.momirealms.craftengine.core.block.BlockSettingsModifier;
+import net.momirealms.craftengine.core.block.BlockSettingsModifierType;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.behavior.BlockBehavior;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorType;
@@ -8,12 +10,16 @@ import net.momirealms.craftengine.core.block.entity.BlockEntityType;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElement;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigType;
 import net.momirealms.craftengine.core.block.properties.PropertyType;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifier;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifierType;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavior;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehaviorType;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigType;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBox;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitboxConfigType;
+import net.momirealms.craftengine.core.item.ItemSettingsModifier;
+import net.momirealms.craftengine.core.item.ItemSettingsModifierType;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorType;
 import net.momirealms.craftengine.core.item.equipment.Equipment;
@@ -32,7 +38,9 @@ import net.momirealms.craftengine.core.item.recipe.result.PostProcessor;
 import net.momirealms.craftengine.core.item.recipe.result.PostProcessorType;
 import net.momirealms.craftengine.core.item.updater.ItemUpdater;
 import net.momirealms.craftengine.core.item.updater.ItemUpdaterType;
+import net.momirealms.craftengine.core.loot.entry.LootEntryContainer;
 import net.momirealms.craftengine.core.loot.entry.LootEntryContainerType;
+import net.momirealms.craftengine.core.loot.function.LootFunction;
 import net.momirealms.craftengine.core.loot.function.LootFunctionType;
 import net.momirealms.craftengine.core.loot.function.formula.Formula;
 import net.momirealms.craftengine.core.loot.function.formula.FormulaType;
@@ -69,8 +77,10 @@ import net.momirealms.craftengine.core.plugin.network.codec.NetworkCodec;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
+import java.util.function.Supplier;
+
 public final class BuiltInRegistries {
-    public static final Registry<CustomBlock> BLOCK = createDynamicBoundRegistry(Registries.BLOCK, 512);
+    public static final Registry<CustomBlock> BLOCK = new BlockRegistry<>(Registries.BLOCK, 512);
     public static final Registry<BlockBehaviorType<? extends BlockBehavior>> BLOCK_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.BLOCK_BEHAVIOR_TYPE, 64);
     public static final Registry<ItemProcessorType<? extends ItemProcessor>> ITEM_PROCESSOR_TYPE = createConstantBoundRegistry(Registries.ITEM_PROCESSOR_TYPE, 64);
     public static final Registry<ItemBehaviorType<? extends ItemBehavior>> ITEM_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.ITEM_BEHAVIOR_TYPE, 64);
@@ -83,7 +93,7 @@ public final class BuiltInRegistries {
     public static final Registry<RangeDispatchPropertyType<? extends RangeDispatchProperty>> RANGE_DISPATCH_PROPERTY_TYPE = createConstantBoundRegistry(Registries.RANGE_DISPATCH_PROPERTY_TYPE, 16);
     public static final Registry<ConditionPropertyType<? extends ConditionProperty>> CONDITION_PROPERTY_TYPE = createConstantBoundRegistry(Registries.CONDITION_PROPERTY_TYPE, 16);
     public static final Registry<SelectPropertyType<? extends SelectProperty>> SELECT_PROPERTY_TYPE = createConstantBoundRegistry(Registries.SELECT_PROPERTY_TYPE, 16);
-    public static final Registry<RecipeSerializer<?, ? extends Recipe<?>>> RECIPE_SERIALIZER = createConstantBoundRegistry(Registries.RECIPE_SERIALIZER, 16);
+    public static final Registry<RecipeSerializer<? extends Recipe>> RECIPE_SERIALIZER = createConstantBoundRegistry(Registries.RECIPE_SERIALIZER, 16);
     public static final Registry<FormulaType<? extends Formula>> FORMULA_TYPE = createConstantBoundRegistry(Registries.FORMULA_TYPE, 16);
     public static final Registry<PathMatcherType<? extends Condition<PathContext>>> PATH_MATCHER_TYPE = createConstantBoundRegistry(Registries.PATH_MATCHER_TYPE, 16);
     public static final Registry<ResolutionType<? extends Resolution>> RESOLUTION_TYPE = createConstantBoundRegistry(Registries.RESOLUTION_TYPE, 16);
@@ -92,9 +102,9 @@ public final class BuiltInRegistries {
     public static final Registry<CommonFunctionType<? extends Function<Context>>> COMMON_FUNCTION_TYPE = createConstantBoundRegistry(Registries.COMMON_FUNCTION_TYPE, 128);
     public static final Registry<CommonConditionType<? extends Condition<Context>>> COMMON_CONDITION_TYPE = createConstantBoundRegistry(Registries.COMMON_CONDITION_TYPE, 128);
     public static final Registry<EquipmentType<? extends Equipment>> EQUIPMENT_TYPE = createConstantBoundRegistry(Registries.EQUIPMENT_TYPE, 8);
-    public static final Registry<SlotDisplay.Type<?>> SLOT_DISPLAY_TYPE = createConstantBoundRegistry(Registries.SLOT_DISPLAY_TYPE, 16);
-    public static final Registry<RecipeDisplay.Type<?>> RECIPE_DISPLAY_TYPE = createConstantBoundRegistry(Registries.RECIPE_DISPLAY_TYPE, 16);
-    public static final Registry<LegacyRecipe.Type<?>> LEGACY_RECIPE_TYPE = createConstantBoundRegistry(Registries.LEGACY_RECIPE_TYPE, 16);
+    public static final Registry<SlotDisplay.Type<? extends SlotDisplay>> SLOT_DISPLAY_TYPE = createConstantBoundRegistry(Registries.SLOT_DISPLAY_TYPE, 16);
+    public static final Registry<RecipeDisplay.Type<? extends RecipeDisplay>> RECIPE_DISPLAY_TYPE = createConstantBoundRegistry(Registries.RECIPE_DISPLAY_TYPE, 16);
+    public static final Registry<LegacyRecipe.Type<? extends LegacyRecipe>> LEGACY_RECIPE_TYPE = createConstantBoundRegistry(Registries.LEGACY_RECIPE_TYPE, 16);
     public static final Registry<PostProcessorType<? extends PostProcessor>> RECIPE_POST_PROCESSOR_TYPE = createConstantBoundRegistry(Registries.RECIPE_POST_PROCESSOR_TYPE, 16);
     public static final Registry<ItemUpdaterType<? extends ItemUpdater>> ITEM_UPDATER_TYPE = createConstantBoundRegistry(Registries.ITEM_UPDATER_TYPE, 16);
     public static final Registry<NetworkCodec<FriendlyByteBuf, ? extends ModPacket>> MOD_PACKET = createConstantBoundRegistry(Registries.MOD_PACKET, 16);
@@ -104,10 +114,14 @@ public final class BuiltInRegistries {
     public static final Registry<FurnitureElementConfigType<? extends FurnitureElement>> FURNITURE_ELEMENT_TYPE = createConstantBoundRegistry(Registries.FURNITURE_ELEMENT_TYPE, 16);
     public static final Registry<FurnitureHitboxConfigType<? extends FurnitureHitBox>> FURNITURE_HITBOX_TYPE = createConstantBoundRegistry(Registries.FURNITURE_HITBOX_TYPE, 16);
     public static final Registry<FurnitureBehaviorType<? extends FurnitureBehavior>> FURNITURE_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.FURNITURE_BEHAVIOR_TYPE, 32);
+    public static final Registry<FurnitureSettingsModifierType<? extends FurnitureSettingsModifier>> FURNITURE_SETTINGS_TYPE = createConstantBoundRegistry(Registries.FURNITURE_SETTINGS_TYPE, 16);
+    public static final Registry<BlockSettingsModifierType<? extends BlockSettingsModifier>> BLOCK_SETTINGS_TYPE = createConstantBoundRegistry(Registries.BLOCK_SETTINGS_TYPE, 16);
+    public static final Registry<ItemSettingsModifierType<? extends ItemSettingsModifier>> ITEM_SETTINGS_TYPE = createConstantBoundRegistry(Registries.ITEM_SETTINGS_TYPE, 16);
+    public static final Registry<LootFunctionType<? extends LootFunction>> LOOT_FUNCTION_TYPE = createConstantBoundRegistry(Registries.LOOT_FUNCTION_TYPE, 32);
+    public static final Registry<LootEntryContainerType<? extends LootEntryContainer>> LOOT_ENTRY_CONTAINER_TYPE = createConstantBoundRegistry(Registries.LOOT_ENTRY_CONTAINER_TYPE, 16);
     // todo 修改
     public static final Registry<PlayerSelectorType<? extends Context>> PLAYER_SELECTOR_TYPE = createConstantBoundRegistry(Registries.PLAYER_SELECTOR_TYPE, 16);
-    public static final Registry<LootFunctionType<?>> LOOT_FUNCTION_TYPE = createConstantBoundRegistry(Registries.LOOT_FUNCTION_TYPE, 32);
-    public static final Registry<LootEntryContainerType<?>> LOOT_ENTRY_CONTAINER_TYPE = createConstantBoundRegistry(Registries.LOOT_ENTRY_CONTAINER_TYPE, 16);
+
 
     private BuiltInRegistries() {}
 
@@ -115,7 +129,7 @@ public final class BuiltInRegistries {
         return new ConstantBoundRegistry<>(key, expectedSize);
     }
 
-    private static <T> Registry<T> createDynamicBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
-        return new DynamicBoundRegistry<>(key, expectedSize);
+    private static <T> Registry<T> createConstantBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize, Supplier<T> initializer) {
+        return new ConstantBoundRegistry<>(key, expectedSize);
     }
 }

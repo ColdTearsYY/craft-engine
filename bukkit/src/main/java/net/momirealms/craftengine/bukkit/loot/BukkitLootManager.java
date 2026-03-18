@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.loot;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -14,6 +14,7 @@ import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.compatibility.EntityProvider;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
@@ -32,14 +33,17 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 // note: block listeners are in BlockEventListener to reduce performance cost
-public class BukkitLootManager extends AbstractLootManager implements Listener {
+public final class BukkitLootManager extends AbstractLootManager implements Listener {
     private final BukkitCraftEngine plugin;
     private final LootParser vanillaLootParser;
     private EntityProvider[] entitySources;
@@ -71,7 +75,7 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
         Entity entity = event.getEntity();
-        BukkitEntity bukkitEntity = BukkitAdaptors.adapt(entity);
+        BukkitEntity bukkitEntity = BukkitAdaptor.adapt(entity);
         Key key = getEntityId(bukkitEntity);
         Optional.ofNullable(this.entityLoots.get(key)).ifPresent(loot -> {
             if (loot.override()) {
@@ -79,7 +83,7 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
                 event.setDroppedExp(0);
             }
             Location location = entity.getLocation();
-            net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(entity.getWorld());
+            net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(entity.getWorld());
             WorldPosition position = new WorldPosition(world, location.getX(), location.getY(), location.getZ());
             ContextHolder.Builder builder = ContextHolder.builder()
                     .withParameter(DirectContextParameters.ENTITY, bukkitEntity)
@@ -87,17 +91,17 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
             BukkitServerPlayer optionalPlayer = null;
             if (VersionHelper.isOrAbove1_20_5()) {
                 if (event.getDamageSource().getCausingEntity() instanceof Player player) {
-                    optionalPlayer = BukkitAdaptors.adapt(player);
+                    optionalPlayer = BukkitAdaptor.adapt(player);
                     builder.withOptionalParameter(DirectContextParameters.PLAYER, optionalPlayer);
                     if (optionalPlayer != null) {
-                        Item<ItemStack> itemInHand = optionalPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+                        Item itemInHand = optionalPlayer.getItemInHand(InteractionHand.MAIN_HAND);
                         builder.withOptionalParameter(DirectContextParameters.ITEM_IN_HAND, ItemUtils.isEmpty(itemInHand) ? null : itemInHand);
                     }
                 }
             }
             ContextHolder contextHolder = builder.build();
-            for (LootTable<?> lootTable : loot.lootTables()) {
-                for (Item<?> item : lootTable.getRandomItems(contextHolder, world, optionalPlayer)) {
+            for (LootTable lootTable : loot.lootTables()) {
+                for (Item item : lootTable.getRandomItems(contextHolder, world, optionalPlayer)) {
                     world.dropItemNaturally(position, item);
                 }
             }
@@ -122,9 +126,14 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
         return this.vanillaLootParser;
     }
 
-    public class LootParser extends IdSectionConfigParser {
+    private final class LootParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"loots", "loot", "vanilla-loots", "vanilla-loot"};
         private int count;
+
+        @Override
+        public boolean async() {
+            return true;
+        }
 
         @Override
         public String[] sectionId() {
@@ -152,17 +161,17 @@ public class BukkitLootManager extends AbstractLootManager implements Listener {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
-            String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("type"), "warning.config.loot.missing_type");
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
+            String type = section.getNonEmptyString("type");
             VanillaLoot.Type typeEnum;
             try {
                 typeEnum = VanillaLoot.Type.valueOf(type.toUpperCase(Locale.ENGLISH));
             } catch (IllegalArgumentException e) {
                 throw new LocalizedResourceConfigException("warning.config.loot.invalid_type", type, EnumUtils.toString(VanillaLoot.Type.values()));
             }
-            boolean override = ResourceConfigUtils.getAsBoolean(section.getOrDefault("override", false), "override");
+            boolean override = section.getBoolean("override");
             List<String> targets = MiscUtils.getAsStringList(section.getOrDefault("target", List.of()));
-            LootTable<?> lootTable = LootTable.fromMap(MiscUtils.castToMap(section.get("loot"), false));
+            LootTable lootTable = LootTable.fromConfig(section.getNonNullSection("loot"));
             switch (typeEnum) {
                 case BLOCK -> {
                     for (String target : targets) {

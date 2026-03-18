@@ -35,7 +35,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-public class DynamicPlayerRenderer implements DynamicBlockEntityRenderer {
+public final class DynamicPlayerRenderer implements DynamicBlockEntityRenderer {
     private static final EnumSet<?> ADD_PLAYER_ACTION = createAction();
     private static final List<Pair<?, ?>> EMPTY_EQUIPMENT = List.of(
             Pair.of(EquipmentSlotProxy.HEAD, ItemStackProxy.EMPTY),
@@ -153,12 +153,12 @@ public class DynamicPlayerRenderer implements DynamicBlockEntityRenderer {
             }
             this.cachedSetOccupierDataPacket = ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(before.entityId(), metadata);
             this.cachedSetOccupierEquipmentPacket = ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(before.entityId(), List.of(
-                    Pair.of(EquipmentSlotProxy.HEAD, before.getItemBySlot(39).getLiteralObject()),
-                    Pair.of(EquipmentSlotProxy.CHEST, before.getItemBySlot(38).getLiteralObject()),
-                    Pair.of(EquipmentSlotProxy.LEGS, before.getItemBySlot(37).getLiteralObject()),
-                    Pair.of(EquipmentSlotProxy.FEET, before.getItemBySlot(36).getLiteralObject()),
-                    Pair.of(EquipmentSlotProxy.OFFHAND, before.getItemBySlot(40).getLiteralObject()),
-                    Pair.of(EquipmentSlotProxy.MAINHAND, before.getItemInHand(InteractionHand.MAIN_HAND).getLiteralObject())
+                    Pair.of(EquipmentSlotProxy.HEAD, before.getItemBySlot(39).getMinecraftItem()),
+                    Pair.of(EquipmentSlotProxy.CHEST, before.getItemBySlot(38).getMinecraftItem()),
+                    Pair.of(EquipmentSlotProxy.LEGS, before.getItemBySlot(37).getMinecraftItem()),
+                    Pair.of(EquipmentSlotProxy.FEET, before.getItemBySlot(36).getMinecraftItem()),
+                    Pair.of(EquipmentSlotProxy.OFFHAND, before.getItemBySlot(40).getMinecraftItem()),
+                    Pair.of(EquipmentSlotProxy.MAINHAND, before.getItemInHand(InteractionHand.MAIN_HAND).getMinecraftItem())
             ));
             this.isShow = false;
             this.hasCachedPacket = true;
@@ -195,23 +195,23 @@ public class DynamicPlayerRenderer implements DynamicBlockEntityRenderer {
 
     public void updateEquipment(Player player, int mainSlot) {
         this.cachedSetEquipmentPacket = ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                Pair.of(EquipmentSlotProxy.HEAD, player.getItemBySlot(39).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.CHEST, player.getItemBySlot(38).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.LEGS, player.getItemBySlot(37).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.FEET, player.getItemBySlot(36).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.OFFHAND, player.getItemBySlot(40).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.MAINHAND, player.getItemBySlot(mainSlot).getLiteralObject())
+                Pair.of(EquipmentSlotProxy.HEAD, player.getItemBySlot(39).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.CHEST, player.getItemBySlot(38).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.LEGS, player.getItemBySlot(37).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.FEET, player.getItemBySlot(36).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.OFFHAND, player.getItemBySlot(40).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.MAINHAND, player.getItemBySlot(mainSlot).getMinecraftItem())
         ));
     }
 
     public void updateEquipment(Player player) {
         this.cachedSetEquipmentPacket = ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                Pair.of(EquipmentSlotProxy.HEAD, player.getItemBySlot(39).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.CHEST, player.getItemBySlot(38).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.LEGS, player.getItemBySlot(37).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.FEET, player.getItemBySlot(36).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.OFFHAND, player.getItemBySlot(40).getLiteralObject()),
-                Pair.of(EquipmentSlotProxy.MAINHAND, player.getItemInHand(InteractionHand.MAIN_HAND).getLiteralObject())
+                Pair.of(EquipmentSlotProxy.HEAD, player.getItemBySlot(39).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.CHEST, player.getItemBySlot(38).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.LEGS, player.getItemBySlot(37).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.FEET, player.getItemBySlot(36).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.OFFHAND, player.getItemBySlot(40).getMinecraftItem()),
+                Pair.of(EquipmentSlotProxy.MAINHAND, player.getItemInHand(InteractionHand.MAIN_HAND).getMinecraftItem())
         ));
     }
 

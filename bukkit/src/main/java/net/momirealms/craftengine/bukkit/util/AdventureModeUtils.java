@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.bukkit.util;
 
-
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -15,7 +14,6 @@ import org.bukkit.inventory.ItemStack;
 
 @SuppressWarnings("DuplicatedCode")
 public final class AdventureModeUtils {
-
     private AdventureModeUtils() {}
 
     public static boolean canBreak(ItemStack itemStack, Location pos) {
@@ -35,9 +33,9 @@ public final class AdventureModeUtils {
         }
     }
 
-    public static boolean canPlace(Item<?> itemStack, World world, BlockPos pos, Object state) {
+    public static boolean canPlace(Item itemStack, World world, BlockPos pos, Object state) {
         Object blockPos = LocationUtils.toBlockPos(pos);
-        Object item = itemStack == null ? ItemStackProxy.EMPTY : itemStack.getLiteralObject();
+        Object item = itemStack == null ? ItemStackProxy.EMPTY : itemStack.getMinecraftItem();
         Object blockInWorld = BlockInWorldProxy.INSTANCE.newInstance(CraftWorldProxy.INSTANCE.getWorld((org.bukkit.World) world.platformWorld()), blockPos, false);
         if (state != null) {
             BlockInWorldProxy.INSTANCE.setState(blockInWorld, state);

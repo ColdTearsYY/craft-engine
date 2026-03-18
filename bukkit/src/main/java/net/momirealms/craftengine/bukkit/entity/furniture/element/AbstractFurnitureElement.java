@@ -10,7 +10,7 @@ public abstract class AbstractFurnitureElement implements ConditionalFurnitureEl
     protected final Predicate<PlayerContext> predicate;
     protected final boolean hasCondition;
 
-    public AbstractFurnitureElement(Predicate<PlayerContext> predicate, boolean hasCondition) {
+    protected AbstractFurnitureElement(Predicate<PlayerContext> predicate, boolean hasCondition) {
         this.predicate = predicate;
         this.hasCondition = hasCondition;
     }

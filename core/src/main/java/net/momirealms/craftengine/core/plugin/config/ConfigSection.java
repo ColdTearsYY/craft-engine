@@ -1,329 +1,992 @@
 package net.momirealms.craftengine.core.plugin.config;
 
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
+import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
+import net.momirealms.craftengine.core.util.EnumUtils;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.world.collision.AABB;
+import net.momirealms.sparrow.nbt.Tag;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
+@SuppressWarnings("DuplicatedCode")
 public final class ConfigSection {
-    private final Map<String, Object> config;
+    private final Map<String, Object> value;
+    private final String path;
 
-    public ConfigSection(Map<String, Object> config) {
-        this.config = config;
+    private ConfigSection(String path, Map<String, Object> value) {
+        this.value = value;
+        this.path = path;
     }
 
-    public static ConfigSection of(Map<String, Object> config) {
-        return new ConfigSection(config);
+    public static ConfigSection ofRoot(Map<String, Object> value) {
+        return new ConfigSection("", value);
     }
 
-    /**
-     * Gets a boolean value from the configuration.
-     * If the key doesn't exist or value is null, returns the default value (false).
-     *
-     * @param key Configuration key
-     * @return Boolean value for the specified key, or false if not found
-     */
-    public boolean getBoolean(final String key) {
-        return getBoolean(false, key);
+    public static ConfigSection of(String path, Map<String, Object> value) {
+        return new ConfigSection(path, value);
     }
 
-    /**
-     * Gets a boolean value by trying multiple keys in order.
-     * Returns the first found non-null value, or false if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return Boolean value for the first found key, or false if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public boolean getBoolean(final String... keys) {
-        return getBoolean(false, keys);
-    }
-
-    /**
-     * Gets a boolean value from the configuration with a custom default.
-     *
-     * @param def Default value to return if key doesn't exist
-     * @param key Configuration key
-     * @return Boolean value for the specified key, or the default value if not found
-     */
-    public boolean getBoolean(boolean def, final String key) {
-        return ResourceConfigUtils.getAsBoolean(this.config.getOrDefault(key, def), key);
-    }
-
-    /**
-     * Gets a boolean value by trying multiple keys in order with a custom default.
-     *
-     * @param def Default value to return if none of the keys are found
-     * @param keys Configuration keys to try in order
-     * @return Boolean value for the first found key, or the default value if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public boolean getBoolean(boolean def, final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsBoolean(ResourceConfigUtils.getOrDefault(this.config, def, keys), keys[0]);
-    }
-
-    /**
-     * Gets an integer value from the configuration.
-     * If the key doesn't exist or value is null, returns 0.
-     *
-     * @param key Configuration key
-     * @return Integer value for the specified key, or 0 if not found
-     */
-    public int getInt(final String key) {
-        return ResourceConfigUtils.getAsInt(this.config.get(key), key);
-    }
-
-    /**
-     * Gets an integer value by trying multiple keys in order.
-     * Returns the first found non-null value, or 0 if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return Integer value for the first found key, or 0 if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public int getInt(final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsInt(ResourceConfigUtils.get(this.config, keys), keys[0]);
-    }
-
-    /**
-     * Gets an integer value from the configuration with a custom default.
-     *
-     * @param def Default value to return if key doesn't exist
-     * @param key Configuration key
-     * @return Integer value for the specified key, or the default value if not found
-     */
-    public int getInt(int def, final String key) {
-        return ResourceConfigUtils.getAsInt(this.config.getOrDefault(key, def), key);
-    }
-
-    /**
-     * Gets an integer value by trying multiple keys in order with a custom default.
-     *
-     * @param def Default value to return if none of the keys are found
-     * @param keys Configuration keys to try in order
-     * @return Integer value for the first found key, or the default value if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public int getInt(int def, final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsInt(ResourceConfigUtils.getOrDefault(this.config, def, keys), keys[0]);
-    }
-
-    /**
-     * Gets a long value from the configuration.
-     * If the key doesn't exist or value is null, returns 0L.
-     *
-     * @param key Configuration key
-     * @return Long value for the specified key, or 0L if not found
-     */
-    public long getLong(final String key) {
-        return ResourceConfigUtils.getAsLong(this.config.get(key), key);
-    }
-
-    /**
-     * Gets a long value by trying multiple keys in order.
-     * Returns the first found non-null value, or 0L if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return Long value for the first found key, or 0L if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public long getLong(final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsLong(ResourceConfigUtils.get(this.config, keys), keys[0]);
-    }
-
-    /**
-     * Gets a long value from the configuration with a custom default.
-     *
-     * @param def Default value to return if key doesn't exist
-     * @param key Configuration key
-     * @return Long value for the specified key, or the default value if not found
-     */
-    public long getLong(long def, final String key) {
-        return ResourceConfigUtils.getAsLong(this.config.getOrDefault(key, def), key);
-    }
-
-    /**
-     * Gets a long value by trying multiple keys in order with a custom default.
-     *
-     * @param def Default value to return if none of the keys are found
-     * @param keys Configuration keys to try in order
-     * @return Long value for the first found key, or the default value if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public long getLong(long def, final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsLong(ResourceConfigUtils.getOrDefault(this.config, def, keys), keys[0]);
-    }
-
-    /**
-     * Gets a float value from the configuration.
-     * If the key doesn't exist or value is null, returns 0.0f.
-     *
-     * @param key Configuration key
-     * @return Float value for the specified key, or 0.0f if not found
-     */
-    public float getFloat(final String key) {
-        return ResourceConfigUtils.getAsFloat(this.config.get(key), key);
-    }
-
-    /**
-     * Gets a float value by trying multiple keys in order.
-     * Returns the first found non-null value, or 0.0f if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return Float value for the first found key, or 0.0f if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public float getFloat(final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsFloat(ResourceConfigUtils.get(this.config, keys), keys[0]);
-    }
-
-    /**
-     * Gets a float value from the configuration with a custom default.
-     *
-     * @param def Default value to return if key doesn't exist
-     * @param key Configuration key
-     * @return Float value for the specified key, or the default value if not found
-     */
-    public float getFloat(float def, final String key) {
-        return ResourceConfigUtils.getAsFloat(this.config.getOrDefault(key, def), key);
-    }
-
-    /**
-     * Gets a float value by trying multiple keys in order with a custom default.
-     *
-     * @param def Default value to return if none of the keys are found
-     * @param keys Configuration keys to try in order
-     * @return Float value for the first found key, or the default value if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public float getFloat(float def, final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsFloat(ResourceConfigUtils.getOrDefault(this.config, def, keys), keys[0]);
-    }
-
-    /**
-     * Gets a double value from the configuration.
-     * If the key doesn't exist or value is null, returns 0.0.
-     *
-     * @param key Configuration key
-     * @return Double value for the specified key, or 0.0 if not found
-     */
-    public double getDouble(final String key) {
-        return ResourceConfigUtils.getAsDouble(this.config.get(key), key);
-    }
-
-    /**
-     * Gets a double value by trying multiple keys in order.
-     * Returns the first found non-null value, or 0.0 if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return Double value for the first found key, or 0.0 if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public double getDouble(final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsDouble(ResourceConfigUtils.get(this.config, keys), keys[0]);
-    }
-
-    /**
-     * Gets a double value from the configuration with a custom default.
-     *
-     * @param def Default value to return if key doesn't exist
-     * @param key Configuration key
-     * @return Double value for the specified key, or the default value if not found
-     */
-    public double getDouble(double def, final String key) {
-        return ResourceConfigUtils.getAsDouble(this.config.getOrDefault(key, def), key);
-    }
-
-    /**
-     * Gets a double value by trying multiple keys in order with a custom default.
-     *
-     * @param def Default value to return if none of the keys are found
-     * @param keys Configuration keys to try in order
-     * @return Double value for the first found key, or the default value if none found
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    public double getDouble(double def, final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        return ResourceConfigUtils.getAsDouble(ResourceConfigUtils.getOrDefault(this.config, def, keys), keys[0]);
-    }
-
-    /**
-     * Retrieves a configuration section for the specified key.
-     * If the value is not a Map, returns null.
-     *
-     * @param key Configuration key to retrieve the section
-     * @return ConfigSection object for the specified key, or null if the value is not a valid map
-     * @throws ClassCastException If the stored value is not compatible with Map
-     */
-    @Nullable
     @SuppressWarnings("unchecked")
-    public ConfigSection getSection(final String key) {
-        try {
-            return of((Map<String, Object>) this.config.get(key));
-        } catch (ClassCastException e) {
+    public static ConfigSection of(String path, Object value) {
+        if (!(value instanceof Map)) {
+            throw new KnownResourceException(ConfigConstants.PARSE_SECTION_FAILED, path, value.getClass().getSimpleName());
+        }
+        return new ConfigSection(path, (Map<String, Object>) value);
+    }
+
+    public static ConfigSection ofSamePath(ConfigSection section, Map<String, Object> value) {
+        return new ConfigSection(section.path, value);
+    }
+
+    public ConfigSection copy() {
+        return new ConfigSection(this.path, new LinkedHashMap<>(this.value));
+    }
+
+    public void put(String key, Object value) {
+        this.value.put(key, value);
+    }
+
+    public ConfigValue toValue() {
+        return new ConfigValue(this.path, this.value);
+    }
+
+    public String path() {
+        return path;
+    }
+
+    public String assemblePath(String key) {
+        if (this.path.isEmpty()) {
+            return key;
+        }
+        return this.path + "." + key;
+    }
+
+    public String assembleExistingPath(String first, String... keys) {
+        String next = null;
+        if (this.value.containsKey(first)) {
+            next = first;
+        } else {
+            for (String key : keys) {
+                if (this.value.containsKey(key)) {
+                    next = key;
+                    break;
+                }
+            }
+        }
+        return next;
+    }
+
+    public String assemblePath(String key, int index) {
+        if (this.path.isEmpty()) {
+            return key + "[" + index + "]";
+        }
+        return this.path + "." + key + "[" + index + "]";
+    }
+
+    public boolean containsKey(String key) {
+        return this.value.containsKey(key);
+    }
+
+    public boolean containsKey(String[] keys) {
+        for (String key : keys) {
+            if (this.value.containsKey(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Map<String, Object> values() {
+        return this.value;
+    }
+
+    public Set<String> keySet() {
+        return this.value.keySet();
+    }
+
+    // 获取 config value
+
+    public ConfigValue getValue(String key) {
+        Object value = this.value.get(key);
+        if (value == null) {
             return null;
         }
+        return new ConfigValue(assemblePath(key), value);
     }
 
-    /**
-     * Retrieves a configuration section by trying multiple keys in order.
-     * Returns the first non-null ConfigSection found, or null if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return First non-null ConfigSection found, or null if none
-     * @throws IllegalArgumentException If keys array is empty
-     */
-    @Nullable
-    public ConfigSection getSection(final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        for (final String key : keys) {
-            ConfigSection section = getSection(key);
-            if (section != null) return section;
+    public ConfigValue getValue(String[] keys) {
+        for (String key : keys) {
+            ConfigValue value = getValue(key);
+            if (value != null) {
+                return value;
+            }
         }
         return null;
     }
 
-    /**
-     * Retrieves a raw Map object for the specified key.
-     * Returns the map directly without wrapping it in a ConfigSection.
-     *
-     * @param key Configuration key to retrieve the map
-     * @return Raw Map for the specified key, or null if not a valid map
-     * @throws ClassCastException If the stored value is not compatible with Map
-     */
-    @Nullable
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getMap(final String key) {
-        try {
-            return (Map<String, Object>) this.config.get(key);
-        } catch (ClassCastException e) {
+    // 获取 config value 进行基础转换
+
+    public <T> T getValue(String key, Function<ConfigValue, T> convertor) {
+        ConfigValue value = getValue(key);
+        if (value == null) {
             return null;
         }
+        return convertor.apply(value);
     }
 
-    /**
-     * Retrieves a raw Map object by trying multiple keys in order.
-     * Returns the first non-null Map found, or null if none found.
-     *
-     * @param keys Configuration keys to try in order
-     * @return First non-null Map found, or null if none
-     * @throws IllegalArgumentException If keys array is empty
-     */
+    public <T> T getValue(String[] keys, Function<ConfigValue, T> convertor) {
+        ConfigValue value = getValue(keys);
+        if (value == null) {
+            return null;
+        }
+        return convertor.apply(value);
+    }
+
+    // 获取有默认值的 config value
+
+    public <T> T getValue(String key, Function<ConfigValue, T> convertor, T def) {
+        T value = getValue(key, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def;
+    }
+
+    public <T> T getValue(String[] keys, Function<ConfigValue, T> convertor, T def) {
+        T value = getValue(keys, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def;
+    }
+
+    public <T> T getValue(String key, Function<ConfigValue, T> convertor, Supplier<T> def) {
+        T value = getValue(key, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def.get();
+    }
+
+    public <T> T getValue(String[] keys, Function<ConfigValue, T> convertor, Supplier<T> def) {
+        T value = getValue(keys, convertor);
+        if (value != null) {
+            return value;
+        }
+        return def.get();
+    }
+
+
+    // 获取不为空的 config value
+
+    @NotNull
+    public ConfigValue getNonNullValue(String key, String argType) {
+        Object value = this.value.get(key);
+        if (value == null) {
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, key, TranslationManager.instance().plainTranslation(argType));
+        }
+        return new ConfigValue(assemblePath(key), value);
+    }
+
+    @NotNull
+    public ConfigValue getNonNullValue(String[] keys, String argType) {
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return new ConfigValue(assemblePath(key), value);
+            }
+        }
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().plainTranslation(argType));
+    }
+
+    // 获取非空 config value 进行基础转换
+
+    public <T> T getNonNullValue(String key, String argType, Function<ConfigValue, T> convertor) {
+        return convertor.apply(getNonNullValue(key, argType));
+    }
+
+    public <T> T getNonNullValue(String[] keys, String argType, Function<ConfigValue, T> convertor) {
+        return convertor.apply(getNonNullValue(keys, argType));
+    }
+
+    // 基础
+
     @Nullable
-    public Map<String, Object> getMap(final String... keys) {
-        if (keys.length == 0) throw new IllegalArgumentException("keys must not be empty");
-        for (final String key : keys) {
-            Map<String, Object> map = getMap(key);
-            if (map != null) return map;
+    public Object get(String key) {
+        return this.value.get(key);
+    }
+
+    @Nullable
+    public Object get(String[] keys) {
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return value;
+            }
         }
         return null;
+    }
+
+    public Object getOrDefault(String key, Object defaultValue) {
+        Object value = this.value.get(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        return value;
+    }
+
+    public Object getOrDefault(String[] keys, Object defaultValue) {
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return value;
+            }
+        }
+        return defaultValue;
+    }
+
+    // 字符串
+
+    @NotNull
+    public String getNonEmptyString(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsNonEmptyString);
+    }
+
+    @NotNull
+    public String getNonEmptyString(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsNonEmptyString);
+    }
+
+    @NotNull
+    public String getNonNullString(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsString);
+    }
+
+    @NotNull
+    public String getNonNullString(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_STRING, ConfigValue::getAsString);
+    }
+
+    @Nullable
+    public String getString(String key) {
+        return getValue(key, ConfigValue::getAsString);
+    }
+
+    @Nullable
+    public String getString(String[] keys) {
+        return getValue(keys, ConfigValue::getAsString);
+    }
+
+    public String getString(String key, String def) {
+        return getValue(key, ConfigValue::getAsString, def);
+    }
+
+    public String getString(String[] keys, String def) {
+        return getValue(keys, ConfigValue::getAsString, def);
+    }
+
+    public String getString(String key, Supplier<String> def) {
+        return getValue(key, (Function<ConfigValue, String>) ConfigValue::getAsString, def);
+    }
+
+    public String getString(String[] keys, Supplier<String> def) {
+        return getValue(keys, (Function<ConfigValue, String>) ConfigValue::getAsString, def);
+    }
+
+    // 标识符
+
+    @NotNull
+    public Key getNonNullIdentifier(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsIdentifier);
+    }
+
+    @NotNull
+    public Key getNonNullIdentifier(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsIdentifier);
+    }
+
+    @Nullable
+    public Key getIdentifier(String key) {
+        return getValue(key, ConfigValue::getAsIdentifier);
+    }
+
+    @Nullable
+    public Key getIdentifier(String[] keys) {
+        return getValue(keys, ConfigValue::getAsIdentifier);
+    }
+
+    public Key getIdentifier(String key, Key def) {
+        return getValue(key, ConfigValue::getAsIdentifier, def);
+    }
+
+    public Key getIdentifier(String[] keys, Key def) {
+        return getValue(keys, ConfigValue::getAsIdentifier, def);
+    }
+
+    public Key getIdentifier(String key, Supplier<Key> def) {
+        return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsIdentifier, def);
+    }
+
+    public Key getIdentifier(String[] keys, Supplier<Key> def) {
+        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsIdentifier, def);
+    }
+
+    // 键
+
+    @NotNull
+    public Key getNonNullKey(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsKey);
+    }
+
+    @NotNull
+    public Key getNonNullKey(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsKey);
+    }
+
+    @Nullable
+    public Key getKey(String key) {
+        return getValue(key, ConfigValue::getAsKey);
+    }
+
+    @Nullable
+    public Key getKey(String[] keys) {
+        return getValue(keys, ConfigValue::getAsKey);
+    }
+
+    public Key getKey(String key, Key def) {
+        return getValue(key, ConfigValue::getAsKey, def);
+    }
+
+    public Key getKey(String[] keys, Key def) {
+        return getValue(keys, ConfigValue::getAsKey, def);
+    }
+
+    public Key getKey(String key, Supplier<Key> def) {
+        return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsKey, def);
+    }
+
+    public Key getKey(String[] keys, Supplier<Key> def) {
+        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsKey, def);
+    }
+
+    // 资产标识符
+
+    @NotNull
+    public Key getNonNullAssetPath(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsAssetPath);
+    }
+
+    @NotNull
+    public Key getNonNullAssetPath(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_IDENTIFIER, ConfigValue::getAsAssetPath);
+    }
+
+    @Nullable
+    public Key getAssetPath(String key) {
+        return getValue(key, ConfigValue::getAsAssetPath);
+    }
+
+    @Nullable
+    public Key getAssetPath(String[] keys) {
+        return getValue(keys, ConfigValue::getAsAssetPath);
+    }
+
+    public Key getAssetPath(String key, Key def) {
+        return getValue(key, ConfigValue::getAsAssetPath, def);
+    }
+
+    public Key getAssetPath(String[] keys, Key def) {
+        return getValue(keys, ConfigValue::getAsAssetPath, def);
+    }
+
+    public Key getAssetPath(String key, Supplier<Key> def) {
+        return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsAssetPath, def);
+    }
+
+    public Key getAssetPath(String[] keys, Supplier<Key> def) {
+        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsAssetPath, def);
+    }
+
+    // 数值提供器
+
+    @NotNull
+    public NumberProvider getNonNullNumber(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_NUMBER, ConfigValue::getAsNumber);
+    }
+
+    @NotNull
+    public NumberProvider getNonNullNumber(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_NUMBER, ConfigValue::getAsNumber);
+    }
+
+    @Nullable
+    public NumberProvider getNumber(String key) {
+        return getValue(key, ConfigValue::getAsNumber);
+    }
+
+    @Nullable
+    public NumberProvider getNumber(String[] keys) {
+        return getValue(keys, ConfigValue::getAsNumber);
+    }
+
+    public NumberProvider getNumber(String key, NumberProvider def) {
+        return getValue(key, ConfigValue::getAsNumber, def);
+    }
+
+    public NumberProvider getNumber(String[] keys, NumberProvider def) {
+        return getValue(keys, ConfigValue::getAsNumber, def);
+    }
+
+    public NumberProvider getNumber(String key, Supplier<NumberProvider> def) {
+        return getValue(key, (Function<ConfigValue, NumberProvider>) ConfigValue::getAsNumber, def);
+    }
+
+    public NumberProvider getNumber(String[] keys, Supplier<NumberProvider> def) {
+        return getValue(keys, (Function<ConfigValue, NumberProvider>) ConfigValue::getAsNumber, def);
+    }
+
+    // 枚举
+
+    public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass) {
+        return getValue(key, v -> v.getAsEnum(enumClass));
+    }
+
+    public <T extends Enum<T>> T getEnum(String[] keys, Class<T> enumClass) {
+        return getValue(keys, v -> v.getAsEnum(enumClass));
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass));
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass));
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass, Function<String, T> getter) {
+        Object value = this.value.get(key);
+        if (value == null) {
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
+        }
+        return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
+    }
+
+    @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass, Function<String, T> getter) {
+        for (String key : keys) {
+            Object value = this.value.get(key);
+            if (value != null) {
+                return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
+            }
+        }
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
+    }
+
+    public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass, T def) {
+        return getValue(key, v -> v.getAsEnum(enumClass), def);
+    }
+
+    public <T extends Enum<T>> T getEnum(String[] keys, Class<T> enumClass, T def) {
+        return getValue(keys, v -> v.getAsEnum(enumClass), def);
+    }
+
+    public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass, Supplier<T> def) {
+        return getValue(key, (Function<ConfigValue, T>) v -> v.getAsEnum(enumClass), def);
+    }
+
+    public <T extends Enum<T>> T getEnum(String[] keys, Class<T> enumClass, Supplier<T> def) {
+        return getValue(keys, (Function<ConfigValue, T>) v -> v.getAsEnum(enumClass), def);
+    }
+
+    // 布尔值
+
+    public boolean getBoolean(String key) {
+        return getValue(key, ConfigValue::getAsBoolean, false);
+    }
+
+    public boolean getBoolean(String[] keys) {
+        return getValue(keys, ConfigValue::getAsBoolean, false);
+    }
+
+    public boolean getNonNullBoolean(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_BOOLEAN, ConfigValue::getAsBoolean);
+    }
+
+    public boolean getNonNullBoolean(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_BOOLEAN, ConfigValue::getAsBoolean);
+    }
+
+    public boolean getBoolean(String key, boolean def) {
+        return getValue(key, ConfigValue::getAsBoolean, def);
+    }
+
+    public boolean getBoolean(String[] keys, boolean def) {
+        return getValue(keys, ConfigValue::getAsBoolean, def);
+    }
+
+    public boolean getBoolean(String key, Supplier<Boolean> def) {
+        return getValue(key, (Function<ConfigValue, Boolean>) ConfigValue::getAsBoolean, def);
+    }
+
+    public boolean getBoolean(String[] keys, Supplier<Boolean> def) {
+        return getValue(keys, (Function<ConfigValue, Boolean>) ConfigValue::getAsBoolean, def);
+    }
+    
+    // 整数
+
+    public int getInt(String key) {
+        return getValue(key, ConfigValue::getAsInt, 0);
+    }
+
+    public int getInt(String[] keys) {
+        return getValue(keys, ConfigValue::getAsInt, 0);
+    }
+
+    public int getNonNullInt(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_INT, ConfigValue::getAsInt);
+    }
+
+    public int getNonNullInt(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_INT, ConfigValue::getAsInt);
+    }
+
+    public int getInt(String key, int def) {
+        return getValue(key, ConfigValue::getAsInt, def);
+    }
+
+    public int getInt(String[] keys, int def) {
+        return getValue(keys, ConfigValue::getAsInt, def);
+    }
+
+    public int getInt(String key, Supplier<Integer> def) {
+        return getValue(key, (Function<ConfigValue, Integer>) ConfigValue::getAsInt, def);
+    }
+
+    public int getInt(String[] keys, Supplier<Integer> def) {
+        return getValue(keys, (Function<ConfigValue, Integer>) ConfigValue::getAsInt, def);
+    }
+
+    // 长整型
+
+    public long getLong(String key) {
+        return getValue(key, ConfigValue::getAsLong, 0L);
+    }
+
+    public long getLong(String[] keys) {
+        return getValue(keys, ConfigValue::getAsLong, 0L);
+    }
+
+    public long getNonNullLong(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LONG, ConfigValue::getAsLong);
+    }
+
+    public long getNonNullLong(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LONG, ConfigValue::getAsLong);
+    }
+
+    public long getLong(String key, long def) {
+        return getValue(key, ConfigValue::getAsLong, def);
+    }
+
+    public long getLong(String[] keys, long def) {
+        return getValue(keys, ConfigValue::getAsLong, def);
+    }
+
+    public long getLong(String key, Supplier<Long> def) {
+        return getValue(key, (Function<ConfigValue, Long>) ConfigValue::getAsLong, def);
+    }
+
+    public long getLong(String[] keys, Supplier<Long> def) {
+        return getValue(keys, (Function<ConfigValue, Long>) ConfigValue::getAsLong, def);
+    }
+
+    // 浮点数
+
+    public float getFloat(String key) {
+        return getValue(key, ConfigValue::getAsFloat, 0f);
+    }
+
+    public float getFloat(String[] keys) {
+        return getValue(keys, ConfigValue::getAsFloat, 0f);
+    }
+
+    public float getNonNullFloat(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_FLOAT, ConfigValue::getAsFloat);
+    }
+
+    public float getNonNullFloat(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_FLOAT, ConfigValue::getAsFloat);
+    }
+
+    public float getFloat(String key, float def) {
+        return getValue(key, ConfigValue::getAsFloat, def);
+    }
+
+    public float getFloat(String[] keys, float def) {
+        return getValue(keys, ConfigValue::getAsFloat, def);
+    }
+
+    public float getFloat(String key, Supplier<Float> def) {
+        return getValue(key, (Function<ConfigValue, Float>) ConfigValue::getAsFloat, def);
+    }
+
+    public float getFloat(String[] keys, Supplier<Float> def) {
+        return getValue(keys, (Function<ConfigValue, Float>) ConfigValue::getAsFloat, def);
+    }
+
+    // 双精度浮点数
+
+    public double getDouble(String key) {
+        return getValue(key, ConfigValue::getAsDouble, 0.0);
+    }
+
+    public double getDouble(String[] keys) {
+        return getValue(keys, ConfigValue::getAsDouble, 0.0);
+    }
+
+    public double getNonNullDouble(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_DOUBLE, ConfigValue::getAsDouble);
+    }
+
+    public double getNonNullDouble(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_DOUBLE, ConfigValue::getAsDouble);
+    }
+
+    public double getDouble(String key, double def) {
+        return getValue(key, ConfigValue::getAsDouble, def);
+    }
+
+    public double getDouble(String[] keys, double def) {
+        return getValue(keys, ConfigValue::getAsDouble, def);
+    }
+
+    public double getDouble(String key, Supplier<Double> def) {
+        return getValue(key, (Function<ConfigValue, Double>) ConfigValue::getAsDouble, def);
+    }
+
+    public double getDouble(String[] keys, Supplier<Double> def) {
+        return getValue(keys, (Function<ConfigValue, Double>) ConfigValue::getAsDouble, def);
+    }
+
+    // 配置节点
+
+    public ConfigSection getSection(String key) {
+        return getValue(key, ConfigValue::getAsSection);
+    }
+
+    public ConfigSection getSection(String[] keys) {
+        return getValue(keys, ConfigValue::getAsSection);
+    }
+
+    @NotNull
+    public ConfigSection getNonNullSection(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_SECTION, ConfigValue::getAsSection);
+    }
+
+    @NotNull
+    public ConfigSection getNonNullSection(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_SECTION, ConfigValue::getAsSection);
+    }
+
+    // 三维向量 (Float)
+
+    @Nullable
+    public Vector3f getVector3f(String key) {
+        return getValue(key, ConfigValue::getAsVector3f);
+    }
+
+    @Nullable
+    public Vector3f getVector3f(String[] keys) {
+        return getValue(keys, ConfigValue::getAsVector3f);
+    }
+
+    @NotNull
+    public Vector3f getNonNullVector3f(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_VEC3, ConfigValue::getAsVector3f);
+    }
+
+    @NotNull
+    public Vector3f getNonNullVector3f(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_VEC3, ConfigValue::getAsVector3f);
+    }
+
+    public Vector3f getVector3f(String key, Vector3f def) {
+        return getValue(key, ConfigValue::getAsVector3f, def);
+    }
+
+    public Vector3f getVector3f(String[] keys, Vector3f def) {
+        return getValue(keys, ConfigValue::getAsVector3f, def);
+    }
+
+    public Vector3f getVector3f(String key, Supplier<Vector3f> def) {
+        return getValue(key, (Function<ConfigValue, Vector3f>) ConfigValue::getAsVector3f, def);
+    }
+
+    public Vector3f getVector3f(String[] keys, Supplier<Vector3f> def) {
+        return getValue(keys, (Function<ConfigValue, Vector3f>) ConfigValue::getAsVector3f, def);
+    }
+
+    // 四元数
+
+    public Quaternionf getQuaternion(String key) {
+        return getValue(key, ConfigValue::getAsQuaternion, ConfigConstants.ZERO_QUATERNION);
+    }
+
+    public Quaternionf getQuaternion(String[] keys) {
+        return getValue(keys, ConfigValue::getAsQuaternion, ConfigConstants.ZERO_QUATERNION);
+    }
+
+    @NotNull
+    public Quaternionf getNonNullQuaternion(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_QUATERNION, ConfigValue::getAsQuaternion);
+    }
+
+    @NotNull
+    public Quaternionf getNonNullQuaternion(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_QUATERNION, ConfigValue::getAsQuaternion);
+    }
+
+    public Quaternionf getQuaternion(String key, Quaternionf def) {
+        return getValue(key, ConfigValue::getAsQuaternion, def);
+    }
+
+    public Quaternionf getQuaternion(String[] keys, Quaternionf def) {
+        return getValue(keys, ConfigValue::getAsQuaternion, def);
+    }
+
+    public Quaternionf getQuaternion(String key, Supplier<Quaternionf> def) {
+        return getValue(key, (Function<ConfigValue, Quaternionf>) ConfigValue::getAsQuaternion, def);
+    }
+
+    public Quaternionf getQuaternion(String[] keys, Supplier<Quaternionf> def) {
+        return getValue(keys, (Function<ConfigValue, Quaternionf>) ConfigValue::getAsQuaternion, def);
+    }
+
+    // 轴对齐包围盒 (AABB)
+
+    public AABB getAABB(String key) {
+        return getValue(key, ConfigValue::getAsAABB);
+    }
+
+    public AABB getAABB(String[] keys) {
+        return getValue(keys, ConfigValue::getAsAABB);
+    }
+
+    @NotNull
+    public AABB getNonNullAABB(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_AABB, ConfigValue::getAsAABB);
+    }
+
+    @NotNull
+    public AABB getNonNullAABB(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_AABB, ConfigValue::getAsAABB);
+    }
+
+    public AABB getAABB(String key, AABB def) {
+        return getValue(key, ConfigValue::getAsAABB, def);
+    }
+
+    public AABB getAABB(String[] keys, AABB def) {
+        return getValue(keys, ConfigValue::getAsAABB, def);
+    }
+
+    public AABB getAABB(String key, Supplier<AABB> def) {
+        return getValue(key, (Function<ConfigValue, AABB>) ConfigValue::getAsAABB, def);
+    }
+
+    public AABB getAABB(String[] keys, Supplier<AABB> def) {
+        return getValue(keys, (Function<ConfigValue, AABB>) ConfigValue::getAsAABB, def);
+    }
+
+    // SNBT
+
+    public Tag getSNBT(String key) {
+        return getValue(key, ConfigValue::getAsSNBT);
+    }
+
+    public Tag getSNBT(String[] keys) {
+        return getValue(keys, ConfigValue::getAsSNBT);
+    }
+
+    @NotNull
+    public Tag getNonNullSNBT(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_SNBT, ConfigValue::getAsSNBT);
+    }
+
+    @NotNull
+    public Tag getNonNullSNBT(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_SNBT, ConfigValue::getAsSNBT);
+    }
+
+    public Tag getSNBT(String key, Tag def) {
+        return getValue(key, ConfigValue::getAsSNBT, def);
+    }
+
+    public Tag getSNBT(String[] keys, Tag def) {
+        return getValue(keys, ConfigValue::getAsSNBT, def);
+    }
+
+    public Tag getSNBT(String key, Supplier<Tag> def) {
+        return getValue(key, (Function<ConfigValue, Tag>) ConfigValue::getAsSNBT, def);
+    }
+
+    public Tag getSNBT(String[] keys, Supplier<Tag> def) {
+        return getValue(keys, (Function<ConfigValue, Tag>) ConfigValue::getAsSNBT, def);
+    }
+
+    // 列表
+
+    public List<Object> getNonEmptyList(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsNonEmptyList);
+    }
+
+    public List<Object> getNonEmptyList(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsNonEmptyList);
+    }
+
+    public List<Object> getNonNullList(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsList);
+    }
+
+    public List<Object> getNonNullList(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsList);
+    }
+
+    public List<Object> getList(String key) {
+        return getValue(key, ConfigValue::getAsList, List.of());
+    }
+
+    public List<Object> getList(String[] keys) {
+        return getValue(keys, ConfigValue::getAsList, List.of());
+    }
+
+    public List<Object> getList(String key, List<Object> def) {
+        return getValue(key, ConfigValue::getAsList, def);
+    }
+
+    public List<Object> getList(String[] keys, List<Object> def) {
+        return getValue(keys, ConfigValue::getAsList, def);
+    }
+
+    public List<Object> getList(String key, Supplier<List<Object>> def) {
+        return getValue(key, (Function<ConfigValue, List<Object>>) ConfigValue::getAsList, def);
+    }
+
+    public List<Object> getList(String[] keys, Supplier<List<Object>> def) {
+        return getValue(keys, (Function<ConfigValue, List<Object>>) ConfigValue::getAsList, def);
+    }
+
+    public List<String> getStringList(String key) {
+        return getValue(key, ConfigValue::getAsStringList, List.of());
+    }
+
+    public List<String> getStringList(String[] keys) {
+        return getValue(keys, ConfigValue::getAsStringList, List.of());
+    }
+
+    public List<String> getStringList(String key, List<String> def) {
+        return getValue(key, ConfigValue::getAsStringList, def);
+    }
+
+    public List<String> getStringList(String[] keys, List<String> def) {
+        return getValue(keys, ConfigValue::getAsStringList, def);
+    }
+
+    public List<String> getNonNullStringList(String key) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsStringList);
+    }
+
+    public List<String> getNonNullStringList(String[] keys) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST, ConfigValue::getAsStringList);
+    }
+
+    // 杂项
+
+    public <T> List<T> getNonEmptyList(String key, Function<ConfigValue, T> parser) {
+        ConfigValue value = getNonNullValue(key, ConfigConstants.ARGUMENT_LIST);
+        List<Object> list = value.getAsNonEmptyList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> getNonEmptyList(String[] keys, Function<ConfigValue, T> parser) {
+        ConfigValue value = getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST);
+        List<Object> list = value.getAsNonEmptyList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> getList(String key, Function<ConfigValue, T> parser) {
+        ConfigValue value = getValue(key);
+        if (value == null) {
+            return List.of();
+        }
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> getList(String[] keys, Function<ConfigValue, T> parser) {
+        ConfigValue value = getValue(keys);
+        if (value == null) {
+            return List.of();
+        }
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue));
+        }
+        return result;
+    }
+
+    public <T> List<T> getSectionList(String key, Function<ConfigSection, T> parser) {
+        ConfigValue value = getValue(key);
+        if (value == null) {
+            return List.of();
+        }
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue.getAsSection()));
+        }
+        return result;
+    }
+
+    public <T> List<T> getSectionList(String[] keys, Function<ConfigSection, T> parser) {
+        ConfigValue value = getValue(keys);
+        if (value == null) {
+            return List.of();
+        }
+        List<Object> list = value.getAsList();
+        List<T> result = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+            result.add(parser.apply(configValue.getAsSection()));
+        }
+        return result;
     }
 }

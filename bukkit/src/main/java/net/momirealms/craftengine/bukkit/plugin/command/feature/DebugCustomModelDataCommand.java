@@ -3,7 +3,7 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -17,7 +17,6 @@ import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.CommandManager;
@@ -30,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugCustomModelDataCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
@@ -55,24 +54,24 @@ public class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSen
 
     private void handleCommand(CommandContext<CommandSender> context) {
         NamespacedKey namespacedKey = context.getOrDefault("id", null);
-        @Nullable BukkitServerPlayer player = context.sender() instanceof Player p ? BukkitAdaptors.adapt(p) : null;
+        @Nullable BukkitServerPlayer player = context.sender() instanceof Player p ? BukkitAdaptor.adapt(p) : null;
 
         if (namespacedKey != null) {
             Key itemId = KeyUtils.namespacedKeyToKey(namespacedKey);
-            CustomItem<ItemStack> customItem = CraftEngineItems.byId(itemId);
+            CustomItem customItem = CraftEngineItems.byId(itemId);
             if (customItem == null) return;
-            Item<ItemStack> item = customItem.buildItem(player);
+            Item item = customItem.buildItem(player);
             sendMessage(context, getCustomModelData(item, player));
             return;
         }
 
         if (player != null) {
-            Item<ItemStack> item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
+            Item item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
             sendMessage(context, getCustomModelData(item, player));
         }
     }
 
-    private int getCustomModelData(Item<ItemStack> itemStack, BukkitServerPlayer player) {
+    private int getCustomModelData(Item itemStack, BukkitServerPlayer player) {
         return plugin().itemManager().s2c(itemStack, player)
                 .map(Item::customModelData)
                 .orElse(itemStack.customModelData())

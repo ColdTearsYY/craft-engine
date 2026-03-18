@@ -4,23 +4,23 @@ import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.LazyReference;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 
-public class SpreadingBlockBehavior extends BukkitBlockBehavior {
+public final class SpreadingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<SpreadingBlockBehavior> FACTORY = new Factory();
-    private final LazyReference<Object> targetBlock;
+    public final LazyReference<Object> targetBlock;
 
-    public SpreadingBlockBehavior(CustomBlock customBlock, String targetBlock) {
+    private SpreadingBlockBehavior(CustomBlock customBlock,
+                                   String targetBlock) {
         super(customBlock);
         this.targetBlock = LazyReference.lazyReference(() -> Objects.requireNonNull(BukkitBlockManager.instance().createBlockState(targetBlock)).literalObject());
     }
@@ -36,11 +36,14 @@ public class SpreadingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<SpreadingBlockBehavior> {
+        private static final String[] TARGET_BLOCK = new String[] {"target_block", "target-block"};
 
         @Override
-        public SpreadingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String targetBlock = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("target-block"), "warning.config.block.behavior.spreading.missing_target_block");
-            return new SpreadingBlockBehavior(block, targetBlock);
+        public SpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new SpreadingBlockBehavior(
+                    block,
+                    section.getNonNullString(TARGET_BLOCK)
+            );
         }
     }
 }

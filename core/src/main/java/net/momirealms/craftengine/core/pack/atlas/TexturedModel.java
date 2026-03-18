@@ -7,7 +7,7 @@ import net.momirealms.craftengine.core.util.Key;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TexturedModel {
+public final class TexturedModel {
     public static final TexturedModel EMPTY = new TexturedModel(Key.of("minecraft:missingno"), Map.of());
     public static final TexturedModel BUILTIN = new TexturedModel(Key.of("minecraft:builtin"), Map.of());
     public final Key path;

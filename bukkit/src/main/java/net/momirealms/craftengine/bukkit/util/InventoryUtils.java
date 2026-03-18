@@ -10,7 +10,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 public final class InventoryUtils {
-
     private InventoryUtils() {}
 
     public static Player getPlayerFromInventoryEvent(InventoryEvent event) {

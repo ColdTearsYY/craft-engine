@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.entity.BedBlockEntity;
 import net.momirealms.craftengine.bukkit.block.entity.BukkitBlockEntityTypes;
 import net.momirealms.craftengine.bukkit.entity.seat.BukkitSeat;
@@ -22,8 +22,9 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -36,27 +37,25 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
-public class BedBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class BedBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<BedBlockBehavior> FACTORY = new Factory();
     public final Property<HorizontalDirection> facingProperty;
     public final Property<BedPart> partProperty;
     public final SeatConfig seatConfig;
     public final Vector3f sleepOffset;
 
-    public BedBlockBehavior(
-            CustomBlock customBlock,
-            Property<HorizontalDirection> facingProperty,
-            Property<BedPart> partProperty,
-            SeatConfig seatConfig,
-            Vector3f sleepOffset) {
+    private BedBlockBehavior(CustomBlock customBlock,
+                             Property<HorizontalDirection> facingProperty,
+                             Property<BedPart> partProperty,
+                             SeatConfig seatConfig,
+                             Vector3f sleepOffset) {
         super(customBlock);
         this.facingProperty = facingProperty;
         this.partProperty = partProperty;
@@ -111,11 +110,11 @@ public class BedBlockBehavior extends BukkitBlockBehavior implements EntityBlock
         if (blockState == null || blockState.isEmpty()) {
             return superMethod.call();
         }
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
         if (serverPlayer == null) {
             return superMethod.call();
         }
-        Item<ItemStack> item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (serverPlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromHeadPart(args[0], args[1], blockState, player);
         }
@@ -196,7 +195,7 @@ public class BedBlockBehavior extends BukkitBlockBehavior implements EntityBlock
 
     @Override
     public ImmutableBlockState updateStateForPlacement(BlockPlaceContext context, ImmutableBlockState state) {
-        World world  = context.getLevel();
+        World world = context.getLevel();
         BlockPos pos = context.getClickedPos();
         BedBlockBehavior behavior = state.behavior().getAs(BedBlockBehavior.class).orElse(null);
         if (behavior == null) {
@@ -287,24 +286,21 @@ public class BedBlockBehavior extends BukkitBlockBehavior implements EntityBlock
     }
 
     private static class Factory implements BlockBehaviorFactory<BedBlockBehavior> {
+        private static final String[] SLEEP_OFFSET = new String[] {"sleep_offset", "sleep-offset"};
 
-        @SuppressWarnings("unchecked")
         @Override
-        public BedBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
+        public BedBlockBehavior create(CustomBlock block, ConfigSection section) {
             if (!VersionHelper.isOrAbove1_20_2()) {
                 throw new UnsupportedOperationException("bed_block requires at least 1.20.2");
             }
-            Property<HorizontalDirection> facingProperty = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.bed.missing_facing");
-            Property<BedPart> partProperty = (Property<BedPart>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("part"), "warning.config.block.behavior.bed.missing_part");
-            SeatConfig seatConfig;
-            SeatConfig[] seats = SeatConfig.fromObj(arguments.get("seat"));
-            if (seats.length == 0) {
-                seatConfig = new SeatConfig(new Vector3f(0, 0, 0), 0, true);
-            } else {
-                seatConfig = seats[0];
-            }
-            Vector3f sleepOffset = ResourceConfigUtils.getAsVector3f(arguments.get("sleep-offset"), "sleep-offset");
-            return new BedBlockBehavior(block, facingProperty, partProperty, seatConfig, sleepOffset);
+            List<SeatConfig> seat = section.getList("seat", SeatConfig::fromConfig);
+            SeatConfig onlySeat = seat.isEmpty() ? new SeatConfig(ConfigConstants.ZERO_VECTOR3, 0, true) : seat.getFirst();
+            return new BedBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "part", BedPart.class), onlySeat,
+                    section.getVector3f(SLEEP_OFFSET, ConfigConstants.ZERO_VECTOR3)
+            );
         }
     }
 }

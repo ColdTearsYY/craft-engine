@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.item.listener;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -25,7 +25,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -35,7 +34,7 @@ import java.util.Map;
 import static net.momirealms.craftengine.core.block.UpdateFlags.UPDATE_CLIENTS;
 import static net.momirealms.craftengine.core.block.UpdateFlags.UPDATE_KNOWN_SHAPE;
 
-public class DebugStickListener implements Listener {
+public final class DebugStickListener implements Listener {
     private final BukkitCraftEngine plugin;
 
     public DebugStickListener(BukkitCraftEngine plugin) {
@@ -48,9 +47,9 @@ public class DebugStickListener implements Listener {
         Block clickedBlock = event.getClickedBlock();
         if (clickedBlock == null) return;
         Player bukkitPlayer = event.getPlayer();
-        BukkitServerPlayer player = BukkitAdaptors.adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
-        Item<ItemStack> itemInHand = player.getItemInHand(event.getHand() == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
+        Item itemInHand = player.getItemInHand(event.getHand() == EquipmentSlot.HAND ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;
         if (!(player.canInstabuild() && player.hasPermission("minecraft.debugstick")) && !player.hasPermission("minecraft.debugstick.always")) {
             return;
@@ -77,7 +76,7 @@ public class DebugStickListener implements Listener {
                 Object storedData = itemInHand.getJavaTag("craftengine:debug_stick_state");
                 if (storedData == null) storedData = new HashMap<>();
                 if (storedData instanceof Map<?,?> map) {
-                    Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map, false));
+                    Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
                     String currentPropertyName = (String) data.get(blockId);
                     Property<?> currentProperty = block.getProperty(currentPropertyName);
                     if (currentProperty == null) {

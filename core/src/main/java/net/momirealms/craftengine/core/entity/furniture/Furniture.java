@@ -134,7 +134,7 @@ public abstract class Furniture implements Cullable {
         this.dataAccessor.setDyedColor(color);
         if (affectOriginalItem) {
             this.dataAccessor.item().ifPresent(it -> {
-                Item<?> item = it.dyedColor(color);
+                Item item = it.dyedColor(color);
                 this.dataAccessor.setItem(item);
             });
         }

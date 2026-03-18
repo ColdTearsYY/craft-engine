@@ -4,9 +4,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.GsonHelper;
+import net.momirealms.craftengine.core.util.HashUtils;
+import net.momirealms.craftengine.core.util.Tuple;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.FileNotFoundException;
@@ -75,7 +77,7 @@ public final class OneDriveHost implements ResourcePackHost {
             this.sha1 = cache.get("sha1");
             this.fileId = cache.get("file-id");
 
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.host.cache.load", "OneDrive"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "OneDrive"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn(
                     "[OneDrive] Failed to load cache" + cachePath, e);
@@ -225,28 +227,20 @@ public final class OneDriveHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<OneDriveHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] CLIENT_ID = new String[] {"client_id", "client-id"};
+        private static final String[] CLIENT_SECRET = new String[] {"client_secret", "client-secret"};
+        private static final String[] REFRESH_TOKEN = new String[] {"refresh_token", "refresh-token"};
+        private static final String[] UPLOAD_PATH = new String[] {"upload_path", "upload-path"};
 
         @Override
-        public OneDriveHost create(Map<String, Object> arguments) {
-            boolean useEnv = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-environment-variables", false), "use-environment-variables");
-            String clientId = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_ID") : Optional.ofNullable(arguments.get("client-id")).map(String::valueOf).orElse(null);
-            if (clientId == null || clientId.isEmpty()) {
-                throw new LocalizedException("warning.config.host.onedrive.missing_client_id");
-            }
-            String clientSecret = useEnv ? System.getenv("CE_ONEDRIVE_CLIENT_SECRET") : Optional.ofNullable(arguments.get("client-secret")).map(String::valueOf).orElse(null);
-            if (clientSecret == null || clientSecret.isEmpty()) {
-                throw new LocalizedException("warning.config.host.onedrive.missing_client_secret");
-            }
-            String refreshToken = useEnv ? System.getenv("CE_ONEDRIVE_REFRESH_TOKEN") : Optional.ofNullable(arguments.get("refresh-token")).map(String::valueOf).orElse(null);
-            if (refreshToken == null || refreshToken.isEmpty()) {
-                throw new LocalizedException("warning.config.host.onedrive.missing_refresh_token");
-            }
-            String uploadPath = arguments.getOrDefault("upload-path", "resource_pack.zip").toString();
-            if (uploadPath == null || uploadPath.isEmpty()) {
-                throw new LocalizedException("warning.config.host.onedrive.missing_upload_path");
-            }
-            ProxySelector proxy = getProxySelector(MiscUtils.castToMap(arguments.get("proxy"), true));
-            return new OneDriveHost(clientId, clientSecret, refreshToken, uploadPath, proxy);
+        public OneDriveHost create(ConfigSection section) {
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String clientId = useEnv ? getNonNullEnvironmentVariable(section, "CE_ONEDRIVE_CLIENT_ID") : section.getNonEmptyString(CLIENT_ID);
+            String clientSecret = useEnv ? getNonNullEnvironmentVariable(section, "CE_ONEDRIVE_CLIENT_SECRET") : section.getNonEmptyString(CLIENT_SECRET);
+            String refreshToken = useEnv ? getNonNullEnvironmentVariable(section, "CE_ONEDRIVE_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
+            String uploadPath = section.getString(UPLOAD_PATH, "resource_pack.zip");
+            return new OneDriveHost(clientId, clientSecret, refreshToken, uploadPath, getProxySelector(section.getSection("proxy")));
         }
     }
 }

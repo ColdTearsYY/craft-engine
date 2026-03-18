@@ -3,6 +3,7 @@ package net.momirealms.craftengine.bukkit.plugin.gui;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.gui.Inventory;
@@ -12,9 +13,8 @@ import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.Clientbo
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
-import org.bukkit.inventory.ItemStack;
 
-public class BukkitInventory implements Inventory {
+public final class BukkitInventory implements Inventory {
     private final org.bukkit.inventory.Inventory inventory;
 
     public BukkitInventory(org.bukkit.inventory.Inventory inventory) {
@@ -37,7 +37,7 @@ public class BukkitInventory implements Inventory {
     }
 
     @Override
-    public void setItem(int index, Item<?> item) {
-        this.inventory.setItem(index, item == null ? null : (ItemStack) item.getItem());
+    public void setItem(int index, Item item) {
+        this.inventory.setItem(index, item == null ? null : ItemStackUtils.getBukkitStack(item));
     }
 }

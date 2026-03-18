@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.locale;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TranslatableComponent;
 import net.kyori.adventure.translation.Translator;
 import net.momirealms.craftengine.core.plugin.Manageable;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
@@ -53,11 +54,29 @@ public interface TranslationManager extends Manageable {
 
     String miniMessageTranslation(String key, @Nullable Locale locale);
 
-    default Component render(Component component) {
+    default Component render(TranslatableComponent component) {
         return render(component, null);
     }
 
-    Component render(Component component, @Nullable Locale locale);
+    Component render(TranslatableComponent component, @Nullable Locale locale);
+
+    default String plainTranslation(String key, @Nullable Locale locale, String... arguments) {
+        String translation = miniMessageTranslation(key, locale);
+        if (translation == null) {
+            return key;
+        }
+        Component deserialize = AdventureHelper.customMiniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(arguments).map(Component::text).toList()));
+        return AdventureHelper.plainTextContent(deserialize);
+    }
+
+    default String plainTranslation(String key, String... arguments) {
+        String translation = miniMessageTranslation(key);
+        if (translation == null) {
+            return key;
+        }
+        Component deserialize = AdventureHelper.customMiniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(arguments).map(Component::text).toList()));
+        return AdventureHelper.plainTextContent(deserialize);
+    }
 
     static @Nullable Locale parseLocale(@Nullable String locale) {
         return locale == null || locale.isEmpty() ? null : Translator.parseLocale(locale);
@@ -73,20 +92,11 @@ public interface TranslationManager extends Manageable {
         }
     }
 
-    default String translateLog(String id, String... arguments) {
-        String translation = miniMessageTranslation(id);
-        if (translation == null) {
-            return id;
-        }
-        Component deserialize = AdventureHelper.customMiniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(arguments).map(Component::text).toList()));
-        return AdventureHelper.plainTextContent(deserialize);
-    }
-
     Set<String> translationKeys();
 
     void log(String id, String... args);
 
-    Map<String, LangData> clientLangData();
+    Map<String, ClientLangData> clientLangData();
 
     void addClientTranslation(String langId, Map<String, String> translations);
 }

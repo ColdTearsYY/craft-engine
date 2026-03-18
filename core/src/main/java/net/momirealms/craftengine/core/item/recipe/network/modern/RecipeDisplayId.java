@@ -16,7 +16,7 @@ public record RecipeDisplayId(int id) {
     @Override
     public @NotNull String toString() {
         return "RecipeDisplayId{" +
-                "id=" + id +
+                "id=" + this.id +
                 '}';
     }
 }

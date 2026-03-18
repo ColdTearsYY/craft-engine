@@ -10,4 +10,7 @@ public interface PlayerListProxy {
 
     @MethodInvoker(name = {"reloadRecipeData", "reloadRecipes"})
     void reloadRecipeData(Object target);
+
+    @MethodInvoker(name = "reloadResources")
+    void reloadResources(Object target);
 }

@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.world;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
@@ -16,6 +16,7 @@ import net.momirealms.craftengine.core.world.particle.ParticleType;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.*;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelAccessorProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelReaderProxy;
@@ -36,7 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class BukkitWorld implements World {
+public final class BukkitWorld implements World {
     private final WeakReference<org.bukkit.World> world;
     private final UUID uuid;
     private CEWorld ceWorld;
@@ -93,13 +94,13 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public void dropItemNaturally(Position location, Item<?> item) {
-        ItemStack itemStack = (ItemStack) item.getItem();
+    public void dropItemNaturally(Position location, Item item) {
+        ItemStack itemStack = ItemStackProxy.INSTANCE.getBukkitStack(item.getMinecraftItem());
         if (ItemStackUtils.isEmpty(itemStack)) return;
         if (VersionHelper.isOrAbove1_21_2()) {
-            platformWorld().dropItemNaturally(new Location(null, location.x(), location.y(), location.z()), (ItemStack) item.getItem());
+            platformWorld().dropItemNaturally(new Location(null, location.x(), location.y(), location.z()), itemStack);
         } else {
-            platformWorld().dropItemNaturally(new Location(null, location.x() - 0.5, location.y() - 0.5, location.z() - 0.5), (ItemStack) item.getItem());
+            platformWorld().dropItemNaturally(new Location(null, location.x() - 0.5, location.y() - 0.5, location.z() - 0.5), itemStack);
         }
     }
 
@@ -171,7 +172,7 @@ public class BukkitWorld implements World {
         if (players.isEmpty()) return Collections.emptyList();
         List<Player> tracked = new ArrayList<>(players.size());
         for (Object player : players) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
             if (serverPlayer == null) continue;
             tracked.add(serverPlayer);
         }

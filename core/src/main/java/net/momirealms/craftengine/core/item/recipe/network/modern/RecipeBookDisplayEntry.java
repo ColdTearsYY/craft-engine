@@ -13,10 +13,10 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Function;
 
-public record RecipeBookDisplayEntry<I>(RecipeDisplayId displayId, RecipeDisplay<I> display, OptionalInt group, int category, Optional<List<Ingredient>> ingredients) {
+public record RecipeBookDisplayEntry(RecipeDisplayId displayId, RecipeDisplay display, OptionalInt group, int category, Optional<List<Ingredient>> ingredients) {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I> RecipeBookDisplayEntry<I> read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static RecipeBookDisplayEntry read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
         RecipeDisplayId displayId = RecipeDisplayId.read(buffer);
         RecipeDisplay display = RecipeDisplay.read(buffer, reader);
         OptionalInt group = buffer.readOptionalVarInt();
@@ -25,11 +25,11 @@ public record RecipeBookDisplayEntry<I>(RecipeDisplayId displayId, RecipeDisplay
         return new RecipeBookDisplayEntry(displayId, display, group, category, requirements);
     }
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.display.applyClientboundData(function);
     }
 
-    public void write(FriendlyByteBuf buffer, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buffer, FriendlyByteBuf.Writer<Item> writer) {
         this.displayId.write(buffer);
         this.display.write(buffer, writer);
         buffer.writeOptionalVarInt(this.group);
@@ -40,11 +40,11 @@ public record RecipeBookDisplayEntry<I>(RecipeDisplayId displayId, RecipeDisplay
     @Override
     public @NotNull String toString() {
         return "RecipeBookDisplayEntry{" +
-                "category=" + category +
-                ", displayId=" + displayId +
-                ", display=" + display +
-                ", group=" + group +
-                ", ingredients=" + ingredients +
+                "category=" + this.category +
+                ", displayId=" + this.displayId +
+                ", display=" + this.display +
+                ", group=" + this.group +
+                ", ingredients=" + this.ingredients +
                 '}';
     }
 

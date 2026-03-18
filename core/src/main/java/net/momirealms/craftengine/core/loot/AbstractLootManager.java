@@ -2,14 +2,14 @@ package net.momirealms.craftengine.core.loot;
 
 import net.momirealms.craftengine.core.util.Key;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractLootManager implements LootManager {
-    protected final Map<Integer, VanillaLoot> blockLoots = new HashMap<>();
+    protected final Map<Integer, VanillaLoot> blockLoots = new ConcurrentHashMap<>();
     // TODO 实现一个基于entity data的生物战利品系统
-    protected final Map<Key, VanillaLoot> entityLoots = new HashMap<>();
+    protected final Map<Key, VanillaLoot> entityLoots = new ConcurrentHashMap<>();
 
     public AbstractLootManager() {
     }

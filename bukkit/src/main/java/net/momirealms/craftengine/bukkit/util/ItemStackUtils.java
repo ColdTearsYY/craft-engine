@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.bukkit.util;
 
 import com.mojang.serialization.Dynamic;
+import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.recipe.UniqueIdItem;
@@ -11,7 +12,6 @@ import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemSt
 import net.momirealms.craftengine.proxy.minecraft.nbt.CompoundTagProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.DataFixersProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.datafix.fixes.ReferencesProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.entity.LivingEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.sparrow.nbt.Tag;
 import org.bukkit.Material;
@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 public final class ItemStackUtils {
-
     private ItemStackUtils() {}
 
     @Contract("null -> true")
@@ -28,6 +27,10 @@ public final class ItemStackUtils {
         if (item == null) return true;
         if (item.getType() == Material.AIR) return true;
         return item.getAmount() == 0;
+    }
+
+    public static BukkitItem wrap(final Object itemStack) {
+        return BukkitItemManager.instance().wrap(itemStack);
     }
 
     public static boolean hasCustomItem(ItemStack[] stack) {
@@ -56,17 +59,24 @@ public final class ItemStackUtils {
         }
     }
 
-    public static UniqueIdItem<ItemStack> getUniqueIdItem(@Nullable ItemStack itemStack) {
-        Item<ItemStack> wrappedItem = BukkitItemManager.instance().wrap(itemStack);
-        return UniqueIdItem.of(wrappedItem);
+    public static UniqueIdItem getUniqueIdItem(@Nullable ItemStack itemStack) {
+        return UniqueIdItem.of(BukkitItemManager.instance().wrap(itemStack));
     }
 
     public static ItemStack asCraftMirror(Object itemStack) {
-        return CraftItemStackProxy.INSTANCE.asCraftMirror(itemStack);
+        return ItemStackUtils.getBukkitStack(itemStack);
+    }
+
+    public static ItemStack getBukkitStack(Object itemStack) {
+        return ItemStackProxy.INSTANCE.getBukkitStack(itemStack);
+    }
+
+    public static ItemStack getBukkitStack(Item item) {
+        return getBukkitStack(item.getMinecraftItem());
     }
 
     @Nullable
-    public static Tag saveNMSItemStackAsTag(Object nmsStack) {
+    public static Tag saveMinecraftItemStackAsTag(Object nmsStack) {
         if (VersionHelper.COMPONENT_RELEASE) {
             return ItemStackProxy.INSTANCE.getCodec().encodeStart(RegistryOps.SPARROW_NBT, nmsStack)
                     .resultOrPartial(error -> CraftEngine.instance().logger().severe("Error while saving item: " + error))
@@ -78,12 +88,12 @@ public final class ItemStackUtils {
     }
 
     @Nullable
-    public static Tag saveItemStackAsTag(ItemStack itemStack) {
-        return saveNMSItemStackAsTag(CraftItemStackProxy.INSTANCE.unwrap(ensureCraftItemStack(itemStack)));
+    public static Tag saveBukkitItemAsTag(ItemStack itemStack) {
+        return saveMinecraftItemStackAsTag(CraftItemStackProxy.INSTANCE.unwrap(ensureCraftItemStack(itemStack)));
     }
 
     @Nullable
-    public static Object parseNMSItemStack(Tag tag, int dataVersion) {
+    public static Object parseMinecraftItem(Tag tag, int dataVersion) {
         Tag itemTag = tag;
         int currentVersion = VersionHelper.WORLD_VERSION;
         if (Config.enableItemDataFixerUpper() && dataVersion != currentVersion) {
@@ -102,15 +112,7 @@ public final class ItemStackUtils {
     }
 
     @Nullable
-    public static ItemStack parseItemStack(Tag tag, int dataVersion) {
-        return asCraftMirror(parseNMSItemStack(tag, dataVersion));
-    }
-
-    public static void hurtAndBreak(Object nmsStack, int amount, Object livingEntity, Object slot) {
-        if (VersionHelper.isOrAbove1_20_5()) {
-            ItemStackProxy.INSTANCE.hurtAndBreak(nmsStack, amount, livingEntity, slot);
-        } else {
-            ItemStackProxy.INSTANCE.hurtAndBreak(nmsStack, amount, livingEntity, entity -> LivingEntityProxy.INSTANCE.broadcastBreakEvent(entity, slot));
-        }
+    public static ItemStack parseBukkitItem(Tag tag, int dataVersion) {
+        return asCraftMirror(parseMinecraftItem(tag, dataVersion));
     }
 }

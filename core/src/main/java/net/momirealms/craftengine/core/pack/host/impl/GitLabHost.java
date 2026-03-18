@@ -3,12 +3,10 @@ package net.momirealms.craftengine.core.pack.host.impl;
 import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.HashUtils;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,7 +57,7 @@ public final class GitLabHost implements ResourcePackHost {
             if (uuidString != null && !uuidString.isEmpty()) {
                 this.uuid = UUID.fromString(uuidString);
             }
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.host.cache.load", "GitLab"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "GitLab"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn(
                     "[GitLab] Failed to read cache file: " + cachePath, e);
@@ -167,28 +165,22 @@ public final class GitLabHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<GitLabHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] GITLAB_URL = new String[] {"gitlab_url", "gitlab-url"};
+        private static final String[] ACCESS_TOKEN = new String[] {"access_token", "access-token"};
+        private static final String[] PROJECT_ID = new String[] {"project_id", "project-id"};
 
         @Override
-        public GitLabHost create(Map<String, Object> arguments) {
-            boolean useEnv = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-environment-variables", false), "use-environment-variables");
-            String gitlabUrl = Optional.ofNullable(arguments.get("gitlab-url")).map(String::valueOf).orElse(null);
-            if (gitlabUrl == null || gitlabUrl.isEmpty()) {
-                throw new LocalizedException("warning.config.host.gitlab.missing_url");
-            }
+        public GitLabHost create(ConfigSection section) {
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String gitlabUrl = section.getNonEmptyString(GITLAB_URL);
             if (gitlabUrl.endsWith("/")) {
                 gitlabUrl = gitlabUrl.substring(0, gitlabUrl.length() - 1);
             }
-            String accessToken = useEnv ? System.getenv("CE_GITLAB_ACCESS_TOKEN") : Optional.ofNullable(arguments.get("access-token")).map(String::valueOf).orElse(null);
-            if (accessToken == null || accessToken.isEmpty()) {
-                throw new LocalizedException("warning.config.host.gitlab.missing_token");
-            }
-            String projectId = Optional.ofNullable(arguments.get("project-id")).map(String::valueOf).orElse(null);
-            if (projectId == null || projectId.isEmpty()) {
-                throw new LocalizedException("warning.config.host.gitlab.missing_project");
-            }
+            String accessToken = useEnv ? getNonNullEnvironmentVariable(section, "CE_GITLAB_ACCESS_TOKEN") : section.getNonEmptyString(ACCESS_TOKEN);
+            String projectId = section.getNonEmptyString(PROJECT_ID);
             projectId = URLEncoder.encode(projectId, StandardCharsets.UTF_8).replace("/", "%2F");
-            ProxySelector proxy = getProxySelector(MiscUtils.castToMap(arguments.get("proxy"), true));
-            return new GitLabHost(gitlabUrl, accessToken, projectId, proxy);
+            return new GitLabHost(gitlabUrl, accessToken, projectId, getProxySelector(section.getSection("proxy")));
         }
     }
 }

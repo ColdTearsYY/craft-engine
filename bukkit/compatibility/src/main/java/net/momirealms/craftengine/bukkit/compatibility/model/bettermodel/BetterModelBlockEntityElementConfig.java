@@ -2,12 +2,11 @@ package net.momirealms.craftengine.bukkit.compatibility.model.bettermodel;
 
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfig;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigFactory;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import org.joml.Vector3f;
-
-import java.util.Map;
 
 public final class BetterModelBlockEntityElementConfig implements BlockEntityElementConfig<BetterModelBlockEntityElement> {
     private final Vector3f position;
@@ -59,16 +58,17 @@ public final class BetterModelBlockEntityElementConfig implements BlockEntityEle
     }
 
     public static class Factory implements BlockEntityElementConfigFactory<BetterModelBlockEntityElement> {
+        private static final String[] SIGHT_TRACE = new String[] {"sight_trace", "sight-trace"};
 
         @Override
-        public BetterModelBlockEntityElementConfig create(Map<String, Object> arguments) {
-            String model = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("model"), "warning.config.block.state.entity_renderer.better_model.missing_model");
+        public BetterModelBlockEntityElementConfig create(ConfigSection section) {
+            String model = section.getNonEmptyString("model");
             return new BetterModelBlockEntityElementConfig(
                     model,
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0.5f), "position"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("sight-trace", true), "sight-trace")
+                    section.getVector3f("position", ConfigConstants.CENTER_VECTOR3),
+                    section.getFloat("yaw"),
+                    section.getFloat("pitch"),
+                    section.getBoolean(SIGHT_TRACE, true)
             );
         }
     }

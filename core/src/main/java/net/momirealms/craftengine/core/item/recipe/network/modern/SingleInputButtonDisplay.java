@@ -9,20 +9,20 @@ import net.momirealms.craftengine.core.util.Key;
 import java.util.List;
 import java.util.function.Function;
 
-public record SingleInputButtonDisplay<I>(Either<List<Integer>, Key> ingredients, SlotDisplay<I> display) {
+public record SingleInputButtonDisplay(Either<List<Integer>, Key> ingredients, SlotDisplay display) {
 
-    public static <I> SingleInputButtonDisplay<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static SingleInputButtonDisplay read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         Either<List<Integer>, Key> ingredients = buf.readHolderSet();
-        SlotDisplay<I> slotDisplay = SlotDisplay.read(buf, reader);
-        return new SingleInputButtonDisplay<>(ingredients, slotDisplay);
+        SlotDisplay slotDisplay = SlotDisplay.read(buf, reader);
+        return new SingleInputButtonDisplay(ingredients, slotDisplay);
     }
 
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeHolderSet(this.ingredients);
         this.display.write(buf, writer);
     }
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.display.applyClientboundData(function);
     }
 }

@@ -14,7 +14,6 @@ import net.momirealms.craftengine.core.item.processor.ItemProcessor;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.UniqueKey;
 import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,16 +26,16 @@ import java.util.Optional;
  * Interface representing an item.
  * This interface provides methods for managing item properties such as custom model data,
  * damage, display name, lore, enchantments, and tags.
- *
- * @param <I> the type of the item implementation
  */
-public interface Item<I> {
+public interface Item {
+
+    Object getMinecraftItem();
 
     ItemType type();
 
     boolean isEmpty();
 
-    Optional<CustomItem<I>> getCustomItem();
+    Optional<CustomItem> getCustomItem();
 
     Optional<List<ItemBehavior>> getItemBehavior();
 
@@ -50,53 +49,50 @@ public interface Item<I> {
     @NotNull
     Key vanillaId();
 
-    @Nullable
-    UniqueKey recipeIngredientId();
-
     Optional<Key> customId();
 
-    Item<I> customId(Key id);
+    Item customId(Key id);
 
     int count();
 
-    Item<I> count(int amount);
+    Item count(int amount);
 
-    Item<I> trim(Trim trim);
+    Item trim(Trim trim);
 
     Optional<Trim> trim();
 
-    Item<I> customModelData(Integer data);
+    Item customModelData(Integer data);
 
     Optional<Integer> customModelData();
 
-    Item<I> damage(Integer data);
+    Item damage(Integer data);
 
     Optional<Integer> damage();
 
-    Item<I> repairCost(Integer data);
+    Item repairCost(Integer data);
 
     Optional<Integer> repairCost();
 
-    Item<I> maxDamage(Integer data);
+    Item maxDamage(Integer data);
 
     int maxDamage();
 
-    Item<I> blockState(Map<String, String> state);
+    Item blockState(Map<String, String> state);
 
     Optional<Map<String, String>> blockState();
 
     // todo 考虑部分版本的show in tooltip保留
-    Item<I> dyedColor(Color data);
+    Item dyedColor(Color data);
 
     Optional<Color> dyedColor();
 
-    Item<I> fireworkExplosion(FireworkExplosion explosion);
+    Item fireworkExplosion(FireworkExplosion explosion);
 
     Optional<FireworkExplosion> fireworkExplosion();
 
-    Item<I> customNameJson(String displayName);
+    Item customNameJson(String displayName);
 
-    Item<I> customNameComponent(Component displayName);
+    Item customNameComponent(Component displayName);
 
     Optional<String> customNameJson();
 
@@ -110,45 +106,45 @@ public interface Item<I> {
         return customNameComponent().or(this::itemNameComponent);
     }
 
-    Item<I> itemNameJson(String itemName);
+    Item itemNameJson(String itemName);
 
-    Item<I> itemNameComponent(Component itemName);
+    Item itemNameComponent(Component itemName);
 
     Optional<String> itemNameJson();
 
     Optional<Component> itemNameComponent();
 
-    Item<I> itemModel(String itemModel);
+    Item itemModel(String itemModel);
 
     Optional<String> itemModel();
 
-    Item<I> tooltipStyle(String tooltipStyle);
+    Item tooltipStyle(String tooltipStyle);
 
     Optional<String> tooltipStyle();
 
-    Item<I> loreJson(List<String> lore);
+    Item loreJson(List<String> lore);
 
-    Item<I> loreComponent(List<Component> lore);
+    Item loreComponent(List<Component> lore);
 
     Optional<List<String>> loreJson();
 
     Optional<List<Component>> loreComponent();
 
-    Item<I> attributeModifiers(List<AttributeModifier> modifiers);
+    Item attributeModifiers(List<AttributeModifier> modifiers);
 
     Optional<JukeboxPlayable> jukeboxSong();
 
-    Item<I> jukeboxSong(JukeboxPlayable song);
+    Item jukeboxSong(JukeboxPlayable song);
 
     Optional<EquipmentData> equippable();
 
-    Item<I> equippable(EquipmentData equipmentData);
+    Item equippable(EquipmentData equipmentData);
 
-    Item<I> unbreakable(boolean unbreakable);
+    Item unbreakable(boolean unbreakable);
 
     boolean unbreakable();
 
-    Item<I> skull(String data);
+    Item skull(String data);
 
     Optional<Enchantment> getEnchantment(Key enchantmentId);
 
@@ -156,11 +152,11 @@ public interface Item<I> {
 
     Optional<List<Enchantment>> storedEnchantments();
 
-    Item<I> setEnchantments(List<Enchantment> enchantments);
+    Item setEnchantments(List<Enchantment> enchantments);
 
-    Item<I> setStoredEnchantments(List<Enchantment> enchantments);
+    Item setStoredEnchantments(List<Enchantment> enchantments);
 
-    Item<I> itemFlags(List<String> flags);
+    Item itemFlags(List<String> flags);
 
     Object getJavaTag(Object... path);
 
@@ -168,7 +164,7 @@ public interface Item<I> {
 
     Object getExactTag(Object... path);
 
-    Item<I> setTag(Object value, Object... path);
+    Item setTag(Object value, Object... path);
 
     boolean hasTag(Object... path);
 
@@ -202,23 +198,19 @@ public interface Item<I> {
 
     void resetComponent(Object type);
 
-    I getItem();
-
     int maxStackSize();
 
-    Item<I> maxStackSize(int amount);
+    Item maxStackSize(int amount);
 
-    Item<I> copyWithCount(int count);
+    Item copyWithCount(int count);
 
     boolean hasItemTag(Key itemTag);
 
-    Object getLiteralObject();
+    Item mergeCopy(Item another);
 
-    Item<I> mergeCopy(Item<?> another);
+    Item transmuteCopy(Key another, int count);
 
-    Item<I> transmuteCopy(Key another, int count);
-
-    Item<I> unsafeTransmuteCopy(Object another, int count);
+    Item unsafeTransmuteCopy(Object another, int count);
 
     void shrink(int amount);
 
@@ -226,19 +218,19 @@ public interface Item<I> {
 
     void hurtAndBreak(int amount, @Nullable Player player, @Nullable EquipmentSlot slot);
 
-    default Item<I> transmuteCopy(Key another) {
+    default Item transmuteCopy(Key another) {
         return transmuteCopy(another, this.count());
     }
 
-    void merge(Item<I> another);
+    void merge(Item another);
 
-    default Item<I> apply(ItemProcessor modifier, ItemBuildContext context) {
+    default Item apply(ItemProcessor modifier, ItemBuildContext context) {
         return modifier.apply(this, context);
     }
 
     byte[] toByteArray();
 
-    default Item<I> applyDyedColors(List<Color> colors) {
+    default Item applyDyedColors(List<Color> colors) {
         int totalRed = 0;
         int totalGreen = 0;
         int totalBlue = 0;

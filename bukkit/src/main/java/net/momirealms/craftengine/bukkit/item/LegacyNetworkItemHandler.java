@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.item;
 
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.Item;
@@ -35,10 +36,12 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 
 @SuppressWarnings("DuplicatedCode")
-public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemStack> {
+public final class LegacyNetworkItemHandler implements NetworkItemHandler {
+    private static final Object[] DISPLAY_NAME = new Object[]{"display", "Name"};
+    private static final Object[] DISPLAY_LORE = new Object[]{"display", "Lore"};
 
     @Override
-    public Optional<Item<ItemStack>> c2s(Item<ItemStack> wrapped) {
+    public Optional<Item> c2s(Item wrapped) {
         boolean forceReturn = false;
 
         // 处理收纳袋
@@ -48,7 +51,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
             boolean changed = false;
             for (Object tag : (Iterable<?>) bundleContents) {
                 Object previousItem = ItemStackProxy.INSTANCE.of(tag);
-                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem));
+                Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.getBukkitStack(previousItem));
                 if (itemStack.isPresent()) {
                     newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
                     changed = true;
@@ -75,7 +78,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
                 List<Pair<Byte, Object>> newItems = new ArrayList<>();
                 for (Object tag : (Iterable<?>) itemTags) {
                     Object previousItem = ItemStackProxy.INSTANCE.of(tag);
-                    Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem));
+                    Optional<ItemStack> itemStack = BukkitItemManager.instance().c2s(ItemStackUtils.getBukkitStack(previousItem));
                     byte slot = ByteTagProxy.INSTANCE.value(CompoundTagProxy.INSTANCE.get(tag, "Slot"));
                     if (itemStack.isPresent()) {
                         newItems.add(Pair.of(slot, CraftItemStackProxy.INSTANCE.unwrap(itemStack.get())));
@@ -98,10 +101,10 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
             }
         }
 
-        Optional<CustomItem<ItemStack>> optionalCustomItem = wrapped.getCustomItem();
+        Optional<CustomItem> optionalCustomItem = wrapped.getCustomItem();
         if (optionalCustomItem.isPresent()) {
             BukkitCustomItem customItem = (BukkitCustomItem) optionalCustomItem.get();
-            if (customItem.item() != ItemStackProxy.INSTANCE.getItem(wrapped.getLiteralObject())) {
+            if (customItem.item() != ItemStackProxy.INSTANCE.getItem(wrapped.getMinecraftItem())) {
                 wrapped = wrapped.unsafeTransmuteCopy(customItem.item(), wrapped.count());
                 forceReturn = true;
             }
@@ -124,7 +127,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
     }
 
     @Override
-    public Optional<Item<ItemStack>> s2c(Item<ItemStack> wrapped, @Nullable Player player) {
+    public Optional<Item> s2c(Item wrapped, @Nullable Player player) {
         boolean forceReturn = false;
 
         // 处理收纳袋
@@ -134,7 +137,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
             boolean changed = false;
             for (Object tag : (Iterable<?>) bundleContents) {
                 Object previousItem = ItemStackProxy.INSTANCE.of(tag);
-                Optional<ItemStack> itemStack = BukkitItemManager.instance().s2c(CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem), player);
+                Optional<ItemStack> itemStack = BukkitItemManager.instance().s2c(ItemStackUtils.getBukkitStack(previousItem), player);
                 if (itemStack.isPresent()) {
                     newItems.add(CraftItemStackProxy.INSTANCE.unwrap(itemStack.get()));
                     changed = true;
@@ -161,7 +164,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
                 List<Pair<Byte, Object>> newItems = new ArrayList<>();
                 for (Object tag : (Iterable<?>) itemTags) {
                     Object previousItem = ItemStackProxy.INSTANCE.of(tag);
-                    Optional<ItemStack> itemStack = BukkitItemManager.instance().s2c(CraftItemStackProxy.INSTANCE.asCraftMirror(previousItem), player);
+                    Optional<ItemStack> itemStack = BukkitItemManager.instance().s2c(ItemStackUtils.getBukkitStack(previousItem), player);
                     byte slot = ByteTagProxy.INSTANCE.value(CompoundTagProxy.INSTANCE.get(tag, "Slot"));
                     if (itemStack.isPresent()) {
                         newItems.add(Pair.of(slot, CraftItemStackProxy.INSTANCE.unwrap(itemStack.get())));
@@ -186,7 +189,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
 
         // todo 处理book
 
-        Optional<CustomItem<ItemStack>> optionalCustomItem = wrapped.getCustomItem();
+        Optional<CustomItem> optionalCustomItem = wrapped.getCustomItem();
         // 不是自定义物品或修改过的原版物品
         if (optionalCustomItem.isEmpty()) {
             if (!Config.interceptItem()) {
@@ -197,7 +200,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
 
         // 应用 client-bound-material
         BukkitCustomItem customItem = (BukkitCustomItem) optionalCustomItem.get();
-        if (customItem.hasClientboundMaterial() && ItemStackProxy.INSTANCE.getItem(wrapped.getLiteralObject()) != customItem.clientItem()) {
+        if (customItem.hasClientboundMaterial() && ItemStackProxy.INSTANCE.getItem(wrapped.getMinecraftItem()) != customItem.clientItem()) {
             wrapped = wrapped.unsafeTransmuteCopy(customItem.clientItem(), wrapped.count());
             forceReturn = true;
         }
@@ -230,10 +233,10 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
         }
         // 如果拦截物品的描述名称等
         if (Config.interceptItem()) {
-            if (wrapped.hasTag("display", "Name")) {
+            if (wrapped.hasTag(DISPLAY_NAME)) {
                 processCustomName(wrapped, tag::put, context);
             }
-            if (wrapped.hasTag("display", "Lore")) {
+            if (wrapped.hasTag(DISPLAY_LORE)) {
                 processLore(wrapped, tag::put, context);
             }
         }
@@ -249,7 +252,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
         return forceReturn ? Optional.of(wrapped) : Optional.empty();
     }
 
-    public static boolean processCustomName(Item<ItemStack> item, BiConsumer<String, CompoundTag> callback, Context context) {
+    public static boolean processCustomName(Item item, BiConsumer<String, CompoundTag> callback, Context context) {
         Optional<String> optionalCustomName = item.customNameJson();
         if (optionalCustomName.isPresent()) {
             String line = optionalCustomName.get();
@@ -263,7 +266,7 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
         return false;
     }
 
-    private static boolean processLore(Item<ItemStack> item, BiConsumer<String, CompoundTag> callback, Context context) {
+    private static boolean processLore(Item item, BiConsumer<String, CompoundTag> callback, Context context) {
         Optional<List<String>> optionalLore = item.loreJson();
         if (optionalLore.isPresent()) {
             boolean changed = false;
@@ -292,17 +295,17 @@ public final class LegacyNetworkItemHandler implements NetworkItemHandler<ItemSt
     }
 
     static class OtherItem {
-        private final Item<ItemStack> item;
+        private final Item item;
         private boolean globalChanged = false;
         private CompoundTag networkTag;
         private final boolean forceReturn;
 
-        public OtherItem(Item<ItemStack> item, boolean forceReturn) {
+        public OtherItem(Item item, boolean forceReturn) {
             this.item = item;
             this.forceReturn = forceReturn;
         }
 
-        public Optional<Item<ItemStack>> process(Context context) {
+        public Optional<Item> process(Context context) {
             if (processLore(this.item, (s, c) -> networkTag().put(s, c), context)) {
                 this.globalChanged = true;
             }

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class ArmorStandBlockEntityElement implements BlockEntityElement {
+public final class ArmorStandBlockEntityElement implements BlockEntityElement {
     public final ArmorStandBlockEntityElementConfig config;
     public final Object cachedSpawnPacket;
     public final Object cachedDespawnPacket;
@@ -73,7 +73,7 @@ public class ArmorStandBlockEntityElement implements BlockEntityElement {
     public void show(Player player) {
         player.sendPackets(List.of(this.cachedSpawnPacket, ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(this.entityId, this.config.metadataValues(player))), false);
         player.sendPacket(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player).getLiteralObject())
+                Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player).getMinecraftItem())
         )), false);
         if (this.cachedDespawnPacket != null) {
             player.sendPacket(this.cachedDespawnPacket, false);
@@ -90,13 +90,13 @@ public class ArmorStandBlockEntityElement implements BlockEntityElement {
                     this.cachedUpdatePosPacket,
                     ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(this.entityId, this.config.metadataValues(player)),
                     ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                            Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player).getLiteralObject())
+                            Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player).getMinecraftItem())
                     ))
             ), false);
         } else {
             player.sendPacket(ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(this.entityId, this.config.metadataValues(player)), false);
             player.sendPacket(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                    Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player).getLiteralObject())
+                    Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player).getMinecraftItem())
             )), false);
         }
     }

@@ -8,8 +8,9 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
 import net.momirealms.craftengine.core.block.properties.BooleanProperty;
+import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.DirectionProxy;
@@ -20,14 +21,13 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
 
-public class HangableBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+public final class HangableBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<HangableBlockBehavior> FACTORY = new Factory();
-    private final BooleanProperty hangingProperty;
+    public final Property<Boolean> hangingProperty;
 
-    public HangableBlockBehavior(CustomBlock customBlock, BooleanProperty hangingProperty) {
+    private HangableBlockBehavior(CustomBlock customBlock, Property<Boolean> hangingProperty) {
         super(customBlock);
         this.hangingProperty = hangingProperty;
     }
@@ -82,9 +82,11 @@ public class HangableBlockBehavior extends BukkitBlockBehavior implements IsPath
     private static class Factory implements BlockBehaviorFactory<HangableBlockBehavior> {
 
         @Override
-        public HangableBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            BooleanProperty hanging = (BooleanProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("hanging"), "warning.config.block.behavior.hangable.missing_hanging");
-            return new HangableBlockBehavior(block, hanging);
+        public HangableBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new HangableBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "hanging", Boolean.class)
+            );
         }
     }
 }

@@ -28,7 +28,7 @@ public interface CustomFurniture {
     }
 
     @Nullable
-    LootTable<?> lootTable();
+    LootTable lootTable();
 
     Map<String, FurnitureVariant> variants();
 
@@ -83,7 +83,7 @@ public interface CustomFurniture {
 
         Builder settings(FurnitureSettings settings);
 
-        Builder lootTable(LootTable<?> lootTable);
+        Builder lootTable(LootTable lootTable);
 
         Builder events(Map<EventTrigger, List<Function<Context>>> events);
 

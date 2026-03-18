@@ -3,10 +3,10 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
 import java.util.List;
-import java.util.Map;
 
 public final class BundleSelectedItemModel implements ItemModel {
     public static final BundleSelectedItemModel INSTANCE = new BundleSelectedItemModel();
@@ -34,7 +34,7 @@ public final class BundleSelectedItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<BundleSelectedItemModel> {
         @Override
-        public BundleSelectedItemModel create(Map<String, Object> arguments) {
+        public BundleSelectedItemModel create(ConfigSection section) {
             return INSTANCE;
         }
     }

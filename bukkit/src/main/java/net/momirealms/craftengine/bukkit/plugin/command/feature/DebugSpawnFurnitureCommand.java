@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-public class DebugSpawnFurnitureCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugSpawnFurnitureCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugSpawnFurnitureCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

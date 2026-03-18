@@ -1,12 +1,12 @@
 package net.momirealms.craftengine.core.block.properties;
 
 import com.google.common.collect.ImmutableMap;
-import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.sparrow.nbt.StringTag;
 import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class StringProperty extends Property<String> {
@@ -51,13 +51,13 @@ public final class StringProperty extends Property<String> {
     @Override
     public String unpack(Tag tag) {
         if (tag instanceof StringTag stringTag) {
-            return names.get(stringTag.getAsString());
+            return this.names.get(stringTag.getAsString());
         }
         throw new IllegalArgumentException("Invalid string tag: " + tag);
     }
 
     @Override
-    public final int idFor(String value) {
+    public int idFor(String value) {
         int index = indexOf(value);
         if (index == -1) {
             throw new IllegalArgumentException("Invalid value: " + value);
@@ -93,16 +93,18 @@ public final class StringProperty extends Property<String> {
     private static class Factory implements PropertyFactory<String> {
 
         @Override
-        public Property<String> create(String name, Map<String, Object> arguments) {
-            List<String> values = MiscUtils.getAsStringList(arguments.get("values"))
-                    .stream()
-                    .toList();
-            String defaultValueName = arguments.getOrDefault("default", "").toString();
+        public Property<String> create(String name, ConfigSection section) {
+            List<String> values = section.getNonEmptyList("values", ConfigValue::getAsString);
+            String defaultValueName = section.getString("default");
             String defaultValue = values.stream()
                     .filter(e -> e.equals(defaultValueName))
                     .findFirst()
                     .orElseGet(values::getFirst);
-            return StringProperty.create(name, values, defaultValue);
+            return StringProperty.create(
+                    name,
+                    values,
+                    defaultValue
+            );
         }
     }
 }

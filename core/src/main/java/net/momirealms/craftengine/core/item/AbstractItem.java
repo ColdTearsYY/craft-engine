@@ -13,7 +13,6 @@ import net.momirealms.craftengine.core.item.data.Trim;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.UniqueKey;
 import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -22,14 +21,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
-    private final ItemFactory<W, I> factory;
-    private final W item;
+public abstract class AbstractItem<W extends ItemWrapper> implements Item {
+    protected final ItemFactory<W> factory;
+    protected final W item;
 
-    AbstractItem(ItemFactory<W, I> factory, W item) {
+    protected AbstractItem(ItemFactory<W> factory, W item) {
         this.factory = factory;
         this.item = item;
     }
+
+    protected abstract AbstractItem<W> withSameFactory(W item);
 
     @Override
     public boolean isEmpty() {
@@ -42,7 +43,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> itemModel(String data) {
+    public Item itemModel(String data) {
         this.factory.itemModel(this.item, data);
         return this;
     }
@@ -58,7 +59,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> jukeboxSong(JukeboxPlayable data) {
+    public Item jukeboxSong(JukeboxPlayable data) {
         this.factory.jukeboxSong(this.item, data);
         return this;
     }
@@ -69,13 +70,13 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> equippable(EquipmentData data) {
+    public Item equippable(EquipmentData data) {
         this.factory.equippable(this.item, data);
         return this;
     }
 
     @Override
-    public Item<I> tooltipStyle(String data) {
+    public Item tooltipStyle(String data) {
         this.factory.tooltipStyle(this.item, data);
         return this;
     }
@@ -86,7 +87,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> damage(Integer data) {
+    public Item damage(Integer data) {
         this.factory.damage(this.item, data);
         return this;
     }
@@ -97,7 +98,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> repairCost(Integer data) {
+    public Item repairCost(Integer data) {
         this.factory.repairCost(this.item, data);
         return this;
     }
@@ -108,7 +109,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> maxDamage(Integer data) {
+    public Item maxDamage(Integer data) {
         this.factory.maxDamage(this.item, data);
         return this;
     }
@@ -119,7 +120,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> blockState(Map<String, String> state) {
+    public Item blockState(Map<String, String> state) {
         this.factory.blockState(this.item, state);
         return this;
     }
@@ -130,7 +131,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> dyedColor(Color data) {
+    public Item dyedColor(Color data) {
         this.factory.dyedColor(this.item, data);
         return this;
     }
@@ -141,7 +142,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> fireworkExplosion(FireworkExplosion explosion) {
+    public Item fireworkExplosion(FireworkExplosion explosion) {
         this.factory.fireworkExplosion(this.item, explosion);
         return this;
     }
@@ -151,10 +152,9 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
         return this.factory.fireworkExplosion(this.item);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Optional<CustomItem<I>> getCustomItem() {
-        return ((ItemManager<I>) factory.plugin.itemManager()).getCustomItem(id());
+    public Optional<CustomItem> getCustomItem() {
+        return factory.plugin.itemManager().getCustomItem(id());
     }
 
     @Override
@@ -183,17 +183,12 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public @Nullable UniqueKey recipeIngredientId() {
-        return this.factory.recipeIngredientID(this.item);
-    }
-
-    @Override
     public Optional<Key> customId() {
         return this.factory.customId(this.item);
     }
 
     @Override
-    public Item<I> customId(Key data) {
+    public Item customId(Key data) {
         this.factory.customId(this.item, data);
         return this;
     }
@@ -204,13 +199,13 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> count(int amount) {
+    public Item count(int amount) {
         this.item.count(amount);
         return this;
     }
 
     @Override
-    public Item<I> trim(Trim trim) {
+    public Item trim(Trim trim) {
         this.factory.trim(this.item, trim);
         return this;
     }
@@ -221,7 +216,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> customModelData(Integer data) {
+    public Item customModelData(Integer data) {
         this.factory.customModelData(this.item, data);
         return this;
     }
@@ -237,7 +232,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> customNameJson(String displayName) {
+    public Item customNameJson(String displayName) {
         this.factory.customNameJson(this.item, displayName);
         return this;
     }
@@ -248,13 +243,13 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> customNameComponent(Component displayName) {
+    public Item customNameComponent(Component displayName) {
         this.factory.customNameComponent(this.item, displayName);
         return this;
     }
 
     @Override
-    public Item<I> loreJson(List<String> lore) {
+    public Item loreJson(List<String> lore) {
         this.factory.loreJson(this.item, lore);
         return this;
     }
@@ -265,7 +260,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> loreComponent(List<Component> lore) {
+    public Item loreComponent(List<Component> lore) {
         this.factory.loreComponent(this.item, lore);
         return this;
     }
@@ -276,13 +271,13 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> attributeModifiers(List<AttributeModifier> modifiers) {
+    public Item attributeModifiers(List<AttributeModifier> modifiers) {
         this.factory.attributeModifiers(this.item, modifiers);
         return this;
     }
 
     @Override
-    public Item<I> unbreakable(boolean unbreakable) {
+    public Item unbreakable(boolean unbreakable) {
         this.factory.unbreakable(this.item, unbreakable);
         return this;
     }
@@ -293,7 +288,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> itemNameJson(String itemName) {
+    public Item itemNameJson(String itemName) {
         this.factory.itemNameJson(this.item, itemName);
         return this;
     }
@@ -304,7 +299,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> itemNameComponent(Component itemName) {
+    public Item itemNameComponent(Component itemName) {
         this.factory.itemNameComponent(this.item, itemName);
         return this;
     }
@@ -315,7 +310,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> skull(String data) {
+    public Item skull(String data) {
         this.factory.skull(this.item, data);
         return this;
     }
@@ -336,13 +331,13 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> setEnchantments(List<Enchantment> enchantments) {
+    public Item setEnchantments(List<Enchantment> enchantments) {
         this.factory.enchantments(this.item, enchantments);
         return this;
     }
 
     @Override
-    public Item<I> setStoredEnchantments(List<Enchantment> enchantments) {
+    public Item setStoredEnchantments(List<Enchantment> enchantments) {
         this.factory.storedEnchantments(this.item, enchantments);
         return this;
     }
@@ -353,13 +348,13 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> maxStackSize(int amount) {
+    public Item maxStackSize(int amount) {
         this.factory.maxStackSize(this.item, amount);
         return this;
     }
 
     @Override
-    public Item<I> itemFlags(List<String> flags) {
+    public Item itemFlags(List<String> flags) {
         this.factory.itemFlags(this.item, flags);
         return this;
     }
@@ -380,7 +375,7 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Item<I> setTag(Object value, Object... path) {
+    public Item setTag(Object value, Object... path) {
         this.factory.setTag(this.item, value, path);
         return this;
     }
@@ -465,15 +460,10 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
         this.factory.resetComponent(this.item, type);
     }
 
-    @Override
-    public I getItem() {
-        return this.factory.getItem(this.item);
-    }
-
     @SuppressWarnings({"unchecked"})
     @Override
-    public AbstractItem<W, I> copyWithCount(int count) {
-        return new AbstractItem<>(this.factory, (W) this.item.copyWithCount(count));
+    public AbstractItem<W> copyWithCount(int count) {
+        return withSameFactory((W) this.item.copyWithCount(count));
     }
 
     @Override
@@ -482,29 +472,29 @@ public class AbstractItem<W extends ItemWrapper<I>, I> implements Item<I> {
     }
 
     @Override
-    public Object getLiteralObject() {
-        return this.item.getLiteralObject();
+    public Object getMinecraftItem() {
+        return this.item.getMinecraftItem();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public AbstractItem<W, I> mergeCopy(Item<?> another) {
-        return new AbstractItem<>(this.factory, this.factory.mergeCopy(this.item, (W) ((AbstractItem) another).item));
+    public AbstractItem<W> mergeCopy(Item another) {
+        return withSameFactory(this.factory.mergeCopy(this.item, (W) ((AbstractItem) another).item));
     }
 
     @Override
-    public AbstractItem<W, I> transmuteCopy(Key another, int count) {
-        return new AbstractItem<>(this.factory, this.factory.transmuteCopy(this.item, another, count));
+    public AbstractItem<W> transmuteCopy(Key another, int count) {
+        return withSameFactory(this.factory.transmuteCopy(this.item, another, count));
     }
 
     @Override
-    public Item<I> unsafeTransmuteCopy(Object another, int count) {
-        return new AbstractItem<>(this.factory, this.factory.unsafeTransmuteCopy(this.item, another, count));
+    public Item unsafeTransmuteCopy(Object another, int count) {
+        return withSameFactory(this.factory.unsafeTransmuteCopy(this.item, another, count));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public void merge(Item<I> another) {
+    public void merge(Item another) {
         this.factory.merge(this.item, (W) ((AbstractItem) another).item);
     }
 

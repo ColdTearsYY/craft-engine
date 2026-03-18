@@ -5,13 +5,12 @@ import net.momirealms.craftengine.core.pack.model.definition.condition.Condition
 import net.momirealms.craftengine.core.pack.model.definition.condition.ConditionProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public final class ConditionItemModel implements ItemModel {
     public static final ItemModelFactory<ConditionItemModel> FACTORY = new Factory();
@@ -71,19 +70,16 @@ public final class ConditionItemModel implements ItemModel {
     }
 
     private static class Factory implements ItemModelFactory<ConditionItemModel> {
+        private static final String[] ON_TRUE = new String[] {"on_true", "on-true"};
+        private static final String[] ON_FALSE = new String[] {"on_false", "on-false"};
 
         @Override
-        public ConditionItemModel create(Map<String, Object> arguments) {
-            ConditionProperty property = ConditionProperties.fromMap(arguments);
-            ItemModel onTrue = ItemModels.fromObj(ResourceConfigUtils.get(arguments, "on-true", "on_true"));
-            if (onTrue == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.condition.missing_on_true");
-            }
-            ItemModel onFalse = ItemModels.fromObj(ResourceConfigUtils.get(arguments, "on-false", "on_false"));
-            if (onFalse == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.condition.missing_on_false");
-            }
-            return new ConditionItemModel(property, onTrue, onFalse);
+        public ConditionItemModel create(ConfigSection section) {
+            return new ConditionItemModel(
+                    ConditionProperties.fromConfig(section),
+                    section.getNonNullValue(ON_TRUE, ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig),
+                    section.getNonNullValue(ON_FALSE, ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig)
+            );
         }
     }
 
@@ -91,10 +87,11 @@ public final class ConditionItemModel implements ItemModel {
 
         @Override
         public ConditionItemModel read(JsonObject json) {
-            ConditionProperty property = ConditionProperties.fromJson(json);
-            ItemModel onTrue = ItemModels.fromJson(json.getAsJsonObject("on_true"));
-            ItemModel onFalse = ItemModels.fromJson(json.getAsJsonObject("on_false"));
-            return new ConditionItemModel(property, onTrue, onFalse);
+            return new ConditionItemModel(
+                    ConditionProperties.fromJson(json),
+                    ItemModels.fromJson(json.getAsJsonObject("on_true")),
+                    ItemModels.fromJson(json.getAsJsonObject("on_false"))
+            );
         }
     }
 }

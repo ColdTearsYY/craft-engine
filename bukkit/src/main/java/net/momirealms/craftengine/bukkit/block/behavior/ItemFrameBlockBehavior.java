@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.entity.BukkitBlockEntityTypes;
 import net.momirealms.craftengine.bukkit.block.entity.ItemFrameBlockEntity;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -20,24 +20,22 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ItemUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import org.bukkit.Location;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
     public static final BlockBehaviorFactory<ItemFrameBlockBehavior> FACTORY = new Factory();
     public final Vector3f position;
     public final boolean glow;
@@ -48,16 +46,15 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
     public final SoundData rotateSound;
     public final Property<Direction> directionProperty;
 
-    public ItemFrameBlockBehavior(
-            CustomBlock customBlock,
-            Vector3f position,
-            boolean glow,
-            boolean invisible,
-            boolean renderMapItem,
-            SoundData putSound,
-            SoundData takeSound,
-            SoundData rotateSound,
-            Property<Direction> directionProperty) {
+    private ItemFrameBlockBehavior(CustomBlock customBlock,
+                                   Vector3f position,
+                                   boolean glow,
+                                   boolean invisible,
+                                   boolean renderMapItem,
+                                   SoundData putSound,
+                                   SoundData takeSound,
+                                   SoundData rotateSound,
+                                   Property<Direction> directionProperty) {
         super(customBlock);
         this.position = position;
         this.glow = glow;
@@ -104,7 +101,7 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
         if (state.get(blockBehavior.directionProperty) != DirectionUtils.fromNMSDirection(side)) {
             return 0;
         }
-        BukkitWorld world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(blockAccess));
+        BukkitWorld world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(blockAccess));
         BlockEntity blockEntity = world.storageWorld().getBlockEntityAtIfLoaded(LocationUtils.fromBlockPos(pos));
         if (!(blockEntity instanceof ItemFrameBlockEntity itemFrame && itemFrame.isValid())) {
             return 0;
@@ -143,7 +140,7 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
         }
         // 当主手为空的时候右键取下
         if (context.getHand() == InteractionHand.MAIN_HAND && ItemUtils.isEmpty(context.getItem())) {
-            Item<ItemStack> item = itemFrame.item();
+            Item item = itemFrame.item();
             if (ItemUtils.isEmpty(item)) { // 空的不管
                 return InteractionResult.SUCCESS_AND_CANCEL;
             }
@@ -157,9 +154,8 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
         }
         // 当方块实体内部没有物品切换手上物品不为空则放入
         if (ItemUtils.isEmpty(itemFrame.item()) && !ItemUtils.isEmpty(context.getItem())) {
-            @SuppressWarnings("unchecked")
-            Item<ItemStack> item = (Item<ItemStack>) context.getItem();
-            Item<ItemStack> copied = item.copyWithCount(1);
+            Item item = context.getItem();
+            Item copied = item.copyWithCount(1);
             if (!player.canInstabuild()) {
                 item.shrink(1); // 先扣物品
             }
@@ -178,25 +174,30 @@ public class ItemFrameBlockBehavior extends BukkitBlockBehavior implements Entit
     }
 
     private static class Factory implements BlockBehaviorFactory<ItemFrameBlockBehavior> {
+        private static final String[] RENDER_MAP_ITEM = new String[]{"render_map_item", "render-map-item"};
 
         @Override
-        public ItemFrameBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            @SuppressWarnings("unchecked")
-            Property<Direction> directionProperty = (Property<Direction>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.item_frame.missing_facing");
-            Vector3f position = ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0), "position");
-            boolean glow = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("glow", false), "glow");
-            boolean invisible = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("invisible", false), "invisible");
-            boolean renderMapItem = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("render-map-item", true), "render-map-item"); // 地图渲染有少量开销可选启用
-            Map<String, Object> sounds = ResourceConfigUtils.getAsMapOrNull(arguments.get("sounds"), "sounds");
+        public ItemFrameBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData putSound = null;
             SoundData takeSound = null;
             SoundData rotateSound = null;
-            if (sounds != null) {
-                putSound = Optional.ofNullable(sounds.get("put")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                takeSound = Optional.ofNullable(sounds.get("take")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                rotateSound = Optional.ofNullable(sounds.get("rotate")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                putSound = soundSection.getValue("put", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                takeSound = soundSection.getValue("take", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                rotateSound = soundSection.getValue("rotate", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
-            return new ItemFrameBlockBehavior(block, position, glow, invisible, renderMapItem, putSound, takeSound, rotateSound, directionProperty);
+            return new ItemFrameBlockBehavior(
+                    block,
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getBoolean("glow"),
+                    section.getBoolean("invisible"),
+                    section.getBoolean(RENDER_MAP_ITEM, true),
+                    putSound,
+                    takeSound,
+                    rotateSound,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", Direction.class)
+            );
         }
     }
 }

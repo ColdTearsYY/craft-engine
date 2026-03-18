@@ -3,7 +3,7 @@ package net.momirealms.craftengine.bukkit.entity.furniture;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.event.FurnitureHitEvent;
 import net.momirealms.craftengine.bukkit.api.event.FurnitureInteractEvent;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -13,8 +13,8 @@ import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureDebugStickState;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.util.EnumUtils;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.CEWorld;
 import net.momirealms.craftengine.core.world.chunk.CEChunk;
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundSystemChatPacketProxy;
@@ -28,14 +28,13 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class FurnitureEventListener implements Listener {
+public final class FurnitureEventListener implements Listener {
     private final BukkitFurnitureManager manager;
     private final BukkitWorldManager worldManager;
 
@@ -127,9 +126,9 @@ public class FurnitureEventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onFurniturePreBreak(FurnitureHitEvent event) {
         Player bukkitPlayer = event.getPlayer();
-        BukkitServerPlayer player = BukkitAdaptors.adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
-        Item<ItemStack> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+        Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;
         if (!(player.canInstabuild() && player.hasPermission("minecraft.debugstick")) && !player.hasPermission("minecraft.debugstick.always")) {
             return;
@@ -139,8 +138,8 @@ public class FurnitureEventListener implements Listener {
         Object storedData = itemInHand.getJavaTag("craftengine:debug_stick_state");
         if (storedData == null) storedData = new HashMap<>();
         if (storedData instanceof Map<?,?> map) {
-            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map, false));
-            FurnitureDebugStickState state = ResourceConfigUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
+            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
+            FurnitureDebugStickState state = EnumUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
             state = player.isSecondaryUseActive() ? state.previous() : state.next();
             String propertyName = state.name().toLowerCase(Locale.ROOT);
             data.put("furniture", propertyName);
@@ -159,9 +158,9 @@ public class FurnitureEventListener implements Listener {
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     public void onInteractFurniture(FurnitureInteractEvent event) {
         Player bukkitPlayer = event.getPlayer();
-        BukkitServerPlayer player = BukkitAdaptors.adapt(bukkitPlayer);
+        BukkitServerPlayer player = BukkitAdaptor.adapt(bukkitPlayer);
         if (player == null) return;
-        Item<ItemStack> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+        Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!BukkitItemUtils.isDebugStick(itemInHand)) return;
         if (!(player.canInstabuild() && player.hasPermission("minecraft.debugstick")) && !player.hasPermission("minecraft.debugstick.always")) {
             return;
@@ -169,8 +168,8 @@ public class FurnitureEventListener implements Listener {
         Object storedData = itemInHand.getJavaTag("craftengine:debug_stick_state");
         if (storedData == null) storedData = new HashMap<>();
         if (storedData instanceof Map<?,?> map) {
-            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map, false));
-            FurnitureDebugStickState state = ResourceConfigUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
+            Map<String, Object> data = new HashMap<>(MiscUtils.castToMap(map));
+            FurnitureDebugStickState state = EnumUtils.getAsEnum(data.get("furniture"), FurnitureDebugStickState.class, FurnitureDebugStickState.VARIANT);
             BukkitFurniture furniture = event.furniture();
             state.handler().onInteract(player.isSecondaryUseActive(), furniture, (s1, s2) -> {
                 Object systemChatPacket = ClientboundSystemChatPacketProxy.INSTANCE.newInstance(

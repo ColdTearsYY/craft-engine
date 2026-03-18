@@ -2,8 +2,8 @@ package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
+import net.momirealms.craftengine.bukkit.util.BlockTags;
 import net.momirealms.craftengine.bukkit.util.DirectionUtils;
-import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
@@ -12,17 +12,15 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.DirectionProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.IdentifierProxy;
-import net.momirealms.craftengine.proxy.minecraft.tags.TagKeyProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
@@ -30,20 +28,21 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.pathfinder.PathComputationTypeProxy;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+// todo 重构，有设计问题
+public final class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<StemBlockBehavior> FACTORY = new Factory();
-    private final IntegerProperty ageProperty;
-    private final Key fruit;
-    private final Key attachedStem;
-    private final int minGrowLight;
-    private final Object tagMayPlaceFruit;
-    private final Object blockMayPlaceFruit;
+    private static final Object MAY_PLACE_FRUIT = BlockTags.getOrCreate(Key.of("minecraft:dirt"));
+    public final IntegerProperty ageProperty;
+    public final Key fruit;
+    public final Key attachedStem;
+    public final int minGrowLight;
+    public final Object tagMayPlaceFruit;
+    public final Object blockMayPlaceFruit;
 
-    public StemBlockBehavior(CustomBlock customBlock,
+    private StemBlockBehavior(CustomBlock customBlock,
                              IntegerProperty ageProperty,
                              Key fruit,
                              Key attachedStem,
@@ -55,7 +54,7 @@ public class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFind
         this.fruit = fruit;
         this.attachedStem = attachedStem;
         this.minGrowLight = minGrowLight;
-        this.tagMayPlaceFruit = tagMayPlaceFruit;
+        this.tagMayPlaceFruit = Optional.ofNullable(tagMayPlaceFruit).orElse(MAY_PLACE_FRUIT);
         this.blockMayPlaceFruit = blockMayPlaceFruit;
     }
 
@@ -137,16 +136,20 @@ public class StemBlockBehavior extends BukkitBlockBehavior implements IsPathFind
     }
 
     private static class Factory implements BlockBehaviorFactory<StemBlockBehavior> {
+        private static final String[] ATTACHED_STEM = new String[]{"attached_stem", "attached-stem"};
+        private static final String[] LIGHT_REQUIREMENT = new String[]{"light_requirement", "light-requirement"};
 
         @Override
-        public StemBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            IntegerProperty ageProperty = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("age"), "warning.config.block.behavior.stem.missing_age");
-            Key fruit = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("fruit"), "warning.config.block.behavior.stem.missing_fruit"));
-            Key attachedStem = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("attached-stem"), "warning.config.block.behavior.stem.missing_attached_stem"));
-            int minGrowLight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("light-requirement", 9), "light-requirement");
-            Object tagMayPlaceFruit = TagKeyProxy.INSTANCE.create(RegistriesProxy.BLOCK, KeyUtils.toIdentifier(Key.of(arguments.getOrDefault("may-place-fruit", "minecraft:dirt").toString())));
-            Object blockMayPlaceFruit = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.BLOCK, KeyUtils.toIdentifier(Key.of(arguments.getOrDefault("may-place-fruit", "minecraft:farmland").toString())));
-            return new StemBlockBehavior(block, ageProperty, fruit, attachedStem, minGrowLight, tagMayPlaceFruit, blockMayPlaceFruit);
+        public StemBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new StemBlockBehavior(
+                    block,
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
+                    section.getNonNullIdentifier("fruit"),
+                    section.getNonNullIdentifier(ATTACHED_STEM),
+                    section.getInt(LIGHT_REQUIREMENT, 0),
+                    null,
+                    null
+            );
         }
     }
 }

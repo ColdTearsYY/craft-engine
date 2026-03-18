@@ -3,10 +3,10 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.pack.revision.Revisions;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
 import java.util.List;
-import java.util.Map;
 
 public final class PlayerHeadSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<PlayerHeadSpecialModel> FACTORY = new Factory();
@@ -34,7 +34,7 @@ public final class PlayerHeadSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<PlayerHeadSpecialModel> {
         @Override
-        public PlayerHeadSpecialModel create(Map<String, Object> arguments) {
+        public PlayerHeadSpecialModel create(ConfigSection section) {
             return INSTANCE;
         }
     }

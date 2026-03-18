@@ -14,9 +14,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 public interface FontManager extends Manageable {
     Key DEFAULT_FONT = Key.of("minecraft:default");
@@ -110,7 +110,13 @@ public interface FontManager extends Manageable {
         return createOffsets(offset, (raw, font) -> raw);
     }
 
-    void refreshEmojiSuggestions(UUID uuid);
+    void refreshEmojiSuggestions(@NotNull Player player);
+
+    List<String> getEmojiSuggestions(@NotNull Player player);
+
+    void addEmojiSuggestions(@Nullable Player player);
+
+    void removeEmojiSuggestions(@Nullable Player player);
 
     @Deprecated
     default Map<String, ComponentProvider> matchTags(String text) {

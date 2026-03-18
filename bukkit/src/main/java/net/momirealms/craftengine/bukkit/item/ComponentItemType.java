@@ -4,8 +4,8 @@ import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
-import net.momirealms.craftengine.bukkit.util.RegistryOps;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
+import net.momirealms.craftengine.bukkit.util.RegistryOps;
 import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.core.item.ItemType;
 import net.momirealms.craftengine.core.util.Key;
@@ -20,7 +20,7 @@ import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.Optional;
 
-public class ComponentItemType implements ItemType {
+public final class ComponentItemType implements ItemType {
     private final Object item;
 
     public ComponentItemType(Object item) {

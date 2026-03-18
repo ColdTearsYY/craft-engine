@@ -16,7 +16,7 @@ import org.joml.Vector3f;
 import java.util.List;
 import java.util.UUID;
 
-public class TextDisplayBlockEntityElement implements BlockEntityElement {
+public final class TextDisplayBlockEntityElement implements BlockEntityElement {
     public final TextDisplayBlockEntityElementConfig config;
     public final Object cachedSpawnPacket;
     public final Object cachedDespawnPacket;

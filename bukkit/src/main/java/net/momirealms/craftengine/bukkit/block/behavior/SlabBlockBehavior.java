@@ -14,24 +14,27 @@ import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.behavior.BlockBoundItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.util.Direction;
+import net.momirealms.craftengine.core.util.ItemUtils;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.pathfinder.PathComputationTypeProxy;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior, CanBeReplacedBlockBehavior {
+public final class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior, CanBeReplacedBlockBehavior {
     public static final BlockBehaviorFactory<SlabBlockBehavior> FACTORY = new Factory();
-    private final Property<SlabType> typeProperty;
+    public final Property<SlabType> typeProperty;
 
-    public SlabBlockBehavior(CustomBlock block, Property<SlabType> typeProperty) {
+    private SlabBlockBehavior(CustomBlock block,
+                              Property<SlabType> typeProperty) {
         super(block);
         this.typeProperty = typeProperty;
     }
@@ -40,11 +43,11 @@ public class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFind
     @Override
     public boolean canBeReplaced(BlockPlaceContext context, ImmutableBlockState state) {
         SlabType type = state.get(this.typeProperty);
-        Item<ItemStack> item = (Item<ItemStack>) context.getItem();
+        Item item = (Item) context.getItem();
         if (type == SlabType.DOUBLE || ItemUtils.isEmpty(item)) return false;
-        Optional<CustomItem<ItemStack>> itemInHand = item.getCustomItem();
+        Optional<CustomItem> itemInHand = item.getCustomItem();
         if (itemInHand.isEmpty()) return false;
-        CustomItem<ItemStack> customItem = itemInHand.get();
+        CustomItem customItem = itemInHand.get();
         Key blockId = null;
         for (ItemBehavior itemBehavior : customItem.behaviors()) {
             if (itemBehavior instanceof BlockBoundItemBehavior behavior) {
@@ -117,11 +120,12 @@ public class SlabBlockBehavior extends BukkitBlockBehavior implements IsPathFind
 
     private static class Factory implements BlockBehaviorFactory<SlabBlockBehavior> {
 
-        @SuppressWarnings("unchecked")
         @Override
-        public SlabBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<SlabType> type = (Property<SlabType>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("type"), "warning.config.block.behavior.slab.missing_type");
-            return new SlabBlockBehavior(block, type);
+        public SlabBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new SlabBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "type", SlabType.class)
+            );
         }
     }
 }

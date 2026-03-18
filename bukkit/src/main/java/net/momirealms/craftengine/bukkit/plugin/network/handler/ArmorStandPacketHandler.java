@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
-public class ArmorStandPacketHandler implements EntityPacketHandler {
+public final class ArmorStandPacketHandler implements EntityPacketHandler {
     public static final ArmorStandPacketHandler INSTANCE = new ArmorStandPacketHandler();
 
     @Override

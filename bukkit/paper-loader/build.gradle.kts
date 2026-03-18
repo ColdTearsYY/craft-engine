@@ -1,8 +1,8 @@
 import net.minecrell.pluginyml.paper.PaperPluginDescription
+import net.momirealms.paperServer
 import xyz.jpenilla.runpaper.task.RunServer
 
 plugins {
-    id("com.gradleup.shadow") version "9.3.1"
     id("de.eldoria.plugin-yml.paper") version "0.7.1"
     id("xyz.jpenilla.run-paper") version "3.0.2"
 }
@@ -16,8 +16,7 @@ repositories {
 }
 
 dependencies {
-    // Platform
-    compileOnly("io.papermc.paper:paper-api:${rootProject.properties["paper_version"]}-R0.1-SNAPSHOT")
+    paperServer(project)
 
     implementation(project(":core"))
     implementation(project(":bukkit"))
@@ -34,20 +33,6 @@ dependencies {
     implementation("net.momirealms:craft-engine-nms-helper-mojmap:${rootProject.properties["nms_helper_version"]}")
     implementation("cn.gtemc:itembridge:${rootProject.properties["itembridge_version"]}")
     implementation("cn.gtemc:levelerbridge:${rootProject.properties["levelerbridge_version"]}")
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    options.release.set(21)
-    dependsOn(tasks.clean)
 }
 
 paper {
@@ -173,38 +158,13 @@ artifacts {
 
 tasks {
     shadowJar {
+        relocation.applyCommon(this)
         manifest {
             attributes["paperweight-mappings-namespace"] = "mojang"
         }
         from(project(":bukkit:proxy").tasks.shadowJar.flatMap { it.archiveFile })
         archiveFileName = "${rootProject.name}-paper-plugin-${rootProject.properties["project_version"]}.jar"
         destinationDirectory.set(file("$rootDir/target"))
-        relocate("net.kyori", "net.momirealms.craftengine.libraries")
-        relocate("net.momirealms.sparrow.reflection", "net.momirealms.craftengine.libraries.reflection")
-        relocate("net.momirealms.sparrow.nbt", "net.momirealms.craftengine.libraries.nbt")
-        relocate("net.momirealms.antigrieflib", "net.momirealms.craftengine.libraries.antigrieflib")
-        relocate("cn.gtemc.itembridge", "net.momirealms.craftengine.libraries.itembridge")
-        relocate("cn.gtemc.levelerbridge", "net.momirealms.craftengine.libraries.levelerbridge")
-        relocate("org.incendo", "net.momirealms.craftengine.libraries")
-        relocate("dev.dejvokep", "net.momirealms.craftengine.libraries")
-        relocate("org.bstats", "net.momirealms.craftengine.libraries.bstats")
-        relocate("com.github.benmanes.caffeine", "net.momirealms.craftengine.libraries.caffeine")
-        relocate("com.ezylang.evalex", "net.momirealms.craftengine.libraries.evalex")
-        relocate("net.bytebuddy", "net.momirealms.craftengine.libraries.bytebuddy")
-        relocate("org.yaml.snakeyaml", "net.momirealms.craftengine.libraries.snakeyaml")
-        relocate("org.ahocorasick", "net.momirealms.craftengine.libraries.ahocorasick")
-        relocate("net.jpountz", "net.momirealms.craftengine.libraries.jpountz")
-        relocate("software.amazon.awssdk", "net.momirealms.craftengine.libraries.awssdk")
-        relocate("software.amazon.eventstream", "net.momirealms.craftengine.libraries.eventstream")
-        relocate("com.google.common.jimfs", "net.momirealms.craftengine.libraries.jimfs")
-        relocate("org.apache.commons", "net.momirealms.craftengine.libraries.commons")
-        relocate("io.leangen.geantyref", "net.momirealms.craftengine.libraries.geantyref")
-        relocate("ca.spottedleaf.concurrentutil", "net.momirealms.craftengine.libraries.concurrentutil")
-        relocate("io.netty.handler.codec.http", "net.momirealms.craftengine.libraries.netty.handler.codec.http")
-        relocate("io.netty.handler.codec.rtsp", "net.momirealms.craftengine.libraries.netty.handler.codec.rtsp")
-        relocate("io.netty.handler.codec.spdy", "net.momirealms.craftengine.libraries.netty.handler.codec.spdy")
-        relocate("io.netty.handler.codec.http2", "net.momirealms.craftengine.libraries.netty.handler.codec.http2")
-        relocate("io.github.bucket4j", "net.momirealms.craftengine.libraries.bucket4j")
     }
 }
 
@@ -246,7 +206,6 @@ fun registerPaperTask(
             }
             systemProperties["com.mojang.eula.agree"] = true
             systemProperties["net.momirealms.craftengine.dev"] = true
-            systemProperties["net.momirealms.craftengine.pre-check-asm-proxy"] = true // 预检查ASM代理可用性
             jvmArgs("-Dsun.stdout.encoding=UTF-8")
             jvmArgs("-Dsun.stderr.encoding=UTF-8")
             jvmArgs("-Ddisable.watchdog=true")

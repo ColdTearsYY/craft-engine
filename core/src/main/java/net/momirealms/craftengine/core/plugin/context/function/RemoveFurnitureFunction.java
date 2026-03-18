@@ -5,25 +5,26 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootTable;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.sound.SoundSource;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-public class RemoveFurnitureFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
+public final class RemoveFurnitureFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final boolean dropLoot;
     private final boolean playSound;
 
-    public RemoveFurnitureFunction(List<Condition<CTX>> predicates, boolean playSound, boolean dropLoot) {
+    private RemoveFurnitureFunction(List<Condition<CTX>> predicates,
+                                    boolean playSound,
+                                    boolean dropLoot) {
         super(predicates);
         this.dropLoot = dropLoot;
         this.playSound = playSound;
@@ -49,12 +50,12 @@ public class RemoveFurnitureFunction<CTX extends Context> extends AbstractCondit
             Optional<Player> optionalPlayer = ctx.getOptionalParameter(DirectContextParameters.PLAYER);
             Player player = optionalPlayer.orElse(null);
             if (player != null) {
-                Item<?> itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
+                Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
                 builder.withParameter(DirectContextParameters.PLAYER, player)
                         .withOptionalParameter(DirectContextParameters.ITEM_IN_HAND, itemInHand.isEmpty() ? null : itemInHand);
             }
-            List<Item<?>> items = lootTable.getRandomItems(builder.build(), world, player);
-            for (Item<?> item : items) {
+            List<Item> items = lootTable.getRandomItems(builder.build(), world, player);
+            for (Item item : items) {
                 world.dropItemNaturally(position, item);
             }
         }
@@ -64,21 +65,25 @@ public class RemoveFurnitureFunction<CTX extends Context> extends AbstractCondit
         }
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, RemoveFurnitureFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, RemoveFurnitureFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, RemoveFurnitureFunction<CTX>> {
+        private static final String[] PLAY_SOUND = new String[] {"play_sound", "play-sound"};
+        private static final String[] DROP_LOOT = new String[] {"drop_loot", "drop-loot"};
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public RemoveFurnitureFunction<CTX> create(Map<String, Object> arguments) {
-            boolean dropLoot = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("drop-loot", true), "drop-loot");
-            boolean playSound = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("play-sound", true), "play-sound");
-            return new RemoveFurnitureFunction<>(getPredicates(arguments), playSound, dropLoot);
+        public RemoveFurnitureFunction<CTX> create(ConfigSection section) {
+            return new RemoveFurnitureFunction<>(
+                    getPredicates(section),
+                    section.getBoolean(PLAY_SOUND, true),
+                    section.getBoolean(DROP_LOOT, true)
+            );
         }
     }
 }

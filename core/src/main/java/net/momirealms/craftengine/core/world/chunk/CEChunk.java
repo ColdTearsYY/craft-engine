@@ -26,7 +26,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class CEChunk {
+public final class CEChunk {
     private static final int DEFAULT_MAP_SIZE = 8;
     public final CEWorld world;
     public final ChunkPos chunkPos;

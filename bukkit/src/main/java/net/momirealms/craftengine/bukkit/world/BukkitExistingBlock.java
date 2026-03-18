@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.world;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
@@ -23,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-public class BukkitExistingBlock implements ExistingBlock {
+public final class BukkitExistingBlock implements ExistingBlock {
     private final Block block;
 
     public BukkitExistingBlock(Block block) {
@@ -95,7 +95,7 @@ public class BukkitExistingBlock implements ExistingBlock {
 
     @Override
     public World world() {
-        return BukkitAdaptors.adapt(this.block.getWorld());
+        return BukkitAdaptor.adapt(this.block.getWorld());
     }
 
     @Override

@@ -43,7 +43,7 @@ public final class DyeableModelReader implements SimplifiedModelReader {
                 "tints", List.of(
                         Map.of(
                                 "type", "minecraft:dye",
-                                "default", -6265536
+                                "default", 16777215
                         )
                 )
         );
@@ -59,7 +59,7 @@ public final class DyeableModelReader implements SimplifiedModelReader {
                 "tints", List.of(
                         Map.of(
                                 "type", "minecraft:dye",
-                                "default", -6265536
+                                "default", 16777215
                         )
                 )
         );

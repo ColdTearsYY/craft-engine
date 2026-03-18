@@ -10,7 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 
-public class DebugIsChunkPersistentLoadedCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugIsChunkPersistentLoadedCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugIsChunkPersistentLoadedCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

@@ -1,17 +1,17 @@
 package net.momirealms.craftengine.core.item.setting;
 
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
-import java.util.Map;
 
-public class EquipmentData {
+// todo 自定义装备声音
+public final class EquipmentData {
     @NotNull
     private EquipmentSlot slot;
     @Nullable
@@ -21,6 +21,8 @@ public class EquipmentData {
     private boolean damageOnHurt;
     // 1.21.5+
     private boolean equipOnInteract;
+    // 1.21.6+
+    private boolean canBeSheared;
     @Nullable
     private Key cameraOverlay;
 
@@ -30,6 +32,7 @@ public class EquipmentData {
                          boolean swappable,
                          boolean damageOnHurt,
                          boolean equipOnInteract,
+                         boolean canBeSheared,
                          @Nullable Key cameraOverlay) {
         this.slot = slot;
         this.assetId = assetId;
@@ -37,65 +40,60 @@ public class EquipmentData {
         this.swappable = swappable;
         this.damageOnHurt = damageOnHurt;
         this.equipOnInteract = equipOnInteract;
+        this.canBeSheared = canBeSheared;
         this.cameraOverlay = cameraOverlay;
     }
 
-    public static EquipmentData fromMap(@NotNull final Map<String, Object> data) {
-        String slot = (String) data.get("slot");
-        if (slot == null) {
-            throw new IllegalArgumentException("slot cannot be null");
-        }
-        EquipmentSlot slotEnum = EquipmentSlot.valueOf(slot.toUpperCase(Locale.ENGLISH).replace("_", ""));
-        EquipmentData.Builder builder = EquipmentData.builder().slot(slotEnum);
-        if (data.containsKey("asset-id")) {
-            builder.assetId(Key.of(data.get("asset-id").toString()));
-        }
-        if (data.containsKey("camera-overlay")) {
-            builder.cameraOverlay(Key.of(data.get("camera-overlay").toString()));
-        }
-        if (data.containsKey("dispensable")) {
-            builder.dispensable(ResourceConfigUtils.getAsBoolean(data.get("dispensable"), "dispensable"));
-        }
-        if (data.containsKey("swappable")) {
-            builder.swappable(ResourceConfigUtils.getAsBoolean(data.get("swappable"), "swappable"));
-        }
-        if (data.containsKey("equip-on-interact")) {
-            builder.equipOnInteract(ResourceConfigUtils.getAsBoolean(data.get("equip-on-interact"), "equip-on-interact"));
-        }
-        if (data.containsKey("damage-on-hurt")) {
-            builder.damageOnHurt(ResourceConfigUtils.getAsBoolean(data.get("damage-on-hurt"), "damage-on-hurt"));
-        }
-        return builder.build();
+    private static final String[] ASSET_ID = new String[] {"asset_id", "asset-id"};
+    private static final String[] CAMERA_OVERLAY = new String[] {"camera_overlay", "camera-overlay"};
+    private static final String[] EQUIP_ON_INTERACT = new String[] {"equip_on_interact", "equip-on-interact"};
+    private static final String[] DAMAGE_ON_HURT = new String[] {"damage_on_hurt", "damage-on-hurt"};
+    private static final String[] CAN_BE_SHEARED = new String[] {"can_be_sheared", "can-be-sheared"};
+
+    public static EquipmentData fromConfig(@NotNull final ConfigSection section) {
+        EquipmentSlot slot = section.getNonNullEnum("slot", EquipmentSlot.class);
+        Key assetId = section.getIdentifier(ASSET_ID);
+        Key cameraOverlay = section.getIdentifier(CAMERA_OVERLAY);
+        boolean dispensable = section.getBoolean("dispensable", true);
+        boolean swappable = section.getBoolean("swappable", true);
+        boolean equipOnInteract = section.getBoolean(EQUIP_ON_INTERACT);
+        boolean damageOnHurt = section.getBoolean(DAMAGE_ON_HURT, true);
+        boolean canBeSheared = section.getBoolean(CAN_BE_SHEARED);
+        return new EquipmentData(slot, assetId, dispensable, swappable, damageOnHurt, equipOnInteract, canBeSheared, cameraOverlay);
     }
 
     public EquipmentSlot slot() {
-        return slot;
+        return this.slot;
     }
 
     @Nullable
     public Key assetId() {
-        return assetId;
+        return this.assetId;
     }
 
     public boolean dispensable() {
-        return dispensable;
+        return this.dispensable;
     }
 
     public boolean swappable() {
-        return swappable;
+        return this.swappable;
     }
 
     public boolean damageOnHurt() {
-        return damageOnHurt;
+        return this.damageOnHurt;
     }
 
     public boolean equipOnInteract() {
-        return equipOnInteract;
+        return this.equipOnInteract;
+    }
+
+    public boolean canBeSheared() {
+        return this.canBeSheared;
     }
 
     @Nullable
     public Key cameraOverlay() {
-        return cameraOverlay;
+        return this.cameraOverlay;
     }
 
     public void setSlot(@NotNull EquipmentSlot slot) {
@@ -104,6 +102,10 @@ public class EquipmentData {
 
     public void setAssetId(@Nullable Key assetId) {
         this.assetId = assetId;
+    }
+
+    public void setCanBeSheared(boolean canBeSheared) {
+        this.canBeSheared = canBeSheared;
     }
 
     public void setDispensable(boolean dispensable) {
@@ -128,12 +130,12 @@ public class EquipmentData {
 
     public CompoundTag toNBT() {
         CompoundTag tag = new CompoundTag();
-        tag.putString("slot", this.slot.toString().toLowerCase(Locale.ENGLISH));
+        tag.putString("slot", this.slot.toString().toLowerCase(Locale.ROOT));
         if (this.assetId != null) {
             if (VersionHelper.isOrAbove1_21_4()) {
-                tag.putString("asset_id", this.assetId.toString());
+                tag.putString("asset_id", this.assetId.asString());
             } else {
-                tag.putString("model", this.assetId.toString());
+                tag.putString("model", this.assetId.asString());
             }
         }
         tag.putBoolean("dispensable", this.dispensable);
@@ -141,9 +143,12 @@ public class EquipmentData {
         tag.putBoolean("damage_on_hurt", this.damageOnHurt);
         if (VersionHelper.isOrAbove1_21_5()) {
             tag.putBoolean("equip_on_interact", this.equipOnInteract);
+            if (VersionHelper.isOrAbove1_21_6()) {
+                tag.putBoolean("can_be_sheared", this.canBeSheared);
+            }
         }
         if (this.cameraOverlay != null) {
-            tag.putString("camera_overlay", this.cameraOverlay.toString());
+            tag.putString("camera_overlay", this.cameraOverlay.asString());
         }
         return tag;
     }
@@ -160,9 +165,11 @@ public class EquipmentData {
         private boolean damageOnHurt = true;
         // 1.21.5+
         private boolean equipOnInteract = false;
+        private boolean canBeSheared = false;
         private Key cameraOverlay;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         public Builder slot(EquipmentSlot slot) {
             this.slot = slot;
@@ -199,8 +206,13 @@ public class EquipmentData {
             return this;
         }
 
+        public Builder canBeSheared(boolean canBeSheared) {
+            this.canBeSheared = canBeSheared;
+            return this;
+        }
+
         public EquipmentData build() {
-            return new EquipmentData(slot, assetId, dispensable, swappable, damageOnHurt, equipOnInteract, cameraOverlay);
+            return new EquipmentData(this.slot, this.assetId, this.dispensable, this.swappable, this.damageOnHurt, this.equipOnInteract, this.canBeSheared, this.cameraOverlay);
         }
     }
 }

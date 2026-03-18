@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.bukkit.util;
 
 public final class EntityDataUtils {
-
     private EntityDataUtils() {}
 
     private static final int HAS_SHADOW = 0x01; // 1

@@ -1,6 +1,6 @@
 # This is one of the plugin's core settings - it basically controls how many block states you can use in your config files.
 # Below is the default setup - feel free to add or remove stuff as needed.
-block-state-mappings:
+block_state_mappings:
   #### Anvil ####
   # An anvil has four possible orientations, but the east-west and north-south orientations look exactly the same.
   anvil[facing=north]: anvil[facing=south]

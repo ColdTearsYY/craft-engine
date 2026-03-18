@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class AABB {
+public final class AABB {
     private static final double EPSILON = 1.0E-7;
     public final double minX;
     public final double minY;

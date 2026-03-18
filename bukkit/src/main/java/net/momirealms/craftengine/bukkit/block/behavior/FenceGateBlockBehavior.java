@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
@@ -19,10 +19,10 @@ import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -43,37 +43,33 @@ import org.bukkit.GameEvent;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 @SuppressWarnings("DuplicatedCode")
-public class FenceGateBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+public final class FenceGateBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<FenceGateBlockBehavior> FACTORY = new Factory();
-    private final Property<HorizontalDirection> facingProperty;
-    private final Property<Boolean> inWallProperty;
-    private final Property<Boolean> openProperty;
-    private final Property<Boolean> poweredProperty;
-    private final boolean canOpenWithHand;
-    private final boolean canOpenByWindCharge;
-    private final SoundData openSound;
-    private final SoundData closeSound;
+    public final Property<HorizontalDirection> facingProperty;
+    public final Property<Boolean> inWallProperty;
+    public final Property<Boolean> openProperty;
+    public final Property<Boolean> poweredProperty;
+    public final boolean canOpenWithHand;
+    public final boolean canOpenByWindCharge;
+    public final SoundData openSound;
+    public final SoundData closeSound;
 
-    public FenceGateBlockBehavior(
-            CustomBlock customBlock,
-            Property<HorizontalDirection> facing,
-            Property<Boolean> inWall,
-            Property<Boolean> open,
-            Property<Boolean> powered,
-            boolean canOpenWithHand,
-            boolean canOpenByWindCharge,
-            SoundData openSound,
-            SoundData closeSound
-    ) {
+    private FenceGateBlockBehavior(CustomBlock customBlock,
+                                   Property<HorizontalDirection> facing,
+                                   Property<Boolean> inWall,
+                                   Property<Boolean> open,
+                                   Property<Boolean> powered,
+                                   boolean canOpenWithHand,
+                                   boolean canOpenByWindCharge,
+                                   SoundData openSound,
+                                   SoundData closeSound) {
         super(customBlock);
         this.facingProperty = facing;
         this.inWallProperty = inWall;
@@ -162,7 +158,7 @@ public class FenceGateBlockBehavior extends BukkitBlockBehavior implements IsPat
             return;
         }
         this.toggle(state, context.getLevel(), pos, player);
-        if (!InteractUtils.isInteractable((org.bukkit.entity.Player) player.platformPlayer(), BlockStateUtils.fromBlockData(state.visualBlockState().literalObject()), context.getHitResult(), (Item<ItemStack>) context.getItem())) {
+        if (!InteractUtils.isInteractable((org.bukkit.entity.Player) player.platformPlayer(), BlockStateUtils.fromBlockData(state.visualBlockState().literalObject()), context.getHitResult(), (Item) context.getItem())) {
             player.swingHand(context.getHand());
         }
     }
@@ -184,7 +180,7 @@ public class FenceGateBlockBehavior extends BukkitBlockBehavior implements IsPat
         if (this.canOpenByWindCharge && ExplosionProxy.INSTANCE.canTriggerBlocks(args[3])) {
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(args[0]);
             if (optionalCustomState.isEmpty()) return;
-            this.toggle(optionalCustomState.get(), BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(args[1])), LocationUtils.fromBlockPos(args[2]), null);
+            this.toggle(optionalCustomState.get(), BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(args[1])), LocationUtils.fromBlockPos(args[2]), null);
         }
     }
 
@@ -211,7 +207,7 @@ public class FenceGateBlockBehavior extends BukkitBlockBehavior implements IsPat
             hasSignal = event.getNewCurrent() > 0;
         }
 
-        World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+        World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
         boolean changed = isOpen(customState) != hasSignal;
         if (hasSignal && changed) {
             Object abovePos = LocationUtils.above(blockPos);
@@ -293,24 +289,29 @@ public class FenceGateBlockBehavior extends BukkitBlockBehavior implements IsPat
     }
 
     private static class Factory implements BlockBehaviorFactory<FenceGateBlockBehavior> {
+        private static final String[] CAN_OPEN_WITH_HAND = new String[] {"can_open_with_hand", "can-open-with-hand"};
+        private static final String[] CAN_OPEN_BY_WIND_CHARGE = new String[] {"can_open_by_wind_charge", "can-open-by-wind-charge"};
 
         @Override
-        @SuppressWarnings("unchecked")
-        public FenceGateBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<HorizontalDirection> facing = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.fence_gate.missing_facing");
-            Property<Boolean> inWall = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("in_wall"), "warning.config.block.behavior.fence_gate.missing_in_wall");
-            Property<Boolean> open = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("open"), "warning.config.block.behavior.fence_gate.missing_open");
-            Property<Boolean> powered = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.fence_gate.missing_powered");
-            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-open-with-hand", true), "can-open-with-hand");
-            boolean canOpenByWindCharge = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-open-by-wind-charge", true), "can-open-by-wind-charge");
-            Map<String, Object> sounds = (Map<String, Object>) arguments.get("sounds");
+        public FenceGateBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData openSound = null;
             SoundData closeSound = null;
-            if (sounds != null) {
-                openSound = Optional.ofNullable(sounds.get("open")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                closeSound = Optional.ofNullable(sounds.get("close")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                openSound = soundSection.getValue("open", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                closeSound = soundSection.getValue("close", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
-            return new FenceGateBlockBehavior(block, facing, inWall, open, powered, canOpenWithHand, canOpenByWindCharge, openSound, closeSound);
+            return new FenceGateBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "in_wall", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
+                    section.getBoolean(CAN_OPEN_WITH_HAND, true),
+                    section.getBoolean(CAN_OPEN_BY_WIND_CHARGE, true),
+                    openSound,
+                    closeSound
+            );
         }
     }
 }

@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
-public class DisableResourceCommand extends BukkitCommandFeature<CommandSender> {
+public final class DisableResourceCommand extends BukkitCommandFeature<CommandSender> {
 
     public DisableResourceCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

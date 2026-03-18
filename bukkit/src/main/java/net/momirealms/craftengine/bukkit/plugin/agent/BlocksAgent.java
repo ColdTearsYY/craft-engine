@@ -9,6 +9,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 public final class BlocksAgent {
+    private BlocksAgent() {}
 
     public static void agentmain(String args, Instrumentation instrumentation) {
         new AgentBuilder.Default()

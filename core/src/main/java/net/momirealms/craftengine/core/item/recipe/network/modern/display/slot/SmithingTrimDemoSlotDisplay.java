@@ -9,29 +9,29 @@ import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.NotNull;
 
-public class SmithingTrimDemoSlotDisplay<I> implements SlotDisplay<I> {
-    private final SlotDisplay<I> base;
-    private final SlotDisplay<I> material;
+public final class SmithingTrimDemoSlotDisplay implements SlotDisplay {
+    private final SlotDisplay base;
+    private final SlotDisplay material;
     // 1.21.2-1.21.4
-    private SlotDisplay<I> trimPattern;
+    private SlotDisplay trimPattern;
     // 1.21.5
     private Either<Integer, TrimPattern> either;
 
-    public SmithingTrimDemoSlotDisplay(SlotDisplay<I> base, SlotDisplay<I> material, SlotDisplay<I> trimPattern) {
+    public SmithingTrimDemoSlotDisplay(SlotDisplay base, SlotDisplay material, SlotDisplay trimPattern) {
         this.base = base;
         this.material = material;
         this.trimPattern = trimPattern;
     }
 
-    public SmithingTrimDemoSlotDisplay(SlotDisplay<I> base, SlotDisplay<I> material, Either<Integer, TrimPattern> either) {
+    public SmithingTrimDemoSlotDisplay(SlotDisplay base, SlotDisplay material, Either<Integer, TrimPattern> either) {
         this.base = base;
         this.either = either;
         this.material = material;
     }
 
-    public static <I> SmithingTrimDemoSlotDisplay<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
-        SlotDisplay<I> base = SlotDisplay.read(buf, reader);
-        SlotDisplay<I> material = SlotDisplay.read(buf, reader);
+    public static SmithingTrimDemoSlotDisplay read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
+        SlotDisplay base = SlotDisplay.read(buf, reader);
+        SlotDisplay material = SlotDisplay.read(buf, reader);
         if (VersionHelper.isOrAbove1_21_5()) {
             Either<Integer, TrimPattern> either = buf.readHolder(byteBuf -> {
                 Key assetId = buf.readKey();
@@ -39,15 +39,15 @@ public class SmithingTrimDemoSlotDisplay<I> implements SlotDisplay<I> {
                 boolean decal = buf.readBoolean();
                 return new TrimPattern(assetId, component, decal);
             });
-            return new SmithingTrimDemoSlotDisplay<>(base, material, either);
+            return new SmithingTrimDemoSlotDisplay(base, material, either);
         } else {
-            SlotDisplay<I> trimPattern = SlotDisplay.read(buf, reader);
-            return new SmithingTrimDemoSlotDisplay<>(base, material, trimPattern);
+            SlotDisplay trimPattern = SlotDisplay.read(buf, reader);
+            return new SmithingTrimDemoSlotDisplay(base, material, trimPattern);
         }
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(5);
         this.base.write(buf, writer);
         this.material.write(buf, writer);
@@ -77,9 +77,9 @@ public class SmithingTrimDemoSlotDisplay<I> implements SlotDisplay<I> {
         @Override
         public @NotNull String toString() {
             return "TrimPattern{" +
-                    "assetId=" + assetId +
-                    ", description=" + description +
-                    ", decal=" + decal +
+                    "assetId=" + this.assetId +
+                    ", description=" + this.description +
+                    ", decal=" + this.decal +
                     '}';
         }
     }

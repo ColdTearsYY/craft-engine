@@ -13,7 +13,7 @@ import java.util.Set;
 public final class BlockStateProviderInjector {
     private BlockStateProviderInjector() {}
 
-    public static void init() throws ReflectiveOperationException {
+    public static void init() {
         MappedRegistryProxy.INSTANCE.setFrozen(BuiltInRegistriesProxy.BLOCKSTATE_PROVIDER_TYPE, false);
         register(Key.ce("simple_state_provider"), FastNMS.INSTANCE.getCraftEngineCustomSimpleStateProviderType());
         register(Key.ce("weighted_state_provider"), FastNMS.INSTANCE.getCraftEngineCustomWeightedStateProviderType());

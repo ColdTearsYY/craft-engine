@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.Objects;
 
-public class BukkitSeat<O extends SeatOwner> implements Seat<O> {
+public final class BukkitSeat<O extends SeatOwner> implements Seat<O> {
     private final O owner;
     private final SeatConfig seatConfig;
     private WeakReference<Entity> entity;

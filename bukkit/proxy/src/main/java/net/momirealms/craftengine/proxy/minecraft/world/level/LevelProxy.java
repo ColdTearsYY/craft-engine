@@ -58,4 +58,7 @@ public interface LevelProxy extends LevelAccessorProxy {
 
     @MethodInvoker(name = "getWorld")
     World getWorld(Object target);
+
+    @MethodInvoker(name = "isLoaded")
+    boolean isLoaded(Object target, @Type(clazz = BlockPosProxy.class) Object pos);
 }

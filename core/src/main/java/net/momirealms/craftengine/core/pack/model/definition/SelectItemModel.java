@@ -3,14 +3,16 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperties;
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import org.incendo.cloud.type.Either;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,20 +57,15 @@ public final class SelectItemModel implements ItemModel {
         json.add("cases", array);
         for (Map.Entry<Either<JsonElement, List<JsonElement>>, ItemModel> entry : this.whenMap.entrySet()) {
             JsonObject item = new JsonObject();
-            ItemModel itemModel = entry.getValue();
-            item.add("model", itemModel.apply(version));
             Either<JsonElement, List<JsonElement>> either = entry.getKey();
-            if (either.primary().isPresent()) {
-                JsonElement remap = this.property.remap(either.primary().get(), version);
+            either.ifLeft(left -> {
+                JsonElement remap = this.property.remap(left, version);
                 if (remap != null) {
                     item.add("when", remap);
-                } else {
-                    continue;
                 }
-            } else {
-                List<JsonElement> list = either.fallback().get();
+            }).ifRight(right -> {
                 JsonArray whens = new JsonArray();
-                for (JsonElement e : list) {
+                for (JsonElement e : right) {
                     JsonElement remap = this.property.remap(e, version);
                     if (remap != null) {
                         whens.add(remap);
@@ -76,11 +73,13 @@ public final class SelectItemModel implements ItemModel {
                 }
                 if (!whens.isEmpty()) {
                     item.add("when", whens);
-                } else {
-                    continue;
                 }
+            });
+            if (item.has("when")) {
+                ItemModel itemModel = entry.getValue();
+                item.add("model", itemModel.apply(version));
+                array.add(item);
             }
-            array.add(item);
         }
         if (this.fallBack != null) {
             json.add("fallback", this.fallBack.apply(version));
@@ -93,14 +92,13 @@ public final class SelectItemModel implements ItemModel {
         List<Revision> versions = new ArrayList<>(4);
         for (Map.Entry<Either<JsonElement, List<JsonElement>>, ItemModel> entry : this.whenMap.entrySet()) {
             Either<JsonElement, List<JsonElement>> when = entry.getKey();
-            if (when.primary().isPresent()) {
-                versions.addAll(this.property.revisions(when.primary().get()));
-            } else {
-                List<JsonElement> list = when.fallback().get();
-                for (JsonElement e : list) {
+            when.ifLeft(left -> {
+                versions.addAll(this.property.revisions(left));
+            }).ifRight(right -> {
+                for (JsonElement e : right) {
                     versions.addAll(this.property.revisions(e));
                 }
-            }
+            });
             versions.addAll(entry.getValue().revisions());
         }
         if (this.fallBack != null) {
@@ -123,48 +121,29 @@ public final class SelectItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<SelectItemModel> {
 
-        @SuppressWarnings("unchecked")
         @Override
-        public SelectItemModel create(Map<String, Object> arguments) {
-            SelectProperty property = SelectProperties.fromMap(arguments);
-            Object fallback = arguments.get("fallback");
-            Object casesObj = arguments.get("cases");
-            if (casesObj instanceof List<?> list) {
-                List<Map<String, Object>> cases = (List<Map<String, Object>>) list;
-                if (!cases.isEmpty()) {
-                    Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap = new HashMap<>();
-                    for (Map<String, Object> c : cases) {
-                        Object when = c.get("when");
-                        if (when == null) {
-                            throw new LocalizedResourceConfigException("warning.config.item.model.select.case.missing_when");
-                        }
-                        Either<JsonElement, List<JsonElement>> either;
-                        if (when instanceof List<?> whenList) {
-                            List<JsonElement> whens = new ArrayList<>(whenList.size());
-                            for (Object o : whenList) {
-                                whens.add(GsonHelper.get().toJsonTree(o));
-                            }
-                            either = Either.ofFallback(whens);
-                        } else {
-                            either = Either.ofPrimary(GsonHelper.get().toJsonTree(when));
-                        }
-                        Object model = c.get("model");
-                        if (model == null) {
-                            throw new LocalizedResourceConfigException("warning.config.item.model.select.case.missing_model");
-                        }
-                        whenMap.put(either, ItemModels.fromObj(model));
-                    }
-                    return new SelectItemModel(
-                            property,
-                            whenMap,
-                            fallback == null ? null : ItemModels.fromObj(fallback)
-                    );
+        public SelectItemModel create(ConfigSection section) {
+            SelectProperty property = SelectProperties.fromConfig(section);
+            ItemModel fallbackModel = section.getValue("fallback", ItemModels::fromConfig);
+            Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap = new HashMap<>();
+            ConfigValue cases = section.getNonNullValue("cases", ConfigConstants.ARGUMENT_LIST);
+            cases.forEach(value -> {
+                ConfigSection entry = value.getAsSection();
+                List<JsonElement> when = entry.getNonEmptyList("when", v -> GsonHelper.get().toJsonTree(v.value()));
+                Either<JsonElement, List<JsonElement>> either;
+                if (when.size() == 1) {
+                    either = Either.left(when.getFirst());
                 } else {
-                    throw new LocalizedResourceConfigException("warning.config.item.model.select.missing_cases");
+                    either = Either.right(when);
                 }
-            } else {
-                throw new LocalizedResourceConfigException("warning.config.item.model.select.missing_cases");
-            }
+                ItemModel model = entry.getNonNullValue("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig);
+                whenMap.put(either, model);
+            });
+            return new SelectItemModel(
+                    property,
+                    whenMap,
+                    fallbackModel
+            );
         }
     }
 
@@ -177,26 +156,29 @@ public final class SelectItemModel implements ItemModel {
                 throw new IllegalArgumentException("cases is expected to be a JsonArray");
             }
             Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap = new HashMap<>(cases.size());
-            for (JsonElement e : cases) {
-                if (e instanceof JsonObject caseObj) {
-                    ItemModel model = ItemModels.fromJson(caseObj.getAsJsonObject("model"));
-                    JsonElement whenObj = caseObj.get("when");
-                    Either<JsonElement, List<JsonElement>> either;
-                    if (whenObj instanceof JsonArray array) {
-                        List<JsonElement> whens = new ArrayList<>(array.size());
-                        for (JsonElement o : array) {
-                            whens.add(o);
-                        }
-                        either = Either.ofFallback(whens);
-                    } else if (whenObj != null) {
-                        either = Either.ofPrimary(whenObj);
-                    } else {
-                        throw new IllegalArgumentException("'when' should not be null");
-                    }
-                    whenMap.put(either, model);
-                } else {
+            for (JsonElement caseElement : cases) {
+                if (!(caseElement instanceof JsonObject caseObj)) {
                     throw new IllegalArgumentException("case is expected to be a JsonObject");
                 }
+                JsonObject modelJson = caseObj.getAsJsonObject("model");
+                if (modelJson == null) {
+                    throw new IllegalArgumentException("model is expected to be a JsonObject");
+                }
+                ItemModel model = ItemModels.fromJson(modelJson);
+                JsonElement whenObj = caseObj.get("when");
+                Either<JsonElement, List<JsonElement>> either;
+                if (whenObj instanceof JsonArray array) {
+                    List<JsonElement> whens = new ArrayList<>(array.size());
+                    for (JsonElement o : array) {
+                        whens.add(o);
+                    }
+                    either = Either.right(whens);
+                } else if (whenObj != null) {
+                    either = Either.left(whenObj);
+                } else {
+                    throw new IllegalArgumentException("'when' should not be null");
+                }
+                whenMap.put(either, model);
             }
             return new SelectItemModel(SelectProperties.fromJson(json), whenMap, json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null);
         }

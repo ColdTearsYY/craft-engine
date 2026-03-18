@@ -168,7 +168,7 @@ public abstract class AbstractCommandManager<C> implements CraftEngineCommandMan
     @Override
     public void handleCommandFeedback(C sender, TranslatableComponent.Builder key, Component... args) {
         TranslatableComponent component = key.arguments(args).build();
-        this.feedbackConsumer.accept(sender, component.key(), plugin.translationManager().render(component, getLocale(sender)));
+        this.feedbackConsumer.accept(sender, component.key(), this.plugin.translationManager().render(component, getLocale(sender)));
     }
 
     @Override

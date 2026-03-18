@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-public class TranslationConfigConstructor extends SafeConstructor {
+public final class TranslationConfigConstructor extends SafeConstructor {
 
     public TranslationConfigConstructor(LoaderOptions loaderOptions) {
         super(loaderOptions);

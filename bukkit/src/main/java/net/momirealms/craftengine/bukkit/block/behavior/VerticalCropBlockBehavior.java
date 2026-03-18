@@ -7,8 +7,7 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
-import net.momirealms.craftengine.core.block.properties.Property;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
@@ -17,22 +16,24 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class VerticalCropBlockBehavior extends BukkitBlockBehavior {
+public final class VerticalCropBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<VerticalCropBlockBehavior> FACTORY = new Factory();
-    private final int maxHeight;
-    private final IntegerProperty ageProperty;
-    private final float growSpeed;
-    private final boolean direction;
+    public final int maxHeight;
+    public final IntegerProperty ageProperty;
+    public final float growSpeed;
+    public final boolean direction;
 
-    public VerticalCropBlockBehavior(CustomBlock customBlock, Property<Integer> ageProperty,
-                                     int maxHeight, float growSpeed, boolean direction) {
+    private VerticalCropBlockBehavior(CustomBlock customBlock,
+                                      IntegerProperty ageProperty,
+                                      int maxHeight,
+                                      float growSpeed,
+                                      boolean direction) {
         super(customBlock);
         this.maxHeight = maxHeight;
-        this.ageProperty = (IntegerProperty) ageProperty;
+        this.ageProperty = ageProperty;
         this.growSpeed = growSpeed;
         this.direction = direction;
     }
@@ -51,7 +52,7 @@ public class VerticalCropBlockBehavior extends BukkitBlockBehavior {
         if (BlockGetterProxy.INSTANCE.getBlockState(level, (this.direction ? LocationUtils.above(blockPos) : LocationUtils.below(blockPos))) == BlocksProxy.AIR$defaultState) {
             int currentHeight = 1;
             BlockPos currentPos = LocationUtils.fromBlockPos(blockPos);
-            for (;;) {
+            for (; ; ) {
                 Object nextPos = LocationUtils.toBlockPos(currentPos.x(), this.direction ? currentPos.y() - currentHeight : currentPos.y() + currentHeight, currentPos.z());
                 Object nextState = BlockGetterProxy.INSTANCE.getBlockState(level, nextPos);
                 Optional<ImmutableBlockState> optionalBelowCustomState = BlockStateUtils.getOptionalCustomBlockState(nextState);
@@ -82,15 +83,18 @@ public class VerticalCropBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<VerticalCropBlockBehavior> {
+        private static final String[] MAX_HEIGHT = new String[] {"max_height", "max-height"};
+        private static final String[] GROW_SPEED = new String[] {"grow_speed", "grow-speed"};
 
-        @SuppressWarnings("unchecked")
         @Override
-        public VerticalCropBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<Integer> ageProperty = (Property<Integer>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("age"), "warning.config.block.behavior.vertical_crop.missing_age");
-            int maxHeight = ResourceConfigUtils.getAsInt(arguments.getOrDefault("max-height", 3), "max-height");
-            boolean direction = arguments.getOrDefault("direction", "up").toString().equalsIgnoreCase("up");
-            return new VerticalCropBlockBehavior(block, ageProperty, maxHeight,
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("grow-speed", 1), "grow-speed"), direction);
+        public VerticalCropBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new VerticalCropBlockBehavior(
+                    block,
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),
+                    section.getInt(MAX_HEIGHT, 3),
+                    section.getFloat(GROW_SPEED, 1f),
+                    section.getString("direction", "up").equalsIgnoreCase("up")
+            );
         }
     }
 }

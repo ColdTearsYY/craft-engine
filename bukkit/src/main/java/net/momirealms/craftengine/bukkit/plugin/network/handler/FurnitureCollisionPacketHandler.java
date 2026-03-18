@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.plugin.network.EntityPacketHandler;
 import net.momirealms.craftengine.core.plugin.network.NetWorkUser;
 import net.momirealms.craftengine.core.plugin.network.event.NMSPacketEvent;
 
-public class FurnitureCollisionPacketHandler implements EntityPacketHandler {
+public final class FurnitureCollisionPacketHandler implements EntityPacketHandler {
     public static final FurnitureCollisionPacketHandler INSTANCE = new FurnitureCollisionPacketHandler();
 
     @Override

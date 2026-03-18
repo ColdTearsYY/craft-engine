@@ -2,7 +2,7 @@
 # By specifying the state type, we can prevent certain visual issues during placement.
 items:
   minecraft:string:
-    client-bound-data:
+    client_bound_data:
       $$>=1.20.5:
         components:
           minecraft:block_state:
@@ -24,7 +24,7 @@ items:
             south: 'true'
             west: 'true'
   minecraft:note_block:
-    client-bound-data:
+    client_bound_data:
       $$>=1.20.5:
         components:
           minecraft:block_state:
@@ -43,6 +43,6 @@ items:
 blocks:
   minecraft:note_block:
     settings:
-      client-bound-tags:
+      client_bound_tags:
         - minecraft:beacon_base_blocks
         - minecraft:mineable/axe

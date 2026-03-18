@@ -1,8 +1,8 @@
 package net.momirealms.craftengine.core.block.properties;
 
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public interface PropertyFactory<T extends Comparable<T>> {
 
-    Property<T> create(String name, Map<String, Object> arguments);
+    Property<T> create(String name, ConfigSection section);
 }

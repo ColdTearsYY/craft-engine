@@ -22,7 +22,7 @@ import java.util.function.IntUnaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.LongStream;
 
-public class PalettedContainer<T> implements PaletteResizeListener<T>, ReadableContainer<T> {
+public final class PalettedContainer<T> implements PaletteResizeListener<T>, ReadableContainer<T> {
     private static final BiConsumer<FriendlyByteBuf, long[]> RAW_DATA_WRITER = VersionHelper.isOrAbove1_21_5() ?
             (FriendlyByteBuf::writeFixedSizeLongArray) : (FriendlyByteBuf::writeLongArray);
     private static final BiConsumer<FriendlyByteBuf, long[]> RAW_DATA_READER = VersionHelper.isOrAbove1_21_5() ?

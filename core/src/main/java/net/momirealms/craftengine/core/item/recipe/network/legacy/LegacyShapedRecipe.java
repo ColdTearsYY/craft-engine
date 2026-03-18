@@ -11,19 +11,18 @@ import java.util.List;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-@SuppressWarnings({"unchecked", "rawtypes", "DuplicatedCode"})
-public class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
+public final class LegacyShapedRecipe implements LegacyRecipe {
     private final int width;
     private final int height;
-    private final List<LegacyIngredient<I>> ingredients;
-    private Item<I> result;
+    private final List<LegacyIngredient> ingredients;
+    private Item result;
     private final String group;
     private final CraftingRecipeCategory category;
     private final boolean showNotification;
 
     public LegacyShapedRecipe(int width, int height,
-                              List<LegacyIngredient<I>> ingredients,
-                              Item<I> result,
+                              List<LegacyIngredient> ingredients,
+                              Item result,
                               String group,
                               CraftingRecipeCategory category,
                               boolean showNotification) {
@@ -37,25 +36,25 @@ public class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         this.result = function.apply(this.result);
         for (LegacyIngredient ingredient : this.ingredients) {
             ingredient.applyClientboundData(function);
         }
     }
 
-    public static <I> LegacyShapedRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static LegacyShapedRecipe read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
         if (VersionHelper.isOrAbove1_20_3()) {
             String group = buf.readUtf();
             int category = buf.readVarInt();
             int width = buf.readVarInt();
             int height = buf.readVarInt();
             int size = width * height;
-            List<LegacyIngredient<I>> ingredients = new ArrayList<>(size);
+            List<LegacyIngredient> ingredients = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 ingredients.add(LegacyIngredient.read(buf, reader));
             }
-            Item<I> result = reader.apply(buf);
+            Item result = reader.apply(buf);
             boolean flag = buf.readBoolean();
             return new LegacyShapedRecipe(width, height, ingredients, result, group, CraftingRecipeCategory.byId(category), flag);
         } else {
@@ -64,18 +63,18 @@ public class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
             String group = buf.readUtf();
             int category = buf.readVarInt();
             int size = width * height;
-            List<LegacyIngredient<I>> ingredients = new ArrayList<>(size);
+            List<LegacyIngredient> ingredients = new ArrayList<>(size);
             for (int i = 0; i < size; i++) {
                 ingredients.add(LegacyIngredient.read(buf, reader));
             }
-            Item<I> result = reader.apply(buf);
+            Item result = reader.apply(buf);
             boolean flag = buf.readBoolean();
             return new LegacyShapedRecipe(width, height, ingredients, result, group, CraftingRecipeCategory.byId(category), flag);
         }
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         if (VersionHelper.isOrAbove1_20_3()) {
             buf.writeUtf(this.group);
             buf.writeVarInt(this.category.ordinal());
@@ -85,7 +84,7 @@ public class LegacyShapedRecipe<I> implements LegacyRecipe<I> {
             buf.writeVarInt(this.width);
             buf.writeVarInt(this.height);
             buf.writeUtf(this.group);
-            buf.writeVarInt(category.ordinal());
+            buf.writeVarInt(this.category.ordinal());
         }
         for (LegacyIngredient ingredient : this.ingredients) {
             ingredient.write(buf, writer);

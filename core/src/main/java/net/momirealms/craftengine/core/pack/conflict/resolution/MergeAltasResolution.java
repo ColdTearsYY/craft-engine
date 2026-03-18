@@ -5,9 +5,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.GsonHelper;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 
 public final class MergeAltasResolution implements Resolution {
     public static final ResolutionFactory<MergeAltasResolution> FACTORY = new Factory();
@@ -69,7 +73,7 @@ public final class MergeAltasResolution implements Resolution {
     private static class Factory implements ResolutionFactory<MergeAltasResolution> {
 
         @Override
-        public MergeAltasResolution create(Map<String, Object> arguments) {
+        public MergeAltasResolution create(ConfigSection section) {
             return INSTANCE;
         }
     }

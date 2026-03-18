@@ -9,27 +9,26 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.pathfinder.PathComputationTypeProxy;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class AttachedStemBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
+public final class AttachedStemBlockBehavior extends BukkitBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<AttachedStemBlockBehavior> FACTORY = new Factory();
-    private final Property<HorizontalDirection> facingProperty;
-    private final Key fruit;
-    private final Key stem;
+    public final Property<HorizontalDirection> facingProperty;
+    public final Key fruit;
+    public final Key stem;
 
-    public AttachedStemBlockBehavior(CustomBlock customBlock,
-                                     Property<HorizontalDirection> facingProperty,
-                                     Key fruit,
-                                     Key stem) {
+    private AttachedStemBlockBehavior(CustomBlock customBlock,
+                                      Property<HorizontalDirection> facingProperty,
+                                      Key fruit,
+                                      Key stem) {
         super(customBlock);
         this.facingProperty = facingProperty;
         this.fruit = fruit;
@@ -87,13 +86,13 @@ public class AttachedStemBlockBehavior extends BukkitBlockBehavior implements Is
     private static class Factory implements BlockBehaviorFactory<AttachedStemBlockBehavior> {
 
         @Override
-        public AttachedStemBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-
-            @SuppressWarnings("unchecked")
-            Property<HorizontalDirection> facingProperty = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.attached_stem.missing_facing");
-            Key fruit = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("fruit"), "warning.config.block.behavior.attached_stem.missing_fruit"));
-            Key stem = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("stem"), "warning.config.block.behavior.attached_stem.missing_stem"));
-            return new AttachedStemBlockBehavior(block, facingProperty, fruit, stem);
+        public AttachedStemBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new AttachedStemBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    section.getNonNullIdentifier("fruit"),
+                    section.getNonNullIdentifier("stem")
+            );
         }
     }
 }

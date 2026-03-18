@@ -1,3 +1,7 @@
+import net.momirealms.nbt
+import net.momirealms.netty
+import net.momirealms.paperServer
+
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
@@ -15,17 +19,17 @@ repositories {
 }
 
 dependencies {
+    paperServer(project)
+    nbt(project)
+    netty(project)
+
     compileOnly(project(":core"))
     compileOnly(project(":bukkit"))
     compileOnly(project(":bukkit:proxy"))
     compileOnly(project(":bukkit:compatibility:legacy"))
-    compileOnly("net.momirealms:sparrow-nbt:${rootProject.properties["sparrow_nbt_version"]}")
+
     // NMS
     compileOnly("net.momirealms:craft-engine-nms-helper:${rootProject.properties["nms_helper_version"]}")
-    // Platform
-    compileOnly("io.papermc.paper:paper-api:${rootProject.properties["paper_version"]}-R0.1-SNAPSHOT")
-    // Netty
-    compileOnly("io.netty:netty-all:${rootProject.properties["netty_version"]}")
     // Placeholder
     compileOnly("me.clip:placeholderapi:${rootProject.properties["placeholder_api_version"]}")
     // SlimeWorld
@@ -62,19 +66,4 @@ dependencies {
     compileOnly("cn.gtemc:itembridge:${rootProject.properties["itembridge_version"]}")
     // LevelerBridge
     compileOnly("cn.gtemc:levelerbridge:${rootProject.properties["levelerbridge_version"]}")
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-    withSourcesJar()
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    options.release.set(21)
-    dependsOn(tasks.clean)
 }

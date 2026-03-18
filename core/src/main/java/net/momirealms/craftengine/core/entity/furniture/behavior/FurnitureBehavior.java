@@ -41,7 +41,7 @@ public abstract class FurnitureBehavior {
     }
 
     @Nullable
-    public Item<?> itemToPickup(Furniture furniture, Player player) {
+    public Item itemToPickup(Furniture furniture, Player player) {
         return null;
     }
 

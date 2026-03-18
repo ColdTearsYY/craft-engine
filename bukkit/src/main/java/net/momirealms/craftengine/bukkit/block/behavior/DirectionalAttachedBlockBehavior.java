@@ -8,8 +8,12 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.Property;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.util.Direction;
+import net.momirealms.craftengine.core.util.HorizontalDirection;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.Tuple;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -22,25 +26,28 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
-public class DirectionalAttachedBlockBehavior extends BukkitBlockBehavior {
+public final class DirectionalAttachedBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<DirectionalAttachedBlockBehavior> FACTORY = new Factory();
-    private final Property<?> facingProperty;
-    private final boolean isSixDirection;
-    private final List<Object> tagsCanSurviveOn;
-    private final Set<Object> blockStatesCanSurviveOn;
-    private final Set<String> customBlocksCansSurviveOn;
-    private final boolean blacklistMode;
+    public final Property<?> facingProperty;
+    public final boolean isSixDirection;
+    public final List<Object> tagsCanSurviveOn;
+    public final Set<Object> blockStatesCanSurviveOn;
+    public final Set<String> customBlocksCansSurviveOn;
+    public final boolean blacklistMode;
 
-    public DirectionalAttachedBlockBehavior(CustomBlock customBlock,
-                                            Property<?> facingProperty,
-                                            boolean isSixDirection,
-                                            boolean blacklist,
-                                            List<Object> tagsCanSurviveOn,
-                                            Set<Object> blockStatesCanSurviveOn,
-                                            Set<String> customBlocksCansSurviveOn) {
+    private DirectionalAttachedBlockBehavior(CustomBlock customBlock,
+                                             Property<?> facingProperty,
+                                             boolean isSixDirection,
+                                             boolean blacklist,
+                                             List<Object> tagsCanSurviveOn,
+                                             Set<Object> blockStatesCanSurviveOn,
+                                             Set<String> customBlocksCansSurviveOn) {
         super(customBlock);
         this.facingProperty = facingProperty;
         this.isSixDirection = isSixDirection;
@@ -135,28 +142,35 @@ public class DirectionalAttachedBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<DirectionalAttachedBlockBehavior> {
 
         @Override
-        public DirectionalAttachedBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<?> facing = ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.directional_attached.missing_facing");
+        public DirectionalAttachedBlockBehavior create(CustomBlock block, ConfigSection section) {
+            Property<?> facing = block.getProperty("facing");
+            if (facing == null) {
+                throw new KnownResourceException("resource.block.behavior.missing_property", section.path(), "facing");
+            }
             boolean isHorizontalDirection = facing.valueClass() == HorizontalDirection.class;
             boolean isDirection = facing.valueClass() == Direction.class;
             if (!(isHorizontalDirection || isDirection)) {
-                throw new LocalizedResourceConfigException("warning.config.block.behavior.directional_attached.missing_facing");
+                throw new KnownResourceException("resource.block.behavior.property_type_mismatch", section.path(), facing.valueClass().getSimpleName(), Direction.class.getSimpleName() + "/" + HorizontalDirection.class.getSimpleName());
             }
-            Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(arguments);
-            boolean blacklistMode = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("blacklist", true), "blacklist");
-            return new DirectionalAttachedBlockBehavior(block, facing, isDirection, blacklistMode, tuple.left(), tuple.mid(), tuple.right());
+            Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(section);
+            return new DirectionalAttachedBlockBehavior(
+                    block,
+                    facing,
+                    isDirection,
+                    section.getBoolean("blacklist", true),
+                    tuple.left(),
+                    tuple.mid(),
+                    tuple.right()
+            );
         }
     }
 
-    @SuppressWarnings("DuplicatedCode")
-    public static Tuple<List<Object>, Set<Object>, Set<String>> readTagsAndState(Map<String, Object> arguments) {
-        List<Object> mcTags = new ArrayList<>();
-        for (String tag : MiscUtils.getAsStringList(arguments.getOrDefault("attached-block-tags", List.of()))) {
-            mcTags.add(BlockTags.getOrCreate(Key.of(tag)));
-        }
+    // todo 重构
+    public static Tuple<List<Object>, Set<Object>, Set<String>> readTagsAndState(ConfigSection section) {
+        List<Object> mcTags = section.getList(new String[] {"attached_block_tags", "attached-block-tags"}, v -> BlockTags.getOrCreate(v.getAsIdentifier()));
         Set<Object> mcBlocks = new HashSet<>();
         Set<String> customBlocks = new HashSet<>();
-        for (String blockStateStr : MiscUtils.getAsStringList(arguments.getOrDefault("attached-blocks", List.of()))) {
+        for (String blockStateStr : section.getStringList(new String[] {"attached_blocks", "attached-blocks"})) {
             int index = blockStateStr.indexOf('[');
             Key blockType = index != -1 ? Key.from(blockStateStr.substring(0, index)) : Key.from(blockStateStr);
             Material material = Registry.MATERIAL.get(new NamespacedKey(blockType.namespace(), blockType.value()));

@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-public class DebugVisualStateUsageCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugVisualStateUsageCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugVisualStateUsageCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
@@ -49,7 +49,7 @@ public class DebugVisualStateUsageCommand extends BukkitCommandFeature<CommandSe
                     int i = 0;
                     Component block = Component.text(baseBlockId + ": ");
                     plugin().senderFactory().wrap(context.sender()).sendMessage(block);
-                    VisualBlockStateAllocator allocator = blockManager.blockParser().visualBlockStateAllocator();
+                    VisualBlockStateAllocator allocator = blockManager.visualBlockStateAllocator();
                     Map<String, BlockStateWrapper> cachedStates = allocator.cachedBlockStates();
                     Map<BlockStateWrapper, String> reversed = new HashMap<>(cachedStates.size());
                     for (Map.Entry<String, BlockStateWrapper> entry : cachedStates.entrySet()) {

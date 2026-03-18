@@ -13,8 +13,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public class FileUtils {
-
+public final class FileUtils {
     private FileUtils() {}
 
     public static boolean isAbsolute(final String path) {

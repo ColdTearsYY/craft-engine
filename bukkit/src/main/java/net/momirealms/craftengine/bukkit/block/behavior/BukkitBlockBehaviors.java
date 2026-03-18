@@ -4,7 +4,7 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviorType;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviors;
 import net.momirealms.craftengine.core.util.Key;
 
-public class BukkitBlockBehaviors extends BlockBehaviors {
+public final class BukkitBlockBehaviors extends BlockBehaviors {
     private BukkitBlockBehaviors() {}
 
     public static final BlockBehaviorType<BushBlockBehavior> BUSH_BLOCK = register(Key.ce("bush_block"), BushBlockBehavior.FACTORY);

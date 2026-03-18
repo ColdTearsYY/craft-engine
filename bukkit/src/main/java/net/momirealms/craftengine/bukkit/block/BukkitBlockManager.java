@@ -19,6 +19,7 @@ import net.momirealms.craftengine.core.block.behavior.EmptyBlockBehavior;
 import net.momirealms.craftengine.core.block.parser.BlockStateParser;
 import net.momirealms.craftengine.core.loot.LootTable;
 import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
@@ -54,10 +55,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class BukkitBlockManager extends AbstractBlockManager {
     public static final Set<Object> CLIENT_SIDE_NOTE_BLOCKS = new HashSet<>(2048, 0.6f);
-    private static final Object BLOCK_POS$ZERO = LocationUtils.toBlockPos(0,0,0);
     private static final Object ALWAYS_FALSE = FastNMS.INSTANCE.createAlwaysStatePredicate(false);
     private static final Object ALWAYS_TRUE = FastNMS.INSTANCE.createAlwaysStatePredicate(true);
     private static BukkitBlockManager instance;
@@ -65,9 +66,9 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     // 事件监听器
     private final BlockEventListener blockEventListener;
     // 用于缓存string形式的方块状态到原版方块状态
-    private final Map<String, BlockStateWrapper> blockStateCache = new HashMap<>(1024);
+    private final Map<String, BlockStateWrapper> blockStateCache = new ConcurrentHashMap<>(1024);
     // 用于临时存储可燃烧自定义方块的列表
-    private final List<DelegatingBlock> burnableBlocks = new ArrayList<>();
+    private final List<DelegatingBlock> burnableBlocks = Collections.synchronizedList(new ArrayList<>(32));
     // 可燃烧的方块
     private Map<Object, Integer> igniteOdds;
     private Map<Object, Integer> burnOdds;
@@ -90,7 +91,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
         this.plugin = plugin;
         this.blockEventListener = new BlockEventListener(plugin, this);
         this.registerServerSideCustomBlocks(Config.serverSideBlocks());
-        EmptyBlock.initialize();
+        EmptyBlock.init();
         instance = this;
     }
 
@@ -132,6 +133,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             block.shapeDelegate().bindValue(BukkitBlockShape.STONE);
             DelegatingBlockState state = (DelegatingBlockState) BlockProxy.INSTANCE.getDefaultBlockState(block);
             state.setBlockState(null);
+            state.setBlockOwner(null);
         }
     }
 
@@ -158,17 +160,20 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     }
 
     @Override
-    public BlockBehavior createBlockBehavior(CustomBlock customBlock, List<Map<String, Object>> behaviorConfig) {
-        if (behaviorConfig == null || behaviorConfig.isEmpty()) {
+    public BlockBehavior createBlockBehavior(CustomBlock customBlock, ConfigValue behaviorValue) {
+        if (behaviorValue == null) {
             return new EmptyBlockBehavior(customBlock);
-        } else if (behaviorConfig.size() == 1) {
-            return BlockBehaviors.fromMap(customBlock, behaviorConfig.getFirst());
-        } else {
-            List<BlockBehavior> behaviors = new ArrayList<>();
-            for (Map<String, Object> config : behaviorConfig) {
-                behaviors.add(BlockBehaviors.fromMap(customBlock, config));
+        } else if (behaviorValue.is(List.class)) {
+            List<BlockBehavior> behaviors = behaviorValue.getAsList(v -> BlockBehaviors.fromConfig(customBlock, v.getAsSection()));
+            if (behaviors.size() == 1) {
+                return behaviors.getFirst();
+            } else if (behaviors.isEmpty()) {
+                return new EmptyBlockBehavior(customBlock);
+            } else {
+                return new UnsafeCompositeBlockBehavior(customBlock, behaviors);
             }
-            return new UnsafeCompositeBlockBehavior(customBlock, behaviors);
+        } else {
+            return BlockBehaviors.fromConfig(customBlock, behaviorValue.getAsSection());
         }
     }
 
@@ -233,14 +238,15 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     }
 
     private void initFireBlock() {
-        this.igniteOdds = FireBlockProxy.INSTANCE.getIgniteOdds(BlocksProxy.FIRE);
-        this.burnOdds = FireBlockProxy.INSTANCE.getBurnOdds(BlocksProxy.FIRE);
+        this.igniteOdds = Collections.synchronizedMap(FireBlockProxy.INSTANCE.getIgniteOdds(BlocksProxy.FIRE));
+        this.burnOdds = Collections.synchronizedMap(FireBlockProxy.INSTANCE.getBurnOdds(BlocksProxy.FIRE));
     }
 
     @Override
     protected void applyPlatformSettings(CustomBlock block, ImmutableBlockState state) {
         DelegatingBlockState nmsState = (DelegatingBlockState) state.customBlockState().literalObject();
         nmsState.setBlockState(state);
+        nmsState.setBlockOwner(BlockStateUtils.getBlockOwner(block.defaultState().customBlockState().literalObject()));
         Object nmsVisualState = state.visualBlockState().literalObject();
 
         BlockSettings settings = state.settings();
@@ -359,8 +365,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             Material[] newMaterial = injectBukkitMaterial ? Arrays.copyOf(Material.values(), length + count) : null;
             for (int i = 0; i < count; i++) {
                 Key customBlockId = BlockManager.createCustomBlockKey(i);
-                DelegatingBlock customBlock;
-                customBlock = BlockGenerator.generateBlock(customBlockId);
+                DelegatingBlock customBlock = BlockGenerator.generateBlock(customBlockId);
                 this.customBlocks[i] = customBlock;
                 Object identifier = KeyUtils.toIdentifier(customBlockId);
                 Object blockHolder = RegistryProxy.INSTANCE.registerForHolder$1(BuiltInRegistriesProxy.BLOCK, identifier, customBlock);
@@ -402,7 +407,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
         if (!BlockStateUtils.isOcclude(blockState)) {
             return false;
         }
-        return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isCollisionShapeFullBlock(blockState, EmptyBlockGetterProxy.GETTER_INSTANCE, BLOCK_POS$ZERO);
+        return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isCollisionShapeFullBlock(blockState, EmptyBlockGetterProxy.GETTER_INSTANCE, BlockPosProxy.ZERO);
     }
 
     private void findViewBlockingVanillaBlocks() {
@@ -568,7 +573,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     protected CustomBlock createCustomBlock(@NotNull Holder.Reference<CustomBlock> holder, 
                                             @NotNull BlockStateVariantProvider variantProvider,
                                             @NotNull Map<EventTrigger, List<Function<Context>>> events,
-                                            @Nullable LootTable<?> lootTable) {
+                                            @Nullable LootTable lootTable) {
         return new BukkitCustomBlock(holder, variantProvider, events, lootTable);
     }
 }

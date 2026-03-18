@@ -6,6 +6,7 @@ import net.momirealms.craftengine.bukkit.entity.data.BaseEntityData;
 import net.momirealms.craftengine.bukkit.entity.data.ItemEntityData;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.PacketUtils;
 import net.momirealms.craftengine.bukkit.world.score.BukkitTeamManager;
 import net.momirealms.craftengine.core.entity.player.Player;
@@ -33,7 +34,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-public class ItemPacketHandler implements EntityPacketHandler {
+public final class ItemPacketHandler implements EntityPacketHandler {
     public static final ItemPacketHandler INSTANCE = new ItemPacketHandler();
 
     @Override
@@ -50,7 +51,7 @@ public class ItemPacketHandler implements EntityPacketHandler {
             int entityDataId = SynchedEntityDataProxy.DataValueProxy.INSTANCE.getId(packedItem);
             if (entityDataId == ItemEntityData.Item.id()) {
                 Object nmsItemStack = SynchedEntityDataProxy.DataValueProxy.INSTANCE.getValue(packedItem);
-                ItemStack itemStack = CraftItemStackProxy.INSTANCE.asCraftMirror(nmsItemStack);
+                ItemStack itemStack = ItemStackUtils.getBukkitStack(nmsItemStack);
 
                 // 转换为客户端侧物品
                 Optional<ItemStack> optional = BukkitItemManager.instance().s2c(itemStack, user);
@@ -62,8 +63,8 @@ public class ItemPacketHandler implements EntityPacketHandler {
 
                 // 处理 drop-display 物品设置
                 // 一定要处理经历过客户端侧组件修改的物品
-                Item<ItemStack> wrappedItem = BukkitItemManager.instance().wrap(itemStack);
-                Optional<CustomItem<ItemStack>> optionalCustomItem = wrappedItem.getCustomItem();
+                Item wrappedItem = BukkitItemManager.instance().wrap(itemStack);
+                Optional<CustomItem> optionalCustomItem = wrappedItem.getCustomItem();
                 String showName = null;
                 if (optionalCustomItem.isPresent()) {
                     ItemSettings settings = optionalCustomItem.get().settings();

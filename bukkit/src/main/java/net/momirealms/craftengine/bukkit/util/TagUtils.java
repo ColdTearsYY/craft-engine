@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 public final class TagUtils {
-
     private TagUtils() {}
 
     public record TagEntry(int id, List<String> tags) {

@@ -1,10 +1,8 @@
 package net.momirealms.craftengine.bukkit.block.entity;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
 import net.momirealms.craftengine.bukkit.block.behavior.ItemFrameBlockBehavior;
 import net.momirealms.craftengine.bukkit.block.entity.renderer.DynamicItemFrameRenderer;
 import net.momirealms.craftengine.bukkit.entity.data.ItemFrameData;
-import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.DirectionUtils;
@@ -15,16 +13,15 @@ import net.momirealms.craftengine.core.block.entity.BlockEntity;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.util.ItemUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.chunk.CEChunk;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.MapItemProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.Tag;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,7 +31,7 @@ import java.util.List;
 public class ItemFrameBlockEntity extends BlockEntity {
     public final ItemFrameBlockBehavior behavior;
     private int rotation = 0;
-    private @NotNull Item<ItemStack> item = BukkitItemManager.instance().uniqueEmptyItem().item();
+    private @NotNull Object itemStack = ItemStackProxy.EMPTY;
     private @NotNull List<Object> cacheMetadata = List.of();
     private @Nullable Object mapId;
     private @Nullable Object mapItemSavedData;
@@ -50,8 +47,8 @@ public class ItemFrameBlockEntity extends BlockEntity {
     protected void saveCustomData(CompoundTag tag) {
         tag.putInt("rotation", this.rotation);
         tag.putInt("data_version", VersionHelper.WORLD_VERSION);
-        if (ItemUtils.isEmpty(this.item)) return; // 无法保存空的物品
-        Tag itemTag = ItemStackUtils.saveItemStackAsTag(this.item.getItem());
+        if (ItemStackProxy.INSTANCE.isEmpty(this.itemStack)) return;
+        Tag itemTag = ItemStackUtils.saveMinecraftItemStackAsTag(this.itemStack);
         if (itemTag == null) return;
         tag.put("item", itemTag);
     }
@@ -62,22 +59,24 @@ public class ItemFrameBlockEntity extends BlockEntity {
         int dataVersion = tag.getInt("data_version", Config.itemDataFixerUpperFallbackVersion());
         Tag itemTag = tag.get("item");
         if (itemTag == null) return;
-        ItemStack itemStack = ItemStackUtils.parseItemStack(itemTag, dataVersion);
+        Object itemStack = ItemStackUtils.parseMinecraftItem(itemTag, dataVersion);
         if (itemStack == null) return;
-        this.item = BukkitAdaptors.adapt(itemStack);
+        this.itemStack = itemStack;
         this.updateMetadata();
     }
 
     @Override
     public void preRemove() {
-        super.world.world().dropItemNaturally(Vec3d.atCenterOf(this.pos), this.item);
+        if (ItemStackProxy.INSTANCE.isEmpty(this.itemStack)) return;
+        super.world.world().dropItemNaturally(Vec3d.atCenterOf(this.pos), ItemStackUtils.wrap(this.itemStack));
     }
 
-    public void updateItem(Item<ItemStack> item) {
+    public void updateItem(Item item) {
         if (item == null) {
-            item = BukkitItemManager.instance().uniqueEmptyItem().item();
+            this.itemStack = ItemStackProxy.EMPTY;
+        } else {
+            this.itemStack = item.getMinecraftItem();
         }
-        this.item = item;
         this.update();
     }
 
@@ -86,8 +85,8 @@ public class ItemFrameBlockEntity extends BlockEntity {
         this.update();
     }
 
-    public Item<ItemStack> item() {
-        return this.item;
+    public Item item() {
+        return ItemStackUtils.wrap(this.itemStack);
     }
 
     public int rotation() {
@@ -131,7 +130,7 @@ public class ItemFrameBlockEntity extends BlockEntity {
     private void updateMetadata() {
         Object direction = DirectionUtils.toNMSDirection(super.blockState.get(this.behavior.directionProperty));
         List<Object> metadataValues = new ArrayList<>();
-        ItemFrameData.Item.addEntityData(this.item.getLiteralObject(), metadataValues);
+        ItemFrameData.Item.addEntityData(this.itemStack, metadataValues);
         ItemFrameData.Rotation.addEntityData(this.rotation, metadataValues);
         if (VersionHelper.isOrAbove1_21_6()) {
             ItemFrameData.Direction.addEntityData(direction, metadataValues);
@@ -142,9 +141,9 @@ public class ItemFrameBlockEntity extends BlockEntity {
         this.cacheMetadata = metadataValues;
         if (this.behavior.renderMapItem) {
             if (VersionHelper.isOrAbove1_20_5()) {
-                this.mapId = this.item.getExactComponent(DataComponentTypes.MAP_ID);
+                this.mapId = ItemStackProxy.INSTANCE.get(this.itemStack, DataComponentTypes.MAP_ID);
             } else {
-                this.mapId = MapItemProxy.INSTANCE.getMapId(this.item.getLiteralObject());
+                this.mapId = MapItemProxy.INSTANCE.getMapId(this.itemStack);
             }
             if (this.mapId == null || super.world == null) {
                 this.mapItemSavedData = null;

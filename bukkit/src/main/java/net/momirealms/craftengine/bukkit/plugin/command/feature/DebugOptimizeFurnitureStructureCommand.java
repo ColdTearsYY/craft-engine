@@ -38,7 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class DebugOptimizeFurnitureStructureCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugOptimizeFurnitureStructureCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugOptimizeFurnitureStructureCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

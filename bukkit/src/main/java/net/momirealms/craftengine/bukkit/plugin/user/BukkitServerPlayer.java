@@ -9,11 +9,12 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.block.entity.BedBlockEntity;
 import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
+import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.gui.CraftEngineGUIHolder;
@@ -340,7 +341,7 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public void sendToast(Component text, Item<?> icon, AdvancementType type) {
+    public void sendToast(Component text, Item icon, AdvancementType type) {
         this.plugin.advancementManager().sendToast(this, icon, text, type);
     }
 
@@ -486,8 +487,8 @@ public class BukkitServerPlayer extends Player {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void giveItem(Item<?> item) {
-        PlayerUtils.giveItem(this, item.count(), (Item<ItemStack>) item);
+    public void giveItem(Item item) {
+        PlayerUtils.giveItem(this, item.count(), (Item) item);
     }
 
     @Override
@@ -783,7 +784,7 @@ public class BukkitServerPlayer extends Player {
         float progress = BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getDestroyProgress(blockState, serverPlayer(), CraftWorldProxy.INSTANCE.getWorld(platformPlayer().getWorld()), LocationUtils.toBlockPos(pos));
         if (optionalCustomState.isPresent()) {
             ImmutableBlockState customState = optionalCustomState.get();
-            Item<ItemStack> tool = getItemInHand(InteractionHand.MAIN_HAND);
+            Item tool = getItemInHand(InteractionHand.MAIN_HAND);
             // 如果自定义方块在服务端侧未使用正确的工具，那么需要还原挖掘速度
             if (!BlockStateUtils.isCorrectTool(customState, tool)) {
                 progress *= customState.settings().incorrectToolSpeed();
@@ -866,8 +867,8 @@ public class BukkitServerPlayer extends Player {
             } else {
                 if (VersionHelper.isOrAbove1_20_5()) {
                     Object attributeModifier = VersionHelper.isOrAbove1_21() ?
-                            AttributeModifierProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(Key.DEFAULT_NAMESPACE, "custom_hardness"), -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE) :
-                            AttributeModifierProxy.INSTANCE.newInstance(UUID.randomUUID(), Key.DEFAULT_NAMESPACE + ":custom_hardness", -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE);
+                            AttributeModifierProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(Key.CRAFTENGINE_NAMESPACE, "custom_hardness"), -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE) :
+                            AttributeModifierProxy.INSTANCE.newInstance(UUID.randomUUID(), Key.CRAFTENGINE_NAMESPACE + ":custom_hardness", -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE);
                     Object attributeSnapshot = ClientboundUpdateAttributesPacketProxy.AttributeSnapshotProxy.INSTANCE.newInstance(AttributesProxy.BLOCK_BREAK_SPEED, 1d, Lists.newArrayList(attributeModifier));
                     Object newPacket = ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance(entityId(), Lists.newArrayList(attributeSnapshot));
                     sendPacket(newPacket, true);
@@ -971,7 +972,7 @@ public class BukkitServerPlayer extends Player {
         Object serverPlayer = serverPlayer();
 
         // check item in hand
-        Item<ItemStack> item = this.getItemInHand(InteractionHand.MAIN_HAND);
+        BukkitItem item = this.getItemInHand(InteractionHand.MAIN_HAND);
 
         // 发送破坏中音效
         if (currentTick - this.lastHitBlockTime > 3) {
@@ -991,7 +992,7 @@ public class BukkitServerPlayer extends Player {
             Object gameMode = ServerPlayerProxy.INSTANCE.getGameMode(serverPlayer);
             ServerPlayerGameModeProxy.INSTANCE.setIsDestroyingBlock(gameMode, false);
             if (!item.isEmpty()) {
-                Material itemMaterial = item.getItem().getType();
+                Material itemMaterial = item.getBukkitItem().getType();
                 // creative mode + invalid item in hand
                 if (canInstabuild() && (itemMaterial == Material.DEBUG_STICK
                         || itemMaterial == Material.TRIDENT
@@ -1073,7 +1074,7 @@ public class BukkitServerPlayer extends Player {
             double d1 = (double) hitPos.y() - other.getY();
             double d2 = (double) hitPos.z() - other.getZ();
             if (d0 * d0 + d1 * d1 + d2 * d2 < 32 * 32) {
-                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(other);
+                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(other);
                 if (serverPlayer == null) continue;
                 serverPlayer.sendPacket(packet, false);
             }
@@ -1143,28 +1144,28 @@ public class BukkitServerPlayer extends Player {
 
     @NotNull
     @Override
-    public Item<ItemStack> getItemInHand(InteractionHand hand) {
+    public BukkitItem getItemInHand(InteractionHand hand) {
         PlayerInventory inventory = platformPlayer().getInventory();
         return BukkitItemManager.instance().wrap(hand == InteractionHand.MAIN_HAND ? inventory.getItemInMainHand() : inventory.getItemInOffHand());
     }
 
     @NotNull
     @Override
-    public Item<ItemStack> getItemBySlot(int slot) {
+    public BukkitItem getItemBySlot(int slot) {
         PlayerInventory inventory = platformPlayer().getInventory();
         return BukkitItemManager.instance().wrap(inventory.getItem(slot));
     }
 
     @Override
-    public void setItemInHand(InteractionHand hand, Item<?> item) {
+    public void setItemInHand(InteractionHand hand, Item item) {
         PlayerInventory inventory = platformPlayer().getInventory();
         EquipmentSlot slot = hand == InteractionHand.MAIN_HAND ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
-        inventory.setItem(slot, (ItemStack) item.getItem());
+        inventory.setItem(slot, ((BukkitItem) item).getBukkitItem());
     }
 
     @Override
     public World world() {
-        return BukkitAdaptors.adapt(platformPlayer().getWorld());
+        return BukkitAdaptor.adapt(platformPlayer().getWorld());
     }
 
     @Override
@@ -1465,7 +1466,7 @@ public class BukkitServerPlayer extends Player {
             if (player != null) {
                 return player.locale();
             } else {
-                return Locale.US;
+                return Locale.ENGLISH;
             }
         }
     }
@@ -1561,7 +1562,7 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public void sendTotemAnimation(Item<?> totem, @Nullable SoundData sound, boolean silent) {
+    public void sendTotemAnimation(Item totem, @Nullable SoundData sound, boolean silent) {
         PlayerUtils.sendTotemAnimation(this, totem, sound, silent);
     }
 
@@ -1598,7 +1599,7 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public int clearOrCountMatchingInventoryItems(Predicate<Item<?>> predicate, int count) {
+    public int clearOrCountMatchingInventoryItems(Predicate<Item> predicate, int count) {
         Predicate<Object> nmsPredicate = nmsStack -> predicate.test(this.plugin.itemManager().wrap(ItemStackUtils.asCraftMirror(nmsStack)));
         Object inventory = PlayerProxy.INSTANCE.getInventory(serverPlayer());
         Object inventoryMenu = PlayerProxy.INSTANCE.getInventoryMenu(serverPlayer());

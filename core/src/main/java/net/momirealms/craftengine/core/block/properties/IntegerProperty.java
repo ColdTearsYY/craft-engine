@@ -1,14 +1,14 @@
 package net.momirealms.craftengine.core.block.properties;
 
 import it.unimi.dsi.fastutil.ints.IntImmutableList;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.sparrow.nbt.IntTag;
 import net.momirealms.sparrow.nbt.NumericTag;
 import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
 
@@ -98,20 +98,20 @@ public final class IntegerProperty extends Property<Integer> {
     private static class Factory implements PropertyFactory<Integer> {
 
         @Override
-        public Property<Integer> create(String name, Map<String, Object> arguments) {
-            String range = arguments.getOrDefault("range", "1~1").toString();
-            String[] split = range.split("~");
-            if (split.length != 2) {
-                throw new LocalizedResourceConfigException("warning.config.block.state.property.integer.invalid_range", range, name);
+        public Property<Integer> create(String name, ConfigSection section) {
+            int min;
+            int max;
+            ConfigValue range = section.getValue("range");
+            if (range != null) {
+                ConfigValue[] split = range.splitValuesRestrict("~", 2);
+                min = split[0].getAsInt();
+                max = split[1].getAsInt();
+            } else {
+                min = section.getNonNullInt("min");
+                max = section.getNonNullInt("max");
             }
-            try {
-                int min = Integer.parseInt(split[0]);
-                int max = Integer.parseInt(split[1]);
-                int defaultValue = ResourceConfigUtils.getAsInt(arguments.getOrDefault("default", min), "default");
-                return IntegerProperty.create(name, min, max,defaultValue);
-            } catch (NumberFormatException e) {
-                throw new LocalizedResourceConfigException("warning.config.block.state.property.integer.invalid_range", e, range, name);
-            }
+            int defaultValue = section.getInt("default", min);
+            return IntegerProperty.create(name, min, max, MiscUtils.clamp(defaultValue, min, max));
         }
     }
 }

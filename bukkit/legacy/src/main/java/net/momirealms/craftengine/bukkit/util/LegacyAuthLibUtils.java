@@ -5,8 +5,7 @@ import com.mojang.authlib.properties.PropertyMap;
 
 import java.util.UUID;
 
-public class LegacyAuthLibUtils {
-
+public final class LegacyAuthLibUtils {
     private LegacyAuthLibUtils() {}
 
     public static GameProfile constructor$GameProfile(UUID id, String name, PropertyMap properties) {

@@ -53,7 +53,7 @@ public final class BlockGenerator {
     private static SBooleanField field$CraftEngineBlock$isNoteBlock;
     private static SBooleanField field$CraftEngineBlock$isTripwire;
 
-    public static void init() throws ReflectiveOperationException {
+    public static void init() {
         ByteBuddy byteBuddy = new ByteBuddy(ClassFileVersion.JAVA_V17);
         // CraftEngine Blocks
         String packageWithName = BlockGenerator.class.getName();

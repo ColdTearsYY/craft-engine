@@ -1,11 +1,10 @@
 package net.momirealms.craftengine.core.block.properties;
 
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.sparrow.nbt.ByteTag;
 import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class BooleanProperty extends Property<Boolean> {
@@ -45,7 +44,7 @@ public final class BooleanProperty extends Property<Boolean> {
     }
 
     @Override
-    public final int idFor(final Boolean value) {
+    public int idFor(final Boolean value) {
         return value ? 1 : 0;
     }
 
@@ -84,9 +83,8 @@ public final class BooleanProperty extends Property<Boolean> {
     private static class Factory implements PropertyFactory<Boolean> {
 
         @Override
-        public Property<Boolean> create(String name, Map<String, Object> arguments) {
-            boolean bool = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("default", false), "default");
-            return BooleanProperty.create(name, bool);
+        public Property<Boolean> create(String name, ConfigSection section) {
+            return BooleanProperty.create(name, section.getBoolean("default"));
         }
     }
 }

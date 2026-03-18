@@ -9,8 +9,11 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.Direction;
+import net.momirealms.craftengine.core.util.PressurePlateSensitivity;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldEvents;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.block.CraftBlockProxy;
@@ -35,26 +38,23 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class PressurePlateBlockBehavior extends BukkitBlockBehavior {
+public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<PressurePlateBlockBehavior> FACTORY = new Factory();
-    private final Property<Boolean> poweredProperty;
-    private final SoundData onSound;
-    private final SoundData offSound;
-    private final PressurePlateSensitivity pressurePlateSensitivity;
-    private final int pressedTime;
+    public final Property<Boolean> poweredProperty;
+    public final SoundData onSound;
+    public final SoundData offSound;
+    public final PressurePlateSensitivity pressurePlateSensitivity;
+    public final int pressedTime;
 
-    public PressurePlateBlockBehavior(
-            CustomBlock block,
-            Property<Boolean> poweredProperty,
-            SoundData onSound,
-            SoundData offSound,
-            PressurePlateSensitivity pressurePlateSensitivity,
-            int pressedTime
-    ) {
+    private PressurePlateBlockBehavior(CustomBlock block,
+                                       Property<Boolean> poweredProperty,
+                                       SoundData onSound,
+                                       SoundData offSound,
+                                       PressurePlateSensitivity pressurePlateSensitivity,
+                                       int pressedTime) {
         super(block);
         this.poweredProperty = poweredProperty;
         this.onSound = onSound;
@@ -119,7 +119,7 @@ public class PressurePlateBlockBehavior extends BukkitBlockBehavior {
         }
     }
 
-    protected int getSignalStrength(Object level, Object pos) {
+    private int getSignalStrength(Object level, Object pos) {
         Class<?> clazz = switch (this.pressurePlateSensitivity) {
             case EVERYTHING -> EntityProxy.CLASS;
             case MOBS -> LivingEntityProxy.CLASS;
@@ -236,21 +236,25 @@ public class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<PressurePlateBlockBehavior> {
+        private static final String[] PRESSED_TIME = new String[] {"pressed_time", "pressed-time"};
 
-        @SuppressWarnings({"unchecked", "DuplicatedCode"})
         @Override
-        public PressurePlateBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<Boolean> powered = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.pressure_plate.missing_powered");
-            PressurePlateSensitivity pressurePlateSensitivity = PressurePlateSensitivity.byName(arguments.getOrDefault("sensitivity", "everything").toString());
-            int pressedTime = ResourceConfigUtils.getAsInt(arguments.getOrDefault("pressed-time", 20), "pressed-time");
-            Map<String, Object> sounds = MiscUtils.castToMap(arguments.get("sounds"), true);
+        public PressurePlateBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData onSound = null;
             SoundData offSound = null;
-            if (sounds != null) {
-                onSound = Optional.ofNullable(sounds.get("on")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                offSound = Optional.ofNullable(sounds.get("off")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                onSound = soundSection.getValue("on", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                offSound = soundSection.getValue("off", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
-            return new PressurePlateBlockBehavior(block, powered, onSound, offSound, pressurePlateSensitivity, pressedTime);
+            return new PressurePlateBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
+                    onSound,
+                    offSound,
+                    section.getValue("sensitivity", it -> it.getAsEnum(PressurePlateSensitivity.class, PressurePlateSensitivity::byId), PressurePlateSensitivity.EVERYTHING),
+                    section.getInt(PRESSED_TIME, 20)
+            );
         }
     }
 }

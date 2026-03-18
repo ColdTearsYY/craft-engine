@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-
-import java.util.Map;
 
 public final class SimpleConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<SimpleConditionProperty> FACTORY = new Factory();
@@ -25,9 +24,8 @@ public final class SimpleConditionProperty implements ConditionProperty {
 
     private static class Factory implements ConditionPropertyFactory<SimpleConditionProperty> {
         @Override
-        public SimpleConditionProperty create(Map<String, Object> arguments) {
-            Key type = Key.of(arguments.get("property").toString());
-            return new SimpleConditionProperty(type);
+        public SimpleConditionProperty create(ConfigSection section) {
+            return new SimpleConditionProperty(section.getNonNullIdentifier("property"));
         }
     }
 

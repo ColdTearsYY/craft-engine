@@ -9,6 +9,9 @@ import net.momirealms.craftengine.core.util.ResourceKey;
 public abstract class BlockEntityTypes {
     public static final BlockEntityType<InactiveBlockEntity> INACTIVE = register(BlockEntityTypeKeys.INACTIVE);
 
+    protected BlockEntityTypes() {
+    }
+
     public static <T extends BlockEntity> BlockEntityType<T> register(Key id) {
         BlockEntityType<T> type = new BlockEntityType<>(id);
         ((WritableRegistry<BlockEntityType<? extends BlockEntity>>) BuiltInRegistries.BLOCK_ENTITY_TYPE)

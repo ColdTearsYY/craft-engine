@@ -10,24 +10,23 @@ import net.momirealms.craftengine.core.entity.display.ItemDisplayContext;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
-public class ItemDisplayBlockEntityElementConfig implements BlockEntityElementConfig<ItemDisplayBlockEntityElement> {
-    public static final Factory FACTORY = new Factory();
+public final class ItemDisplayBlockEntityElementConfig implements BlockEntityElementConfig<ItemDisplayBlockEntityElement> {
+    public static final BlockEntityElementConfigFactory<ItemDisplayBlockEntityElement> FACTORY = new Factory();
     public final Function<Player, List<Object>> lazyMetadataPacket;
     public final Key itemId;
     public final Vector3f scale;
@@ -84,11 +83,11 @@ public class ItemDisplayBlockEntityElementConfig implements BlockEntityElementCo
                 ItemDisplayEntityData.SharedFlags.addEntityData((byte) 0x0, dataValues);
                 ItemDisplayEntityData.GlowColorOverride.addEntityData(-1, dataValues);
             }
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
+            Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
             if (wrappedItem == null) {
                 wrappedItem = java.util.Objects.requireNonNull(BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, player));
             }
-            ItemDisplayEntityData.DisplayedItem.addEntityData(wrappedItem.getLiteralObject(), dataValues);
+            ItemDisplayEntityData.DisplayedItem.addEntityData(wrappedItem.getMinecraftItem(), dataValues);
             ItemDisplayEntityData.Scale.addEntityData(this.scale, dataValues);
             ItemDisplayEntityData.RotationLeft.addEntityData(this.rotation, dataValues);
             ItemDisplayEntityData.BillboardConstraints.addEntityData(this.billboard.id(), dataValues);
@@ -134,11 +133,11 @@ public class ItemDisplayBlockEntityElementConfig implements BlockEntityElementCo
     }
 
     public Color glowColor() {
-        return glowColor;
+        return this.glowColor;
     }
 
     public Key itemId() {
-        return itemId;
+        return this.itemId;
     }
 
     public Vector3f scale() {
@@ -162,23 +161,23 @@ public class ItemDisplayBlockEntityElementConfig implements BlockEntityElementCo
     }
 
     public Billboard billboard() {
-        return billboard;
+        return this.billboard;
     }
 
     public ItemDisplayContext displayContext() {
-        return displayContext;
+        return this.displayContext;
     }
 
     public Quaternionf rotation() {
-        return rotation;
+        return this.rotation;
     }
 
     public float shadowRadius() {
-        return shadowRadius;
+        return this.shadowRadius;
     }
 
     public float shadowStrength() {
-        return shadowStrength;
+        return this.shadowStrength;
     }
 
     public List<Object> metadataValues(Player player) {
@@ -193,27 +192,34 @@ public class ItemDisplayBlockEntityElementConfig implements BlockEntityElementCo
                 Objects.equal(rotation, that.rotation);
     }
 
-    public static class Factory implements BlockEntityElementConfigFactory<ItemDisplayBlockEntityElement> {
+    private static class Factory implements BlockEntityElementConfigFactory<ItemDisplayBlockEntityElement> {
+        private static final String[] DISPLAY_CONTEXT = new String[] {"display_context", "display_transform", "display-context", "display-transform"};
+        private static final String[] SHADOW_RADIUS = new String[] {"shadow_radius", "shadow-radius"};
+        private static final String[] SHADOW_STRENGTH = new String[] {"shadow_strength", "shadow-strength"};
+        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
+        private static final String[] BLOCK_LIGHT = new String[] {"block_light", "block-light"};
+        private static final String[] SKY_LIGHT = new String[] {"sky_light", "sky-light"};
+        private static final String[] VIEW_RANGE = new String[] {"view_range", "view-range"};
 
         @Override
-        public ItemDisplayBlockEntityElementConfig create(Map<String, Object> arguments) {
-            Map<String, Object> brightness = ResourceConfigUtils.getAsMap(arguments.getOrDefault("brightness", Map.of()), "brightness");
+        public ItemDisplayBlockEntityElementConfig create(ConfigSection section) {
+            ConfigSection brightness = section.getSection("brightness");
             return new ItemDisplayBlockEntityElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.block.state.entity_renderer.item_display.missing_item")),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0.5f), "position"),
-                    ResourceConfigUtils.getAsVector3f(arguments.get("translation"), "translation"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsQuaternionf(arguments.getOrDefault("rotation", 0f), "rotation"),
-                    ResourceConfigUtils.getAsEnum(ResourceConfigUtils.get(arguments, "display-context", "display-transform"), ItemDisplayContext.class, ItemDisplayContext.NONE),
-                    ResourceConfigUtils.getAsEnum(arguments.get("billboard"), Billboard.class, Billboard.FIXED),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-radius", 0f), "shadow-radius"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-strength", 1f), "shadow-strength"),
-                    Optional.ofNullable(arguments.get("glow-color")).map(it -> Color.fromStrings(it.toString().split(","))).orElse(null),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("block-light", -1), "block-light"),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("sky-light", -1), "sky-light"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("view-range", 1f), "view-range")
+                    section.getNonNullIdentifier("item"),
+                    section.getVector3f("scale", ConfigConstants.NORMAL_SCALE),
+                    section.getVector3f("position", ConfigConstants.CENTER_VECTOR3),
+                    section.getVector3f("translation", ConfigConstants.ZERO_VECTOR3),
+                    section.getFloat("pitch", 0f),
+                    section.getFloat("yaw", 0f),
+                    section.getQuaternion("rotation", ConfigConstants.ZERO_QUATERNION),
+                    section.getEnum(DISPLAY_CONTEXT, ItemDisplayContext.class, ItemDisplayContext.NONE),
+                    section.getEnum("billboard", Billboard.class, Billboard.FIXED),
+                    section.getFloat(SHADOW_RADIUS),
+                    section.getFloat(SHADOW_STRENGTH, 1f),
+                    section.getValue(GLOW_COLOR, ConfigValue::getAsColor),
+                    brightness != null ? brightness.getInt(BLOCK_LIGHT, -1) : -1,
+                    brightness != null ? brightness.getInt(SKY_LIGHT, -1) : -1,
+                    section.getFloat(VIEW_RANGE, 1f)
             );
         }
     }

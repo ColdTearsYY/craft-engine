@@ -4,6 +4,7 @@ import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.DirectionProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.RandomSourceProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.WorldlyContainerHolderProxy;
@@ -311,5 +312,15 @@ final class BlockReflections {
                     .and(MethodMatcher.takeArguments(BlockStateProxy.CLASS, VersionHelper.isOrAbove1_21_2() ? ServerLevelProxy.CLASS : LevelProxy.CLASS, BlockPosProxy.CLASS, ExplosionProxy.CLASS, BiConsumer.class))
                     .and(MethodMatcher.returnType(void.class))),
             VersionHelper.isOrAbove1_21()
+    );
+
+    public static final Method method$BlockStateBase$getBlock = requireNonNull(
+            SparrowClass.of(BlockBehaviourProxy.BlockStateBaseProxy.CLASS).getDeclaredMethod(MethodMatcher.named("getBlock")
+                    .and(MethodMatcher.returnType(BlockProxy.CLASS)))
+    );
+
+    public static final Method method$BlockStateBase$getBlockHolder = requireNonNull(
+            SparrowClass.of(BlockBehaviourProxy.BlockStateBaseProxy.CLASS).getDeclaredMethod(MethodMatcher.named("getBlockHolder")
+                    .and(MethodMatcher.returnType(HolderProxy.CLASS)))
     );
 }

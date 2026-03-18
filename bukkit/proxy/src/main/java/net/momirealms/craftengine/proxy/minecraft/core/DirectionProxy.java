@@ -1,9 +1,11 @@
 package net.momirealms.craftengine.proxy.minecraft.core;
 
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityProxy;
 import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.MethodInvoker;
 import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
+import net.momirealms.sparrow.reflection.proxy.annotation.Type;
 
 @ReflectionProxy(name = "net.minecraft.core.Direction")
 public interface DirectionProxy {
@@ -25,4 +27,7 @@ public interface DirectionProxy {
 
     @MethodInvoker(name = "getOpposite")
     Object getOpposite(Object target);
+
+    @MethodInvoker(name = "orderedByNearest", isStatic = true)
+    Enum<?>[] orderedByNearest(@Type(clazz = EntityProxy.class) Object entity);
 }

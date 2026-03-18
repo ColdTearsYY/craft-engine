@@ -16,7 +16,7 @@ public interface CompatibilityManager {
 
     void registerTagResolverProvider(TagResolverProvider provider);
 
-    ExternalModel createModel(String plugin, String id);
+    ExternalModel createModel(String id);
 
     int interactionToBaseEntity(int id);
 
@@ -38,9 +38,13 @@ public interface CompatibilityManager {
 
     boolean isBedrockPlayer(Player player);
 
-    ItemSource<?> getItemSource(String id);
+    ModelProvider getModelProvider(String id);
 
-    void registerItemSource(ItemSource<?> itemSource);
+    void registerModelProvider(ModelProvider provider);
+
+    ItemSource getItemSource(String id);
+
+    void registerItemSource(ItemSource itemSource);
 
     LevelerProvider getLevelerProvider(String id);
 

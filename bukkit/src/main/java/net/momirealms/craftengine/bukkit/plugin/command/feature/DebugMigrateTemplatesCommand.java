@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DebugMigrateTemplatesCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugMigrateTemplatesCommand extends BukkitCommandFeature<CommandSender> {
     private static final Pattern PATTERN = Pattern.compile("(?<!\\$)\\{([0-9a-zA-Z_]+)}");
 
     public DebugMigrateTemplatesCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {

@@ -59,15 +59,16 @@ public class ComponentItemFactory1_21_2 extends ComponentItemFactory1_21 {
     protected Optional<EquipmentData> equippable(ComponentItemWrapper item) {
         Optional<Object> optionalData = item.getJavaComponent(DataComponentTypes.EQUIPPABLE);
         if (optionalData.isEmpty()) return Optional.empty();
-        Map<String, Object> data = MiscUtils.castToMap(optionalData.get(), false);
+        Map<String, Object> data = MiscUtils.castToMap(optionalData.get());
         String slot = data.get("slot").toString();
         return Optional.of(new EquipmentData(
-                EquipmentSlot.valueOf(slot.toUpperCase(Locale.ENGLISH)),
+                EquipmentSlot.valueOf(slot.toUpperCase(Locale.ROOT)),
                 data.containsKey("asset_id") ? Key.of((String) data.get("asset_id")) : null,
                 (boolean) data.getOrDefault("dispensable", true),
                 (boolean) data.getOrDefault("swappable", true),
                 (boolean) data.getOrDefault("damage_on_hurt", true),
                 (boolean) data.getOrDefault("equip_on_interact", false),
+                (boolean) data.getOrDefault("can_be_sheared", false),
                 data.containsKey("camera_overlay") ? Key.of((String) data.get("camera_overlay")) : null
         ));
     }

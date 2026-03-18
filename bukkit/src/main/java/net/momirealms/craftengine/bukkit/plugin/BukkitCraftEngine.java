@@ -29,7 +29,6 @@ import net.momirealms.craftengine.bukkit.sound.BukkitSoundManager;
 import net.momirealms.craftengine.bukkit.util.EventUtils;
 import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.bukkit.world.score.BukkitTeamManager;
-import net.momirealms.craftengine.core.item.ItemManager;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.classpath.ClassPathAppender;
 import net.momirealms.craftengine.core.plugin.classpath.ReflectionClassPathAppender;
@@ -44,14 +43,13 @@ import net.momirealms.craftengine.core.plugin.scheduler.SchedulerAdapter;
 import net.momirealms.craftengine.core.plugin.scheduler.SchedulerTask;
 import net.momirealms.craftengine.core.util.CharacterUtils;
 import net.momirealms.craftengine.core.util.ReflectionUtils;
+import net.momirealms.craftengine.core.util.ThrowableUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.BukkitProxy;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,6 +59,8 @@ import java.net.URLConnection;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @SuppressWarnings("unchecked")
 public final class BukkitCraftEngine extends CraftEngine {
@@ -118,22 +118,22 @@ public final class BukkitCraftEngine extends CraftEngine {
             BlockGenerator.init();
             BlockStateGenerator.init();
             super.blockManager = new BukkitBlockManager(this);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting blocks", e);
         }
         try {
             LootEntryInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting loot entries", e);
         }
         try {
             FeatureInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting features", e);
         }
         try {
             BlockStateProviderInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting block state providers", e);
         }
     }
@@ -147,7 +147,7 @@ public final class BukkitCraftEngine extends CraftEngine {
         // 注入一些新的类型，但是并不需要太早
         try {
             RecipeInjector.init();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new InjectionException("Error injecting recipes", e);
         }
         // 初始化一些注册表
@@ -217,8 +217,7 @@ public final class BukkitCraftEngine extends CraftEngine {
             Bukkit.getPluginManager().disablePlugin(this.javaPlugin);
             return;
         }
-        // 预检查ASM代理可用性，添加 -Dnet.momirealms.craftengine.pre-check-asm-proxy=true 启动参数启用
-        ReflectionUtils.preCheckASMProxy();
+        this.initASMProxies(); // 仅 dev 模式下生效
         this.successfullyEnabled = true;
         if (!this.successfullyLoaded) {
             logger().severe(" ");
@@ -280,6 +279,31 @@ public final class BukkitCraftEngine extends CraftEngine {
         BukkitProxy.init(VersionHelper.MINECRAFT_VERSION.version(), getPatches());
     }
 
+    private void initASMProxies() {
+        if (!VersionHelper.IS_RUNNING_IN_DEV) return;
+        CraftEngine.instance().logger().info("Initializing ASM proxies...");
+        ClassLoader classLoader = ReflectionUtils.class.getClassLoader();
+        try (InputStream resourceAsStream = classLoader.getResourceAsStream("proxy.jarinjar")) {
+            if (resourceAsStream == null) return;
+            try (ByteArrayInputStream bais = new ByteArrayInputStream(resourceAsStream.readAllBytes());
+                 ZipInputStream zis = new ZipInputStream(bais)) {
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    String entryName = entry.getName();
+                    if (!entryName.endsWith(".class")) continue;
+                    String className = entryName.replace('/', '.').substring(0, entryName.length() - 6);
+                    try {
+                        Class.forName(className);
+                    } catch (Throwable e) {
+                        ThrowableUtils.sneakyThrow(() -> e);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            ThrowableUtils.sneakyThrow(() -> e);
+        }
+    }
+
     private List<String> getPatches() {
         List<String> patches = new ObjectArrayList<>();
         if (VersionHelper.isPaper()) {
@@ -339,32 +363,52 @@ public final class BukkitCraftEngine extends CraftEngine {
 
     @Override
     public SchedulerAdapter<World> scheduler() {
-        return (SchedulerAdapter<World>) scheduler;
+        return (SchedulerAdapter<World>) this.scheduler;
     }
 
     @Override
-    public ItemManager<ItemStack> itemManager() {
-        return (ItemManager<ItemStack>) itemManager;
+    public BukkitItemManager itemManager() {
+        return (BukkitItemManager) this.itemManager;
     }
 
     @Override
     public BukkitBlockManager blockManager() {
-        return (BukkitBlockManager) blockManager;
+        return (BukkitBlockManager) this.blockManager;
     }
 
     @Override
     public BukkitAdvancementManager advancementManager() {
-        return (BukkitAdvancementManager) advancementManager;
+        return (BukkitAdvancementManager) this.advancementManager;
     }
 
     @Override
     public BukkitFurnitureManager furnitureManager() {
-        return (BukkitFurnitureManager) furnitureManager;
+        return (BukkitFurnitureManager) this.furnitureManager;
+    }
+
+    @Override
+    public BukkitNetworkManager networkManager() {
+        return (BukkitNetworkManager) this.networkManager;
+    }
+
+    @Override
+    public BukkitPackManager packManager() {
+        return (BukkitPackManager) this.packManager;
+    }
+
+    @Override
+    public BukkitFontManager fontManager() {
+        return (BukkitFontManager) this.fontManager;
+    }
+
+    @Override
+    public BukkitWorldManager worldManager() {
+        return (BukkitWorldManager) this.worldManager;
     }
 
     @Override
     public SenderFactory<CraftEngine, CommandSender> senderFactory() {
-        return (SenderFactory<CraftEngine, CommandSender>) senderFactory;
+        return (SenderFactory<CraftEngine, CommandSender>) this.senderFactory;
     }
 
     public JavaPlugin javaPlugin() {
@@ -373,26 +417,6 @@ public final class BukkitCraftEngine extends CraftEngine {
 
     public static BukkitCraftEngine instance() {
         return instance;
-    }
-
-    @Override
-    public BukkitNetworkManager networkManager() {
-        return (BukkitNetworkManager) networkManager;
-    }
-
-    @Override
-    public BukkitPackManager packManager() {
-        return (BukkitPackManager) packManager;
-    }
-
-    @Override
-    public BukkitFontManager fontManager() {
-        return (BukkitFontManager) fontManager;
-    }
-
-    @Override
-    public BukkitWorldManager worldManager() {
-        return (BukkitWorldManager) worldManager;
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -431,12 +455,6 @@ public final class BukkitCraftEngine extends CraftEngine {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-    }
-
-    @Nullable
-    public BukkitServerPlayer adapt(@Nullable Player player) {
-        if (player == null) return null;
-        return (BukkitServerPlayer) networkManager().getOnlineUser(player);
     }
 
     public AntiGriefLib antiGriefProvider() {

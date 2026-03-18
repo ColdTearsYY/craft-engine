@@ -3,11 +3,10 @@ package net.momirealms.craftengine.core.pack.conflict.resolution;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.GsonHelper;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.io.IOException;
-import java.util.Map;
 
 public record MergeJsonResolution(boolean deeply) implements Resolution {
     public static final ResolutionFactory<MergeJsonResolution> FACTORY = new Factory();
@@ -32,9 +31,8 @@ public record MergeJsonResolution(boolean deeply) implements Resolution {
     private static class Factory implements ResolutionFactory<MergeJsonResolution> {
 
         @Override
-        public MergeJsonResolution create(Map<String, Object> arguments) {
-            boolean deeply = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("deeply", false), "deeply");
-            return new MergeJsonResolution(deeply);
+        public MergeJsonResolution create(ConfigSection section) {
+            return new MergeJsonResolution(section.getBoolean("deeply"));
         }
     }
 }

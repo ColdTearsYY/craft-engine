@@ -6,10 +6,10 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.conflict.PathContext;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyOverridesModel;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.GsonHelper;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.TreeSet;
 
 public final class MergeLegacyModelResolution implements Resolution {
@@ -66,7 +66,7 @@ public final class MergeLegacyModelResolution implements Resolution {
     private static class Factory implements ResolutionFactory<MergeLegacyModelResolution> {
 
         @Override
-        public MergeLegacyModelResolution create(Map<String, Object> arguments) {
+        public MergeLegacyModelResolution create(ConfigSection section) {
             return INSTANCE;
         }
     }

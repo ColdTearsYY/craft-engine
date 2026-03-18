@@ -6,11 +6,16 @@ import net.momirealms.sparrow.reflection.remapper.Remapper;
 import java.util.List;
 
 public final class BukkitProxy {
+    private static boolean init;
+
     private BukkitProxy() {}
 
     public static void init(String version, List<String> patches) {
-        SReflection.setAsmClassPrefix("CraftEngine");
-        SReflection.setActivePredicate(new MinecraftPredicate(version, patches));
-        SReflection.setRemapper(CraftBukkitRemapper.create(Remapper.createFromPaperJar()));
+        if (!init) {
+            SReflection.setAsmClassPrefix("CraftEngine");
+            SReflection.setActivePredicate(new MinecraftPredicate(version, patches));
+            SReflection.setRemapper(CraftBukkitRemapper.create(Remapper.createFromPaperJar()));
+            init = true;
+        }
     }
 }

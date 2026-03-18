@@ -2,12 +2,11 @@ package net.momirealms.craftengine.bukkit.compatibility.model.modelengine;
 
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfig;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigFactory;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import org.joml.Vector3f;
-
-import java.util.Map;
 
 public final class ModelEngineBlockEntityElementConfig implements BlockEntityElementConfig<ModelEngineBlockEntityElement> {
     private final Vector3f position;
@@ -51,13 +50,13 @@ public final class ModelEngineBlockEntityElementConfig implements BlockEntityEle
     public static class Factory implements BlockEntityElementConfigFactory<ModelEngineBlockEntityElement> {
 
         @Override
-        public ModelEngineBlockEntityElementConfig create(Map<String, Object> arguments) {
-            String model = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("model"), "warning.config.block.state.entity_renderer.model_engine.missing_model");
+        public ModelEngineBlockEntityElementConfig create(ConfigSection section) {
+            String model = section.getNonEmptyString("model");
             return new ModelEngineBlockEntityElementConfig(
                     model,
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0.5f), "position"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch")
+                    section.getVector3f("position", ConfigConstants.CENTER_VECTOR3),
+                    section.getFloat("yaw"),
+                    section.getFloat("pitch")
             );
         }
     }

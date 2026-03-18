@@ -12,12 +12,13 @@ import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.block.BlockSettings;
 import net.momirealms.craftengine.core.block.DelegatingBlockState;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
@@ -25,11 +26,9 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
-import net.momirealms.craftengine.core.util.ReflectionUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
-import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
@@ -44,15 +43,15 @@ import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
 import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.constructor.SConstructor3;
 import net.momirealms.sparrow.reflection.constructor.matcher.ConstructorMatcher;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public final class BlockStateGenerator {
     private static SConstructor3 constructor$CraftEngineBlockState;
     public static Object instance$StateDefinition$Factory;
 
-    public static void init() throws ReflectiveOperationException {
+    public static void init() {
         ByteBuddy byteBuddy = new ByteBuddy(ClassFileVersion.JAVA_V17);
         String packageWithName = BlockStateGenerator.class.getName();
         String generatedStateClassName = packageWithName.substring(0, packageWithName.lastIndexOf('.')) + ".CraftEngineBlockState";
@@ -60,11 +59,16 @@ public final class BlockStateGenerator {
                 .subclass(BlockStateProxy.CLASS, ConstructorStrategy.Default.IMITATE_SUPER_CLASS_OPENING)
                 .name(generatedStateClassName)
                 .defineField("immutableBlockState", ImmutableBlockState.class, Visibility.PUBLIC)
+                .defineField("blockOwner", Object.class, Visibility.PUBLIC)
                 .implement(DelegatingBlockState.class)
                 .method(ElementMatchers.named("blockState"))
                 .intercept(FieldAccessor.ofField("immutableBlockState"))
                 .method(ElementMatchers.named("setBlockState"))
                 .intercept(FieldAccessor.ofField("immutableBlockState"))
+                .method(ElementMatchers.named("blockOwner"))
+                .intercept(FieldAccessor.ofField("blockOwner"))
+                .method(ElementMatchers.named("setBlockOwner"))
+                .intercept(FieldAccessor.ofField("blockOwner"))
                 .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getDrops))
                 .intercept(MethodDelegation.to(GetDropsInterceptor.INSTANCE))
                 .method(ElementMatchers.is(BlockReflections.method$StateHolder$hasProperty))
@@ -74,11 +78,18 @@ public final class BlockStateGenerator {
                 .method(ElementMatchers.is(BlockReflections.method$StateHolder$setValue))
                 .intercept(MethodDelegation.to(SetPropertyValueInterceptor.INSTANCE))
                 .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$is))
-                .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE));
+                .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE))
+                .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getBlock))
+                .intercept(MethodDelegation.to(GetBlockInterceptor.INSTANCE))
+                .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getBlockHolder))
+                .intercept(MethodDelegation.to(GetBlockHolderInterceptor.INSTANCE));
         SparrowClass<?> clazz$CraftEngineBlock = SparrowClass.of(stateBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded());
-        constructor$CraftEngineBlockState = clazz$CraftEngineBlock.getSparrowConstructor(
-                ConstructorMatcher.takeArguments(BlockProxy.CLASS, VersionHelper.isOrAbove1_20_5() ? Reference2ObjectArrayMap.class : ImmutableMap.class, MapCodec.class)
-        ).asm$3();
+
+        constructor$CraftEngineBlockState = clazz$CraftEngineBlock.getSparrowConstructor(ConstructorMatcher.takeArguments(
+                BlockProxy.CLASS,
+                VersionHelper.isOrAbove1_20_5() ? Reference2ObjectArrayMap.class : ImmutableMap.class,
+                MapCodec.class
+        )).asm$3();
 
         String generatedFactoryClassName = packageWithName.substring(0, packageWithName.lastIndexOf('.')) + ".CraftEngineStateFactory";
         DynamicType.Builder<?> factoryBuilder = byteBuddy
@@ -88,8 +99,8 @@ public final class BlockStateGenerator {
                 .method(ElementMatchers.named("create"))
                 .intercept(MethodDelegation.to(CreateStateInterceptor.INSTANCE));
 
-        Class<?> clazz$Factory = factoryBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded();
-        instance$StateDefinition$Factory = ReflectionUtils.getTheOnlyConstructor(clazz$Factory).newInstance();
+        SparrowClass<?> clazz$Factory = SparrowClass.of(factoryBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded());
+        instance$StateDefinition$Factory = clazz$Factory.getSparrowConstructor(ConstructorMatcher.any()).asm$0().newInstance();
     }
 
     public static class GetDropsInterceptor {
@@ -104,7 +115,7 @@ public final class BlockStateGenerator {
             if (vec3 == null) return List.of();
 
             Object tool = LootParamsProxy.BuilderProxy.INSTANCE.getOptionalParameter(builder, LootContextParamsProxy.TOOL);
-            Item<ItemStack> item = BukkitItemManager.instance().wrap(tool == null ? null : CraftItemStackProxy.INSTANCE.asCraftMirror(tool));
+            Item item = BukkitItemManager.instance().wrap(tool == null ? null : ItemStackUtils.getBukkitStack(tool));
             Object optionalPlayer = LootParamsProxy.BuilderProxy.INSTANCE.getOptionalParameter(builder, LootContextParamsProxy.THIS_ENTITY);
             if (!PlayerProxy.CLASS.isInstance(optionalPlayer)) {
                 optionalPlayer = null;
@@ -121,13 +132,13 @@ public final class BlockStateGenerator {
             }
 
             Object serverLevel = LootParamsProxy.BuilderProxy.INSTANCE.getLevel(builder);
-            World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(serverLevel));
+            World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(serverLevel));
             ContextHolder.Builder lootBuilder = new ContextHolder.Builder()
                     .withParameter(DirectContextParameters.POSITION, new WorldPosition(world, Vec3Proxy.INSTANCE.getX(vec3), Vec3Proxy.INSTANCE.getY(vec3), Vec3Proxy.INSTANCE.getZ(vec3)));
             if (!item.isEmpty()) {
                 lootBuilder.withParameter(DirectContextParameters.ITEM_IN_HAND, item);
             }
-            BukkitServerPlayer player = optionalPlayer != null ? BukkitCraftEngine.instance().adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(optionalPlayer)) : null;
+            BukkitServerPlayer player = optionalPlayer != null ? BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(optionalPlayer)) : null;
             if (player != null) {
                 lootBuilder.withParameter(DirectContextParameters.PLAYER, player);
             }
@@ -135,7 +146,7 @@ public final class BlockStateGenerator {
             if (radius != null) {
                 lootBuilder.withParameter(DirectContextParameters.EXPLOSION_RADIUS, radius);
             }
-            return state.getDrops(lootBuilder, world, player).stream().map(Item::getLiteralObject).toList();
+            return state.getDrops(lootBuilder, world, player).stream().map(Item::getMinecraftItem).toList();
         }
     }
 
@@ -196,14 +207,36 @@ public final class BlockStateGenerator {
         @RuntimeType
         public boolean intercept(@This Object thisObj, @AllArguments Object[] args) {
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
-            ImmutableBlockState thisState = customState.blockState();
-            if (thisState == null) return false;
+            Object thisBlock = customState.blockOwner();
+            if (thisBlock == null) return false;
             if (BlockProxy.INSTANCE.getDefaultBlockState(args[0]) instanceof DelegatingBlockState holder) {
-                ImmutableBlockState holderState = holder.blockState();
-                if (holderState == null) return false;
-                return holderState.owner().equals(thisState.owner());
+                Object holderBlock = holder.blockOwner();
+                if (holderBlock == null) return false;
+                return thisBlock == holderBlock;
             }
             return false;
+        }
+    }
+
+    public static class GetBlockInterceptor {
+        public static final GetBlockInterceptor INSTANCE = new GetBlockInterceptor();
+
+        @RuntimeType
+        public Object intercept(@This Object thisObj, @SuperCall Callable<Object> superMethod) throws Exception {
+            DelegatingBlockState customState = (DelegatingBlockState) thisObj;
+            Object block = customState.blockOwner();
+            return block != null ? block : superMethod.call();
+        }
+    }
+
+    public static class GetBlockHolderInterceptor {
+        public static final GetBlockHolderInterceptor INSTANCE = new GetBlockHolderInterceptor();
+
+        @RuntimeType
+        public Object intercept(@This Object thisObj, @SuperCall Callable<Object> superMethod) throws Exception {
+            DelegatingBlockState customState = (DelegatingBlockState) thisObj;
+            Object block = customState.blockOwner();
+            return block != null ? BlockProxy.INSTANCE.getBuiltInRegistryHolder(block) : superMethod.call();
         }
     }
 

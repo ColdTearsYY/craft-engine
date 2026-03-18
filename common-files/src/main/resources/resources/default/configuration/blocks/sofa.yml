@@ -1,7 +1,7 @@
 items:
   default:sleeper_sofa:
     data:
-      item-name: <!i><lang:item.default.sofa>
+      item_name: <!i><lang:item.default.sofa>
     model: minecraft:item/custom/sleeper_sofa
     behavior:
       type: block_item
@@ -11,15 +11,15 @@ items:
         settings:
           hardness: 0.5
           resistance: 0.5
-          map-color: 27
-          burn-chance: 5
-          fire-spread-chance: 20
+          map_color: 27
+          burn_chance: 5
+          fire_spread_chance: 20
           burnable: true
-          is-suffocating: false
-          is-redstone-conductor: false
-          push-reaction: block
+          is_suffocating: false
+          is_redstone_conductor: false
+          push_reaction: block
           instrument: bass
-          support-shape: cobweb
+          support_shape: cobweb
           sounds:
             break: minecraft:block.wood.break
             fall: minecraft:block.wood.fall
@@ -30,20 +30,20 @@ items:
             - minecraft:mineable/axe
         behaviors:
           - type: bouncing_block
-            bounce-height: 0.66
-            sync-player-position: false
+            bounce_height: 0.66
+            sync_player_position: false
           - type: seat_block
             seats:
               - 0,0,0
         state:
           state: white_bed[facing=west,occupied=false,part=foot]
-          entity-renderer:
+          entity_renderer:
             item: default:sleeper_sofa
   default:sofa_inner:
     model: minecraft:item/custom/sofa_inner
   default:sofa:
     data:
-      item-name: <!i><lang:item.default.sofa>
+      item_name: <!i><lang:item.default.sofa>
     model:
       type: minecraft:model
       path: minecraft:item/custom/sofa
@@ -57,15 +57,15 @@ items:
         settings:
           hardness: 0.5
           resistance: 0.5
-          map-color: 27
-          burn-chance: 5
-          fire-spread-chance: 20
+          map_color: 27
+          burn_chance: 5
+          fire_spread_chance: 20
           burnable: true
-          is-suffocating: false
-          is-redstone-conductor: false
-          push-reaction: block
+          is_suffocating: false
+          is_redstone_conductor: false
+          push_reaction: block
           instrument: bass
-          support-shape: cobweb
+          support_shape: cobweb
           sounds:
             break: minecraft:block.wood.break
             fall: minecraft:block.wood.fall
@@ -77,7 +77,7 @@ items:
         behaviors:
           - type: sofa_block
           - type: bouncing_block
-            bounce-height: 0.66
+            bounce_height: 0.66
           - type: seat_block
             seats:
               - 0,0,0 0
@@ -90,59 +90,59 @@ items:
           appearances:
             facing=east,shape=straight:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa
                 rotation: 90
             facing=north,shape=straight:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa
             facing=south,shape=straight:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa
                 rotation: 180
             facing=west,shape=straight:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa
                 rotation: 270
             facing=east,shape=inner_left:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
             facing=north,shape=inner_left:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
                 rotation: 270
             facing=south,shape=inner_left:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
                 rotation: 90
             facing=west,shape=inner_left:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
                 rotation: 180
             facing=east,shape=inner_right:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
                 rotation: 90
             facing=north,shape=inner_right:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
             facing=south,shape=inner_right:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
                 rotation: 180
             facing=west,shape=inner_right:
               state: barrier
-              entity-renderer:
+              entity_renderer:
                 item: default:sofa_inner
                 rotation: 270
           variants:

@@ -5,8 +5,8 @@ import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
@@ -17,19 +17,23 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-public class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
+public final class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
     private static final List<Object> WATER = List.of(FluidsProxy.WATER, FluidsProxy.FLOWING_WATER);
     private static final List<Object> LAVA = List.of(FluidsProxy.LAVA, FluidsProxy.FLOWING_LAVA);
     public static final BlockBehaviorFactory<NearLiquidBlockBehavior> FACTORY = new Factory();
-    private final boolean onWater;
-    private final boolean onLava;
-    private final boolean stackable;
-    private final BlockPos[] positions;
+    public final boolean onWater;
+    public final boolean onLava;
+    public final boolean stackable;
+    public final BlockPos[] positions;
 
-    public NearLiquidBlockBehavior(CustomBlock block, int delay, BlockPos[] positions, boolean stackable, boolean onWater, boolean onLava) {
+    private NearLiquidBlockBehavior(CustomBlock block,
+                                    int delay,
+                                    BlockPos[] positions,
+                                    boolean stackable,
+                                    boolean onWater,
+                                    boolean onLava) {
         super(block, delay);
         this.onWater = onWater;
         this.onLava = onLava;
@@ -37,32 +41,24 @@ public class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
         this.positions = positions;
     }
 
-    public boolean onWater() {
-        return this.onWater;
-    }
-
-    public boolean onLava() {
-        return this.onLava;
-    }
-
     private static class Factory implements BlockBehaviorFactory<NearLiquidBlockBehavior> {
+        private static final String[] LIQUID_TYPE = new String[] {"liquid_type", "liquid-type"};
 
         @Override
-        public NearLiquidBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            List<String> liquidTypes = MiscUtils.getAsStringList(arguments.getOrDefault("liquid-type", List.of("water")));
-            boolean stackable = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("stackable", false), "stackable");
-            int delay = ResourceConfigUtils.getAsInt(arguments.getOrDefault("delay", 0), "delay");
-            List<String> positionsToCheck = MiscUtils.getAsStringList(arguments.getOrDefault("positions", List.of()));
-            if (positionsToCheck.isEmpty()) {
-                return new NearLiquidBlockBehavior(block, delay, new BlockPos[]{new BlockPos(0,-1,0)}, stackable, liquidTypes.contains("water"), liquidTypes.contains("lava"));
-            } else {
-                BlockPos[] pos = new BlockPos[positionsToCheck.size()];
-                for (int i = 0; i < pos.length; i++) {
-                    String[] split = positionsToCheck.get(i).split(",");
-                    pos[i] = new BlockPos(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-                }
-                return new NearLiquidBlockBehavior(block, delay, pos, stackable, liquidTypes.contains("water"), liquidTypes.contains("lava"));
-            }
+        public NearLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
+            List<String> liquidTypes = section.getStringList(LIQUID_TYPE, List.of("water"));
+            BlockPos[] positions = section.getList("positions", v -> {
+                ConfigValue[] configValues = v.splitValuesRestrict(",", 3);
+                return new BlockPos(configValues[0].getAsInt(), configValues[1].getAsInt(), configValues[2].getAsInt());
+            }).toArray(BlockPos[]::new);
+            return new NearLiquidBlockBehavior(
+                    block,
+                    section.getInt("delay"),
+                    positions,
+                    section.getBoolean("stackable"),
+                    liquidTypes.contains("water"),
+                    liquidTypes.contains("lava")
+            );
         }
     }
 
@@ -89,7 +85,7 @@ public class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior {
         return false;
     }
 
-    protected boolean mayPlaceOn(Object belowState, Object world, Object belowPos) {
+    private boolean mayPlaceOn(Object belowState, Object world, Object belowPos) {
         Object fluidState = BlockGetterProxy.INSTANCE.getFluidState(world, belowPos);
         Object fluidStateAbove = BlockGetterProxy.INSTANCE.getFluidState(world, LocationUtils.above(belowPos));
         if (FluidStateProxy.INSTANCE.getType(fluidStateAbove) != FluidsProxy.EMPTY) {

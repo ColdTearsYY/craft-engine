@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -20,10 +20,10 @@ import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.HorizontalDirection;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -47,30 +47,28 @@ import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Door;
 import org.bukkit.event.block.BlockRedstoneEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
 @SuppressWarnings("DuplicatedCode")
-public class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implements IsPathFindableBlockBehavior {
+public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implements IsPathFindableBlockBehavior {
     public static final BlockBehaviorFactory<DoorBlockBehavior> FACTORY = new Factory();
-    private final Property<DoubleBlockHalf> halfProperty;
-    private final Property<HorizontalDirection> facingProperty;
-    private final Property<DoorHinge> hingeProperty;
-    private final Property<Boolean> poweredProperty;
-    private final Property<Boolean> openProperty;
-    private final boolean canOpenWithHand;
-    private final boolean canOpenByWindCharge;
-    private final SoundData openSound;
-    private final SoundData closeSound;
+    public final Property<DoubleBlockHalf> halfProperty;
+    public final Property<HorizontalDirection> facingProperty;
+    public final Property<DoorHinge> hingeProperty;
+    public final Property<Boolean> poweredProperty;
+    public final Property<Boolean> openProperty;
+    public final boolean canOpenWithHand;
+    public final boolean canOpenByWindCharge;
+    public final SoundData openSound;
+    public final SoundData closeSound;
 
-    public DoorBlockBehavior(CustomBlock block,
+    private DoorBlockBehavior(CustomBlock block,
                              Property<DoubleBlockHalf> halfProperty,
                              Property<HorizontalDirection> facingProperty,
                              Property<DoorHinge> hingeProperty,
@@ -141,8 +139,9 @@ public class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implement
         ImmutableBlockState blockState = BukkitBlockManager.instance().getImmutableBlockState(BlockStateUtils.blockStateToId(state));
         if (blockState == null || blockState.isEmpty()) return superMethod.call();
         org.bukkit.entity.Player bukkitPlayer = ServerPlayerProxy.INSTANCE.getBukkitEntity(player);
-        BukkitServerPlayer cePlayer = BukkitCraftEngine.instance().adapt(bukkitPlayer);
-        Item<ItemStack> item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        BukkitServerPlayer cePlayer = BukkitAdaptor.adapt(bukkitPlayer);
+        if (cePlayer == null) return superMethod.call();
+        Item item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (cePlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBottomPart(level, pos, blockState, player);
         }
@@ -272,7 +271,7 @@ public class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implement
             world.sendGameEvent(player == null ? null : (org.bukkit.entity.Player) player.platformPlayer(), isOpen ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(pos.x(), pos.y(), pos.z()));
             SoundData soundData = isOpen ? this.openSound : this.closeSound;
             if (soundData != null) {
-                BukkitAdaptors.adapt(world).playBlockSound(
+                BukkitAdaptor.adapt(world).playBlockSound(
                         new Vec3d(pos.x() + 0.5, pos.y() + 0.5, pos.z() + 0.5),
                         soundData
                 );
@@ -333,7 +332,7 @@ public class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implement
                 world.sendGameEvent(null, flag ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(bukkitBlock.getX(), bukkitBlock.getY(), bukkitBlock.getZ()));
                 SoundData soundData = flag ? this.openSound : this.closeSound;
                 if (soundData != null) {
-                    BukkitAdaptors.adapt(world).playBlockSound(
+                    BukkitAdaptor.adapt(world).playBlockSound(
                             new Vec3d(Vec3iProxy.INSTANCE.getX(blockPos) + 0.5, Vec3iProxy.INSTANCE.getY(blockPos) + 0.5, Vec3iProxy.INSTANCE.getZ(blockPos) + 0.5),
                             soundData
                     );
@@ -363,25 +362,31 @@ public class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implement
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<DoorBlockBehavior> {
+        private static final String[] CAN_OPEN_WITH_HAND = new String[] {"can_open_with_hand", "can-open-with-hand"};
+        private static final String[] CAN_OPEN_BY_WIND_CHARGE = new String[] {"can_open_by_wind_charge", "can-open-by-wind-charge"};
+
         @Override
-        public DoorBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<DoubleBlockHalf> half = (Property<DoubleBlockHalf>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("half"), "warning.config.block.behavior.door.missing_half");
-            Property<HorizontalDirection> facing = (Property<HorizontalDirection>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("facing"), "warning.config.block.behavior.door.missing_facing");
-            Property<DoorHinge> hinge = (Property<DoorHinge>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("hinge"), "warning.config.block.behavior.door.missing_hinge");
-            Property<Boolean> open = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("open"), "warning.config.block.behavior.door.missing_open");
-            Property<Boolean> powered = (Property<Boolean>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("powered"), "warning.config.block.behavior.door.missing_powered");
-            boolean canOpenWithHand = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-open-with-hand", true), "can-open-with-hand");
-            boolean canOpenByWindCharge = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("can-open-by-wind-charge", true), "can-open-by-wind-charge");
-            Map<String, Object> sounds = (Map<String, Object>) arguments.get("sounds");
+        public DoorBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
             SoundData openSound = null;
             SoundData closeSound = null;
-            if (sounds != null) {
-                openSound = Optional.ofNullable(sounds.get("open")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                closeSound = Optional.ofNullable(sounds.get("close")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                openSound = soundSection.getValue("open", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                closeSound = soundSection.getValue("close", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
-            return new DoorBlockBehavior(block, half, facing, hinge, powered, open, canOpenWithHand, canOpenByWindCharge, openSound, closeSound);
+            return new DoorBlockBehavior(
+                    block,
+                    BlockBehaviorFactory.getProperty(section.path(), block, "half", DoubleBlockHalf.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "hinge", DoorHinge.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class),
+                    section.getBoolean(CAN_OPEN_WITH_HAND, true),
+                    section.getBoolean(CAN_OPEN_BY_WIND_CHARGE, true),
+                    openSound,
+                    closeSound
+            );
         }
     }
 }

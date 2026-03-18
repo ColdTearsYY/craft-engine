@@ -16,6 +16,7 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.patter
 import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.*;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.function.Consumer;
 
@@ -45,6 +46,27 @@ public interface ItemStackProxy extends DataComponentHolderProxy {
 
     @MethodInvoker(name = "of", isStatic = true, activeIf = "max_version=1.20.4")
     Object of(@Type(clazz = CompoundTagProxy.class) Object nbt);
+
+    @MethodInvoker(name = "getCount")
+    int getCount(Object target);
+
+    @MethodInvoker(name = "setCount")
+    void setCount(Object target, int count);
+
+    @MethodInvoker(name = "getBukkitStack")
+    ItemStack getBukkitStack(Object target);
+
+    @MethodInvoker(name = "copyWithCount")
+    Object copyWithCount(Object target, int count);
+
+    @MethodInvoker(name = "copy")
+    Object copy(Object target);
+
+    @MethodInvoker(name = "grow")
+    void grow(Object target, int count);
+
+    @MethodInvoker(name = "shrink")
+    void shrink(Object target, int count);
 
     @MethodInvoker(name = "is")
     boolean is(Object target, @Type(clazz = TagKeyProxy.class) Object tag);

@@ -4,12 +4,16 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.advancement.AdvancementManager;
 import net.momirealms.craftengine.core.block.AbstractBlockManager;
 import net.momirealms.craftengine.core.block.BlockManager;
+import net.momirealms.craftengine.core.block.BlockSettingsModifiers;
 import net.momirealms.craftengine.core.entity.culling.EntityCullingManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureManager;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureSettingsModifiers;
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
 import net.momirealms.craftengine.core.font.FontManager;
 import net.momirealms.craftengine.core.item.ItemManager;
+import net.momirealms.craftengine.core.item.ItemSettingsModifiers;
+import net.momirealms.craftengine.core.item.processor.ItemProcessors;
 import net.momirealms.craftengine.core.item.recipe.RecipeManager;
 import net.momirealms.craftengine.core.item.recipe.network.legacy.LegacyRecipeTypes;
 import net.momirealms.craftengine.core.item.recipe.network.modern.display.RecipeDisplayTypes;
@@ -74,8 +78,8 @@ public abstract class CraftEngine implements Plugin {
     protected NetworkManager networkManager;
     protected FontManager fontManager;
     protected PackManager packManager;
-    protected ItemManager<?> itemManager;
-    protected RecipeManager<?> recipeManager;
+    protected ItemManager itemManager;
+    protected RecipeManager recipeManager;
     protected BlockManager blockManager;
     protected TranslationManager translationManager;
     protected WorldManager worldManager;
@@ -126,6 +130,10 @@ public abstract class CraftEngine implements Plugin {
         RecipeDisplayTypes.init();
         SlotDisplayTypes.init();
         LegacyRecipeTypes.init();
+        ItemSettingsModifiers.init();
+        BlockSettingsModifiers.init();
+        FurnitureSettingsModifiers.init();
+        ItemProcessors.init();
 
         // 初始化模板管理器
         this.templateManager = TemplateManager.INSTANCE;
@@ -148,14 +156,13 @@ public abstract class CraftEngine implements Plugin {
         this.config.loadFullSettings();
     }
 
-    public record ReloadResult(boolean success, long asyncTime, long syncTime) {
-
+    public record ReloadResult(boolean success, long asyncTime, long syncTime, int issues) {
         static ReloadResult failure() {
-            return new ReloadResult(false, -1L, -1L);
+            return new ReloadResult(false, -1L, -1L, -1);
         }
 
-        static ReloadResult success(long asyncTime, long syncTime) {
-            return new ReloadResult(true, asyncTime, syncTime);
+        static ReloadResult success(long asyncTime, long syncTime, int issues) {
+            return new ReloadResult(true, asyncTime, syncTime, issues);
         }
     }
 
@@ -210,6 +217,7 @@ public abstract class CraftEngine implements Plugin {
         CompletableFuture<ReloadResult> future = new CompletableFuture<>();
         asyncExecutor.execute(() -> {
             long asyncTime = -1;
+            int issues = 0;
             try {
                 if (this.isReloading) {
                     future.complete(ReloadResult.failure());
@@ -231,13 +239,15 @@ public abstract class CraftEngine implements Plugin {
                     this.packManager.loadPacks();
                     this.packManager.updateCachedConfigFiles();
                     if (reloadRecipe) {
-                        this.packManager.loadResources(p -> true);
+                        issues = this.packManager.loadResources(p -> true);
                     } else {
-                        this.packManager.loadResources(p -> p.loadingStage() != LoadingStages.RECIPE);
+                        issues = this.packManager.loadResources(p -> p.loadingStage() != LoadingStages.RECIPE);
                     }
                     this.packManager.clearResourceConfigs();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     this.logger().warn("Failed to load resources folder", e);
+                    future.complete(ReloadResult.failure());
+                    return;
                 }
                 // 执行延迟任务
                 this.runDelayTasks(reloadRecipe);
@@ -245,8 +255,12 @@ public abstract class CraftEngine implements Plugin {
                 this.networkManager.delayedLoad();
                 long time2 = System.currentTimeMillis();
                 asyncTime = time2 - time1;
+            } catch (Throwable e) {
+                this.logger().warn("Failed to reload", e);
+                future.complete(ReloadResult.failure());
             } finally {
                 long finalAsyncTime = asyncTime;
+                int finalIssues = issues;
                 syncExecutor.execute(() -> {
                     try {
                         long time3 = System.currentTimeMillis();
@@ -261,7 +275,10 @@ public abstract class CraftEngine implements Plugin {
                         long time4 = System.currentTimeMillis();
                         long syncTime = time4 - time3;
                         this.reloadEventDispatcher.accept(this);
-                        future.complete(ReloadResult.success(finalAsyncTime, syncTime));
+                        future.complete(ReloadResult.success(finalAsyncTime, syncTime, finalIssues));
+                    } catch (Throwable e) {
+                        this.logger().warn("Failed to run sync tasks", e);
+                        future.complete(ReloadResult.failure());
                     } finally {
                         this.isReloading = false;
                     }
@@ -395,9 +412,9 @@ public abstract class CraftEngine implements Plugin {
             String lv = getLatestVersion();
             if (lv == null) return;
             if (compareVer(lv, pluginVersion())) {
-                this.logger.warn(TranslationManager.instance().translateLog("info.update.available", lv, link));
+                this.logger.warn(TranslationManager.instance().plainTranslation("update.available", lv, link));
             } else {
-                this.logger.info(TranslationManager.instance().translateLog("info.update.latest"));
+                this.logger.info(TranslationManager.instance().plainTranslation("update.is_latest"));
             }
         } catch (Exception ignored) {
         }
@@ -545,160 +562,158 @@ public abstract class CraftEngine implements Plugin {
     @SuppressWarnings("unchecked")
     @Override
     public <W> SchedulerAdapter<W> scheduler() {
-        return (SchedulerAdapter<W>) scheduler;
+        return (SchedulerAdapter<W>) this.scheduler;
     }
 
     @Override
     public ClassPathAppender sharedClassPathAppender() {
-        return sharedClassPathAppender;
+        return this.sharedClassPathAppender;
     }
 
     @Override
     public ClassPathAppender privateClassPathAppender() {
-        return privateClassPathAppender;
+        return this.privateClassPathAppender;
     }
 
     @Override
     public Config config() {
-        return config;
+        return this.config;
     }
 
     @Override
     public PluginLogger logger() {
-        return logger;
+        return this.logger;
     }
 
     @Override
     public boolean isReloading() {
-        return isReloading;
+        return this.isReloading;
     }
 
     @Override
     public boolean isInitializing() {
-        return isInitializing;
+        return this.isInitializing;
     }
 
     @Override
     public DependencyManager dependencyManager() {
-        return dependencyManager;
+        return this.dependencyManager;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T> ItemManager<T> itemManager() {
-        return (ItemManager<T>) itemManager;
+    public ItemManager itemManager() {
+        return this.itemManager;
     }
 
     @Override
     public BlockManager blockManager() {
-        return blockManager;
+        return this.blockManager;
     }
 
     @Override
     public NetworkManager networkManager() {
-        return networkManager;
+        return this.networkManager;
     }
 
     @Override
     public FontManager fontManager() {
-        return fontManager;
+        return this.fontManager;
     }
 
     @Override
     public AdvancementManager advancementManager() {
-        return advancementManager;
+        return this.advancementManager;
     }
 
     @Override
     public TranslationManager translationManager() {
-        return translationManager;
+        return this.translationManager;
     }
 
     @Override
     public TemplateManager templateManager() {
-        return templateManager;
+        return this.templateManager;
     }
 
     @Override
     public FurnitureManager furnitureManager() {
-        return furnitureManager;
+        return this.furnitureManager;
     }
 
     @Override
     public PackManager packManager() {
-        return packManager;
+        return this.packManager;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T> RecipeManager<T> recipeManager() {
-        return (RecipeManager<T>) recipeManager;
+    public RecipeManager recipeManager() {
+        return this.recipeManager;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <P extends Plugin, C> SenderFactory<P, C> senderFactory() {
-        return (SenderFactory<P, C>) senderFactory;
+        return (SenderFactory<P, C>) this.senderFactory;
     }
 
     @Override
     public WorldManager worldManager() {
-        return worldManager;
+        return this.worldManager;
     }
 
     @Override
     public ItemBrowserManager itemBrowserManager() {
-        return itemBrowserManager;
+        return this.itemBrowserManager;
     }
 
     @Override
     public GuiManager guiManager() {
-        return guiManager;
+        return this.guiManager;
     }
 
     @Override
     public SoundManager soundManager() {
-        return soundManager;
+        return this.soundManager;
     }
 
     @Override
     public LootManager vanillaLootManager() {
-        return lootManager;
+        return this.lootManager;
     }
 
     @Override
     public CompatibilityManager compatibilityManager() {
-        return compatibilityManager;
+        return this.compatibilityManager;
     }
 
     @Override
     public GlobalVariableManager globalVariableManager() {
-        return globalVariableManager;
+        return this.globalVariableManager;
     }
 
     @Override
     public ProjectileManager projectileManager() {
-        return projectileManager;
+        return this.projectileManager;
     }
 
     @Override
     public EntityCullingManager entityCullingManager() {
-        return entityCullingManager;
+        return this.entityCullingManager;
     }
 
     @Override
     public TeamManager teamManager() {
-        return teamManager;
+        return this.teamManager;
     }
 
     @Override
     public SeatManager seatManager() {
-        return seatManager;
+        return this.seatManager;
     }
 
     @Override
     public Platform platform() {
-        return platform;
+        return this.platform;
     }
 
     /**
@@ -710,7 +725,7 @@ public abstract class CraftEngine implements Plugin {
      */
     @ApiStatus.Experimental
     public PluginTaskRegistry beforeEnableTaskRegistry() {
-        return beforeEnableTaskRegistry;
+        return this.beforeEnableTaskRegistry;
     }
 
     /**
@@ -722,6 +737,6 @@ public abstract class CraftEngine implements Plugin {
      */
     @ApiStatus.Experimental
     public PluginTaskRegistry afterEnableTaskRegistry() {
-        return afterEnableTaskRegistry;
+        return this.afterEnableTaskRegistry;
     }
 }

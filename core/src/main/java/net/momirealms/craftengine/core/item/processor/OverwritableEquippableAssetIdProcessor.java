@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
 import net.momirealms.craftengine.core.item.setting.EquipmentData;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
 
@@ -25,7 +26,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         Optional<EquipmentData> optionalData = item.equippable();
         optionalData.ifPresent(data ->
                 {
@@ -38,7 +39,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
                         if (optional.isEmpty()) {
                             canSet = true;
                         } else {
-                            Map<String, Object> equippableData = MiscUtils.castToMap(optional.get(), false);
+                            Map<String, Object> equippableData = MiscUtils.castToMap(optional.get());
                             Key defaultAssetId = equippableData.containsKey("asset_id") ? Key.of((String) equippableData.get("asset_id")) : null;
                             // 如果默认值和之前值相同，则可以覆写
                             if (Objects.equals(defaultAssetId, previousAssetId)) {
@@ -54,6 +55,7 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
                                 data.swappable(),
                                 data.damageOnHurt(),
                                 data.equipOnInteract(),
+                                data.canBeSheared(),
                                 data.cameraOverlay()
                         ));
                     }
@@ -63,16 +65,15 @@ public final class OverwritableEquippableAssetIdProcessor implements SimpleNetwo
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.EQUIPPABLE;
     }
 
     private static class Factory implements ItemProcessorFactory<OverwritableEquippableAssetIdProcessor> {
 
         @Override
-        public OverwritableEquippableAssetIdProcessor create(Object arg) {
-            String id = arg.toString();
-            return new OverwritableEquippableAssetIdProcessor(Key.of(id));
+        public OverwritableEquippableAssetIdProcessor create(ConfigValue value) {
+            return new OverwritableEquippableAssetIdProcessor(value.getAsIdentifier());
         }
     }
 }

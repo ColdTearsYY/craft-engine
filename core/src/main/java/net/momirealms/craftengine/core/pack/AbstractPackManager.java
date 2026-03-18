@@ -36,16 +36,12 @@ import net.momirealms.craftengine.core.pack.model.simplified.*;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.SectionConfigParser;
-import net.momirealms.craftengine.core.plugin.config.StringKeyConstructor;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingPyramid;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
-import net.momirealms.craftengine.core.plugin.locale.LangData;
+import net.momirealms.craftengine.core.plugin.locale.ClientLangData;
 import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.sound.AbstractSoundManager;
@@ -66,17 +62,12 @@ import java.nio.file.*;
 import java.nio.file.FileSystem;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-
-import static net.momirealms.craftengine.core.util.MiscUtils.castToMap;
 
 @SuppressWarnings("DuplicatedCode")
 public abstract class AbstractPackManager implements PackManager {
@@ -136,7 +127,7 @@ public abstract class AbstractPackManager implements PackManager {
     private final CraftEngine plugin;
     private final Consumer<PackCacheData> cacheEventDispatcher;
     private final BiConsumer<Path, Path> generationEventDispatcher;
-    private final Map<String, Pack> loadedPacks = new HashMap<>();
+    private final Map<String, Pack> loadedPacks = new LinkedHashMap<>();
     private final Map<String, ConfigParser> sectionParsers = new HashMap<>();
     private final List<ConfigParser> parsers = new ArrayList<>();
     public final JsonObject vanillaBlockAtlas;
@@ -289,27 +280,23 @@ public abstract class AbstractPackManager implements PackManager {
     @Override
     public void load() {
         Object hostingObj = Config.instance().settings().get("resource-pack.delivery.hosting");
-        Map<String, Object> arguments;
-        if (hostingObj instanceof Map<?,?>) {
-            arguments = MiscUtils.castToMap(hostingObj, false);
-        } else if (hostingObj instanceof List<?> list && !list.isEmpty()) {
-            arguments = MiscUtils.castToMap(list.getFirst(), false);
-        } else {
+        if (hostingObj == null) {
             this.resourcePackHost = NoneHost.INSTANCE;
             return;
         }
+        ConfigValue configValue = new ConfigValue("resource-pack.delivery.hosting", hostingObj);
         try {
-            // we might add multiple host methods in future versions
-            this.resourcePackHost = ResourcePackHosts.fromMap(arguments);
-        } catch (LocalizedException e) {
-            if (e instanceof LocalizedResourceConfigException exception) {
-                exception.setPath(plugin.dataFolderPath().resolve("config.yml"));
-                e.setArgument(1, "hosting");
+            List<ResourcePackHost> hosts = configValue.getAsList(v -> ResourcePackHosts.fromConfig(v.getAsSection()));
+            if (hosts.isEmpty()) {
+                this.resourcePackHost = NoneHost.INSTANCE;
+            } else {
+                this.resourcePackHost = hosts.getFirst();
             }
-            TranslationManager.instance().log(e.node(), e.arguments());
+        } catch (KnownResourceException e) {
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("config.errors_detected", e.getLocalizedMessage()));
             this.resourcePackHost = NoneHost.INSTANCE;
         } catch (Throwable e) {
-            this.plugin.logger().warn("Failed to load resource pack host", e);
+            this.plugin.logger().warn("Failed to load resource-pack.delivery.hosting", e);
             this.resourcePackHost = NoneHost.INSTANCE;
         }
     }
@@ -320,8 +307,8 @@ public abstract class AbstractPackManager implements PackManager {
     }
 
     @Override
-    public void loadResources(Predicate<ConfigParser> predicate) {
-        this.loadResourceConfigs(predicate);
+    public int loadResources(Predicate<ConfigParser> predicate) {
+        return this.loadResourceConfigs(predicate);
     }
 
     @Override
@@ -388,12 +375,16 @@ public abstract class AbstractPackManager implements PackManager {
                 Files.createDirectories(resourcesFolder);
                 this.saveDefaultConfigs();
             }
+        } catch (IOException e) {
+            this.plugin.logger().severe("Error saving default configs", e);
+        }
+        try {
             try (DirectoryStream<Path> paths = Files.newDirectoryStream(resourcesFolder)) {
                 for (Path path : paths) {
                     if (!Files.isDirectory(path)) {
-                        this.plugin.logger().warn(path.toAbsolutePath() + " is not a directory");
                         continue;
                     }
+                    // hidden
                     String namespace = path.getFileName().toString();
                     if (namespace.charAt(0) == '.') {
                         continue;
@@ -401,32 +392,32 @@ public abstract class AbstractPackManager implements PackManager {
                     if (!Identifier.isValidNamespace(namespace)) {
                         namespace = "minecraft";
                     }
-                    Path metaFile = path.resolve("pack.yml");
+
                     String description = null;
                     String version = null;
                     String author = null;
                     boolean enable = true;
-                    List<String> subPacks = new ArrayList<>();
+                    List<String> subPacks = new ArrayList<>(4);
+                    Path metaFile = path.resolve("pack.yml");
                     if (Files.exists(metaFile) && Files.isRegularFile(metaFile)) {
                         Yaml yaml = new Yaml(new StringKeyConstructor(path, new LoaderOptions()));
                         try (InputStream is = Files.newInputStream(metaFile)) {
                             Map<String, Object> data = yaml.load(is);
                             if (data != null) {
-                                enable = ResourceConfigUtils.getAsBoolean(data.getOrDefault("enable", true), "enable");
-                                namespace = data.getOrDefault("namespace", namespace).toString();
-                                description = Optional.ofNullable(data.get("description")).map(String::valueOf).orElse(null);
-                                version = Optional.ofNullable(data.get("version")).map(String::valueOf).orElse(null);
-                                author = Optional.ofNullable(data.get("author")).map(String::valueOf).orElse(null);
-                                Map<String, Object> subpacks = ResourceConfigUtils.getAsMapOrNull(data.get("subpacks"), "subpacks");
-                                if (subpacks != null) {
-                                    for (Map.Entry<String, Object> entry : subpacks.entrySet()) {
-                                        if (ResourceConfigUtils.getAsBoolean(entry.getValue(), entry.getKey())) {
-                                            subPacks.add(entry.getKey());
+                                ConfigSection section = ConfigSection.ofRoot(data);
+                                enable = section.getBoolean("enable", true);
+                                namespace = section.getString("namespace", namespace);
+                                description = section.getString("description");
+                                version = section.getString("version");
+                                author = section.getString("author");
+                                ConfigSection subpackSection = section.getSection("subpacks");
+                                if (subpackSection != null) {
+                                    for (String subpackId : subpackSection.keySet()) {
+                                        if (subpackSection.getBoolean(subpackId)) {
+                                            subPacks.add(subpackId);
                                         }
                                     }
                                 }
-                            } else {
-                                this.plugin.logger().warn("Failed to load resource meta file: " + metaFile);
                             }
                         } catch (IOException e) {
                             this.plugin.logger().warn("Failed to load " + metaFile, e);
@@ -434,7 +425,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                     Pack pack = new Pack(path, new PackMeta(author, description, version, namespace), enable, subPacks.toArray(new String[0]));
                     this.loadedPacks.put(path.getFileName().toString(), pack);
-                    this.plugin.logger().info(TranslationManager.instance().translateLog("info.pack.load", pack.folder().getFileName().toString(), namespace));
+                    this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource.pack_loaded", pack.folder().getFileName().toString(), namespace));
                 }
             }
         } catch (IOException e) {
@@ -442,220 +433,22 @@ public abstract class AbstractPackManager implements PackManager {
         }
     }
 
-    public void saveDefaultConfigs() {
-        // remove shulker head
-        plugin.saveResource("resources/remove_shulker_head/resourcepack/pack.mcmeta");
-        plugin.saveResource("resources/remove_shulker_head/resourcepack/assets/minecraft/shaders/core/rendertype_entity_solid.fsh");
-        plugin.saveResource("resources/remove_shulker_head/resourcepack/1_20_5_remove_shulker_head_overlay/minecraft/shaders/core/rendertype_entity_solid.fsh");
-        plugin.saveResource("resources/remove_shulker_head/resourcepack/assets/minecraft/textures/entity/shulker/shulker_white.png");
-        plugin.saveResource("resources/remove_shulker_head/pack.yml");
+    public void saveDefaultConfigs() throws IOException {
+        saveFileByIndexFile("resources");
+    }
 
-        // legacy armor
-        plugin.saveResource("resources/legacy_armor/configuration/chainmail.yml");
-        plugin.saveResource("resources/legacy_armor/pack.yml");
-
-        // internal
-        plugin.saveResource("resources/internal/pack.yml");
-        plugin.saveResource("resources/internal/configuration/fix_client_visual.yml");
-        plugin.saveResource("resources/internal/configuration/offset_chars.yml");
-        plugin.saveResource("resources/internal/configuration/gui.yml");
-        plugin.saveResource("resources/internal/configuration/mappings.yml");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/trims/entity/humanoid/chainmail.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/trims/entity/humanoid_leggings/chainmail.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/offset/space_split.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/item_browser.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/category.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/blasting.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/smoking.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/smelting.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/campfire.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/stonecutting_recipe.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/smithing_transform_recipe.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/cooking_recipe.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/crafting_recipe.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/brewing_recipe.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/font/gui/custom/no_recipe.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/get_item.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/next_page_0.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/next_page_1.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/previous_page_0.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/previous_page_1.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/return.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/exit.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/cooking_info.png");
-        plugin.saveResource("resources/internal/resourcepack/assets/minecraft/textures/item/custom/gui/cooking_info.png.mcmeta");
-
-        // default
-        plugin.saveResource("resources/default/pack.yml");
-        // pack meta
-        plugin.saveResource("resources/default/resourcepack/pack.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/pack.png");
-        // configs
-        plugin.saveResource("resources/default/configuration/templates/block_settings.yml");
-        plugin.saveResource("resources/default/configuration/templates/block_states.yml");
-        plugin.saveResource("resources/default/configuration/templates/models.yml");
-        plugin.saveResource("resources/default/configuration/templates/loot_tables.yml");
-        plugin.saveResource("resources/default/configuration/templates/recipes.yml");
-        plugin.saveResource("resources/default/configuration/templates/tool_levels.yml");
-        plugin.saveResource("resources/default/configuration/templates/events.yml");
-        plugin.saveResource("resources/default/configuration/categories.yml");
-        plugin.saveResource("resources/default/configuration/emoji.yml");
-        plugin.saveResource("resources/default/configuration/lang.yml");
-        plugin.saveResource("resources/default/configuration/items/cap.yml");
-        plugin.saveResource("resources/default/configuration/items/flame_elytra.yml");
-        plugin.saveResource("resources/default/configuration/items/gui_head.yml");
-        plugin.saveResource("resources/default/configuration/items/topaz_armor.yml");
-        plugin.saveResource("resources/default/configuration/items/topaz_tool_weapon.yml");
-        plugin.saveResource("resources/default/configuration/items/drill.yml");
-        plugin.saveResource("resources/default/configuration/furniture/bench.yml");
-        plugin.saveResource("resources/default/configuration/furniture/wooden_chair.yml");
-        plugin.saveResource("resources/default/configuration/furniture/flower_basket.yml");
-        plugin.saveResource("resources/default/configuration/furniture/globe.yml");
-        plugin.saveResource("resources/default/configuration/blocks/chessboard_block.yml");
-        plugin.saveResource("resources/default/configuration/blocks/chinese_lantern.yml");
-        plugin.saveResource("resources/default/configuration/blocks/copper_coil.yml");
-        plugin.saveResource("resources/default/configuration/blocks/ender_pearl_flower.yml");
-        plugin.saveResource("resources/default/configuration/blocks/fairy_flower.yml");
-        plugin.saveResource("resources/default/configuration/blocks/flame_cane.yml");
-        plugin.saveResource("resources/default/configuration/blocks/gunpowder_block.yml");
-        plugin.saveResource("resources/default/configuration/blocks/palm_tree.yml");
-        plugin.saveResource("resources/default/configuration/blocks/pebble.yml");
-        plugin.saveResource("resources/default/configuration/blocks/reed.yml");
-        plugin.saveResource("resources/default/configuration/blocks/safe_block.yml");
-        plugin.saveResource("resources/default/configuration/blocks/sofa.yml");
-        plugin.saveResource("resources/default/configuration/blocks/table_lamp.yml");
-        plugin.saveResource("resources/default/configuration/blocks/topaz_ore.yml");
-        plugin.saveResource("resources/default/configuration/blocks/netherite_anvil.yml");
-        plugin.saveResource("resources/default/configuration/blocks/amethyst_torch.yml");
-        plugin.saveResource("resources/default/configuration/blocks/hami_melon.yml");
-        plugin.saveResource("resources/default/configuration/blocks/magma_plant.yml");
-        // assets
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/font/image/emojis.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/chinese_lantern.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/chinese_lantern.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/chinese_lantern_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/chinese_lantern_top.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/netherite_anvil.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/netherite_anvil_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/solid_gunpowder_block.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/gunpowder_block.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/copper_coil.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/copper_coil_side.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/copper_coil_on.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/copper_coil_on_side.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/chessboard_block.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/safe_block_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/safe_block_bottom.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/safe_block_side.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/safe_block_front.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/safe_block_front_open.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/magma_plant.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/magma_plant.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/magma_fruit.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/magma_fruit.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_rod.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_rod_cast.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_bow.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_bow_pulling_0.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_bow_pulling_1.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_bow_pulling_2.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_crossbow_arrow.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_crossbow_firework.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_crossbow_pulling_0.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_crossbow_pulling_1.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_crossbow_pulling_2.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_crossbow.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_trident.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_trident_3d.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/entity/equipment/humanoid/topaz.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/entity/equipment/humanoid_leggings/topaz.png");
-        for (String item : List.of("helmet", "chestplate", "leggings", "boots", "pickaxe", "axe", "sword", "hoe", "shovel")) {
-            plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_" + item + ".png");
-            plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz_" + item + ".png.mcmeta");
+    private void saveFileByIndexFile(String path) throws IOException {
+        InputStream stream = this.plugin.resourceStream(path + "/_index.json");
+        if (stream == null) return;
+        try (InputStreamReader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+            JsonObject json = GsonHelper.get().fromJson(reader, JsonObject.class);
+            for (JsonElement directory : json.getAsJsonArray("directory")) {
+                saveFileByIndexFile(path + "/" + directory.getAsString());
+            }
+            for (JsonElement file : json.getAsJsonArray("file")) {
+                this.plugin.saveResource(path + "/" + file.getAsString());
+            }
         }
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/flame_elytra.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/flame_elytra_broken.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/entity/equipment/wings/flame_elytra.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/cap.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/cap.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/pebble.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/pebble.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/pebble_1.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/pebble_2.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/pebble_3.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/sleeper_sofa.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/sofa_inner.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/sofa.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/sofa.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/deepslate_topaz_ore.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/deepslate_topaz_ore.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/topaz_ore.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/topaz_ore.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/topaz.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_sapling.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_planks.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_log.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_log_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/stripped_palm_log.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/stripped_palm_log_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_leaves.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_trapdoor.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_door_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/palm_door_bottom.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/palm_door.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/fairy_flower_1.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/fairy_flower_2.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/fairy_flower_3.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/fairy_flower_4.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/reed.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/amethyst_torch.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/flame_cane_1.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/flame_cane_2.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/ender_pearl_flower_stage_0.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/ender_pearl_flower_stage_1.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/ender_pearl_flower_stage_2.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/fairy_flower.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/reed.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/flame_cane.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/ender_pearl_flower_seeds.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/fairy_flower_1.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/reed.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/topaz_trident_in_hand.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/topaz_trident_throwing.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/table_lamp.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/wooden_chair.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/bench.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/table_lamp.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/table_lamp_on.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/wooden_chair.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/bench.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/flower_basket_ceiling.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/flower_basket_ground.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/flower_basket_wall.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/globe.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/globe_base.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/item/custom/globe_earth.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/flower_basket.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/flower_basket_2d.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/drill.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/drill_selected.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/drill_selected.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/gui/sprites/tooltip/topaz_background.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/gui/sprites/tooltip/topaz_background.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/gui/sprites/tooltip/topaz_frame.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/gui/sprites/tooltip/topaz_frame.png.mcmeta");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/hami_melon.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/hami_melon_bottom.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/block/custom/hami_melon_top.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/hami_melon_slice.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/hami_melon_seeds.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/textures/item/custom/globe.png");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/fence_side.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/magma_plant_stage_0.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/magma_plant_stage_1.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/magma_plant_stage_2.json");
-        plugin.saveResource("resources/default/resourcepack/assets/minecraft/models/block/custom/magma_plant_stage_3.json");
     }
 
     @Override
@@ -681,38 +474,39 @@ public abstract class AbstractPackManager implements PackManager {
                                 if (cachedFile != null && cachedFile.lastModified() == lastModifiedTime && cachedFile.size() == size) {
                                     AbstractPackManager.this.cachedConfigFiles.put(path, cachedFile);
                                 } else {
-                                    try (InputStreamReader inputStream = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
-                                        LoaderOptions loaderOptions = new LoaderOptions();
-                                        loaderOptions.setNestingDepthLimit(256);
-                                        Yaml yaml = new Yaml(new StringKeyConstructor(path, loaderOptions));
-                                        Map<String, Object> data = yaml.load(inputStream);
-                                        if (data == null)  return FileVisitResult.CONTINUE;
-                                        cachedFile = new CachedConfigFile(data, pack, lastModifiedTime, size);
-                                        AbstractPackManager.this.cachedConfigFiles.put(path, cachedFile);
+                                    Yaml yaml = new Yaml(new StringKeyConstructor(path, new LoaderOptions()));
+                                    Map<String, Object> data;
+                                    try {
+                                        String content = Files.readString(path);
+                                        try {
+                                            data = yaml.load(content);
+                                        } catch (ScannerException e1) {
+                                            if (e1.getMessage() != null && e1.getMessage().contains("TAB") && e1.getMessage().contains("indentation")) {
+                                                try {
+                                                    content = content.replace("\t", "    ");
+                                                    data = yaml.load(content);
+                                                    Files.writeString(path, content);
+                                                } catch (ScannerException e2) {
+                                                    AbstractPackManager.this.plugin.logger().severe("Error found while reading config file: " + path, e1);
+                                                    return FileVisitResult.CONTINUE;
+                                                }
+                                            } else {
+                                                AbstractPackManager.this.plugin.logger().severe("Error found while reading config file: " + path, e1);
+                                                return FileVisitResult.CONTINUE;
+                                            }
+                                        }
                                     } catch (IOException e) {
                                         AbstractPackManager.this.plugin.logger().severe("Error while reading config file: " + path, e);
-                                        return FileVisitResult.CONTINUE;
-                                    } catch (ScannerException e) {
-                                        if (e.getMessage() != null && e.getMessage().contains("TAB") && e.getMessage().contains("indentation")) {
-                                            try {
-                                                String content = Files.readString(path);
-                                                content = content.replace("\t", "    ");
-                                                Files.writeString(path, content);
-                                            } catch (Exception ex) {
-                                                AbstractPackManager.this.plugin.logger().severe("Failed to fix tab indentation in config file: " + path, ex);
-                                            }
-                                        } else {
-                                            AbstractPackManager.this.plugin.logger().severe("Error found while reading config file: " + path, e);
-                                        }
                                         return FileVisitResult.CONTINUE;
                                     } catch (ParserException e) {
                                         AbstractPackManager.this.plugin.logger().severe("Invalid YAML file found: " + path + ".\n" + e.getMessage() + "\nIt is recommended to use Visual Studio Code as your YAML editor to fix problems more quickly.");
                                         return FileVisitResult.CONTINUE;
-                                    } catch (LocalizedException e) {
-                                        e.setArgument(0, path.toString());
-                                        TranslationManager.instance().log(e.node(), e.arguments());
+                                    }
+                                    if (data == null) {
                                         return FileVisitResult.CONTINUE;
                                     }
+                                    cachedFile = new CachedConfigFile(data, pack, lastModifiedTime, size);
+                                    AbstractPackManager.this.cachedConfigFiles.put(path, cachedFile);
                                 }
                                 for (Map.Entry<String, Object> entry : cachedFile.config().entrySet()) {
                                     processConfigEntry(entry, path, cachedFile.pack(), ConfigParser::addConfig);
@@ -749,20 +543,33 @@ public abstract class AbstractPackManager implements PackManager {
                         }
                     });
                 } catch (IOException e) {
-                    this.plugin.logger().severe("Error while reading config file", e);
+                    this.plugin.logger().severe("Error while reading config files under " + configurationFolderPath, e);
                 }
             }
         }
     }
 
-    private void loadResourceConfigs(Predicate<ConfigParser> predicate) {
+    private int loadResourceConfigs(Predicate<ConfigParser> predicate) {
         LoadingPyramid pyramid = new LoadingPyramid();
+        Map<Path, List<ResourceException>> errorByPath = new ConcurrentHashMap<>();
         for (ConfigParser parser : this.parsers) {
             if (!predicate.test(parser)) {
                 continue;
             }
             pyramid.addTask(parser.loadingStage(), parser.dependencies(), () -> {
                 long t1 = System.nanoTime();
+                parser.setErrorHandler(e -> {
+                    // 处理当前异常
+                    errorByPath.computeIfAbsent(e.filePath(), k -> Collections.synchronizedList(new ArrayList<>(4))).add(e);
+                    // 递归处理cause链
+                    Throwable cause = e.getCause();
+                    while (cause != null) {
+                        if (cause instanceof ResourceException innerE) {
+                            errorByPath.computeIfAbsent(innerE.filePath(), k -> Collections.synchronizedList(new ArrayList<>(4))).add(innerE);
+                        }
+                        cause = cause.getCause();
+                    }
+                });
                 parser.preProcess();
                 parser.loadAll();
                 parser.postProcess();
@@ -771,11 +578,27 @@ public abstract class AbstractPackManager implements PackManager {
                 if (parser.silentIfNotExists() && count == 0) {
                     return;
                 }
-                this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource.load",
+                this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource.config_loaded",
                        parser.loadingStage().name(), String.format("%.2f", ((t2 - t1) / 1_000_000.0)), String.valueOf(count)));
             });
         }
         pyramid.execute().join();
+        int issueCount = 0;
+        for (Map.Entry<Path, List<ResourceException>> entry : errorByPath.entrySet()) {
+            List<ResourceException> issues = entry.getValue();
+            issueCount += issues.size();
+            Path path = entry.getKey();
+            this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detected", String.valueOf(path), String.valueOf(issues.size())));
+            for (int i = 0; i < issues.size(); i++) {
+                ResourceException issue = issues.get(i);
+                if (issue instanceof KnownResourceException) {
+                    this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
+                } else if (issue instanceof UnknownResourceException) {
+                    this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), TranslationManager.instance().plainTranslation("resource.unknown_error")), issue.getCause());
+                }
+            }
+        }
+        return issueCount;
     }
 
     @Override
@@ -786,20 +609,20 @@ public abstract class AbstractPackManager implements PackManager {
     }
 
     private void processConfigEntry(Map.Entry<String, Object> entry, Path path, Pack pack, BiConsumer<ConfigParser, CachedConfigSection> callback) {
-        if (entry.getValue() instanceof Map<?,?> typeSections0) {
+        if (entry.getValue() instanceof Map<?,?> m) {
             String key = entry.getKey();
             int hashIndex = key.indexOf('#');
             String configType = hashIndex != -1 ? key.substring(0, hashIndex) : key;
-            Optional.ofNullable(this.sectionParsers.get(configType))
-                    .ifPresent(parser -> {
-                        callback.accept(parser, new CachedConfigSection(key, castToMap(typeSections0, false), path, pack));
-                    });
+            ConfigParser parser = this.sectionParsers.get(configType);
+            if (parser != null) {
+                callback.accept(parser, new CachedConfigSection(pack, path, ConfigSection.of(key, MiscUtils.castToMap(m))));
+            }
         }
     }
 
     @Override
     public void generateResourcePack() {
-        this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.generate.start"));
+        this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.generation_started"));
         long time1 = System.currentTimeMillis();
 
         // Create cache data
@@ -812,7 +635,7 @@ public abstract class AbstractPackManager implements PackManager {
             Path generatedPackPath = fs.getPath("resource_pack");
             List<Pair<String, List<Path>>> duplicated = this.updateCachedAssets(cacheData, fs);
             if (!duplicated.isEmpty()) {
-                this.plugin.logger().severe(AdventureHelper.miniMessage().stripTags(TranslationManager.instance().miniMessageTranslation("warning.config.pack.duplicated_files")));
+                this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource_pack.duplicated_files"));
                 int x = 1;
                 for (Pair<String, List<Path>> path : duplicated) {
                     this.plugin.logger().warn("[ " + (x++) + " ] " + path.left());
@@ -852,26 +675,29 @@ public abstract class AbstractPackManager implements PackManager {
                 this.removeAllShaders(generatedPackPath);
             }
             long time2 = System.currentTimeMillis();
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.generate.finish", String.valueOf(time2 - time1)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.generation_finished", String.valueOf(time2 - time1)));
+
             // 校验资源包
             if (Config.validateResourcePack()) {
                 this.validateResourcePack(generatedPackPath, packMcMeta);
             }
             long time3 = System.currentTimeMillis();
             if (Config.validateResourcePack()) {
-                this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.validate.finish", String.valueOf(time3 - time2)));
+                this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.validation_finished", String.valueOf(time3 - time2)));
             }
+
             // 验证完成后，应该重新校验pack.mcmeta并写入
             this.validatePackMetadata(generatedPackPath.resolve("pack.mcmeta"), packMcMeta);
+
             // 优化资源包
             if (Config.optimizeResourcePack()) {
                 this.optimizeResourcePack(generatedPackPath);
             }
             long time4 = System.currentTimeMillis();
             if (Config.optimizeResourcePack()) {
-                this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.finish", String.valueOf(time4 - time3)));
+                this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.optimization_finished", String.valueOf(time4 - time3)));
             }
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.create.start"));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.compression_started"));
             Path finalPath = resourcePackPath();
             Files.createDirectories(finalPath.getParent());
             if (VersionHelper.PREMIUM && Config.createUnprotectedCopy()) {
@@ -888,7 +714,7 @@ public abstract class AbstractPackManager implements PackManager {
                 this.plugin.logger().severe("Error creating resource pack", e);
             }
             long time5 = System.currentTimeMillis();
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.create.finish", String.valueOf(time5 - time4)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.compression_finished", String.valueOf(time5 - time4)));
             this.generationEventDispatcher.accept(generatedPackPath, finalPath);
         } catch (IOException e) {
             this.plugin.logger().severe("Error generating resource pack", e);
@@ -1164,7 +990,7 @@ public abstract class AbstractPackManager implements PackManager {
         }
 
         if (Config.optimizeJson()) {
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.json"));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.json_optimization_started"));
             AtomicLong previousBytes = new AtomicLong(0L);
             AtomicLong afterBytes = new AtomicLong(0L);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -1231,11 +1057,11 @@ public abstract class AbstractPackManager implements PackManager {
             long originalSize = previousBytes.get();
             long optimizedSize = afterBytes.get();
             double compressionRatio = ((double) optimizedSize / originalSize) * 100;
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
         }
 
         if (Config.optimizeTexture()) {
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.texture"));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.optimize.texture"));
             AtomicLong previousBytes = new AtomicLong(0L);
             AtomicLong afterBytes = new AtomicLong(0L);
             List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -1277,7 +1103,7 @@ public abstract class AbstractPackManager implements PackManager {
             long originalSize = previousBytes.get();
             long optimizedSize = afterBytes.get();
             double compressionRatio = ((double) optimizedSize / originalSize) * 100;
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.optimize.result", formatSize(originalSize), formatSize(optimizedSize), String.format("%.2f%%", compressionRatio)));
         }
     }
 
@@ -1390,7 +1216,7 @@ public abstract class AbstractPackManager implements PackManager {
                     }
                 }
             }
-            this.plugin.logger().info(TranslationManager.instance().translateLog("info.resource_pack.validate.start",
+            this.plugin.logger().info(TranslationManager.instance().plainTranslation("resource_pack.validation_started",
                     String.valueOf(i + 1), String.valueOf(size), String.valueOf(segment.min()), String.valueOf(segment.max()), overlayInOrder.stream().map(Overlay::directory).toList().toString()));
             ValidationResult result = validateOverlayedResourcePack(rootPathList.toArray(new Path[0]), segment.max() >= MinecraftVersion.V1_21_11.packFormat().major(), fixedModels);
             if (Config.fixTextureAtlas() && !Config.enableObfuscation()) {
@@ -1611,7 +1437,7 @@ public abstract class AbstractPackManager implements PackManager {
                                 try {
                                     itemJson = GsonHelper.readJsonFile(file).getAsJsonObject();
                                 } catch (IOException | JsonParseException e) {
-                                    TranslationManager.instance().log("warning.config.resource_pack.generation.malformatted_json", file.toAbsolutePath().toString());
+                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
                                     return FileVisitResult.CONTINUE;
                                 }
                                 Key item = Key.of(namespace, FileUtils.pathWithoutExtension(file.getFileName().toString()));
@@ -1636,7 +1462,7 @@ public abstract class AbstractPackManager implements PackManager {
                                 try {
                                     blockStateJson = GsonHelper.readJsonFile(file).getAsJsonObject();
                                 } catch (IOException | JsonParseException e) {
-                                    TranslationManager.instance().log("warning.config.resource_pack.generation.malformatted_json", file.toAbsolutePath().toString());
+                                    AbstractPackManager.this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource_pack.malformatted_json", file.toAbsolutePath().toString()));
                                     return FileVisitResult.CONTINUE;
                                 }
                                 String blockId = FileUtils.pathWithoutExtension(file.getFileName().toString());
@@ -2894,7 +2720,7 @@ public abstract class AbstractPackManager implements PackManager {
     }
 
     private void generateClientLang(Path generatedPackPath) {
-        for (Map.Entry<String, LangData> entry : this.plugin.translationManager().clientLangData().entrySet()) {
+        for (Map.Entry<String, ClientLangData> entry : this.plugin.translationManager().clientLangData().entrySet()) {
             Path langPath = generatedPackPath
                     .resolve("assets")
                     .resolve("minecraft")
@@ -3184,7 +3010,7 @@ public abstract class AbstractPackManager implements PackManager {
                     firstBaseModel = legacyOverridesModels.getFirst();
                 }
 
-                itemJson.addProperty("parent", firstBaseModel.model());
+                itemJson.addProperty("parent", firstBaseModel.model().asMinimalString());
                 if (!overrideJsons.isEmpty()) {
                     JsonArray overrides = new JsonArray();
                     for (JsonObject override : overrideJsons) {
@@ -3603,8 +3429,8 @@ public abstract class AbstractPackManager implements PackManager {
         return this.parser;
     }
 
-    public static class SkipOptimizationParser extends SectionConfigParser {
-        private static final String[] SECTION_ID = new String[] {"skip-optimization"};
+    public static final class SkipOptimizationParser extends SectionConfigParser {
+        private static final String[] SECTION_ID = new String[] {"skip-optimization", "skip_optimization"};
         private final Set<String> excludeTexture = new HashSet<>();
         private final Set<String> excludeJson = new HashSet<>();
 
@@ -3635,7 +3461,7 @@ public abstract class AbstractPackManager implements PackManager {
         }
 
         @Override
-        protected void parseSection(Pack pack, Path path, Map<String, Object> section) throws LocalizedException {
+        protected void parseSection(Pack pack, Path path, ConfigSection section) throws LocalizedException {
             if (!Config.optimizeResourcePack()) return;
             List<String> textures = MiscUtils.getAsStringList(section.get("texture"));
             if (!textures.isEmpty()) {

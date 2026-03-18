@@ -1,10 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.rangedisptach;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
 
 public final class NormalizeRangeDispatchProperty implements RangeDispatchProperty {
     public static final RangeDispatchPropertyFactory<NormalizeRangeDispatchProperty> FACTORY = new Factory();
@@ -35,19 +33,21 @@ public final class NormalizeRangeDispatchProperty implements RangeDispatchProper
 
     private static class Factory implements RangeDispatchPropertyFactory<NormalizeRangeDispatchProperty> {
         @Override
-        public NormalizeRangeDispatchProperty create(Map<String, Object> arguments) {
-            Key type = Key.of(arguments.get("property").toString());
-            boolean normalize = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("normalize", true), "normalize");
-            return new NormalizeRangeDispatchProperty(type, normalize);
+        public NormalizeRangeDispatchProperty create(ConfigSection section) {
+            return new NormalizeRangeDispatchProperty(
+                    section.getNonNullIdentifier("property"),
+                    section.getBoolean("normalize", true)
+            );
         }
     }
 
     private static class Reader implements RangeDispatchPropertyReader<NormalizeRangeDispatchProperty> {
         @Override
         public NormalizeRangeDispatchProperty read(JsonObject json) {
-            Key type = Key.of(json.get("property").toString());
-            boolean normalize = !json.has("normalize") || json.get("normalize").getAsBoolean();
-            return new NormalizeRangeDispatchProperty(type, normalize);
+            return new NormalizeRangeDispatchProperty(
+                    Key.of(json.get("property").toString()),
+                    !json.has("normalize") || json.get("normalize").getAsBoolean()
+            );
         }
     }
 }

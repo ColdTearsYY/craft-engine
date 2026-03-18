@@ -1,14 +1,13 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
-import net.momirealms.craftengine.core.block.UpdateFlags;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.ExistingBlock;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -18,14 +17,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class UpdateBlockPropertyFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
+public final class UpdateBlockPropertyFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final CompoundTag properties;
     private final NumberProvider x;
     private final NumberProvider y;
     private final NumberProvider z;
     private final NumberProvider updateFlags;
 
-    public UpdateBlockPropertyFunction(List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider updateFlags, CompoundTag properties) {
+    private UpdateBlockPropertyFunction(List<Condition<CTX>> predicates, NumberProvider x, NumberProvider y, NumberProvider z, NumberProvider updateFlags, CompoundTag properties) {
         super(predicates);
         this.properties = properties;
         this.x = x;
@@ -48,24 +47,32 @@ public class UpdateBlockPropertyFunction<CTX extends Context> extends AbstractCo
         }
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, UpdateBlockPropertyFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, UpdateBlockPropertyFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, UpdateBlockPropertyFunction<CTX>> {
+        private static final String[] UPDATE_FLAGS = new String[] {"update_flags", "update-flags"};
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public UpdateBlockPropertyFunction<CTX> create(Map<String, Object> arguments) {
-            Map<String, Object> state = ResourceConfigUtils.getAsMap(ResourceConfigUtils.requireNonNullOrThrow(arguments.get("properties"), "warning.config.function.update_block_property.missing_properties"), "properties");
+        public UpdateBlockPropertyFunction<CTX> create(ConfigSection section) {
+            ConfigSection propertiesSection = section.getNonNullSection("properties");
             CompoundTag properties = new CompoundTag();
-            for (Map.Entry<String, Object> entry : state.entrySet()) {
+            for (Map.Entry<String, Object> entry : propertiesSection.values().entrySet()) {
                 properties.putString(entry.getKey(), String.valueOf(entry.getValue()));
             }
-            return new UpdateBlockPropertyFunction<>(getPredicates(arguments), NumberProviders.fromObject(arguments.getOrDefault("x", "<arg:position.x>")), NumberProviders.fromObject(arguments.getOrDefault("y", "<arg:position.y>")), NumberProviders.fromObject(arguments.getOrDefault("z", "<arg:position.z>")), Optional.ofNullable(arguments.get("update-flags")).map(NumberProviders::fromObject).orElse(NumberProviders.direct(UpdateFlags.UPDATE_ALL)), properties);
+            return new UpdateBlockPropertyFunction<>(
+                    getPredicates(section),
+                    section.getNumber("x", ConfigConstants.POSITION_X),
+                    section.getNumber("y", ConfigConstants.POSITION_Y),
+                    section.getNumber("z", ConfigConstants.POSITION_Z),
+                    section.getNumber(UPDATE_FLAGS, ConfigConstants.UPDATE_ALL),
+                    properties
+            );
         }
     }
 }

@@ -17,5 +17,4 @@ public interface ModPacket {
     static <B extends ByteBuf, T extends ModPacket> NetworkCodec<B, T> codec(NetworkMemberEncoder<B, T> networkMemberEncoder, NetworkDecoder<B, T> networkDecoder) {
         return NetworkCodec.ofMember(networkMemberEncoder, networkDecoder);
     }
-
 }

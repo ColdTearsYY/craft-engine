@@ -310,6 +310,9 @@ public interface BlockBehaviourProxy {
         @MethodInvoker(name = "updateNeighbourShapes")
         void updateNeighbourShapes(Object target, @Type(clazz = LevelAccessorProxy.class) Object world, @Type(clazz = BlockPosProxy.class) Object pos, int flags, int maxUpdateDepth);
 
+        @MethodInvoker(name = "hasBlockEntity")
+        boolean hasBlockEntity(Object target);
+
         @ReflectionProxy(name = "net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase$Cache")
         interface CacheProxy {
             CacheProxy INSTANCE = ASMProxyFactory.create(CacheProxy.class);

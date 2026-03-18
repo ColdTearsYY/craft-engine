@@ -7,30 +7,29 @@ import org.jetbrains.annotations.ApiStatus;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public class LegacyIngredient<I> {
-    private final Item<I>[] items;
+public final class LegacyIngredient {
+    private final Item[] items;
 
-    public LegacyIngredient(Item<I>[] items) {
+    public LegacyIngredient(Item[] items) {
         this.items = items;
     }
 
-    public Item<I>[] items() {
-        return items;
+    public Item[] items() {
+        return this.items;
     }
 
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeArray(this.items, writer);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static <I> LegacyIngredient<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item<I>> reader) {
-        Item[] items = buf.readArray((FriendlyByteBuf.Reader) reader, Item.class);
+    public static LegacyIngredient read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
+        Item[] items = buf.readArray(reader, Item.class);
         return new LegacyIngredient(items);
     }
 
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
+    public void applyClientboundData(Function<Item, Item> function) {
         for (int i = 0; i < this.items.length; i++) {
-            Item<I> item = this.items[i];
+            Item item = this.items[i];
             this.items[i] = function.apply(item);
         }
     }

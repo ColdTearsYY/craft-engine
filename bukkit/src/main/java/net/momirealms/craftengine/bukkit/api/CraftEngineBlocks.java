@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.bukkit.api;
 
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
-import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
@@ -35,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 public final class CraftEngineBlocks {
-
     private CraftEngineBlocks() {}
 
     /**
@@ -163,59 +161,6 @@ public final class CraftEngineBlocks {
     }
 
     /**
-     * Place a custom block with given properties
-     *
-     * @param location location
-     * @param blockId block owner id
-     * @param properties properties
-     * @param option update options
-     * @param playSound whether to play place sounds
-     * @return success or not
-     */
-    @SuppressWarnings("removal")
-    @Deprecated(forRemoval = true)
-    public static boolean place(@NotNull Location location,
-                                @NotNull Key blockId,
-                                @NotNull CompoundTag properties,
-                                @NotNull net.momirealms.craftengine.core.block.UpdateOption option,
-                                boolean playSound) {
-        CustomBlock block = byId(blockId);
-        if (block == null) return false;
-        return place(location, block.getBlockState(properties), option, playSound);
-    }
-
-    /**
-     * Places a custom block state at a certain location
-     *
-     * @param location location
-     * @param block block state to place
-     * @param option update options
-     * @param playSound whether to play place sounds
-     * @return success or not
-     */
-    @SuppressWarnings("removal")
-    @Deprecated(forRemoval = true)
-    public static boolean place(@NotNull Location location,
-                                @NotNull ImmutableBlockState block,
-                                @NotNull net.momirealms.craftengine.core.block.UpdateOption option,
-                                boolean playSound) {
-        boolean success;
-        Object worldServer = CraftWorldProxy.INSTANCE.getWorld(location.getWorld());
-        Object blockPos = BlockPosProxy.INSTANCE.newInstance(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-        Object blockState = block.customBlockState().literalObject();
-        Object oldBlockState = BlockGetterProxy.INSTANCE.getBlockState(worldServer, blockPos);
-        success = LevelWriterProxy.INSTANCE.setBlock(worldServer, blockPos, blockState, option.flags());
-        if (success) {
-            BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.onPlace(blockState, worldServer, blockPos, oldBlockState, false);
-            if (playSound) {
-                SoundData data = block.settings().sounds().placeSound();
-                location.getWorld().playSound(location, data.id().toString(), SoundCategory.BLOCKS, data.volume().get(), data.pitch().get());
-            }
-        }
-        return success;
-    }
-
-    /**
      * Removes a block from the world if it's custom
      *
      * @param block block to remove
@@ -256,7 +201,7 @@ public final class CraftEngineBlocks {
                                  boolean sendLevelEvent) {
         ImmutableBlockState state = getCustomBlockState(block);
         if (state == null || state.isEmpty()) return false;
-        World world = BukkitAdaptors.adapt(block.getWorld());
+        World world = BukkitAdaptor.adapt(block.getWorld());
         Location location = block.getLocation();
         WorldPosition position = new WorldPosition(world, location.getBlockX() + 0.5, location.getBlockY() + 0.5, location.getBlockZ() + 0.5);
         if (dropLoot) {
@@ -264,10 +209,10 @@ public final class CraftEngineBlocks {
                     .withParameter(DirectContextParameters.POSITION, position);
             BukkitServerPlayer serverPlayer = null;
             if (player != null) {
-                serverPlayer = BukkitCraftEngine.instance().adapt(player);
+                serverPlayer = BukkitAdaptor.adapt(player);
                 builder.withOptionalParameter(DirectContextParameters.PLAYER, serverPlayer);
             }
-            for (Item<?> item : state.getDrops(builder, world, serverPlayer)) {
+            for (Item item : state.getDrops(builder, world, serverPlayer)) {
                 world.dropItemNaturally(position, item);
             }
         }

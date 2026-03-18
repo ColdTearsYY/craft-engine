@@ -7,7 +7,7 @@ import net.momirealms.craftengine.core.util.Key;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SimplifiedModelFile {
+public final class SimplifiedModelFile {
     public final Key parent;
     public final Map<String, Key> textures;
 

@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.pack;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.event.AsyncResourcePackCacheEvent;
 import net.momirealms.craftengine.bukkit.api.event.AsyncResourcePackGenerateEvent;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public class BukkitPackManager extends AbstractPackManager implements Listener {
+public final class BukkitPackManager extends AbstractPackManager implements Listener {
     private final BukkitCraftEngine plugin;
 
     public BukkitPackManager(BukkitCraftEngine plugin) {
@@ -56,7 +56,7 @@ public class BukkitPackManager extends AbstractPackManager implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (Config.sendPackOnJoin() && !VersionHelper.isOrAbove1_20_2()) {
-            Player player = BukkitAdaptors.adapt(event.getPlayer());
+            Player player = BukkitAdaptor.adapt(event.getPlayer());
             // 可能有假人
             if (player == null) return;
             this.sendResourcePack(player);
@@ -95,7 +95,7 @@ public class BukkitPackManager extends AbstractPackManager implements Listener {
                 return;
             }
             if (!Config.sendPackOnUpload()) return;
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.resource_pack.upload"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.resource_pack.upload"));
             for (BukkitServerPlayer player : this.plugin.networkManager().onlineUsers()) {
                 sendResourcePack(player);
             }

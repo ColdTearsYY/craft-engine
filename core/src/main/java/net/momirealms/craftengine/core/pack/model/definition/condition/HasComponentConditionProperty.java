@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class HasComponentConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<HasComponentConditionProperty> FACTORY = new Factory();
@@ -34,20 +32,24 @@ public final class HasComponentConditionProperty implements ConditionProperty {
     }
 
     private static class Factory implements ConditionPropertyFactory<HasComponentConditionProperty> {
+        private static final String[] IGNORE_DEFAULT = new String[]{"ignore_default", "ignore-default"};
+
         @Override
-        public HasComponentConditionProperty create(Map<String, Object> arguments) {
-            boolean ignoreDefault = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("ignore-default", false), "ignore-default");
-            String componentObj = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("component"), "warning.config.item.model.condition.has_component.missing_component");
-            return new HasComponentConditionProperty(componentObj, ignoreDefault);
+        public HasComponentConditionProperty create(ConfigSection section) {
+            return new HasComponentConditionProperty(
+                    section.getNonNullString("component"),
+                    section.getBoolean(IGNORE_DEFAULT)
+            );
         }
     }
 
     private static class Reader implements ConditionPropertyReader<HasComponentConditionProperty> {
         @Override
         public HasComponentConditionProperty read(JsonObject json) {
-            String component = json.get("component").getAsString();
-            boolean ignoreDefault = json.has("ignore_default") && json.get("ignore_default").getAsBoolean();
-            return new HasComponentConditionProperty(component, ignoreDefault);
+            return new HasComponentConditionProperty(
+                    json.get("component").getAsString(),
+                    json.has("ignore_default") && json.get("ignore_default").getAsBoolean()
+            );
         }
     }
 }

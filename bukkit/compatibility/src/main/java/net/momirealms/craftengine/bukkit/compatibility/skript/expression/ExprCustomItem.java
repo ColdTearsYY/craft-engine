@@ -11,11 +11,10 @@ import ch.njol.skript.lang.SkriptParser;
 import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.util.Kleenean;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
-import net.momirealms.craftengine.core.item.CustomItem;
+import net.momirealms.craftengine.bukkit.item.BukkitCustomItem;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.event.Event;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -39,16 +38,15 @@ public final class ExprCustomItem extends SimpleExpression<ItemType> {
     }
 
     @Override
-    @Nullable
     protected ItemType[] get(Event event) {
         Object[] objects = itemIds.getArray(event);
         List<ItemType> items = new ArrayList<>();
 
         for (Object object : objects) {
             if (object instanceof String string) {
-                CustomItem<ItemStack> customItem = CraftEngineItems.byId(Key.of(string));
+                BukkitCustomItem customItem = CraftEngineItems.byId(Key.of(string));
                 if (customItem != null) {
-                    ItemType itemType = new ItemType(customItem.buildItemStack(ItemBuildContext.empty()));
+                    ItemType itemType = new ItemType(customItem.buildBukkitItem(ItemBuildContext.empty(), 1));
                     items.add(itemType);
                 }
             }

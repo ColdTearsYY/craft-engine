@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.item.behavior;
 
+import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.util.DirectionUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
@@ -7,11 +8,13 @@ import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
+import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockHitResult;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -71,18 +74,17 @@ public final class LiquidCollisionBlockItemBehavior extends BlockItemBehavior {
     }
 
     private static class Factory implements ItemBehaviorFactory<LiquidCollisionBlockItemBehavior> {
+        private static final String[] Y_OFFSET = new String[]{"y_offset", "y-offset"};
+
         @Override
-        public LiquidCollisionBlockItemBehavior create(Pack pack, Path path, String node, Key key, Map<String, Object> arguments) {
-            Object id = arguments.get("block");
-            if (id == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.behavior.liquid_collision.missing_block", new IllegalArgumentException("Missing required parameter 'block' for liquid_collision_block_item behavior"));
-            }
-            int offset = ResourceConfigUtils.getAsInt(arguments.getOrDefault("y-offset", 1), "y-offset");
-            if (id instanceof Map<?, ?> map) {
-                addPendingSection(pack, path, node, key, map);
+        public LiquidCollisionBlockItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
+            int offset = section.getInt(Y_OFFSET, 1);
+            ConfigValue blockValue = section.getNonNullValue("block", ConfigConstants.ARGUMENT_SECTION);
+            if (blockValue.is(Map.class)) {
+                BukkitBlockManager.instance().blockParser().addPendingConfigSection(new PendingConfigSection(pack, path, key, blockValue.getAsSection()));
                 return new LiquidCollisionBlockItemBehavior(key, offset);
             } else {
-                return new LiquidCollisionBlockItemBehavior(Key.of(id.toString()), offset);
+                return new LiquidCollisionBlockItemBehavior(blockValue.getAsIdentifier(), offset);
             }
         }
     }

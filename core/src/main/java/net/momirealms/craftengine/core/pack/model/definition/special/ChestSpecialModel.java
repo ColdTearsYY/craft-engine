@@ -2,12 +2,11 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.util.MiscUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class ChestSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<ChestSpecialModel> FACTORY = new Factory();
@@ -46,21 +45,21 @@ public final class ChestSpecialModel implements SpecialModel {
 
     private static class Factory implements SpecialModelFactory<ChestSpecialModel> {
         @Override
-        public ChestSpecialModel create(Map<String, Object> arguments) {
-            float openness = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("openness", 0), "openness");
-            String texture = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("texture"), "warning.config.item.model.special.chest.missing_texture");
-            if (openness > 1 || openness < 0) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.special.chest.invalid_openness", String.valueOf(openness));
-            }
-            return new ChestSpecialModel(texture, openness);
+        public ChestSpecialModel create(ConfigSection section) {
+            return new ChestSpecialModel(
+                    section.getNonNullIdentifier("texture").asMinimalString(),
+                    MiscUtils.clamp(section.getFloat("openness"), 0f, 1f)
+            );
         }
     }
 
     private static class Reader implements SpecialModelReader<ChestSpecialModel> {
         @Override
         public ChestSpecialModel read(JsonObject json) {
-            float openness = json.has("openness") ? json.get("openness").getAsFloat() : 0;
-            return new ChestSpecialModel(json.get("texture").getAsString(), openness);
+            return new ChestSpecialModel(
+                    json.get("texture").getAsString(),
+                    json.has("openness") ? json.get("openness").getAsFloat() : 0
+            );
         }
     }
 }

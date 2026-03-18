@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.entity.data.BaseEntityData;
@@ -11,8 +11,8 @@ import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
@@ -24,18 +24,21 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelReaderProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.FallingBlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.dimension.DimensionTypeProxy;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
-public class FallingBlockBehavior extends BukkitBlockBehavior {
+public final class FallingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<FallingBlockBehavior> FACTORY = new Factory();
-    private final float hurtAmount;
-    private final int maxHurt;
-    private final SoundData landSound;
-    private final SoundData destroySound;
+    public final float hurtAmount;
+    public final int maxHurt;
+    public final SoundData landSound;
+    public final SoundData destroySound;
 
-    public FallingBlockBehavior(CustomBlock block, float hurtAmount, int maxHurt, SoundData landSound, SoundData destroySound) {
+    public FallingBlockBehavior(CustomBlock block,
+                                float hurtAmount,
+                                int maxHurt,
+                                SoundData landSound,
+                                SoundData destroySound) {
         super(block);
         this.hurtAmount = hurtAmount;
         this.maxHurt = maxHurt;
@@ -89,12 +92,12 @@ public class FallingBlockBehavior extends BukkitBlockBehavior {
     public void onBrokenAfterFall(Object thisBlock, Object[] args) {
         Object level = args[0];
         Object fallingBlockEntity = args[2];
-        BukkitEntity entity = BukkitAdaptors.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlockEntity));
+        BukkitEntity entity = BukkitAdaptor.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlockEntity));
         if (!entity.getEntityData(BaseEntityData.Silent)) {
             Object blockState = FallingBlockEntityProxy.INSTANCE.getBlockState(fallingBlockEntity);
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(blockState);
             if (optionalCustomState.isEmpty()) return;
-            net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+            net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             WorldPosition position = new WorldPosition(world, EntityProxy.INSTANCE.getXo(fallingBlockEntity), EntityProxy.INSTANCE.getYo(fallingBlockEntity), EntityProxy.INSTANCE.getZo(fallingBlockEntity));
             if (this.destroySound != null) {
                 world.playBlockSound(position, this.destroySound);
@@ -107,13 +110,13 @@ public class FallingBlockBehavior extends BukkitBlockBehavior {
         Object fallingBlock = args[4];
         Object level = args[0];
         Object pos = args[1];
-        BukkitEntity entity = BukkitAdaptors.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlock));
+        BukkitEntity entity = BukkitAdaptor.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlock));
         Object blockState = args[2];
         int stateId = BlockStateUtils.blockStateToId(blockState);
         ImmutableBlockState immutableBlockState = BukkitBlockManager.instance().getImmutableBlockState(stateId);
         if (immutableBlockState == null || immutableBlockState.isEmpty()) return;
         if (!entity.getEntityData(BaseEntityData.Silent)) {
-            net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+            net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             if (this.landSound != null) {
                 world.playBlockSound(Vec3d.atCenterOf(LocationUtils.fromBlockPos(pos)), this.landSound);
             }
@@ -121,20 +124,25 @@ public class FallingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<FallingBlockBehavior> {
+        private static final String[] HURT_AMOUNT = new String[] {"hurt_amount", "hurt-amount"};
+        private static final String[] MAX_HURT = new String[] {"max_hurt", "max-hurt"};
 
-        @SuppressWarnings("unchecked")
         @Override
-        public FallingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            float hurtAmount = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("hurt-amount", -1f), "hurt-amount");
-            int hurtMax = ResourceConfigUtils.getAsInt(arguments.getOrDefault("max-hurt", -1), "max-hurt");
-            Map<String, Object> sounds = (Map<String, Object>) arguments.get("sounds");
-            SoundData fallSound = null;
+        public FallingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
+            SoundData landSound = null;
             SoundData destroySound = null;
-            if (sounds != null) {
-                fallSound = Optional.ofNullable(sounds.get("land")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
-                destroySound = Optional.ofNullable(sounds.get("destroy")).map(obj -> SoundData.create(obj, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.ranged(0.9f, 1f))).orElse(null);
+            if (soundSection != null) {
+                landSound = soundSection.getValue("land", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
+                destroySound = soundSection.getValue("destroy", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.RANGED_0_9_1));
             }
-            return new FallingBlockBehavior(block, hurtAmount, hurtMax, fallSound, destroySound);
+            return new FallingBlockBehavior(
+                    block,
+                    section.getFloat(HURT_AMOUNT, -1f),
+                    section.getInt(MAX_HURT, -1),
+                    landSound,
+                    destroySound
+            );
         }
     }
 }

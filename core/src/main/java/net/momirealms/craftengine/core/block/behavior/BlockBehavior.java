@@ -209,7 +209,7 @@ public abstract class BlockBehavior {
         return false;
     }
 
-    public Item<?> itemToPickup(World world, BlockPos pos, ImmutableBlockState state, Player player) {
+    public Item itemToPickup(World world, BlockPos pos, ImmutableBlockState state, Player player) {
         return null;
     }
 
@@ -219,10 +219,10 @@ public abstract class BlockBehavior {
 
     public boolean canBeReplaced(BlockPlaceContext context, ImmutableBlockState state) {
         Key clickedBlockId = state.owner().value().id();
-        Item<?> item = context.getItem();
-        Optional<CustomItem<Object>> customItem = CraftEngine.instance().itemManager().getCustomItem(item.id());
+        Item item = context.getItem();
+        Optional<CustomItem> customItem = CraftEngine.instance().itemManager().getCustomItem(item.id());
         if (customItem.isEmpty()) return state.settings().replaceable();
-        CustomItem<Object> custom = customItem.get();
+        CustomItem custom = customItem.get();
         for (ItemBehavior behavior : custom.behaviors()) {
             if (behavior instanceof BlockBoundItemBehavior blockItemBehavior) {
                 Key blockId = blockItemBehavior.block();

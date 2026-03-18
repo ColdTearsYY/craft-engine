@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.bukkit.util;
 
-
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -13,12 +12,7 @@ import org.bukkit.Vibration;
 import org.bukkit.World;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public final class ParticleUtils {
-    private static final Map<Key, Particle> CACHE = new HashMap<>();
-
     private ParticleUtils() {}
 
     public static Particle getParticle(String particle) {
@@ -36,11 +30,9 @@ public final class ParticleUtils {
 
     @Nullable
     public static Particle getParticle(Key particle) {
-        return CACHE.computeIfAbsent(particle, k -> {
-            Object nmsParticle = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.PARTICLE_TYPE, KeyUtils.toIdentifier(particle));
-            if (nmsParticle == null) return null;
-            return CraftParticleProxy.INSTANCE.minecraftToBukkit(nmsParticle);
-        });
+        Object nmsParticle = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.PARTICLE_TYPE, KeyUtils.toIdentifier(particle));
+        if (nmsParticle == null) return null;
+        return CraftParticleProxy.INSTANCE.minecraftToBukkit(nmsParticle);
     }
 
     public static final Particle HAPPY_VILLAGER = getParticle("HAPPY_VILLAGER");
@@ -52,7 +44,7 @@ public final class ParticleUtils {
             case ColorData data -> ColorUtils.toBukkit(data.color());
             case DustData data -> new Particle.DustOptions(ColorUtils.toBukkit(data.color()), data.size());
             case DustTransitionData data -> new Particle.DustTransition(ColorUtils.toBukkit(data.from()), ColorUtils.toBukkit(data.to()), data.size());
-            case ItemStackData data -> data.item().getItem();
+            case ItemStackData data -> ItemStackUtils.getBukkitStack(data.item());
             case JavaTypeData data -> data.data();
             case VibrationData data -> new Vibration(new Vibration.Destination.BlockDestination(new Location(world, x + data.destinationX().getDouble(context), y + data.destinationY().getDouble(context), y + data.destinationZ().getDouble(context))), data.arrivalTime().getInt(context));
             case TrailData data -> new Particle.Trail(new Location(world, x + data.targetX().getDouble(context), y + data.targetZ().getDouble(context), z + data.targetZ().getDouble(context)), ColorUtils.toBukkit(data.color()), data.duration().getInt(context));

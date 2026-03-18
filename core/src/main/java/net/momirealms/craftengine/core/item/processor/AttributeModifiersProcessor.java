@@ -7,9 +7,12 @@ import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.AdventureHelper;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -100,7 +103,7 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public Item apply(Item item, ItemBuildContext context) {
         List<AttributeModifier> results = new ArrayList<>(this.modifiers.size());
         for (PreModifier modifier : this.modifiers) {
             results.add(modifier.toAttributeModifier(item, context));
@@ -109,17 +112,17 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ATTRIBUTE_MODIFIERS;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "AttributeModifiers";
     }
 
@@ -139,7 +142,7 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
             this.display = display;
         }
 
-        public <I> AttributeModifier toAttributeModifier(Item<I> item, ItemBuildContext context) {
+        public AttributeModifier toAttributeModifier(Item item, ItemBuildContext context) {
             return new AttributeModifier(this.type, this.slot, this.id.orElseGet(() -> Key.of("craftengine", UUID.randomUUID().toString())),
                     this.amount.getDouble(context), this.operation, this.display == null ? null : this.display.toDisplay(context));
         }
@@ -155,23 +158,20 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     private static class Factory implements ItemProcessorFactory<AttributeModifiersProcessor> {
 
         @Override
-        public AttributeModifiersProcessor create(Object arg) {
-            List<PreModifier> attributeModifiers = ResourceConfigUtils.parseConfigAsList(arg, (map) -> {
-                String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.item.data.attribute_modifiers.missing_type");
-                Key nativeType = AttributeModifiersProcessor.getNativeAttributeName(Key.of(type));
-                AttributeModifier.Slot slot = AttributeModifier.Slot.valueOf(map.getOrDefault("slot", "any").toString().toUpperCase(Locale.ENGLISH));
-                Optional<Key> id = Optional.ofNullable(map.get("id")).map(String::valueOf).map(Key::of);
-                NumberProvider amount = NumberProviders.fromObject(ResourceConfigUtils.requireNonNullOrThrow(map.get("amount"), "warning.config.item.data.attribute_modifiers.missing_amount"));
-                AttributeModifier.Operation operation = AttributeModifier.Operation.valueOf(
-                        ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("operation"), "warning.config.item.data.attribute_modifiers.missing_operation").toUpperCase(Locale.ENGLISH)
-                );
+        public AttributeModifiersProcessor create(ConfigValue value) {
+            List<PreModifier> preModifiers = value.getAsList(v -> {
+                ConfigSection section = v.getAsSection();
+                Key nativeType = AttributeModifiersProcessor.getNativeAttributeName(section.getIdentifier("type"));
+                AttributeModifier.Slot slot = section.getEnum("slot", AttributeModifier.Slot.class, AttributeModifier.Slot.ANY);
+                AttributeModifier.Operation operation = section.getEnum("operation", AttributeModifier.Operation.class, AttributeModifier.Operation.ADD_VALUE);
+                Optional<Key> id = Optional.ofNullable(section.getIdentifier("id"));
+                NumberProvider amount = section.getNonNullNumber("amount");
                 PreModifier.PreDisplay display = null;
-                if (VersionHelper.isOrAbove1_21_6() && map.containsKey("display")) {
-                    Map<String, Object> displayMap = MiscUtils.castToMap(map.get("display"), false);
-                    AttributeModifier.Display.Type displayType = AttributeModifier.Display.Type.valueOf(ResourceConfigUtils.requireNonEmptyStringOrThrow(displayMap.get("type"), "warning.config.item.data.attribute_modifiers.display.missing_type").toUpperCase(Locale.ENGLISH));
+                if (VersionHelper.isOrAbove1_21_6() && section.containsKey("display")) {
+                    ConfigSection displaySection = section.getNonNullSection("display");
+                    AttributeModifier.Display.Type displayType = displaySection.getNonNullEnum("type", AttributeModifier.Display.Type.class);
                     if (displayType == AttributeModifier.Display.Type.OVERRIDE) {
-                        String miniMessageValue = ResourceConfigUtils.requireNonEmptyStringOrThrow(displayMap.get("value"), "warning.config.item.data.attribute_modifiers.display.missing_value");
-                        display = new PreModifier.PreDisplay(displayType, miniMessageValue);
+                        display = new PreModifier.PreDisplay(displayType, section.getNonNullString("value"));
                     } else {
                         display = new PreModifier.PreDisplay(displayType, null);
                     }
@@ -179,7 +179,7 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
                 return new PreModifier(nativeType.value(), slot, id,
                         amount, operation, display);
             });
-            return new AttributeModifiersProcessor(attributeModifiers);
+            return new AttributeModifiersProcessor(preModifiers);
         }
     }
 }

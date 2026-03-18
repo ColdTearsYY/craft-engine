@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command;
 
 import net.kyori.adventure.util.Index;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.command.feature.*;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
@@ -19,7 +19,7 @@ import org.incendo.cloud.setting.ManagerSetting;
 import java.util.List;
 import java.util.Locale;
 
-public class BukkitCommandManager extends AbstractCommandManager<CommandSender> {
+public final class BukkitCommandManager extends AbstractCommandManager<CommandSender> {
     private final BukkitCraftEngine plugin;
     private final Index<String, CommandFeature<CommandSender>> index;
 
@@ -74,7 +74,8 @@ public class BukkitCommandManager extends AbstractCommandManager<CommandSender> 
                 new CleanCacheCommand(this, plugin),
                 new DebugGenerateInternalAssetsCommand(this, plugin),
                 new DebugCustomModelDataCommand(this, plugin),
-                new DebugImageCommand(this, plugin)
+                new DebugImageCommand(this, plugin),
+                new PlaceFeatureCommand(this, plugin)
         ));
         final LegacyPaperCommandManager<CommandSender> manager = (LegacyPaperCommandManager<CommandSender>) getCommandManager();
         manager.settings().set(ManagerSetting.ALLOW_UNSAFE_REGISTRATION, true);
@@ -89,7 +90,7 @@ public class BukkitCommandManager extends AbstractCommandManager<CommandSender> 
     @Override
     protected Locale getLocale(CommandSender sender) {
         if (sender instanceof Player player) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
             if (serverPlayer == null) return null;
             return serverPlayer.selectedLocale();
         }

@@ -5,11 +5,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.pack.revision.Revisions;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
 public final class DisplayContextSelectProperty implements SelectProperty {
     public static final DisplayContextSelectProperty INSTANCE = new DisplayContextSelectProperty();
@@ -43,7 +43,7 @@ public final class DisplayContextSelectProperty implements SelectProperty {
 
     private static class Factory implements SelectPropertyFactory<DisplayContextSelectProperty> {
         @Override
-        public DisplayContextSelectProperty create(Map<String, Object> arguments) {
+        public DisplayContextSelectProperty create(ConfigSection section) {
             return INSTANCE;
         }
     }

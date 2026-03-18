@@ -4,11 +4,9 @@ import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.GsonHelper;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,7 +66,7 @@ public final class LobFileHost implements ResourcePackHost {
             if (uuidString != null && !uuidString.isEmpty()) {
                 this.uuid = UUID.fromString(uuidString);
             }
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.host.cache.load", "LobFile"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "LobFile"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn(
                     "[LobFile] Failed to read cache file: " + e.getMessage());
@@ -264,16 +262,14 @@ public final class LobFileHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<LobFileHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] API_KEY = new String[] {"api_key", "api-key"};
 
         @Override
-        public LobFileHost create(Map<String, Object> arguments) {
-            boolean useEnv = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-environment-variables", false), "use-environment-variables");
-            String apiKey = useEnv ? System.getenv("CE_LOBFILE_API_KEY") : Optional.ofNullable(arguments.get("api-key")).map(String::valueOf).orElse(null);
-            if (apiKey == null || apiKey.isEmpty()) {
-                throw new LocalizedException("warning.config.host.lobfile.missing_api_key");
-            }
-            ProxySelector proxy = getProxySelector(MiscUtils.castToMap(arguments.get("proxy"), true));
-            return new LobFileHost(apiKey, proxy);
+        public LobFileHost create(ConfigSection section) {
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String apiKey = useEnv ? getNonNullEnvironmentVariable(section, "CE_LOBFILE_API_KEY") : section.getNonEmptyString(API_KEY);
+            return new LobFileHost(apiKey, getProxySelector(section.getSection("proxy")));
         }
     }
 

@@ -2,21 +2,22 @@ package net.momirealms.craftengine.core.item.recipe.network.legacy;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.util.FriendlyByteBuf;
+import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.ApiStatus;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 @ApiStatus.Obsolete
-public interface LegacyRecipe<I> {
+public interface LegacyRecipe {
 
-    default void applyClientboundData(Function<Item<I>, Item<I>> function) {}
+    default void applyClientboundData(Function<Item, Item> function) {}
 
-    void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer);
+    void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer);
 
-    record Type<I>(BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<I>, LegacyRecipe<I>> reader) {
+    record Type<T extends LegacyRecipe>(Key id, BiFunction<FriendlyByteBuf, FriendlyByteBuf.Reader<Item>, T> reader) {
 
-        public LegacyRecipe<I> read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<I> reader) {
+        public T read(FriendlyByteBuf buf, FriendlyByteBuf.Reader<Item> reader) {
             return this.reader.apply(buf, reader);
         }
     }

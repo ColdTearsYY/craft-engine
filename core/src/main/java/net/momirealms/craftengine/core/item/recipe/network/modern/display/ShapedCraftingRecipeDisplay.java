@@ -9,19 +9,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-public record ShapedCraftingRecipeDisplay<I>(int width, int height, List<SlotDisplay<I>> ingredients, SlotDisplay<I> result, SlotDisplay<I> craftingStation) implements RecipeDisplay<I> {
+public record ShapedCraftingRecipeDisplay(int width, int height, List<SlotDisplay> ingredients, SlotDisplay result, SlotDisplay craftingStation) implements RecipeDisplay {
 
-    public static <I> ShapedCraftingRecipeDisplay<I> read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item<I>> reader) {
+    public static ShapedCraftingRecipeDisplay read(FriendlyByteBuf buffer, FriendlyByteBuf.Reader<Item> reader) {
         int width = buffer.readVarInt();
         int height = buffer.readVarInt();
-        List<SlotDisplay<I>> ingredients = buffer.readCollection(ArrayList::new, buf -> SlotDisplay.read(buf, reader));
-        SlotDisplay<I> result = SlotDisplay.read(buffer, reader);
-        SlotDisplay<I> craftingStation = SlotDisplay.read(buffer, reader);
-        return new ShapedCraftingRecipeDisplay<>(width, height, ingredients, result, craftingStation);
+        List<SlotDisplay> ingredients = buffer.readCollection(ArrayList::new, buf -> SlotDisplay.read(buf, reader));
+        SlotDisplay result = SlotDisplay.read(buffer, reader);
+        SlotDisplay craftingStation = SlotDisplay.read(buffer, reader);
+        return new ShapedCraftingRecipeDisplay(width, height, ingredients, result, craftingStation);
     }
 
     @Override
-    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item<I>> writer) {
+    public void write(FriendlyByteBuf buf, FriendlyByteBuf.Writer<Item> writer) {
         buf.writeVarInt(1);
         buf.writeVarInt(this.width);
         buf.writeVarInt(this.height);
@@ -31,8 +31,8 @@ public record ShapedCraftingRecipeDisplay<I>(int width, int height, List<SlotDis
     }
 
     @Override
-    public void applyClientboundData(Function<Item<I>, Item<I>> function) {
-        for (SlotDisplay<I> ingredient : this.ingredients) {
+    public void applyClientboundData(Function<Item, Item> function) {
+        for (SlotDisplay ingredient : this.ingredients) {
             ingredient.applyClientboundData(function);
         }
         this.result.applyClientboundData(function);
@@ -42,11 +42,11 @@ public record ShapedCraftingRecipeDisplay<I>(int width, int height, List<SlotDis
     @Override
     public @NotNull String toString() {
         return "ShapedCraftingRecipeDisplay{" +
-                "craftingStation=" + craftingStation +
-                ", width=" + width +
-                ", height=" + height +
-                ", ingredients=" + ingredients +
-                ", result=" + result +
+                "craftingStation=" + this.craftingStation +
+                ", width=" + this.width +
+                ", height=" + this.height +
+                ", ingredients=" + this.ingredients +
+                ", result=" + this.result +
                 '}';
     }
 }

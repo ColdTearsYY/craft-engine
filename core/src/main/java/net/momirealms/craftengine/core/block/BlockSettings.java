@@ -1,14 +1,18 @@
 package net.momirealms.craftengine.core.block;
 
-import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.util.*;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
-public class BlockSettings {
+public final class BlockSettings {
     boolean isRandomlyTicking;
     boolean burnable;
     int burnChance;
@@ -49,30 +53,34 @@ public class BlockSettings {
         return new BlockSettings();
     }
 
-    public static BlockSettings fromMap(Map<String, Object> map) {
-        if (map == null || map.isEmpty()) return BlockSettings.of();
-        return applyModifiers(BlockSettings.of(), map);
+    public static BlockSettings fromConfig(ConfigSection section) {
+        BlockSettings blockSettings = BlockSettings.of();
+        if (section == null) return blockSettings;
+        applyModifiers(blockSettings, section);
+        return blockSettings;
     }
 
-    public static BlockSettings fromMap(Key id, Map<String, Object> map) {
-        if (map == null || map.isEmpty()) return BlockSettings.of().itemId(id);
-        return applyModifiers(BlockSettings.of().itemId(id), map);
+    public static BlockSettings ofFullCopyAndApply(BlockSettings settings, ConfigSection section) {
+        BlockSettings copied = ofFullCopy(settings);
+        applyModifiers(copied, section);
+        return copied;
     }
 
-    public static BlockSettings ofFullCopy(BlockSettings settings, Map<String, Object> map) {
-        return applyModifiers(ofFullCopy(settings), map);
-    }
-
-    public static BlockSettings applyModifiers(BlockSettings settings, Map<String, Object> map) {
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            Modifier.Factory factory = Modifiers.FACTORIES.get(entry.getKey());
-            if (factory != null) {
-                factory.createModifier(entry.getValue()).apply(settings);
-            } else {
-                throw new LocalizedResourceConfigException("warning.config.block.settings.unknown", entry.getKey());
+    public static void applyModifiers(BlockSettings settings, ConfigSection section) {
+        ExceptionCollector<KnownResourceException> collector = new ExceptionCollector<>(KnownResourceException.class);
+        if (section != null) {
+            for (String type : section.keySet()) {
+                ConfigValue value = section.getValue(type);
+                if (value == null) continue;
+                String key = StringUtils.normalizeSettingsType(type);
+                collector.runCatching(() -> {
+                    Optional.ofNullable(BuiltInRegistries.BLOCK_SETTINGS_TYPE.getValue(Key.ce(key)))
+                            .ifPresent(modifierType ->
+                                    modifierType.factory().create(value).apply(settings));
+                });
             }
         }
-        return settings;
+        collector.throwIfPresent();
     }
 
     public static BlockSettings ofFullCopy(BlockSettings settings) {
@@ -335,8 +343,8 @@ public class BlockSettings {
         return this;
     }
 
-    public BlockSettings canOcclude(Tristate canOcclude) {
-        this.canOcclude = canOcclude;
+    public BlockSettings canOcclude(boolean canOcclude) {
+        this.canOcclude = canOcclude ? Tristate.TRUE : Tristate.FALSE;
         return this;
     }
 
@@ -365,8 +373,8 @@ public class BlockSettings {
         return this;
     }
 
-    public BlockSettings propagatesSkylightDown(Tristate propagatesSkylightDown) {
-        this.propagatesSkylightDown = propagatesSkylightDown;
+    public BlockSettings propagatesSkylightDown(boolean propagatesSkylightDown) {
+        this.propagatesSkylightDown = propagatesSkylightDown ? Tristate.TRUE : Tristate.FALSE;
         return this;
     }
 
@@ -405,168 +413,9 @@ public class BlockSettings {
         return this;
     }
 
-    public BlockSettings useShapeForLightOcclusion(Tristate useShapeForLightOcclusion) {
-        this.useShapeForLightOcclusion = useShapeForLightOcclusion;
+    public BlockSettings useShapeForLightOcclusion(boolean useShapeForLightOcclusion) {
+        this.useShapeForLightOcclusion = useShapeForLightOcclusion ? Tristate.TRUE : Tristate.FALSE;
         return this;
-    }
-
-    @FunctionalInterface
-    public interface Modifier {
-
-        void apply(BlockSettings settings);
-
-        @FunctionalInterface
-        interface Factory {
-
-            Modifier createModifier(Object value);
-        }
-    }
-
-    public static class Modifiers {
-        private static final Map<String, Modifier.Factory> FACTORIES = new HashMap<>();
-
-        static {
-            registerFactory("luminance", (value -> {
-                int intValue = ResourceConfigUtils.getAsInt(value, "luminance");
-                return settings -> settings.luminance(intValue);
-            }));
-            registerFactory("block_light", (value -> {
-                int intValue = ResourceConfigUtils.getAsInt(value,  "block_light");
-                return settings -> settings.blockLight(intValue);
-            }));
-            registerFactory("hardness", (value -> {
-                float floatValue = ResourceConfigUtils.getAsFloat(value, "hardness");
-                return settings -> settings.hardness(floatValue);
-            }));
-            registerFactory("friction", (value -> {
-                float floatValue = ResourceConfigUtils.getAsFloat(value, "friction");
-                return settings -> settings.friction(floatValue);
-            }));
-            registerFactory("speed_factor", (value -> {
-                float floatValue = ResourceConfigUtils.getAsFloat(value, "speed_factor");
-                return settings -> settings.speedFactor(floatValue);
-            }));
-            registerFactory("jump_factor", (value -> {
-                float floatValue = ResourceConfigUtils.getAsFloat(value, "jump_factor");
-                return settings -> settings.jumpFactor(floatValue);
-            }));
-            registerFactory("resistance", (value -> {
-                float floatValue = ResourceConfigUtils.getAsFloat(value, "resistance");
-                return settings -> settings.resistance(floatValue);
-            }));
-            registerFactory("is_randomly_ticking", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "is_randomly_ticking");
-                return settings -> settings.isRandomlyTicking(booleanValue);
-            }));
-            registerFactory("propagate_skylight", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "propagate_skylight");
-                return settings -> settings.propagatesSkylightDown(booleanValue ? Tristate.TRUE : Tristate.FALSE);
-            }));
-            registerFactory("push_reaction", (value -> {
-                PushReaction reaction = PushReaction.valueOf(value.toString().toUpperCase(Locale.ENGLISH));
-                return settings -> settings.pushReaction(reaction);
-            }));
-            registerFactory("map_color", (value -> {
-                int intValue = ResourceConfigUtils.getAsInt(value, "map_color");
-                return settings -> settings.mapColor(MapColor.get(intValue));
-            }));
-            registerFactory("burnable", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "burnable");
-                return settings -> settings.burnable(booleanValue);
-            }));
-            registerFactory("instrument", (value -> {
-                Instrument instrument = Instrument.valueOf(value.toString().toUpperCase(Locale.ENGLISH));
-                return settings -> settings.instrument(instrument);
-            }));
-            registerFactory("item", (value -> {
-                Key item = Key.of(value.toString());
-                return settings -> settings.itemId(item);
-            }));
-            registerFactory("tags", (value -> {
-                List<String> tags = MiscUtils.getAsStringList(value);
-                return settings -> settings.tags(tags.stream().map(it -> {
-                    if (it.charAt(0) == '#') return Key.of(it.substring(1));
-                    else return Key.of(it);
-                }).collect(Collectors.toSet()));
-            }));
-            registerFactory("burn_chance", (value -> {
-                int intValue = ResourceConfigUtils.getAsInt(value, "burn_chance");
-                return settings -> settings.burnChance(intValue);
-            }));
-            registerFactory("fire_spread_chance", (value -> {
-                int intValue = ResourceConfigUtils.getAsInt(value, "fire_spread_chance");
-                return settings -> settings.fireSpreadChance(intValue);
-            }));
-            registerFactory("replaceable", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "replaceable");
-                return settings -> settings.replaceable(booleanValue);
-            }));
-            registerFactory("is_redstone_conductor", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "is_redstone_conductor");
-                return settings -> settings.isRedstoneConductor(booleanValue);
-            }));
-            registerFactory("is_suffocating", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "is_suffocating");
-                return settings -> settings.isSuffocating(booleanValue);
-            }));
-            registerFactory("is_view_blocking", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "is_view_blocking");
-                return settings -> settings.isViewBlocking(booleanValue);
-            }));
-            registerFactory("sounds", (value -> {
-                Map<String, Object> soundMap = MiscUtils.castToMap(value, false);
-                return settings -> settings.sounds(BlockSounds.fromMap(soundMap));
-            }));
-            registerFactory("fluid_state", (value -> {
-                String state = value.toString();
-                return settings -> settings.fluidState(state.equals("water"));
-            }));
-            registerFactory("can_occlude", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "can_occlude");
-                return settings -> settings.canOcclude(booleanValue ? Tristate.TRUE : Tristate.FALSE);
-            }));
-            registerFactory("correct_tools", (value -> {
-                List<String> tools = MiscUtils.getAsStringList(value);
-                LazyReference<Set<Key>> correctTools = LazyReference.lazyReference(() -> {
-                    Set<Key> ids = new HashSet<>();
-                    for (String tool : tools) {
-                        if (tool.charAt(0) == '#') ids.addAll(CraftEngine.instance().itemManager().itemIdsByTag(Key.of(tool.substring(1))).stream().map(UniqueKey::key).toList());
-                        else ids.add(Key.of(tool));
-                    }
-                    return ids;
-                });
-                return settings -> settings.correctTools(correctTools);
-            }));
-            registerFactory("require_correct_tools", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "require_correct_tools");
-                return settings -> settings.requireCorrectTool(booleanValue);
-            }));
-            registerFactory("respect_tool_component", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "respect_tool_component");
-                return settings -> settings.respectToolComponent(booleanValue);
-            }));
-            registerFactory("use_shape_for_light_occlusion", (value -> {
-                boolean booleanValue = ResourceConfigUtils.getAsBoolean(value, "use_shape_for_light_occlusion");
-                return settings -> settings.useShapeForLightOcclusion(booleanValue ? Tristate.TRUE : Tristate.FALSE);
-            }));
-            registerFactory("incorrect_tool_dig_speed", (value -> {
-                float floatValue = ResourceConfigUtils.getAsFloat(value, "incorrect_tool_dig_speed");
-                return settings -> settings.incorrectToolSpeed(floatValue);
-            }));
-            registerFactory("name", (value -> {
-                String name = value.toString();
-                return settings -> settings.name(name);
-            }));
-            registerFactory("support_shape", (value -> {
-                String shape = value.toString();
-                return settings -> settings.supportShapeBlockState(shape);
-            }));
-        }
-
-        public static void registerFactory(String id, Modifier.Factory factory) {
-            FACTORIES.put(id.replace("-", "_"), factory);
-            FACTORIES.put(id.replace("_", "-"), factory);
-        }
     }
 }
 

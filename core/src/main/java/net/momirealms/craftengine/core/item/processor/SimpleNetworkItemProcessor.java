@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 public interface SimpleNetworkItemProcessor extends ItemProcessor {
 
     @Override
-    default <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
+    default Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
         if (VersionHelper.COMPONENT_RELEASE) {
             Key componentType= componentType(item, context);
             if (componentType != null) {
@@ -38,16 +38,16 @@ public interface SimpleNetworkItemProcessor extends ItemProcessor {
     }
 
     @Nullable
-    default <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    default Key componentType(Item item, ItemBuildContext context) {
         return null;
     }
 
     @Nullable
-    default <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    default Object[] nbtPath(Item item, ItemBuildContext context) {
         return null;
     }
 
-    default <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    default String nbtPathString(Item item, ItemBuildContext context) {
         Object[] path = nbtPath(item, context);
         if (path != null && path.length > 0) {
             StringBuilder builder = new StringBuilder();

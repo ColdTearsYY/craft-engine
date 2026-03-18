@@ -2,6 +2,7 @@ package net.momirealms.craftengine.bukkit.plugin.network.handler;
 
 import net.momirealms.craftengine.bukkit.entity.data.ItemFrameData;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.PacketUtils;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.config.Config;
@@ -15,7 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Optional;
 
-public class ItemFramePacketHandler implements EntityPacketHandler {
+public final class ItemFramePacketHandler implements EntityPacketHandler {
     public static final ItemFramePacketHandler INSTANCE = new ItemFramePacketHandler();
 
     @Override
@@ -30,7 +31,7 @@ public class ItemFramePacketHandler implements EntityPacketHandler {
             int entityDataId = SynchedEntityDataProxy.DataValueProxy.INSTANCE.getId(packedItem);
             if (entityDataId != ItemFrameData.Item.id()) continue;
             Object nmsItemStack = SynchedEntityDataProxy.DataValueProxy.INSTANCE.getValue(packedItem);
-            ItemStack itemStack = CraftItemStackProxy.INSTANCE.asCraftMirror(nmsItemStack);
+            ItemStack itemStack = ItemStackUtils.getBukkitStack(nmsItemStack);
             Optional<ItemStack> optional = BukkitItemManager.instance().s2c(itemStack, user);
             if (optional.isEmpty()) break;
             changed = true;

@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LevelUtils;
@@ -13,7 +13,7 @@ import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.block.properties.type.DoubleBlockHalf;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.proxy.minecraft.core.AxisProxy;
@@ -26,19 +26,18 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelAccessorProxy
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
-public class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
+public final class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
     public static final BlockBehaviorFactory<DoubleHighBlockBehavior> FACTORY = new Factory();
-    private final Property<DoubleBlockHalf> halfProperty;
+    public final Property<DoubleBlockHalf> halfProperty;
 
-    public DoubleHighBlockBehavior(CustomBlock customBlock, Property<DoubleBlockHalf> halfProperty) {
+    private DoubleHighBlockBehavior(CustomBlock customBlock,
+                                    Property<DoubleBlockHalf> halfProperty) {
         super(customBlock, 0);
         this.halfProperty = halfProperty;
     }
@@ -63,7 +62,7 @@ public class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
             return BlocksProxy.AIR$defaultState;
         } else if (half == DoubleBlockHalf.LOWER && direction == DirectionProxy.DOWN && !canSurvive(thisBlock, blockState, level, blockPos)) {
             BlockPos pos = LocationUtils.fromBlockPos(blockPos);
-            World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+            World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             WorldPosition position = new WorldPosition(world, Vec3d.atCenterOf(pos));
             world.playBlockSound(position, customState.settings().sounds().breakSound());
             LevelAccessorProxy.INSTANCE.levelEvent(level, WorldEvents.BLOCK_BREAK_EFFECT, blockPos, customState.customBlockState().registryId());
@@ -82,11 +81,11 @@ public class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
         if (blockState == null || blockState.isEmpty()) {
             return superMethod.call();
         }
-        BukkitServerPlayer cePlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+        BukkitServerPlayer cePlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
         if (cePlayer == null) {
             return superMethod.call();
         }
-        Item<ItemStack> item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (cePlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBottomPart(level, pos, blockState, player);
         }
@@ -152,13 +151,11 @@ public class DoubleHighBlockBehavior extends AbstractCanSurviveBlockBehavior {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
     private static class Factory implements BlockBehaviorFactory<DoubleHighBlockBehavior> {
 
         @Override
-        public DoubleHighBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            Property<DoubleBlockHalf> half = (Property<DoubleBlockHalf>) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty("half"), "warning.config.block.behavior.double_high.missing_half");
-            return new DoubleHighBlockBehavior(block, half);
+        public DoubleHighBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new DoubleHighBlockBehavior(block, BlockBehaviorFactory.getProperty(section.path(), block, "half", DoubleBlockHalf.class));
         }
     }
 }

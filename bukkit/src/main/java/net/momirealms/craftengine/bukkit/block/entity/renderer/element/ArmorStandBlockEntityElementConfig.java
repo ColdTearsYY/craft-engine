@@ -9,21 +9,20 @@ import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityEl
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LegacyChatFormatter;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
-import org.bukkit.inventory.ItemStack;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
-public class ArmorStandBlockEntityElementConfig implements BlockEntityElementConfig<ArmorStandBlockEntityElement> {
-    public static final Factory FACTORY = new Factory();
+public final class ArmorStandBlockEntityElementConfig implements BlockEntityElementConfig<ArmorStandBlockEntityElement> {
+    public static final BlockEntityElementConfigFactory<ArmorStandBlockEntityElement> FACTORY = new Factory();
     public final Function<Player, List<Object>> lazyMetadataPacket;
     public final Key itemId;
     public final float scale;
@@ -91,8 +90,8 @@ public class ArmorStandBlockEntityElementConfig implements BlockEntityElementCon
         return ArmorStandBlockEntityElement.class;
     }
 
-    public Item<?> item(Player player) {
-        Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(this.itemId, player);
+    public Item item(Player player) {
+        Item wrappedItem = BukkitItemManager.instance().createWrappedItem(this.itemId, player);
         return wrappedItem == null ? BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, player) : wrappedItem ;
     }
 
@@ -125,23 +124,24 @@ public class ArmorStandBlockEntityElementConfig implements BlockEntityElementCon
     }
 
     public boolean isSamePosition(ArmorStandBlockEntityElementConfig that) {
-        return Float.compare(xRot, that.xRot) == 0 &&
-                Float.compare(yRot, that.yRot) == 0 &&
-                Objects.equal(position, that.position);
+        return Float.compare(this.xRot, that.xRot) == 0 &&
+                Float.compare(this.yRot, that.yRot) == 0 &&
+                Objects.equal(this.position, that.position);
     }
 
-    public static class Factory implements BlockEntityElementConfigFactory<ArmorStandBlockEntityElement> {
+    private static class Factory implements BlockEntityElementConfigFactory<ArmorStandBlockEntityElement> {
+        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
 
         @Override
-        public ArmorStandBlockEntityElementConfig create(Map<String, Object> arguments) {
+        public ArmorStandBlockEntityElementConfig create(ConfigSection section) {
             return new ArmorStandBlockEntityElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.block.state.entity_renderer.armor_stand.missing_item")),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0.5f), "position"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("small", false), "small"),
-                    ResourceConfigUtils.getAsEnum(arguments.get("glow-color"), LegacyChatFormatter.class, null)
+                    section.getNonNullIdentifier("item"),
+                    section.getFloat("scale", 1f),
+                    section.getVector3f("position", ConfigConstants.CENTER_VECTOR3),
+                    section.getFloat("pitch", 0f),
+                    section.getFloat("yaw", 0f),
+                    section.getBoolean("small"),
+                    section.getEnum(GLOW_COLOR, LegacyChatFormatter.class)
             );
         }
     }

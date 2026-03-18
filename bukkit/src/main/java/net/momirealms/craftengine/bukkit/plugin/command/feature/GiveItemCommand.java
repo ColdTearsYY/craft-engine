@@ -1,7 +1,7 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
@@ -18,7 +18,6 @@ import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.data.MultiplePlayerSelector;
@@ -33,7 +32,7 @@ import org.incendo.cloud.suggestion.SuggestionProvider;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
-public class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
+public final class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
 
     public GiveItemCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
@@ -56,7 +55,7 @@ public class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
                     int amount = context.getOrDefault("amount", 1);
                     NamespacedKey namespacedKey = context.get("id");
                     Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    CustomItem<ItemStack> customItem = CraftEngineItems.byId(itemId);
+                    CustomItem customItem = CraftEngineItems.byId(itemId);
                     if (customItem == null) {
                         customItem = BukkitItemManager.instance().getCustomItemByPathOnly(itemId.value()).orElse(null);
                         if (customItem == null) {
@@ -66,22 +65,22 @@ public class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
                             itemId = customItem.id();
                         }
                     }
-                    CustomItem<ItemStack> finalCustomItem = customItem;
+                    CustomItem finalCustomItem = customItem;
                     Collection<Player> players = selector.values();
                     for (Player player : players) {
                         if (VersionHelper.isFolia()) {
                             player.getScheduler().run(plugin().javaPlugin(), t -> {
-                                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                                 if (serverPlayer != null) {
-                                    Item<ItemStack> builtItem = finalCustomItem.buildItem(serverPlayer);
+                                    Item builtItem = finalCustomItem.buildItem(serverPlayer);
                                     if (builtItem != null) {
                                         PlayerUtils.giveItem(serverPlayer, amount, builtItem);
                                     }
                                 }
                             }, null);
                         } else {
-                            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
-                            Item<ItemStack> builtItem = finalCustomItem.buildItem(serverPlayer);
+                            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
+                            Item builtItem = finalCustomItem.buildItem(serverPlayer);
                             if (builtItem != null) {
                                 PlayerUtils.giveItem(serverPlayer, amount, builtItem);
                             }

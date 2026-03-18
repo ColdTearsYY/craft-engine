@@ -2,7 +2,7 @@ package net.momirealms.craftengine.bukkit.plugin.command;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
-public class BukkitSenderFactory extends SenderFactory<BukkitCraftEngine, CommandSender> {
+public final class BukkitSenderFactory extends SenderFactory<BukkitCraftEngine, CommandSender> {
 
     public BukkitSenderFactory(BukkitCraftEngine plugin) {
         super(plugin);
@@ -45,7 +45,7 @@ public class BukkitSenderFactory extends SenderFactory<BukkitCraftEngine, Comman
         // we can safely send async for players and the console - otherwise, send it sync
         switch (sender) {
             case Player player -> {
-                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                 if (serverPlayer == null) return;
                 serverPlayer.sendPacket(ClientboundSystemChatPacketProxy.INSTANCE.newInstance(ComponentUtils.adventureToMinecraft(message), false), false);
             }

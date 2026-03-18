@@ -1,11 +1,10 @@
 package net.momirealms.craftengine.bukkit.world;
 
 import com.google.gson.JsonElement;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.injector.WorldStorageInjector;
-import net.momirealms.craftengine.bukkit.util.RegistryOps;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.bukkit.world.gen.ConditionalFeature;
 import net.momirealms.craftengine.bukkit.world.gen.CraftEngineFeatures;
@@ -15,14 +14,10 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.properties.Property;
 import net.momirealms.craftengine.core.pack.Pack;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.config.ConfigParser;
-import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
+import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.chunk.CEChunk;
@@ -33,7 +28,9 @@ import net.momirealms.craftengine.core.world.chunk.storage.StorageAdaptor;
 import net.momirealms.craftengine.core.world.chunk.storage.WorldDataStorage;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftChunkProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.SectionPosProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ChunkMapProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
@@ -56,85 +53,56 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.*;
+import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public final class BukkitWorldManager implements WorldManager, Listener {
     private static BukkitWorldManager instance;
     private final BukkitCraftEngine plugin;
+    private boolean initialized = false;
+    // loaded worlds
     private final ConcurrentUUID2ReferenceChainedHashTable<CEWorld> worlds;
     private CEWorld[] worldArray;
     private StorageAdaptor storageAdaptor;
-    private boolean initialized = false;
+    // for faster getter
     private UUID lastWorldUUID = null;
     private CEWorld lastWorld = null;
-    private final ConfiguredFeatureParser configuredFeatureParser;
-    private final PlacedFeatureParser placedFeatureParser;
-    private final Map<Key, Object> configuredFeatures;
-    private List<ConditionalFeature> placedFeatures;
+    // parsers
+    private final ConfigParser configuredFeatureParser = new ConfiguredFeatureParser();
+    private final ConfigParser placedFeatureParser = new PlacedFeatureParser();
+    // features
+    private final Map<Key, Object> configuredFeatures  = new ConcurrentHashMap<>();
+    private final Map<Key, Object> placedFeatures = new ConcurrentHashMap<>();
+    private List<ConditionalFeature> customPlacedFeatures = List.of();
+    private List<Suggestion> cachedConfiguredFeaturesSuggestion = List.of();
     public long lastReloadFeatureTime;
 
     public BukkitWorldManager(BukkitCraftEngine plugin) {
-        instance = this;
+        if (instance != null) {
+            throw new IllegalStateException();
+        }
         this.plugin = plugin;
         this.worlds = ConcurrentUUID2ReferenceChainedHashTable.createWithCapacity(10, 0.5f);
         this.storageAdaptor = new DefaultStorageAdaptor();
-        this.configuredFeatureParser = new ConfiguredFeatureParser();
-        this.placedFeatureParser = new PlacedFeatureParser();
-        this.configuredFeatures = new HashMap<>();
-        this.placedFeatures = List.of();
-    }
-
-    @Override
-    public void unload() {
-        this.configuredFeatures.clear();
-    }
-
-    @Override
-    public void setStorageAdaptor(@NotNull StorageAdaptor storageAdaptor) {
-        this.storageAdaptor = storageAdaptor;
+        instance = this;
     }
 
     public static BukkitWorldManager instance() {
         return instance;
     }
 
-    public CEWorld getWorld(World world) {
-        return getWorld(world.getUID());
-    }
-
-    public boolean hasCustomFeatures() {
-        return !this.placedFeatures.isEmpty();
-    }
-
-    public synchronized CraftEngineFeatures fetchFeatures(Object serverLevel) {
-        World world = LevelProxy.INSTANCE.getWorld(serverLevel);
-        String name = world.getName();
-        Key dimension = KeyUtils.identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(LevelProxy.INSTANCE.getDimension(serverLevel)));
-        Object holder = LevelProxy.INSTANCE.getDimensionTypeRegistration(serverLevel);
-        Key dimensionType = HolderProxy.ReferenceProxy.CLASS.isInstance(holder)
-                ? KeyUtils.identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(HolderProxy.ReferenceProxy.INSTANCE.getKey(holder)))
-                : null;
-        List<ConditionalFeature> features = new ArrayList<>();
-        for (ConditionalFeature feature : this.placedFeatures) {
-            if (feature.isAllowedWorld(name) && feature.isAllowedEnvironment(dimension) && feature.isAllowedDimensionType(dimensionType)) {
-                features.add(feature);
-            }
-        }
-        return new CraftEngineFeatures(this.placedFeatures, features);
-    }
-
-    public long lastReloadFeatureTime() {
-        return this.lastReloadFeatureTime;
-    }
-
-    public Object configuredFeatureById(Key id) {
-        return this.configuredFeatures.get(id);
+    public boolean initialized() {
+        return this.initialized;
     }
 
     @Override
@@ -143,32 +111,20 @@ public final class BukkitWorldManager implements WorldManager, Listener {
     }
 
     @Override
-    public CEWorld getWorld(UUID uuid) {
-        if (uuid == this.lastWorldUUID || uuid.equals(this.lastWorldUUID)) {
-            return this.lastWorld;
-        }
-        CEWorld world = this.worlds.get(uuid);
-        if (world != null) {
-            this.lastWorldUUID = uuid;
-            this.lastWorld = world;
-        } else {
-            World bukkitWorld = Bukkit.getWorld(uuid);
-            if (bukkitWorld != null) {
-                world = this.loadWorld(wrap(bukkitWorld));
-            }
-        }
-        return world;
+    public void load() {
+        this.cachedConfiguredFeaturesSuggestion = RegistryProxy.INSTANCE.keySet(RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE))
+                .stream()
+                .map(it -> Suggestion.suggestion(it.toString()))
+                .toList();
     }
 
     @Override
-    public CEWorld[] getWorlds() {
-        return this.worldArray;
+    public void unload() {
+        this.configuredFeatures.clear();
+        this.placedFeatures.clear();
     }
 
-    private void resetWorldArray() {
-        this.worldArray = this.worlds.values().toArray(new CEWorld[0]);
-    }
-
+    @Override
     public void delayedInit() {
         // 此时大概率为空，暂且保留代码
         for (World world : Bukkit.getWorlds()) {
@@ -194,8 +150,8 @@ public final class BukkitWorldManager implements WorldManager, Listener {
                     }
                 }
                 ceWorld.setTicking(true);
-            } catch (Exception e) {
-                CraftEngine.instance().logger().warn("Error loading world: " + world.getName(), e);
+            } catch (Throwable t) {
+                this.plugin.logger().warn("Error loading world: " + world.getName(), t);
             }
         }
         this.resetWorldArray();
@@ -233,6 +189,79 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         this.lastWorldUUID = null;
     }
 
+    /*
+
+    Features, for FastNMS
+
+     */
+
+    public boolean hasCustomFeatures() {
+        return !this.customPlacedFeatures.isEmpty();
+    }
+
+    public synchronized CraftEngineFeatures fetchFeatures(Object serverLevel) {
+        World world = LevelProxy.INSTANCE.getWorld(serverLevel);
+        String name = world.getName();
+        Key dimension = KeyUtils.identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(LevelProxy.INSTANCE.getDimension(serverLevel)));
+        Object holder = LevelProxy.INSTANCE.getDimensionTypeRegistration(serverLevel);
+        Key dimensionType = HolderProxy.ReferenceProxy.CLASS.isInstance(holder)
+                ? KeyUtils.identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(HolderProxy.ReferenceProxy.INSTANCE.getKey(holder)))
+                : null;
+        List<ConditionalFeature> features = new ArrayList<>();
+        for (ConditionalFeature feature : this.customPlacedFeatures) {
+            if (feature.isAllowedWorld(name) && feature.isAllowedEnvironment(dimension) && feature.isAllowedDimensionType(dimensionType)) {
+                features.add(feature);
+            }
+        }
+        return new CraftEngineFeatures(this.customPlacedFeatures, features);
+    }
+
+    public long lastReloadFeatureTime() {
+        return this.lastReloadFeatureTime;
+    }
+
+    @Nullable
+    public Object configuredFeatureById(Key id) {
+        Object holder = this.configuredFeatures.get(id);
+        if (holder == null) {
+            Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE);
+            holder = RegistryUtils.getHolder(registry, FeatureUtils.createConfiguredFeatureKey(id));
+        }
+        return holder;
+    }
+
+    @Nullable
+    public Object placedFeatureById(Key id) {
+        Object holder = this.placedFeatures.get(id);
+        if (holder == null) {
+            Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.PLACED_FEATURE);
+            holder = RegistryUtils.getHolder(registry, FeatureUtils.createPlacedFeatureKey(id));
+        }
+        return holder;
+    }
+
+    public Collection<Suggestion> cachedConfiguredFeaturesSuggestion() {
+        return this.cachedConfiguredFeaturesSuggestion;
+    }
+
+    /*
+
+    worlds
+
+     */
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onWorldUnload(WorldUnloadEvent event) {
+        unloadWorld(wrap(event.getWorld()));
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onWorldSave(WorldSaveEvent event) {
+        for (CEWorld world : this.worldArray) {
+            world.save();
+        }
+    }
+
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onWorldInit(WorldInitEvent event) {
         World world = event.getWorld();
@@ -261,6 +290,60 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         } else {
             this.loadWorld(wrap(world));
         }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    public void onChunkLoad(ChunkLoadEvent event) {
+        CEWorld world = this.worlds.get(event.getWorld().getUID());
+        if (world == null) {
+            return;
+        }
+        handleChunkLoad(world, event.getChunk(), event.isNewChunk());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onChunkUnload(ChunkUnloadEvent event) {
+        CEWorld world = this.worlds.get(event.getWorld().getUID());
+        if (world == null) {
+            return;
+        }
+        handleChunkUnload(world, event.getChunk());
+    }
+
+    @Override
+    public void setStorageAdaptor(@NotNull StorageAdaptor storageAdaptor) {
+        this.storageAdaptor = storageAdaptor;
+    }
+
+    public CEWorld getWorld(World world) {
+        return getWorld(world.getUID());
+    }
+
+    @Override
+    public CEWorld getWorld(UUID uuid) {
+        if (uuid == this.lastWorldUUID || uuid.equals(this.lastWorldUUID)) {
+            return this.lastWorld;
+        }
+        CEWorld world = this.worlds.get(uuid);
+        if (world != null) {
+            this.lastWorldUUID = uuid;
+            this.lastWorld = world;
+        } else {
+            World bukkitWorld = Bukkit.getWorld(uuid);
+            if (bukkitWorld != null) {
+                world = this.loadWorld(wrap(bukkitWorld));
+            }
+        }
+        return world;
+    }
+
+    @Override
+    public CEWorld[] getWorlds() {
+        return this.worldArray;
+    }
+
+    private void resetWorldArray() {
+        this.worldArray = this.worlds.values().toArray(new CEWorld[0]);
     }
 
     @Override
@@ -362,18 +445,6 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         return new BukkitCEWorld(world, storage);
     }
 
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    public void onWorldUnload(WorldUnloadEvent event) {
-        unloadWorld(wrap(event.getWorld()));
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    public void onWorldSave(WorldSaveEvent event) {
-        for (CEWorld world : this.worldArray) {
-            world.save();
-        }
-    }
-
     @Override
     public void unloadWorld(net.momirealms.craftengine.core.world.World world) {
         UUID uuid = world.uuid();
@@ -401,35 +472,13 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         }
     }
 
-    public boolean initialized() {
-        return initialized;
-    }
-
     @Override
     public <T> BukkitWorld wrap(T world) {
         if (world instanceof World w) {
-            return BukkitAdaptors.adapt(w);
+            return BukkitAdaptor.adapt(w);
         } else {
             throw new IllegalArgumentException(world.getClass() + " is not a Bukkit World");
         }
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    public void onChunkLoad(ChunkLoadEvent event) {
-        CEWorld world = this.worlds.get(event.getWorld().getUID());
-        if (world == null) {
-            return;
-        }
-        handleChunkLoad(world, event.getChunk(), event.isNewChunk());
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    public void onChunkUnload(ChunkUnloadEvent event) {
-        CEWorld world = this.worlds.get(event.getWorld().getUID());
-        if (world == null) {
-            return;
-        }
-        handleChunkUnload(world, event.getChunk());
     }
 
     private void handleChunkUnload(CEWorld world, Chunk chunk) {
@@ -492,6 +541,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         }
     }
 
+    // for FastNMS chunk generator
     public void handleChunkGenerate(CEWorld ceWorld, ChunkPos chunkPos, Object chunkAccess) {
         if (ceWorld.isChunkLoaded(chunkPos.longKey)) return;
         Object[] sections = ChunkAccessProxy.INSTANCE.getSections(chunkAccess);
@@ -629,27 +679,42 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         ceChunk.activateAllBlockEntities();
     }
 
-    public class ConfiguredFeatureParser extends IdSectionConfigParser {
+    private final class ConfiguredFeatureParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"configured-feature", "configured-features", "configured_feature", "configured_features"};
 
         @Override
-        protected void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) throws LocalizedException {
-            Map<String, Object> processedSection = processPlacedFeature(section);
+        public void postProcess() {
+            List<Suggestion> suggestions = new ArrayList<>(BukkitWorldManager.this.cachedConfiguredFeaturesSuggestion);
+            for (Key id : BukkitWorldManager.this.configuredFeatures.keySet()) {
+                suggestions.add(Suggestion.suggestion(id.asString()));
+            }
+            BukkitWorldManager.this.cachedConfiguredFeaturesSuggestion = Collections.unmodifiableList(suggestions);
+        }
+
+        @Override
+        protected void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection rawSection) {
+            ConfigSection section = ConfigSection.ofSamePath(rawSection, processFeatureSection(rawSection.values()));
             Object feature;
+            JsonElement json = GsonHelper.get().toJsonTree(section.values());
             if (VersionHelper.isOrAbove1_20_5()) {
-                feature = ConfiguredFeatureProxy.CODEC.parse(RegistryOps.JSON, GsonHelper.get().toJsonTree(processedSection))
+                feature = ConfiguredFeatureProxy.CODEC.parse(RegistryOps.JSON, json)
                         .resultOrPartial(error -> {
-                            throw new LocalizedResourceConfigException("warning.config.configured_feature.invalid_feature", error);
+                            throw new KnownResourceException("resource.configured_feature.invalid_feature", section.path(), json.toString(), error);
                         })
                         .orElse(null);
             } else {
-                feature = LegacyDFUUtils.parse(ConfiguredFeatureProxy.CODEC, RegistryOps.JSON, GsonHelper.get().toJsonTree(processedSection), (error) -> {
-                    throw new LocalizedResourceConfigException("warning.config.configured_feature.invalid_feature", error);
+                feature = LegacyDFUUtils.parse(ConfiguredFeatureProxy.CODEC, RegistryOps.JSON, json, (error) -> {
+                    throw new KnownResourceException("resource.configured_feature.invalid_feature", section.path(), json.toString(), error);
                 });
             }
             if (feature != null) {
                 BukkitWorldManager.this.configuredFeatures.put(id, feature);
             }
+        }
+
+        @Override
+        public boolean async() {
+            return true;
         }
 
         @Override
@@ -673,21 +738,28 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         }
     }
 
-    public class PlacedFeatureParser extends IdSectionConfigParser {
+    private final class PlacedFeatureParser extends IdSectionConfigParser {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"placed-feature", "placed-features", "placed_feature", "placed_features"};
+        private final AtomicInteger id = new AtomicInteger();
         private List<ConditionalFeature> tempFeatures = null;
-        private int id;
+        private List<ConditionalFeature> backendFeatures = null;
 
         @Override
         public void preProcess() {
-            this.tempFeatures = new ArrayList<>();
-            this.id = 0;
+            this.backendFeatures = new ArrayList<>();
+            this.tempFeatures = Collections.synchronizedList(this.backendFeatures);
+            this.id.set(0);
         }
 
         @Override
         public void postProcess() {
-            BukkitWorldManager.this.placedFeatures = this.tempFeatures;
+            BukkitWorldManager.this.customPlacedFeatures = this.backendFeatures;
             BukkitWorldManager.this.lastReloadFeatureTime = System.currentTimeMillis();
+        }
+
+        @Override
+        public boolean async() {
+            return true;
         }
 
         @Override
@@ -700,60 +772,72 @@ public final class BukkitWorldManager implements WorldManager, Listener {
             return List.of(LoadingStages.CONFIGURED_FEATURE);
         }
 
-        @Override
-        protected void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) throws LocalizedException {
-            Map<String, Object> processedSection = processPlacedFeature(section);
-            Predicate<Key> biomeFilter = parseFilter(ResourceConfigUtils.get(processedSection, "biome", "biomes"), Key::of);
-            Predicate<String> worldFilter = parseFilter(ResourceConfigUtils.get(processedSection, "world", "worlds"), Function.identity());
-            Predicate<Key> environmentFilter = parseFilter(ResourceConfigUtils.get(processedSection, "dimension", "dimensions"), Key::of);
-            Predicate<Key> dimensionTypeFilter = parseFilter(ResourceConfigUtils.get(processedSection, "dimension-type", "dimension-types", "environment", "environments"), Key::of);
+        private static final String[] BIOME = new String[] {"biome", "biomes"};
+        private static final String[] WORLD = new String[] {"world", "worlds"};
+        private static final String[] DIMENSION = new String[] {"dimension", "dimensions"};
+        private static final String[] ENVIRONMENT = new String[] {"environment", "environments", "dimension-type", "dimension-types", "dimension_type", "dimension_types"};
 
-            Object rawFeature = processedSection.get("feature");
+        @Override
+        protected void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection rawSection) {
+            ConfigSection section = ConfigSection.ofSamePath(rawSection, processFeatureSection(rawSection.values()));
+
+            // 自定义筛选条件
+            Predicate<Key> biomeFilter = parseFilter(section.getStringList(BIOME).stream(), Key::of);
+            Predicate<String> worldFilter = parseFilter(section.getStringList(WORLD).stream(), Function.identity());
+            Predicate<Key> environmentFilter = parseFilter(section.getStringList(DIMENSION).stream(), Key::of);
+            Predicate<Key> dimensionTypeFilter = parseFilter(section.getStringList(ENVIRONMENT).stream(), Key::of);
+
+            // 解析feature
+            Object rawFeature = section.get("feature");
             Object configuredFeature = null;
             if (rawFeature instanceof String name) {
                 configuredFeature = BukkitWorldManager.this.configuredFeatures.get(Key.of(name));
             }
             if (configuredFeature == null) {
+                JsonElement json = GsonHelper.get().toJsonTree(rawFeature);
                 if (VersionHelper.isOrAbove1_20_5()) {
-                    configuredFeature = ConfiguredFeatureProxy.CODEC.parse(RegistryOps.JSON, GsonHelper.get().toJsonTree(rawFeature))
+                    configuredFeature = ConfiguredFeatureProxy.CODEC.parse(RegistryOps.JSON, json)
                             .resultOrPartial(error -> {
-                                throw new LocalizedResourceConfigException("warning.config.placed_feature.invalid_feature", error);
+                                throw new KnownResourceException("resource.configured_feature.invalid_feature", section.assemblePath("feature"), json.toString(), error);
                             })
                             .orElse(null);
                 } else {
-                    configuredFeature = LegacyDFUUtils.parse(ConfiguredFeatureProxy.CODEC, RegistryOps.JSON, GsonHelper.get().toJsonTree(rawFeature), (error) -> {
-                        throw new LocalizedResourceConfigException("warning.config.placed_feature.invalid_feature", error);
+                    configuredFeature = LegacyDFUUtils.parse(ConfiguredFeatureProxy.CODEC, RegistryOps.JSON, json, (error) -> {
+                        throw new KnownResourceException("resource.configured_feature.invalid_feature", section.assemblePath("feature"), json.toString(), error);
                     });
                 }
             }
             if (configuredFeature == null) {
-                throw new LocalizedResourceConfigException("warning.config.placed_feature.missing_feature");
+                throw new KnownResourceException("resource.missing_argument", section.path(), "feature", TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_SECTION));
             }
-            Object rawPlacement = ResourceConfigUtils.get(processedSection, "placement");
-            List<Object> placements = ResourceConfigUtils.parseConfigAsList(rawPlacement, map -> {
-                if (map.get("type") instanceof String type) {
-                    if (type.equals("biome") || type.equals("minecraft:biome")) {
-                        return FastNMS.INSTANCE.createBiomePlacementFilter(biomeFilter);
-                    }
+
+            // 解析 placements
+            List<Object> placements = section.getSectionList("placement", (s -> {
+                String type = s.getString("type");
+                if ("biome".equals(type) || "minecraft:biome".equals(type)) {
+                    return FastNMS.INSTANCE.createBiomePlacementFilter(biomeFilter);
                 }
-                JsonElement json = GsonHelper.get().toJsonTree(map);
+                JsonElement json = GsonHelper.get().toJsonTree(s.values());
                 if (VersionHelper.isOrAbove1_20_5()) {
                     return PlacementModifierProxy.CODEC.parse(RegistryOps.JSON, json)
                             .resultOrPartial(error -> {
-                                throw new LocalizedResourceConfigException("warning.config.placed_feature.invalid_placement", json.toString(), error);
+                                throw new KnownResourceException("resource.placed_feature.invalid_placement", s.path(), json.toString(), error);
                             })
                             .orElse(null);
                 } else {
                     return LegacyDFUUtils.parse(PlacementModifierProxy.CODEC, RegistryOps.JSON, json, (error) -> {
-                        throw new LocalizedResourceConfigException("warning.config.placed_feature.invalid_placement", json.toString(), error);
+                        throw new KnownResourceException("resource.placed_feature.invalid_placement", s.path(), json.toString(), error);
                     });
                 }
-            });
+            }));
             if (placements.isEmpty()) {
-                throw new LocalizedResourceConfigException("warning.config.placed_feature.missing_placement");
+                throw new KnownResourceException("resource.missing_argument", section.path(), "placement", TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_SECTION));
             }
+
+            // 构造 placed feature 实例
             Object placedFeature = PlacedFeatureProxy.INSTANCE.newInstance(configuredFeature, placements);
-            this.tempFeatures.add(new ConditionalFeature(this.id++, placedFeature, biomeFilter, worldFilter, environmentFilter, dimensionTypeFilter));
+            BukkitWorldManager.this.placedFeatures.put(id, placedFeature);
+            this.tempFeatures.add(new ConditionalFeature(this.id.getAndIncrement(), placedFeature, biomeFilter, worldFilter, environmentFilter, dimensionTypeFilter));
         }
 
         @Override
@@ -766,13 +850,18 @@ public final class BukkitWorldManager implements WorldManager, Listener {
             return CONFIG_SECTION_NAME;
         }
 
-        private <T> Predicate<T> parseFilter(Object config, Function<String, T> mapper) {
-            List<T> items = MiscUtils.getAsStringList(config).stream()
-                    .map(mapper)
-                    .toList();
+        private <T> Predicate<T> parseFilter(Stream<String> stream, Function<String, T> mapper) {
+            List<T> items = stream.map(mapper).toList();
             if (items.isEmpty()) {
                 return k -> true;
-            } else if (items.size() <= 3) {
+            } else if (items.size() == 1) {
+                T first = items.getFirst();
+                return k -> k.equals(first);
+            } else if (items.size() == 2) {
+                T first = items.getFirst();
+                T last = items.getLast();
+                return k -> k.equals(first) || k.equals(last);
+            } else if (items.size() <= 4) {
                 return k -> {
                     for (T item : items) {
                         if (item.equals(k)) {
@@ -788,25 +877,25 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         }
     }
 
+    //简单地处理一下，将feature转换
     @SuppressWarnings({"DuplicatedCode"})
-    private Map<String, Object> processPlacedFeature(Map<String, Object> map) {
-        if (map == null) {
-            return null;
-        }
+    private Map<String, Object> processFeatureSection(Map<String, Object> map) {
         Map<String, Object> result = new LinkedHashMap<>();
+        // 使用 snake 命名法
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            String originalKey = entry.getKey();
             Object value = entry.getValue();
-            String newKey = originalKey.replace("-", "_");
-            Object processedValue = processValue(value);
-            result.put(newKey, processedValue);
+            if (value == null) continue;
+            result.put(entry.getKey().replace("-", "_"), processFeatureValue(value));
         }
+        // 处理方块状态
         Object rawName = result.get("Name");
         if (rawName instanceof String blockName) {
             Optional<CustomBlock> customBlock = this.plugin.blockManager().blockById(Key.of(blockName));
+            // 如果是自定义方块名
             if (customBlock.isPresent()) {
                 CustomBlock block = customBlock.get();
                 ImmutableBlockState blockState = block.defaultState();
+                // 移除 properties 否则无法解析
                 Object properties = result.remove("Properties");
                 if (properties instanceof Map<?,?> propertiesMap && !propertiesMap.isEmpty()) {
                     for (Map.Entry<?, ?> entry : propertiesMap.entrySet()) {
@@ -814,9 +903,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
                         Property<?> property = block.getProperty(entry.getKey().toString());
                         if (property != null) {
                             Optional<?> optionalValue = property.optional(propertyValue);
-                            if (optionalValue.isEmpty()) {
-                                return null;
-                            } else {
+                            if (optionalValue.isPresent()) {
                                 blockState = ImmutableBlockState.with(blockState, property, optionalValue.get());
                             }
                         }
@@ -825,30 +912,49 @@ public final class BukkitWorldManager implements WorldManager, Listener {
                 result.put("Name", BlockStateUtils.getBlockOwnerIdFromState(blockState.customBlockState().literalObject()).asString());
             }
         }
+        // 处理 block predicate 等功能
         Object rawBlocks = result.get("blocks");
-        if (rawBlocks instanceof String blockName && blockName.charAt(0) != '#') {
-            Optional<CustomBlock> customBlock = this.plugin.blockManager().blockById(Key.of(blockName));
-            if (customBlock.isPresent()) {
-                CustomBlock block = customBlock.get();
-                ImmutableBlockState blockState = block.defaultState();
-                result.put("blocks", BlockStateUtils.getBlockOwnerIdFromState(blockState.customBlockState().literalObject()).asString());
+        if (rawBlocks != null) {
+            if (rawBlocks instanceof String blockName && blockName.charAt(0) != '#') {
+                Optional<CustomBlock> customBlock = this.plugin.blockManager().blockById(Key.of(blockName));
+                if (customBlock.isPresent()) {
+                    CustomBlock block = customBlock.get();
+                    ImmutableBlockState blockState = block.defaultState();
+                    result.put("blocks", BlockStateUtils.getBlockOwnerIdFromState(blockState.customBlockState().literalObject()).asString());
+                }
+            } else if (rawBlocks instanceof List<?> list) {
+                // list 的情况下，不能使用 tag
+                List<String> newBlockList = new ArrayList<>(list.size());
+                for (Object rawBlockName : list) {
+                    if (rawBlockName instanceof String blockName) {
+                        Optional<CustomBlock> customBlock = this.plugin.blockManager().blockById(Key.of(blockName));
+                        if (customBlock.isPresent()) {
+                            CustomBlock block = customBlock.get();
+                            ImmutableBlockState blockState = block.defaultState();
+                            newBlockList.add(BlockStateUtils.getBlockOwnerIdFromState(blockState.customBlockState().literalObject()).asString());
+                        } else {
+                            newBlockList.add(blockName);
+                        }
+                    } else {
+                        // 理论不会不是 string
+                        newBlockList.add(rawBlockName.toString());
+                    }
+                }
+                result.put("blocks", newBlockList);
             }
         }
         return result;
     }
 
-    @SuppressWarnings({"unchecked", "DuplicatedCode"})
-    private Object processValue(Object value) {
-        if (value == null) return null;
+    @SuppressWarnings({"DuplicatedCode"})
+    private Object processFeatureValue(Object value) {
         if (value instanceof Map) {
-            Map<String, Object> nestedMap = (Map<String, Object>) value;
-            return processPlacedFeature(nestedMap);
+            return processFeatureSection(MiscUtils.castToMap(value));
         }
-        if (value instanceof List) {
-            List<Object> originalList = (List<Object>) value;
-            List<Object> processedList = new ArrayList<>();
+        if (value instanceof List<?> originalList) {
+            List<Object> processedList = new ArrayList<>(originalList.size());
             for (Object item : originalList) {
-                processedList.add(processValue(item));
+                processedList.add(processFeatureValue(item));
             }
             return processedList;
         }

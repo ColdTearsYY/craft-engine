@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.DirectionUtils;
@@ -10,7 +9,11 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.BooleanProperty;
 import net.momirealms.craftengine.core.block.properties.Property;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.util.Direction;
+import net.momirealms.craftengine.core.util.HorizontalDirection;
+import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.DirectionProxy;
@@ -27,18 +30,19 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
-public class BuddingBlockBehavior extends BukkitBlockBehavior {
+public final class BuddingBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<BuddingBlockBehavior> FACTORY = new Factory();
-    private final float growthChance;
-    private final List<Key> blocks;
+    public final float growthChance;
+    public final List<Key> blocks;
 
-    public BuddingBlockBehavior(CustomBlock customBlock, float growthChance, List<Key> blocks) {
+    private BuddingBlockBehavior(CustomBlock customBlock,
+                                 float growthChance,
+                                 List<Key> blocks) {
         super(customBlock);
         this.growthChance = growthChance;
-        this.blocks = blocks;
+        this.blocks = List.copyOf(blocks);
     }
 
     @Override
@@ -99,13 +103,15 @@ public class BuddingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<BuddingBlockBehavior> {
+        private static final String[] GROWTH_CHANCE = new String[] {"growth_chance", "growth-chance"};
 
         @Override
-        public BuddingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            float growthChance = ResourceConfigUtils.getAsFloat(arguments.getOrDefault("growth-chance", 0.2), "growth-chance");
-            List<Key> blocks = new ObjectArrayList<>();
-            MiscUtils.getAsStringList(arguments.get("blocks")).forEach(s -> blocks.add(Key.of(s)));
-            return new BuddingBlockBehavior(block, growthChance, blocks);
+        public BuddingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new BuddingBlockBehavior(
+                    block,
+                    section.getFloat(GROWTH_CHANCE, 0.2f),
+                    section.getList("blocks", ConfigValue::getAsIdentifier)
+            );
         }
     }
 }

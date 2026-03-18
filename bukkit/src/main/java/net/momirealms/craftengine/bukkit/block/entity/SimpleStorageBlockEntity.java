@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.entity;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.behavior.SimpleStorageBlockBehavior;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
@@ -45,7 +45,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         super(BukkitBlockEntityTypes.SIMPLE_STORAGE, pos, blockState);
         this.behavior = super.blockState.behavior().getAs(SimpleStorageBlockBehavior.class).orElseThrow();
         BlockEntityHolder holder = new BlockEntityHolder(this);
-        this.inventory = FastNMS.INSTANCE.createSimpleStorageContainer(holder, this.behavior.rows() * 9, this.behavior.canPlaceItem(), this.behavior.canTakeItem());
+        this.inventory = FastNMS.INSTANCE.createSimpleStorageContainer(holder, this.behavior.rows * 9, this.behavior.canPlaceItem, this.behavior.canTakeItem);
         holder.setInventory(this.inventory);
         StorageContainer container = (StorageContainer) CraftInventoryProxy.INSTANCE.getInventory(this.inventory);
         container.onContentsChanged($ -> {
@@ -62,7 +62,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         ListTag itemsTag = new ListTag();
         @Nullable ItemStack[] storageContents = this.inventory.getStorageContents();
         for (int i = 0; i < storageContents.length; i++) {
-            if (storageContents[i] == null || !(ItemStackUtils.saveItemStackAsTag(storageContents[i]) instanceof CompoundTag itemTag)) {
+            if (storageContents[i] == null || !(ItemStackUtils.saveBukkitItemAsTag(storageContents[i]) instanceof CompoundTag itemTag)) {
                 continue;
             }
             itemTag.putInt("slot", i);
@@ -76,14 +76,14 @@ public class SimpleStorageBlockEntity extends BlockEntity {
     public void loadCustomData(CompoundTag tag) {
         ListTag itemsTag = Optional.ofNullable(tag.getList("items")).orElseGet(ListTag::new);
         int dataVersion = tag.getInt("data_version", Config.itemDataFixerUpperFallbackVersion());
-        ItemStack[] storageContents = new ItemStack[this.behavior.rows() * 9];
+        ItemStack[] storageContents = new ItemStack[this.behavior.rows * 9];
         for (int i = 0; i < itemsTag.size(); i++) {
             CompoundTag itemTag = itemsTag.getCompound(i);
             int slot = itemTag.getInt("slot");
             if (slot < 0 || slot >= storageContents.length) {
                 continue;
             }
-            storageContents[slot] = ItemStackUtils.parseItemStack(itemTag, dataVersion);
+            storageContents[slot] = ItemStackUtils.parseBukkitItem(itemTag, dataVersion);
         }
         this.inventory.setStorageContents(storageContents);
     }
@@ -128,7 +128,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
             bukkitWorld.sendGameEvent(null, GameEvent.CONTAINER_OPEN, new Vector(this.pos.x(), this.pos.y(), this.pos.z()));
         }
         this.openState = true;
-        SoundData soundData = this.behavior.openSound();
+        SoundData soundData = this.behavior.openSound;
         if (soundData != null) {
             super.world.world().playBlockSound(Vec3d.atCenterOf(this.pos), soundData);
         }
@@ -143,7 +143,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
             bukkitWorld.sendGameEvent(null, GameEvent.CONTAINER_CLOSE, new Vector(this.pos.x(), this.pos.y(), this.pos.z()));
         }
         this.openState = false;
-        SoundData soundData = this.behavior.closeSound();
+        SoundData soundData = this.behavior.closeSound;
         if (soundData != null) {
             super.world.world().playBlockSound(Vec3d.atCenterOf(this.pos), soundData);
         }
@@ -167,7 +167,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         if (state == null) return;
         SimpleStorageBlockBehavior behavior = state.behavior().getAs(SimpleStorageBlockBehavior.class).orElse(null);
         if (behavior == null) return;
-        Property<Boolean> property = behavior.openProperty();
+        Property<Boolean> property = behavior.openProperty;
         if (property == null) return;
         super.world.world().setBlockState(this.pos.x(), this.pos.y(), this.pos.z(), state.with(property, open), UpdateFlags.UPDATE_ALL);
     }
@@ -179,7 +179,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
         int validViewers = 0;
         for (HumanEntity viewer : viewers) {
             if (viewer instanceof org.bukkit.entity.Player player) {
-                BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                 if (serverPlayer == null) continue;
                 maxInteractionDistance = Math.max(serverPlayer.getCachedInteractionRange(), maxInteractionDistance);
                 if (player.getGameMode() != GameMode.SPECTATOR) {

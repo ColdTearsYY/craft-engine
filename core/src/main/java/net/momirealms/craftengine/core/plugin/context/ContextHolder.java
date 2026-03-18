@@ -11,7 +11,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class ContextHolder {
+public final class ContextHolder {
     /**
      * Use {@link #empty()} instead
      */

@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LevelUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
@@ -35,7 +35,7 @@ public abstract class AbstractCanSurviveBlockBehavior extends BukkitBlockBehavio
         if (!canSurvive(thisBlock, args, () -> true)) {
             BlockStateUtils.getOptionalCustomBlockState(blockState).ifPresent(customState -> {
                 if (!customState.isEmpty() && customState.owner().value() == this.customBlock) {
-                    net.momirealms.craftengine.core.world.World world = BukkitAdaptors.adapt(LevelProxy.INSTANCE.getWorld(level));
+                    net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
                     WorldPosition position = new WorldPosition(world, Vec3d.atCenterOf(LocationUtils.fromBlockPos(blockPos)));
                     world.playBlockSound(position, customState.settings().sounds().breakSound());
                     LevelWriterProxy.INSTANCE.destroyBlock(level, blockPos, true);

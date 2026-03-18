@@ -10,18 +10,18 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class ConstantBoundRegistry<T> extends AbstractMappedRegistry<T> {
-    protected final Reference2IntMap<T> toId = MiscUtils.init(new Reference2IntOpenHashMap<>(), map -> map.defaultReturnValue(-1));
-    protected final Map<T, Holder.Reference<T>> byValue;
+public final class ConstantBoundRegistry<T> extends AbstractMappedRegistry<T> {
+    private final Reference2IntMap<T> toId = MiscUtils.init(new Reference2IntOpenHashMap<>(), map -> map.defaultReturnValue(-1));
+    private final Map<T, Holder.Reference<T>> byValue;
 
     public ConstantBoundRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
-        super(key, expectedSize);
+        super(key, expectedSize, false);
         this.byValue = new IdentityHashMap<>(expectedSize);
     }
 
     @Override
     public Holder.Reference<T> registerForHolder(ResourceKey<T> key) {
-        throw new IllegalArgumentException("Cannot register a holder for a MappedRegistry");
+        throw new IllegalArgumentException("Cannot register a holder for a ConstantBoundRegistry");
     }
 
     @Override

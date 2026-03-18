@@ -2,7 +2,7 @@ package net.momirealms.craftengine.core.world;
 
 import java.util.Objects;
 
-public class WorldPosition implements Position {
+public final class WorldPosition implements Position {
     public final World world;
     public final double x;
     public final double y;

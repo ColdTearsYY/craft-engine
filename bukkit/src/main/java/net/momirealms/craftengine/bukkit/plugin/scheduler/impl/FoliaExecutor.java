@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-public class FoliaExecutor implements RegionExecutor<World> {
+public final class FoliaExecutor implements RegionExecutor<World> {
     private final BukkitCraftEngine plugin;
 
     public FoliaExecutor(BukkitCraftEngine plugin) {

@@ -29,12 +29,12 @@ public abstract class Player extends AbstractEntity implements NetWorkUser {
     public abstract boolean isSecondaryUseActive();
 
     @NotNull
-    public abstract Item<?> getItemInHand(InteractionHand hand);
+    public abstract Item getItemInHand(InteractionHand hand);
 
     @NotNull
-    public abstract Item<?> getItemBySlot(int slot);
+    public abstract Item getItemBySlot(int slot);
 
-    public abstract void setItemInHand(InteractionHand hand, Item<?> item);
+    public abstract void setItemInHand(InteractionHand hand, Item item);
 
     @Override
     public abstract Object platformPlayer();
@@ -86,7 +86,7 @@ public abstract class Player extends AbstractEntity implements NetWorkUser {
 
     public abstract boolean canPlace(BlockPos pos, Object state);
 
-    public abstract void sendToast(Component text, Item<?> icon, AdvancementType type);
+    public abstract void sendToast(Component text, Item icon, AdvancementType type);
 
     public abstract void sendActionBar(Component text);
 
@@ -136,7 +136,7 @@ public abstract class Player extends AbstractEntity implements NetWorkUser {
         this.playSound(pos, data.id(), source, data.volume().get(), data.pitch().get());
     }
 
-    public abstract void giveItem(Item<?> item);
+    public abstract void giveItem(Item item);
 
     public abstract void closeInventory();
 
@@ -223,7 +223,7 @@ public abstract class Player extends AbstractEntity implements NetWorkUser {
 
     public abstract void setExperienceLevels(int level);
 
-    public abstract void sendTotemAnimation(Item<?> totem, @Nullable SoundData sound, boolean silent);
+    public abstract void sendTotemAnimation(Item totem, @Nullable SoundData sound, boolean silent);
 
     public abstract void addTrackedBlockEntities(Map<BlockPos, ConstantBlockEntityRenderer> renders);
 
@@ -237,7 +237,7 @@ public abstract class Player extends AbstractEntity implements NetWorkUser {
 
     public abstract void clearTrackedBlockEntities();
 
-    public abstract int clearOrCountMatchingInventoryItems(Predicate<Item<?>> predicate, int count);
+    public abstract int clearOrCountMatchingInventoryItems(Predicate<Item> predicate, int count);
 
     public int clearOrCountMatchingInventoryItems(Key itemId, int count) {
         return this.clearOrCountMatchingInventoryItems(item -> itemId.equals(item.id()), count);

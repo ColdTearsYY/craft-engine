@@ -2,12 +2,11 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
 public final class SignSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<SignSpecialModel> FACTORY = new Factory();
@@ -49,12 +48,15 @@ public final class SignSpecialModel implements SpecialModel {
     }
 
     private static class Factory implements SpecialModelFactory<SignSpecialModel> {
+        private static final String[] WOOD_TYPES = new String[] {"wood_type", "wood-type"};
+
         @Override
-        public SignSpecialModel create(Map<String, Object> arguments) {
-            Key type = Key.of(arguments.get("type").toString());
-            String woodType = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("wood-type"), "warning.config.item.model.special.sign.missing_wood_type");
-            String texture = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("texture"), "warning.config.item.model.special.sign.missing_texture");
-            return new SignSpecialModel(type, woodType, texture);
+        public SignSpecialModel create(ConfigSection section) {
+            return new SignSpecialModel(
+                    section.getNonNullIdentifier("type"),
+                    section.getNonNullString(WOOD_TYPES),
+                    section.getNonNullString("texture")
+            );
         }
     }
 

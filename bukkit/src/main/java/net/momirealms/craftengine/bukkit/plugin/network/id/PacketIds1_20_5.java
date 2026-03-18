@@ -5,7 +5,7 @@ import net.momirealms.craftengine.core.plugin.network.ConnectionState;
 import net.momirealms.craftengine.core.plugin.network.PacketFlow;
 import net.momirealms.craftengine.core.util.VersionHelper;
 
-public class PacketIds1_20_5 implements PacketIds {
+public final class PacketIds1_20_5 implements PacketIds {
 
     @Override
     public int clientboundBlockUpdatePacket() {

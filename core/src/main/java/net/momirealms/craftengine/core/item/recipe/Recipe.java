@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.item.recipe;
 
+import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.util.Key;
@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public interface Recipe<T> {
+public interface Recipe {
 
     boolean matches(RecipeInput input);
 
@@ -17,9 +18,9 @@ public interface Recipe<T> {
         this.takeInput(input, 0);
     }
 
-    T assemble(RecipeInput input, ItemBuildContext context);
+    Item assemble(RecipeInput input, ItemBuildContext context);
 
-    List<Ingredient<T>> ingredientsInUse();
+    List<Ingredient> ingredientsInUse();
 
     @NotNull
     Key serializerType();

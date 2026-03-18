@@ -4,12 +4,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.host.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.HashUtils;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -59,7 +60,7 @@ public final class DropboxHost implements ResourcePackHost {
             this.refreshToken = getString(cache, "refresh_token");
             this.accessToken = getString(cache, "access_token");
             this.expiresAt = getLong(cache, "expires_at");
-            CraftEngine.instance().logger().info(TranslationManager.instance().translateLog("info.host.cache.load", "Dropbox"));
+            CraftEngine.instance().logger().info(TranslationManager.instance().plainTranslation("info.host.cache.load", "Dropbox"));
         } catch (Exception e) {
             CraftEngine.instance().logger().warn("[Dropbox] Failed to load cache " + cachePath, e);
         }
@@ -258,24 +259,20 @@ public final class DropboxHost implements ResourcePackHost {
     }
 
     private static class Factory implements ResourcePackHostFactory<DropboxHost> {
+        private static final String[] USE_ENVIRONMENT_VARIABLES = new String[] {"use_environment_variables", "use-environment-variables"};
+        private static final String[] UPLOAD_PATH = new String[] {"upload_path", "upload-path"};
+        private static final String[] APP_KEY = new String[] {"app_key", "app-key"};
+        private static final String[] APP_SECRET = new String[] {"app_secret", "app-secret"};
+        private static final String[] REFRESH_TOKEN = new String[] {"refresh_token", "refresh-token"};
 
         @Override
-        public DropboxHost create(Map<String, Object> arguments) {
-            boolean useEnv = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("use-environment-variables", false), "use-environment-variables");
-            String appKey = useEnv ? System.getenv("CE_DROPBOX_APP_KEY") : Optional.ofNullable(arguments.get("app-key")).map(String::valueOf).orElse(null);
-            if (appKey == null || appKey.isEmpty()) {
-                throw new LocalizedException("warning.config.host.dropbox.missing_app_key");
-            }
-            String appSecret = useEnv ? System.getenv("CE_DROPBOX_APP_SECRET") : Optional.ofNullable(arguments.get("app-secret")).map(String::valueOf).orElse(null);
-            if (appSecret == null || appSecret.isEmpty()) {
-                throw new LocalizedException("warning.config.host.dropbox.missing_app_secret");
-            }
-            String refreshToken = useEnv ? System.getenv("CE_DROPBOX_REFRESH_TOKEN") : Optional.ofNullable(arguments.get("refresh-token")).map(String::valueOf).orElse(null);
-            if (refreshToken == null || refreshToken.isEmpty()) {
-                throw new LocalizedException("warning.config.host.dropbox.missing_refresh_token");
-            }
-            String uploadPath = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("upload-path"), () -> new LocalizedException("warning.config.host.dropbox.missing_upload_path"));
-            ProxySelector proxy = getProxySelector(MiscUtils.castToMap(arguments.get("proxy"), true));
+        public DropboxHost create(ConfigSection section) {
+            boolean useEnv = section.getBoolean(USE_ENVIRONMENT_VARIABLES);
+            String appKey = useEnv ? getNonNullEnvironmentVariable(section, "CE_DROPBOX_APP_KEY") : section.getNonEmptyString(APP_KEY);
+            String appSecret = useEnv ? getNonNullEnvironmentVariable(section, "CE_DROPBOX_APP_SECRET") : section.getNonEmptyString(APP_SECRET);
+            String refreshToken = useEnv ? getNonNullEnvironmentVariable(section, "CE_DROPBOX_REFRESH_TOKEN") : section.getNonEmptyString(REFRESH_TOKEN);
+            String uploadPath = section.getNonNullString(UPLOAD_PATH);
+            ProxySelector proxy = getProxySelector(section.getSection("proxy"));
             return new DropboxHost(appKey, appSecret, refreshToken, "/" + uploadPath, proxy);
         }
     }

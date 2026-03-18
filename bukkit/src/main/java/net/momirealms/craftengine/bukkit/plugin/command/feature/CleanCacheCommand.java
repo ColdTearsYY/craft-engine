@@ -16,7 +16,6 @@ import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.util.FileUtils;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.command.CommandSender;
-import org.bukkit.inventory.ItemStack;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.context.CommandContext;
@@ -32,7 +31,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
-public class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
+public final class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
 
     public CleanCacheCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
@@ -81,7 +80,7 @@ public class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
                 ids.add(state.visualBlockState());
             }
         }
-        VisualBlockStateAllocator visualBlockStateAllocator = instance.blockParser().visualBlockStateAllocator();
+        VisualBlockStateAllocator visualBlockStateAllocator = instance.visualBlockStateAllocator();
         List<String> removed = visualBlockStateAllocator.cleanupUnusedIds(i -> !ids.contains(i));
         try {
             visualBlockStateAllocator.saveToCache();
@@ -102,7 +101,7 @@ public class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
                 ids.add(state.toString());
             }
         }
-        IdAllocator idAllocator = instance.blockParser().internalIdAllocator();
+        IdAllocator idAllocator = instance.internalIdAllocator();
         List<String> removed = idAllocator.cleanupUnusedIds(i -> !ids.contains(i));
         try {
             idAllocator.saveToCache();
@@ -151,7 +150,7 @@ public class CleanCacheCommand extends BukkitCommandFeature<CommandSender> {
     private void handleCustomModelData(CommandContext<CommandSender> context) {
         BukkitItemManager instance = BukkitItemManager.instance();
         Map<Key, Set<String>> idsMap = new HashMap<>();
-        for (CustomItem<ItemStack> item : instance.loadedItems().values()) {
+        for (CustomItem item : instance.loadedItems().values()) {
             Set<String> ids = idsMap.computeIfAbsent(item.clientBoundMaterial(), k -> new HashSet<>());
             ids.add(item.id().asString());
         }

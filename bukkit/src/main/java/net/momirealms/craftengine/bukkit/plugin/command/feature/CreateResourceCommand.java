@@ -23,7 +23,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CreateResourceCommand extends BukkitCommandFeature<CommandSender> {
+public final class CreateResourceCommand extends BukkitCommandFeature<CommandSender> {
 
     public CreateResourceCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

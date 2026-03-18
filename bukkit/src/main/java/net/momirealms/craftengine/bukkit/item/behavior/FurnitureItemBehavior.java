@@ -19,17 +19,19 @@ import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.core.world.collision.AABB;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.phys.AABBProxy;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import org.bukkit.Location;
@@ -43,11 +45,14 @@ public class FurnitureItemBehavior extends ItemBehavior {
     public static final ItemBehaviorFactory<FurnitureItemBehavior> FACTORY = new Factory();
     static final Set<String> ALLOWED_ANCHOR_TYPES = Set.of("wall", "ceiling", "ground");
     private final Key id;
-    private final Map<AnchorType, Rule> rules;
+    private final Map<String, Rule> rules;
     private final boolean ignorePlacer;
     private final boolean ignoreEntities;
 
-    protected FurnitureItemBehavior(Key id, Map<AnchorType, Rule> rules, boolean ignorePlacer, boolean ignoreEntities) {
+    protected FurnitureItemBehavior(Key id,
+                                    Map<String, Rule> rules,
+                                    boolean ignorePlacer,
+                                    boolean ignoreEntities) {
         this.id = id;
         this.rules = rules;
         this.ignorePlacer = ignorePlacer;
@@ -58,7 +63,7 @@ public class FurnitureItemBehavior extends ItemBehavior {
         return this.id;
     }
 
-    public Map<AnchorType, Rule> rules() {
+    public Map<String, Rule> rules() {
         return this.rules;
     }
 
@@ -95,7 +100,7 @@ public class FurnitureItemBehavior extends ItemBehavior {
             return InteractionResult.FAIL;
         }
 
-        Rule rule = this.rules.get(anchorType);
+        Rule rule = this.rules.get(anchorType.variantName());
         if (rule == null) {
             rule = Rule.DEFAULT;
         }
@@ -141,9 +146,9 @@ public class FurnitureItemBehavior extends ItemBehavior {
             if (this.ignoreEntities) {
                 entityPredicate = (o) -> false;
             } else if (this.ignorePlacer) {
-                entityPredicate = player != null ? (o) -> o != player.serverPlayer() : (o) -> true;
+                entityPredicate = player != null ? (o) -> o != player.serverPlayer() && EntityProxy.INSTANCE.getBlocksBuilding(o) : EntityProxy.INSTANCE::getBlocksBuilding;
             } else {
-                entityPredicate = (o) -> true;
+                entityPredicate = EntityProxy.INSTANCE::getBlocksBuilding;
             }
             if (!CollisionUtils.test(context.getLevel().serverWorld(), aabbs.stream().map(it -> AABBProxy.INSTANCE.newInstance(it.minX, it.minY, it.minZ, it.maxX, it.maxY, it.maxZ)).toList(), entityPredicate)) {
                 if (player != null && player.enableFurnitureDebug() && VersionHelper.isPaper()) {
@@ -171,7 +176,7 @@ public class FurnitureItemBehavior extends ItemBehavior {
                 return InteractionResult.FAIL;
             }
         }
-        Item<?> item = context.getItem();
+        Item item = context.getItem();
         if (ItemUtils.isEmpty(item)) return InteractionResult.FAIL;
         // 获取家具物品的一些属性
         FurnitureDataAccessor dataAccessor = FurnitureDataAccessor.of(new CompoundTag());
@@ -215,65 +220,54 @@ public class FurnitureItemBehavior extends ItemBehavior {
     }
 
     private static class Factory implements ItemBehaviorFactory<FurnitureItemBehavior> {
+        private static final String[] IGNORE_PLACER = new String[]{"ignore_placer", "ignore-placer"};
+        private static final String[] IGNORE_ENTITIES = new String[]{"ignore_entities", "ignore-entities"};
 
         @SuppressWarnings("DuplicatedCode")
         @Override
-        public FurnitureItemBehavior create(Pack pack, Path path, String node, Key key, Map<String, Object> arguments) {
-            Object id = arguments.get("furniture");
-            if (id == null) {
-                throw new LocalizedResourceConfigException("warning.config.item.behavior.furniture.missing_furniture", new IllegalArgumentException("Missing required parameter 'furniture' for furniture_item behavior"));
-            }
-            Map<String, Object> rulesMap = ResourceConfigUtils.getAsMapOrNull(arguments.get("rules"), "rules");
+        public FurnitureItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
+            ConfigValue furnitureValue = section.getNonNullValue("furniture", ConfigConstants.ARGUMENT_SECTION);
+            ConfigSection rulesSection = section.getValue("rules", ConfigValue::getAsSection);
+
+            Map<String, Rule> rules = new HashMap<>();
             Key furnitureId;
-            if (id instanceof Map<?,?> map) {
-                Map<String, Object> furnitureSection;
-                if (map.containsKey(key.toString())) {
-                    // 防呆
-                    furnitureSection = MiscUtils.castToMap(map.get(key.toString()), false);
-                    BukkitFurnitureManager.instance().parser().addPendingConfigSection(new PendingConfigSection(pack, path, node, key, furnitureSection));
-                } else {
-                    furnitureSection = MiscUtils.castToMap(map, false);
-                    BukkitFurnitureManager.instance().parser().addPendingConfigSection(new PendingConfigSection(pack, path, node, key, furnitureSection));
-                }
+            if (furnitureValue.is(Map.class)) {
+                ConfigSection furnitureSection = furnitureValue.getAsSection();
+                BukkitFurnitureManager.instance().parser().addPendingConfigSection(new PendingConfigSection(pack, path, key, furnitureSection));
                 furnitureId = key;
-                // 兼容老版本
-                if (rulesMap == null) {
-                    Map<String, Object> placementSection = ResourceConfigUtils.getAsMapOrNull(furnitureSection.get("placement"), "placement");
+                // 以下代码是兼容老版本配置，旧版配置放置规则位于furniture下
+                if (rulesSection == null) {
+                    ConfigSection placementSection = furnitureSection.getSection("placement");
                     if (placementSection != null) {
-                        rulesMap = new HashMap<>();
-                        for (Map.Entry<String, Object> entry : placementSection.entrySet()) {
-                            if (entry.getValue() instanceof Map<?, ?> innerMap) {
-                                if (innerMap.containsKey("rules")) {
-                                    Map<String, Object> rules = ResourceConfigUtils.getAsMap(innerMap.get("rules"), "rules");
-                                    if (ALLOWED_ANCHOR_TYPES.contains(entry.getKey())) {
-                                        rulesMap.put(entry.getKey(), rules);
-                                    }
+                        for (String anchorType : placementSection.keySet()) {
+                            if (ALLOWED_ANCHOR_TYPES.contains(anchorType)) {
+                                ConfigSection varSection = placementSection.getNonNullSection(anchorType);
+                                ConfigSection ruleSection = varSection.getSection("rules");
+                                if (ruleSection != null) {
+                                    AlignmentRule alignmentRule = ruleSection.getEnum("alignment", AlignmentRule.class, AlignmentRule.ANY);
+                                    RotationRule rotationRule = ruleSection.getEnum("rotation", RotationRule.class, RotationRule.ANY);
+                                    rules.put(anchorType, new Rule(alignmentRule, rotationRule));
                                 }
                             }
                         }
                     }
                 }
             } else {
-                furnitureId = Key.of(id.toString());
+                furnitureId = furnitureValue.getAsIdentifier();
             }
-            Map<AnchorType, Rule> rules = new EnumMap<>(AnchorType.class);
-            if (rulesMap != null) {
-                for (Map.Entry<String, Object> entry : rulesMap.entrySet()) {
-                    try {
-                        AnchorType type = AnchorType.valueOf(entry.getKey().toUpperCase(Locale.ROOT));
-                        Map<String, Object> ruleSection = MiscUtils.castToMap(entry.getValue(), true);
-                        rules.put(type, new Rule(
-                                ResourceConfigUtils.getAsEnum(ruleSection.get("alignment"), AlignmentRule.class, AlignmentRule.ANY),
-                                ResourceConfigUtils.getAsEnum(ruleSection.get("rotation"), RotationRule.class, RotationRule.ANY)
-                        ));
-                    } catch (IllegalArgumentException ignored) {
-                        Debugger.FURNITURE.debug(() -> "Invalid anchor type: " + entry.getKey());
-                    }
+            if (rulesSection != null) {
+                for (String variant : rulesSection.keySet()) {
+                    ConfigSection ruleSection = rulesSection.getNonNullSection(variant);
+                    AlignmentRule alignmentRule = ruleSection.getEnum("alignment", AlignmentRule.class, AlignmentRule.ANY);
+                    RotationRule rotationRule = ruleSection.getEnum("rotation", RotationRule.class, RotationRule.ANY);
+                    rules.put(variant, new Rule(alignmentRule, rotationRule));
                 }
             }
-            return new FurnitureItemBehavior(furnitureId, rules,
-                    ResourceConfigUtils.getAsBoolean(arguments.get("ignore-placer"), "ignore-placer"),
-                    ResourceConfigUtils.getAsBoolean(arguments.get("ignore-entities"), "ignore-entities")
+            return new FurnitureItemBehavior(
+                    furnitureId,
+                    rules,
+                    section.getBoolean(IGNORE_PLACER),
+                    section.getBoolean(IGNORE_ENTITIES)  // todo 更好的 predicate
             );
         }
     }

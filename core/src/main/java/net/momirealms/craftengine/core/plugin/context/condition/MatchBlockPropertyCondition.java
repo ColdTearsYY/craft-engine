@@ -4,12 +4,11 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.StatePropertyAccessor;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
-import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.Pair;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.ExistingBlock;
 
 import java.util.*;
@@ -17,7 +16,7 @@ import java.util.*;
 public final class MatchBlockPropertyCondition<CTX extends Context> implements Condition<CTX> {
     private final List<Pair<String, String>> properties;
 
-    public MatchBlockPropertyCondition(List<Pair<String, String>> properties) {
+    private MatchBlockPropertyCondition(List<Pair<String, String>> properties) {
         this.properties = properties;
     }
 
@@ -75,11 +74,11 @@ public final class MatchBlockPropertyCondition<CTX extends Context> implements C
     private static class Factory<CTX extends Context> implements ConditionFactory<CTX, MatchBlockPropertyCondition<CTX>> {
 
         @Override
-        public MatchBlockPropertyCondition<CTX> create(Map<String, Object> arguments) {
-            Object propertyObj = ResourceConfigUtils.requireNonNullOrThrow(arguments.get("properties"), "warning.config.condition.match_block_property.missing_properties");
+        public MatchBlockPropertyCondition<CTX> create(ConfigSection section) {
+            ConfigSection properties = section.getNonNullSection("properties");
             List<Pair<String, String>> propertyList = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : MiscUtils.castToMap(propertyObj, false).entrySet()) {
-                propertyList.add(new Pair<>(entry.getKey(), entry.getValue().toString()));
+            for (Map.Entry<String, Object> entry : properties.values().entrySet()) {
+                propertyList.add(Pair.of(entry.getKey(), entry.getValue().toString()));
             }
             return new MatchBlockPropertyCondition<>(propertyList);
         }

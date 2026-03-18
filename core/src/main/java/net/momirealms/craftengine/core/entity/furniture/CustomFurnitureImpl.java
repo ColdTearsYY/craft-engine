@@ -22,14 +22,14 @@ class CustomFurnitureImpl implements CustomFurniture {
     private final Map<String, FurnitureVariant> variants;
     private final Map<EventTrigger, List<Function<Context>>> events;
     @Nullable
-    private final LootTable<?> lootTable;
+    private final LootTable lootTable;
     private FurnitureBehavior behavior = EmptyFurnitureBehavior.INSTANCE;
 
     private CustomFurnitureImpl(@NotNull Key id,
                                 @NotNull FurnitureSettings settings,
                                 @NotNull Map<String, FurnitureVariant> variants,
                                 @NotNull Map<EventTrigger, List<Function<Context>>> events,
-                                @Nullable LootTable<?> lootTable) {
+                                @Nullable LootTable lootTable) {
         this.id = id;
         this.settings = settings;
         this.variants = ImmutableSortedMap.copyOf(variants);
@@ -59,7 +59,7 @@ class CustomFurnitureImpl implements CustomFurniture {
     }
 
     @Override
-    public @Nullable LootTable<?> lootTable() {
+    public @Nullable LootTable lootTable() {
         return this.lootTable;
     }
 
@@ -84,7 +84,7 @@ class CustomFurnitureImpl implements CustomFurniture {
         private Map<String, FurnitureVariant> variants;
         private FurnitureSettings settings;
         private Map<EventTrigger, List<Function<Context>>> events;
-        private LootTable<?> lootTable;
+        private LootTable lootTable;
 
         @Override
         public CustomFurniture build() {
@@ -110,7 +110,7 @@ class CustomFurnitureImpl implements CustomFurniture {
         }
 
         @Override
-        public Builder lootTable(LootTable<?> lootTable) {
+        public Builder lootTable(LootTable lootTable) {
             this.lootTable = lootTable;
             return this;
         }

@@ -4,17 +4,15 @@ import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
-public interface ItemWrapper<I> {
+public interface ItemWrapper {
 
-    I getItem();
-
-    Object getLiteralObject();
+    Object getMinecraftItem();
 
     int count();
 
     void count(int amount);
 
-    ItemWrapper<I> copyWithCount(int count);
+    ItemWrapper copyWithCount(int count);
 
     void shrink(int amount);
 

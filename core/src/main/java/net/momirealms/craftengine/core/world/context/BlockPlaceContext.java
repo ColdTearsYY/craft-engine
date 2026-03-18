@@ -11,13 +11,13 @@ import org.jetbrains.annotations.Nullable;
 
 public class BlockPlaceContext extends UseOnContext {
     private final BlockPos relativePos;
-    protected boolean replaceClicked;
+    private boolean replaceClicked;
 
     public BlockPlaceContext(UseOnContext context) {
         this(context.getLevel(), context.getPlayer(), context.getHand(), context.getItem(), context.getHitResult());
     }
 
-    public BlockPlaceContext(World world, @Nullable Player player, InteractionHand hand, Item<?> stack, BlockHitResult hit) {
+    public BlockPlaceContext(World world, @Nullable Player player, InteractionHand hand, Item stack, BlockHitResult hit) {
         super(world, player, hand, stack, hit);
         this.relativePos = hit.blockPos().relative(hit.direction());
         this.replaceClicked = true;

@@ -29,4 +29,7 @@ public interface BlockGetterProxy extends LevelHeightAccessorProxy {
 
     @MethodInvoker(name = "getBlockStateIfLoaded")
     Object getBlockStateIfLoaded(Object target, @Type(clazz = BlockPosProxy.class) Object blockPos);
+
+    @MethodInvoker(name = "getBlockEntity")
+    Object getBlockEntity(Object target, @Type(clazz = BlockPosProxy.class) Object pos);
 }

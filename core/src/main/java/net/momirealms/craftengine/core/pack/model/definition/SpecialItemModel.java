@@ -1,29 +1,25 @@
 package net.momirealms.craftengine.core.pack.model.definition;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModel;
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModels;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.revision.Revision;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Map;
 
 public final class SpecialItemModel implements ItemModel {
     public static final ItemModelFactory<SpecialItemModel> FACTORY = new Factory();
     public static final ItemModelReader<SpecialItemModel> READER = new Reader();
     private final SpecialModel specialModel;
-    private final String base;
+    private final Key base;
     private final ModelGeneration modelGeneration;
 
-    public SpecialItemModel(SpecialModel specialModel, String base, @Nullable ModelGeneration generation) {
+    public SpecialItemModel(SpecialModel specialModel, Key base, @Nullable ModelGeneration generation) {
         this.specialModel = specialModel;
         this.base = base;
         this.modelGeneration = generation;
@@ -38,7 +34,7 @@ public final class SpecialItemModel implements ItemModel {
         return this.modelGeneration;
     }
 
-    public String base() {
+    public Key base() {
         return this.base;
     }
 
@@ -47,7 +43,7 @@ public final class SpecialItemModel implements ItemModel {
         JsonObject json = new JsonObject();
         json.addProperty("type", "special");
         json.add("model", this.specialModel.apply(version));
-        json.addProperty("base", this.base);
+        json.addProperty("base", this.base.asMinimalString());
         return json;
     }
 
@@ -66,20 +62,17 @@ public final class SpecialItemModel implements ItemModel {
     }
 
     private static class Factory implements ItemModelFactory<SpecialItemModel> {
+        private static final String[] BASE = new String[] {"base", "path"};
 
         @Override
-        public SpecialItemModel create(Map<String, Object> arguments) {
-            String base = ResourceConfigUtils.requireNonEmptyStringOrThrow(ResourceConfigUtils.get(arguments, "base", "path"), "warning.config.item.model.special.missing_path");
-            if (!Identifier.isValid(base)) {
-                throw new LocalizedResourceConfigException("warning.config.item.model.special.invalid_path", base);
-            }
-            Map<String, Object> generation = MiscUtils.castToMap(arguments.get("generation"), true);
+        public SpecialItemModel create(ConfigSection section) {
+            Key base = section.getNonNullIdentifier(BASE);
+            ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
-                modelGeneration = ModelGeneration.of(Key.of(base), generation);
+                modelGeneration = ModelGeneration.of(base, generation);
             }
-            Map<String, Object> model = MiscUtils.castToMap(arguments.get("model"), false);
-            return new SpecialItemModel(SpecialModels.fromMap(model), base, modelGeneration);
+            return new SpecialItemModel(SpecialModels.fromConfig(section.getNonNullSection("model")), base, modelGeneration);
         }
     }
 
@@ -87,9 +80,11 @@ public final class SpecialItemModel implements ItemModel {
 
         @Override
         public SpecialItemModel read(JsonObject json) {
-            String base = json.get("base").getAsString();
-            SpecialModel sm = SpecialModels.fromJson(json.getAsJsonObject("model"));
-            return new SpecialItemModel(sm, base, null);
+            return new SpecialItemModel(
+                    SpecialModels.fromJson(json.getAsJsonObject("model")),
+                    Key.of(json.get("base").getAsString()),
+                    null
+            );
         }
     }
 }

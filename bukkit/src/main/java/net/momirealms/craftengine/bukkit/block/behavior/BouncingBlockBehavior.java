@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.behavior.FallOnBlockBehavior;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.proxy.minecraft.world.damagesource.DamageSourcesProxy;
@@ -15,16 +15,18 @@ import net.momirealms.craftengine.proxy.minecraft.world.entity.LivingEntityProxy
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import org.bukkit.entity.Entity;
 
-import java.util.Map;
 import java.util.concurrent.Callable;
 
-public class BouncingBlockBehavior extends BukkitBlockBehavior implements FallOnBlockBehavior {
+public final class BouncingBlockBehavior extends BukkitBlockBehavior implements FallOnBlockBehavior {
     public static final BlockBehaviorFactory<BouncingBlockBehavior> FACTORY = new Factory();
-    private final double bounceHeight;
-    private final boolean syncPlayerPosition;
-    private final double fallDamageMultiplier;
+    public final double bounceHeight;
+    public final boolean syncPlayerPosition;
+    public final double fallDamageMultiplier;
 
-    public BouncingBlockBehavior(CustomBlock customBlock, double bounceHeight, boolean syncPlayerPosition, double fallDamageMultiplier) {
+    private BouncingBlockBehavior(CustomBlock customBlock,
+                                  double bounceHeight,
+                                  boolean syncPlayerPosition,
+                                  double fallDamageMultiplier) {
         super(customBlock);
         this.bounceHeight = bounceHeight;
         this.syncPlayerPosition = syncPlayerPosition;
@@ -86,13 +88,18 @@ public class BouncingBlockBehavior extends BukkitBlockBehavior implements FallOn
     }
 
     private static class Factory implements BlockBehaviorFactory<BouncingBlockBehavior> {
+        private static final String[] BOUNCE_HEIGHT = new String[] {"bounce_height", "bounce-height"};
+        private static final String[] SYNC_PLAYER_POSITION = new String[] {"sync_player_position", "sync-player-position"};
+        private static final String[] FALL_DAMAGE_MULTIPLIER = new String[] {"fall_damage_multiplier", "fall-damage-multiplier"};
 
         @Override
-        public BouncingBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            double bounceHeight = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("bounce-height", 0.66), "bounce-height");
-            boolean syncPlayerPosition = ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("sync-player-position", true), "sync-player-position");
-            double fallDamageMultiplier = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("fall-damage-multiplier", 0.5), "fall-damage-multiplier");
-            return new BouncingBlockBehavior(block, bounceHeight, syncPlayerPosition, fallDamageMultiplier);
+        public BouncingBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new BouncingBlockBehavior(
+                    block,
+                    section.getDouble(BOUNCE_HEIGHT, 0.66),
+                    section.getBoolean(SYNC_PLAYER_POSITION, true),
+                    section.getDouble(FALL_DAMAGE_MULTIPLIER, 0.5)
+            );
         }
     }
 }

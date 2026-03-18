@@ -21,7 +21,7 @@ import org.incendo.cloud.suggestion.SuggestionProvider;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class DebugSetBlockCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugSetBlockCommand extends BukkitCommandFeature<CommandSender> {
 
     public DebugSetBlockCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);

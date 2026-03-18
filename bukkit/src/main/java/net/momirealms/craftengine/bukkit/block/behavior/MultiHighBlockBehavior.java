@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LevelUtils;
@@ -13,9 +13,8 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.block.properties.IntegerProperty;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import net.momirealms.craftengine.proxy.minecraft.core.DirectionProxy;
@@ -28,19 +27,17 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidsProxy;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
-public class MultiHighBlockBehavior extends BukkitBlockBehavior {
+public final class MultiHighBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<MultiHighBlockBehavior> FACTORY = new Factory();
     public final IntegerProperty property;
 
-    public MultiHighBlockBehavior(CustomBlock customBlock, IntegerProperty property) {
+    private MultiHighBlockBehavior(CustomBlock customBlock, IntegerProperty property) {
         super(customBlock);
         this.property = property;
     }
@@ -117,11 +114,11 @@ public class MultiHighBlockBehavior extends BukkitBlockBehavior {
         if (blockState == null || blockState.isEmpty()) {
             return superMethod.call();
         }
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(ServerPlayerProxy.INSTANCE.getBukkitEntity(player));
         if (serverPlayer == null) {
             return superMethod.call();
         }
-        Item<ItemStack> item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+        Item item = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (serverPlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBasePart(args[0], args[1], blockState, player);
         }
@@ -252,12 +249,11 @@ public class MultiHighBlockBehavior extends BukkitBlockBehavior {
     private static class Factory implements BlockBehaviorFactory<MultiHighBlockBehavior> {
 
         @Override
-        public MultiHighBlockBehavior create(CustomBlock block, Map<String, Object> arguments) {
-            String propertyName = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("property"), "warning.config.block.behavior.multi_high.missing_property_name");
-            IntegerProperty property = (IntegerProperty) ResourceConfigUtils.requireNonNullOrThrow(block.getProperty(propertyName), () -> {
-                throw new LocalizedResourceConfigException("warning.config.block.behavior.multi_high.missing_property", propertyName);
-            });
-            return new MultiHighBlockBehavior(block, property);
+        public MultiHighBlockBehavior create(CustomBlock block, ConfigSection section) {
+            return new MultiHighBlockBehavior(
+                    block,
+                    (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, section.getNonNullString("property"), Integer.class)
+            );
         }
     }
 }

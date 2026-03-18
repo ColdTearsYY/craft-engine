@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.plugin.network.EntityPacketHandler;
 import net.momirealms.craftengine.core.plugin.network.NetWorkUser;
 import net.momirealms.craftengine.core.plugin.network.event.NMSPacketEvent;
 
-public class FurniturePacketHandler implements EntityPacketHandler {
+public final class FurniturePacketHandler implements EntityPacketHandler {
     private final int metaEntityId;
     private final int[] virtualHitboxEntities;
 
