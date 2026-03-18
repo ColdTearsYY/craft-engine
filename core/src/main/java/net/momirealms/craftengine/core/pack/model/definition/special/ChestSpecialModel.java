@@ -1,12 +1,9 @@
 package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import net.momirealms.craftengine.core.util.MiscUtils;
-
-import java.util.List;
 
 public final class ChestSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<ChestSpecialModel> FACTORY = new Factory();
@@ -25,11 +22,6 @@ public final class ChestSpecialModel implements SpecialModel {
 
     public float openness() {
         return this.openness;
-    }
-
-    @Override
-    public List<Revision> revisions() {
-        return List.of();
     }
 
     @Override

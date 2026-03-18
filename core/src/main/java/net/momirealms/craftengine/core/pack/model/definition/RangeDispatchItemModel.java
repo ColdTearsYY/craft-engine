@@ -5,7 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperties;
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperty;
-import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
@@ -14,10 +14,9 @@ import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 public final class RangeDispatchItemModel implements ItemModel {
     public static final ItemModelFactory<RangeDispatchItemModel> FACTORY = new Factory();
@@ -29,8 +28,8 @@ public final class RangeDispatchItemModel implements ItemModel {
 
     public RangeDispatchItemModel(@NotNull RangeDispatchProperty property,
                                   float scale,
-                                  @Nullable ItemModel fallBack,
-                                  @NotNull Map<Float, ItemModel> entries) {
+                                  @NotNull Map<Float, ItemModel> entries,
+                                  @Nullable ItemModel fallBack) {
         this.property = property;
         this.scale = scale;
         this.fallBack = fallBack;
@@ -79,27 +78,23 @@ public final class RangeDispatchItemModel implements ItemModel {
     }
 
     @Override
-    public List<Revision> revisions() {
-        List<Revision> versions = new ArrayList<>(4);
+    public void collectRevision(Consumer<Revision> consumer) {
         if (this.fallBack != null) {
-            versions.addAll(this.fallBack.revisions());
+            this.fallBack.collectRevision(consumer);
         }
         for (ItemModel model : this.entries.values()) {
-            versions.addAll(model.revisions());
+            model.collectRevision(consumer);
         }
-        return versions;
     }
 
     @Override
-    public List<ModelGeneration> modelsToGenerate() {
-        List<ModelGeneration> models = new ArrayList<>(4);
+    public void prepareModelGeneration(Consumer<ModelGenerationHolder> consumer) {
         if (this.fallBack != null) {
-            models.addAll(this.fallBack.modelsToGenerate());
+            this.fallBack.prepareModelGeneration(consumer);
         }
         for (ItemModel model : this.entries.values()) {
-            models.addAll(model.modelsToGenerate());
+            model.prepareModelGeneration(consumer);
         }
-        return models;
     }
 
     private static class Factory implements ItemModelFactory<RangeDispatchItemModel> {
@@ -120,8 +115,7 @@ public final class RangeDispatchItemModel implements ItemModel {
             return new RangeDispatchItemModel(
                     property,
                     scale,
-                    fallbackModel,
-                    entryMap
+                    entryMap, fallbackModel
             );
         }
     }
@@ -144,8 +138,7 @@ public final class RangeDispatchItemModel implements ItemModel {
             }
             return new RangeDispatchItemModel(RangeDispatchProperties.fromJson(json),
                     json.has("scale") ? json.get("scale").getAsFloat() : 1f,
-                    json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null,
-                    entries
+                    entries, json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null
             );
         }
     }

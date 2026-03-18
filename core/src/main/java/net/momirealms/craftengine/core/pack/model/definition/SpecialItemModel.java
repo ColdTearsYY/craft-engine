@@ -4,13 +4,14 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModel;
 import net.momirealms.craftengine.core.pack.model.definition.special.SpecialModels;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 public final class SpecialItemModel implements ItemModel {
     public static final ItemModelFactory<SpecialItemModel> FACTORY = new Factory();
@@ -48,17 +49,15 @@ public final class SpecialItemModel implements ItemModel {
     }
 
     @Override
-    public List<ModelGeneration> modelsToGenerate() {
-        if (this.modelGeneration == null) {
-            return List.of();
-        } else {
-            return List.of(this.modelGeneration);
+    public void prepareModelGeneration(Consumer<ModelGenerationHolder> consumer) {
+        if (this.modelGeneration != null) {
+            consumer.accept(new ModelGenerationHolder(this.base, this.modelGeneration));
         }
     }
 
     @Override
-    public List<Revision> revisions() {
-        return this.specialModel.revisions();
+    public void collectRevision(Consumer<Revision> consumer) {
+        this.specialModel.collectRevision(consumer);
     }
 
     private static class Factory implements ItemModelFactory<SpecialItemModel> {
@@ -70,7 +69,7 @@ public final class SpecialItemModel implements ItemModel {
             ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
-                modelGeneration = ModelGeneration.of(base, generation);
+                modelGeneration = ModelGeneration.of(generation);
             }
             return new SpecialItemModel(SpecialModels.fromConfig(section.getNonNullSection("model")), base, modelGeneration);
         }

@@ -9,7 +9,7 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 public final class DisplayContextSelectProperty implements SelectProperty {
     public static final DisplayContextSelectProperty INSTANCE = new DisplayContextSelectProperty();
@@ -24,11 +24,10 @@ public final class DisplayContextSelectProperty implements SelectProperty {
     }
 
     @Override
-    public List<Revision> revisions(JsonElement element) {
+    public void collectRevision(JsonElement element, Consumer<Revision> consumer) {
         if (element instanceof JsonPrimitive primitive && primitive.isString() && primitive.getAsString().equals("on_shelf")) {
-            return List.of(Revisions.SINCE_1_21_9);
+            consumer.accept(Revisions.SINCE_1_21_9);
         }
-        return List.of();
     }
 
     @Override

@@ -19,8 +19,6 @@ import java.util.function.Supplier;
 
 public final class ModelGeneration implements Supplier<JsonObject> {
     @NotNull
-    private final Key path;
-    @NotNull
     private final Key parentModelPath;
     @Nullable
     private final Map<String, String> texturesOverride;
@@ -31,12 +29,10 @@ public final class ModelGeneration implements Supplier<JsonObject> {
     @Nullable
     private JsonObject cachedModel;
 
-    public ModelGeneration(@NotNull Key path,
-                           @NotNull Key parentModelPath,
+    public ModelGeneration(@NotNull Key parentModelPath,
                            @Nullable Map<String, String> texturesOverride,
                            @Nullable Map<DisplayPosition, DisplayMeta> displays,
                            @Nullable GuiLight guiLight) {
-        this.path = path;
         this.parentModelPath = parentModelPath;
         this.texturesOverride = texturesOverride;
         this.displays = displays;
@@ -45,9 +41,8 @@ public final class ModelGeneration implements Supplier<JsonObject> {
 
     private static final String[] GUI_LIGHT = new String[]{"gui_light", "gui-light"};
 
-    public static ModelGeneration of(Key path, ConfigSection section) {
+    public static ModelGeneration of(ConfigSection section) {
         return builder()
-                .path(path)
                 .parentModelPath(section.getNonNullIdentifier("parent"))
                 .guiLight(section.getEnum(GUI_LIGHT, GuiLight.class))
                 .displays(section.getValue("display", v -> {
@@ -85,10 +80,6 @@ public final class ModelGeneration implements Supplier<JsonObject> {
     @Nullable
     public Map<String, String> texturesOverride() {
         return this.texturesOverride;
-    }
-
-    public Key path() {
-        return this.path;
     }
 
     public Key parentModelPath() {
@@ -157,15 +148,17 @@ public final class ModelGeneration implements Supplier<JsonObject> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ModelGeneration that = (ModelGeneration) o;
-        return this.path.equals(that.path) && parentModelPath.equals(that.parentModelPath) && Objects.equals(texturesOverride, that.texturesOverride)
+        return parentModelPath.equals(that.parentModelPath) && Objects.equals(texturesOverride, that.texturesOverride)
                 && Objects.equals(displays, that.displays) && Objects.equals(guiLight, that.guiLight);
     }
 
     @Override
     public int hashCode() {
-        int result = this.path.hashCode();
-        result = 31 * result + this.parentModelPath.hashCode();
-        return result;
+        int i = this.parentModelPath.hashCode();
+        if (this.texturesOverride != null) {
+            i += 31 * this.texturesOverride.hashCode();
+        }
+        return i;
     }
 
     public static Builder builder() {
@@ -173,7 +166,6 @@ public final class ModelGeneration implements Supplier<JsonObject> {
     }
 
     public static class Builder {
-        private Key path;
         private Key parentModelPath;
         @Nullable
         private Map<String, String> texturesOverride;
@@ -183,11 +175,6 @@ public final class ModelGeneration implements Supplier<JsonObject> {
         private GuiLight guiLight;
 
         public Builder() {
-        }
-
-        public Builder path(Key key) {
-            this.path = key;
-            return this;
         }
 
         public Builder parentModelPath(Key parentModelPath) {
@@ -211,7 +198,7 @@ public final class ModelGeneration implements Supplier<JsonObject> {
         }
 
         public ModelGeneration build() {
-            return new ModelGeneration(this.path, this.parentModelPath, this.texturesOverride, this.displays, this.guiLight);
+            return new ModelGeneration(this.parentModelPath, this.texturesOverride, this.displays, this.guiLight);
         }
     }
 }

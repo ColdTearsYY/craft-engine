@@ -227,6 +227,7 @@ debug_item_data:
   usage:
     - /craftengine debug item-data
     - /ce debug item-data
+    - /ce item debug
 
 debug_target_block:
   enable: true

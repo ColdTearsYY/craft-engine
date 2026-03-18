@@ -3,7 +3,7 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class CompositeItemModel implements ItemModel {
     public static final ItemModelFactory<CompositeItemModel> FACTORY = new Factory();
@@ -39,21 +40,17 @@ public final class CompositeItemModel implements ItemModel {
     }
 
     @Override
-    public List<Revision> revisions() {
-        List<Revision> versions = new ArrayList<>();
+    public void collectRevision(Consumer<Revision> consumer) {
         for (ItemModel model : this.models) {
-            versions.addAll(model.revisions());
+            model.collectRevision(consumer);
         }
-        return versions;
     }
 
     @Override
-    public List<ModelGeneration> modelsToGenerate() {
-        List<ModelGeneration> models = new ArrayList<>(4);
+    public void prepareModelGeneration(Consumer<ModelGenerationHolder> consumer) {
         for (ItemModel model : this.models) {
-            models.addAll(model.modelsToGenerate());
+            model.prepareModelGeneration(consumer);
         }
-        return models;
     }
 
     private static class Factory implements ItemModelFactory<CompositeItemModel> {

@@ -1,12 +1,9 @@
 package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
-
-import java.util.List;
 
 public final class SimpleSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<SimpleSpecialModel> FACTORY = new Factory();
@@ -26,11 +23,6 @@ public final class SimpleSpecialModel implements SpecialModel {
         JsonObject json = new JsonObject();
         json.addProperty("type", this.type.asMinimalString());
         return json;
-    }
-
-    @Override
-    public List<Revision> revisions() {
-        return List.of();
     }
 
     private static class Factory implements SpecialModelFactory<SimpleSpecialModel> {

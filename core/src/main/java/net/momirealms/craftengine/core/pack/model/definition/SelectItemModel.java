@@ -6,7 +6,7 @@ import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Either;
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperties;
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperty;
-import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public final class SelectItemModel implements ItemModel {
     public static final ItemModelFactory<SelectItemModel> FACTORY = new Factory();
@@ -88,35 +89,31 @@ public final class SelectItemModel implements ItemModel {
     }
 
     @Override
-    public List<Revision> revisions() {
-        List<Revision> versions = new ArrayList<>(4);
+    public void collectRevision(Consumer<Revision> consumer) {
+        if (this.fallBack != null) {
+            this.fallBack.collectRevision(consumer);
+        }
         for (Map.Entry<Either<JsonElement, List<JsonElement>>, ItemModel> entry : this.whenMap.entrySet()) {
             Either<JsonElement, List<JsonElement>> when = entry.getKey();
             when.ifLeft(left -> {
-                versions.addAll(this.property.revisions(left));
+                this.property.collectRevision(left, consumer);
             }).ifRight(right -> {
                 for (JsonElement e : right) {
-                    versions.addAll(this.property.revisions(e));
+                    this.property.collectRevision(e, consumer);
                 }
             });
-            versions.addAll(entry.getValue().revisions());
+            entry.getValue().collectRevision(consumer);
         }
-        if (this.fallBack != null) {
-            versions.addAll(this.fallBack.revisions());
-        }
-        return versions;
     }
 
     @Override
-    public List<ModelGeneration> modelsToGenerate() {
-        List<ModelGeneration> models = new ArrayList<>(4);
+    public void prepareModelGeneration(Consumer<ModelGenerationHolder> consumer) {
         if (this.fallBack != null) {
-            models.addAll(this.fallBack.modelsToGenerate());
+            this.fallBack.prepareModelGeneration(consumer);
         }
         for (ItemModel itemModel : this.whenMap.values()) {
-            models.addAll(itemModel.modelsToGenerate());
+            itemModel.prepareModelGeneration(consumer);
         }
-        return models;
     }
 
     private static class Factory implements ItemModelFactory<SelectItemModel> {

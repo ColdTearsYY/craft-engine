@@ -5,6 +5,7 @@ import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class ModernItemModel {
@@ -46,7 +47,9 @@ public final class ModernItemModel {
     }
 
     public List<Revision> revisions() {
-        return this.itemModel.revisions().stream().distinct().toList();
+        List<Revision> revisions = new ArrayList<>(4);
+        this.itemModel.collectRevision(revisions::add);
+        return revisions.stream().distinct().toList();
     }
 
     public boolean handAnimationOnSwap() {

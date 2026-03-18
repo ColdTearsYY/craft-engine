@@ -1,7 +1,6 @@
 package net.momirealms.craftengine.core.block;
 
 import com.google.gson.JsonElement;
-import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerator;
 import net.momirealms.craftengine.core.plugin.Manageable;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
@@ -17,8 +16,6 @@ import java.util.Optional;
 public interface BlockManager extends Manageable, ModelGenerator {
 
     ConfigParser[] parsers();
-
-    Collection<ModelGeneration> modelsToGenerate();
 
     Map<Key, Map<String, JsonElement>> blockOverrides();
 

@@ -102,8 +102,8 @@ public abstract class AbstractPackManager implements PackManager {
     private static final Key BUILTIN_ENTITY = Key.of("builtin/entity");
 
     public static final Set<Key> DYEABLE_LEATHER_ARMOR = Set.of(
-            ItemKeys.LEATHER_HELMET, ItemKeys.LEATHER_CHESTPLATE, ItemKeys.LEATHER_LEGGINGS, ItemKeys.LEATHER_BOOTS,
-            ItemKeys.WOLF_ARMOR, ItemKeys.LEATHER_HORSE_ARMOR
+            ItemKeys.LEATHER_HELMET, ItemKeys.LEATHER_CHESTPLATE, ItemKeys.LEATHER_LEGGINGS,
+            ItemKeys.LEATHER_BOOTS, ItemKeys.WOLF_ARMOR, ItemKeys.LEATHER_HORSE_ARMOR
     );
 
     private static final byte[] EMPTY_1X1_IMAGE;
@@ -213,7 +213,7 @@ public abstract class AbstractPackManager implements PackManager {
                 }
             }
             if (DYEABLE_LEATHER_ARMOR.contains(item)) {
-                SIMPLIFIED_MODEL_READERS.put(item, DyeableModelReader.INSTANCE);
+                SIMPLIFIED_MODEL_READERS.put(item, GeneratedModelReader.LEATHER);
             } else {
                 SIMPLIFIED_MODEL_READERS.put(item, GeneratedModelReader.GENERATED);
             }
@@ -224,7 +224,7 @@ public abstract class AbstractPackManager implements PackManager {
         SIMPLIFIED_MODEL_READERS.put(ItemKeys.SHIELD, ConditionModelReader.SHIELD);
         SIMPLIFIED_MODEL_READERS.put(ItemKeys.BOW, BowModelReader.INSTANCE);
         SIMPLIFIED_MODEL_READERS.put(ItemKeys.CROSSBOW, CrossbowModelReader.INSTANCE);
-        SIMPLIFIED_MODEL_READERS.put(ItemKeys.FIREWORK_STAR, FireworkStarModelReader.INSTANCE);
+        SIMPLIFIED_MODEL_READERS.put(ItemKeys.FIREWORK_STAR, GeneratedModelReader.FIREWORK_STAR);
     }
 
     private void loadModernItemModel(String path, BiConsumer<Key, ModernItemModel> callback) {
@@ -2847,12 +2847,12 @@ public abstract class AbstractPackManager implements PackManager {
     }
 
     private void generateItemModels(Path generatedPackPath, ModelGenerator generator) {
-        for (ModelGeneration generation : generator.modelsToGenerate()) {
+        for (Map.Entry<Key, ModelGeneration> entry : generator.modelsToGenerate().entrySet()) {
             Path modelPath = generatedPackPath
                     .resolve("assets")
-                    .resolve(generation.path().namespace())
+                    .resolve(entry.getKey().namespace())
                     .resolve("models")
-                    .resolve(generation.path().value() + ".json");
+                    .resolve(entry.getKey().value() + ".json");
             if (Files.exists(modelPath)) {
                 TranslationManager.instance().log("warning.config.resource_pack.model.generation.already_exist", modelPath.toAbsolutePath().toString());
                 continue;
@@ -2864,7 +2864,7 @@ public abstract class AbstractPackManager implements PackManager {
                 continue;
             }
             try (BufferedWriter writer = Files.newBufferedWriter(modelPath)) {
-                GsonHelper.get().toJson(generation.get(), writer);
+                GsonHelper.get().toJson(entry.getValue().get(), writer);
             } catch (IOException e) {
                 plugin.logger().warn("Failed to generate model: " + modelPath.toAbsolutePath(), e);
             }
@@ -3132,8 +3132,7 @@ public abstract class AbstractPackManager implements PackManager {
             RangeDispatchItemModel rangeDispatch = new RangeDispatchItemModel(
                 new CustomModelDataRangeDispatchProperty(0),
                 1f,
-                    originalItemModel.itemModel(),
-                    entries
+                    entries, originalItemModel.itemModel()
             );
 
             ModernItemModel newItemModel = new ModernItemModel(rangeDispatch, handAnimationOnSwap, oversizedInGui, swapAnimationScale);

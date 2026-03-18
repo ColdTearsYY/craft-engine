@@ -6,7 +6,7 @@ import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
-import java.util.List;
+import java.util.function.Consumer;
 
 public final class PlayerHeadSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<PlayerHeadSpecialModel> FACTORY = new Factory();
@@ -16,8 +16,8 @@ public final class PlayerHeadSpecialModel implements SpecialModel {
     private PlayerHeadSpecialModel() {}
 
     @Override
-    public List<Revision> revisions() {
-        return List.of(Revisions.SINCE_1_21_6);
+    public void collectRevision(Consumer<Revision> consumer) {
+        consumer.accept(Revisions.SINCE_1_21_6);
     }
 
     @Override

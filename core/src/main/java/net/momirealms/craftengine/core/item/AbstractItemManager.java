@@ -20,7 +20,6 @@ import net.momirealms.craftengine.core.pack.model.definition.*;
 import net.momirealms.craftengine.core.pack.model.definition.select.ChargeTypeSelectProperty;
 import net.momirealms.craftengine.core.pack.model.definition.select.TrimMaterialSelectProperty;
 import net.momirealms.craftengine.core.pack.model.generation.AbstractModelGenerator;
-import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyItemModel;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyModelPredicate;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyOverridesModel;
@@ -557,73 +556,17 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 CustomItem.Builder itemBuilder = createPlatformItemBuilder(uniqueId, material, clientBoundMaterial);
 
                 // 模型配置区域，如果这里被配置了，那么用户可以配置custom-model-data或item-model
-                // model可以是一个string也可以是一个区域
                 ConfigValue modelValue = section.getValue(MODEL);
-
+                ConfigValue textureValue = section.getValue(TEXTURES);
                 ConfigSection legacyModelSection = section.getSection(LEGACY_MODEL);
-                // model可以是一个map，也可以是一个string或list
-                boolean hasModelSection = (modelValue != null && modelValue.is(Map.class)) || legacyModelSection != null;
-                if (!hasModelSection) {
-                    ConfigValue textureValue = section.getValue(TEXTURES);
-                    // 如果使用的是textures，那么model指的是
-                    if (textureValue != null) {
-                        // 获取textures列表
-                        List<String> textures = textureValue.getAsStringList();
-                        if (!textures.isEmpty()) {
-                            // 获取可选的模型列表，此时的model不可能是map了
-                            List<String> modelPath = modelValue != null ? modelValue.getAsStringList() : List.of();
-                            // 根据父item model选择处理方案
-                            // todo 这坨是必须重构
-                            Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
-                            SimplifiedModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
-                            if (simplifiedModelReader != null) {
-                                try {
-                                    Map<String, Object> converted = simplifiedModelReader.convert(textures, modelPath, id);
-                                    if (converted != null) {
-                                        modelValue = ConfigValue.of(section.assemblePath("model"), converted);
-                                    }
-                                    if (modelValue != null) {
-                                        hasModelSection = true;
-                                    }
-                                } catch (KnownResourceException e) {
-                                    error(e, path);
-                                }
-                            }
-                        }
-                    }
-                    // 如果没有配贴图，且model为string或list，直接生成相应类型的模型
-                    else if (modelValue != null) {
-                        List<String> models = modelValue.getAsStringList();
-                        if (!models.isEmpty()) {
-                            Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
-                            // todo 这坨是必须重构
-                            SimplifiedModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
-                            if (simplifiedModelReader != null) {
-                                try {
-                                    Map<String, Object> converted = simplifiedModelReader.convert(models);
-                                    if (converted != null) {
-                                        modelValue = ConfigValue.of(section.assemblePath("model"), converted);
-                                    }
-                                    if (modelValue != null) {
-                                        hasModelSection = true;
-                                    }
-                                } catch (KnownResourceException e) {
-                                    error(e, path);
-                                }
-                            }
-                        }
-                    }
-                }
+                boolean hasModelSection = modelValue != null || textureValue != null || legacyModelSection != null;
 
                 if (customModelData > 0 && (hasModelSection || forceCustomModelData)) {
-                    if (clientBoundModel)
-                        itemBuilder.clientBoundDataModifier(new OverwritableCustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
-                    else
-                        itemBuilder.dataModifier(new CustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
+                    if (clientBoundModel) itemBuilder.clientBoundDataModifier(new OverwritableCustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
+                    else itemBuilder.dataModifier(new CustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
                 }
                 if (itemModel != null && (hasModelSection || forceItemModel)) {
-                    if (clientBoundModel)
-                        itemBuilder.clientBoundDataModifier(new OverwritableItemModelProcessor(itemModel));
+                    if (clientBoundModel) itemBuilder.clientBoundDataModifier(new OverwritableItemModelProcessor(itemModel));
                     else itemBuilder.dataModifier(new ItemModelProcessor(itemModel));
                 }
 
@@ -734,14 +677,22 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 TreeSet<LegacyOverridesModel> legacyOverridesModels;
                 // 如果需要支持新版item model 或者用户需要旧版本兼容，但是没配置legacy-model
                 if (isModernFormatRequired() || (needsLegacyCompatibility() && legacyModelSection == null)) {
-                    // 1.21.4+必须要配置model区域，如果不需要高版本兼容，则可以只写legacy-model
-                    if (modelValue == null) {
+                    if (textureValue != null) {
+                        Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
+                        SimplifiedModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
+                        modernModel = simplifiedModelReader.read(textureValue, Optional.ofNullable(modelValue), id);
+                    } else if (modelValue != null) {
+                        if (modelValue.is(List.class)) {
+                            Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
+                            SimplifiedModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
+                            modernModel = simplifiedModelReader.read(modelValue);
+                        } else {
+                            modernModel = ItemModels.fromConfig(modelValue);
+                        }
+                    } else {
                         throw KnownResourceException.missingArgument("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION);
                     }
-                    modernModel = ItemModels.fromConfig(modelValue);
-                    for (ModelGeneration generation : modernModel.modelsToGenerate()) {
-                        prepareModelGeneration(generation);
-                    }
+                    modernModel.prepareModelGeneration(AbstractItemManager.this::prepareModelGeneration);
                 } else {
                     modernModel = null;
                 }
@@ -749,9 +700,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 if (needsLegacyCompatibility()) {
                     if (legacyModelSection != null) {
                         LegacyItemModel legacyItemModel = LegacyItemModel.fromConfig(legacyModelSection, customModelData);
-                        for (ModelGeneration generation : legacyItemModel.modelsToGenerate()) {
-                            prepareModelGeneration(generation);
-                        }
+                        legacyItemModel.prepareModelGeneration(AbstractItemManager.this::prepareModelGeneration);
                         legacyOverridesModels = new TreeSet<>(legacyItemModel.overrides());
                     } else {
                         legacyOverridesModels = new TreeSet<>();
@@ -859,13 +808,22 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             resultList.add(new LegacyOverridesModel(
                     new LinkedHashMap<>(accumulatedPredicates),
                     baseModel.path(),
-                    customModelData
+                    customModelData,
+                    null
             ));
         } else if (currentModel instanceof SpecialItemModel specialModel) {
             resultList.add(new LegacyOverridesModel(
                     new LinkedHashMap<>(accumulatedPredicates),
                     specialModel.base(),
-                    customModelData
+                    customModelData,
+                    null
+            ));
+        } else if (currentModel instanceof EmptyItemModel) {
+            resultList.add(new LegacyOverridesModel(
+                    new LinkedHashMap<>(accumulatedPredicates),
+                    Key.of("item/air"),
+                    customModelData,
+                    null
             ));
         }
     }

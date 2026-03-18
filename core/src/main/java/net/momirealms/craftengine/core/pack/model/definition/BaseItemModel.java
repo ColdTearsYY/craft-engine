@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.pack.model.definition.tint.Tint;
 import net.momirealms.craftengine.core.pack.model.definition.tint.Tints;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class BaseItemModel implements ItemModel {
     public static final ItemModelFactory<BaseItemModel> FACTORY = new Factory();
@@ -62,17 +64,14 @@ public final class BaseItemModel implements ItemModel {
     }
 
     @Override
-    public List<ModelGeneration> modelsToGenerate() {
-        if (this.modelGeneration == null) {
-            return List.of();
-        } else {
-            return List.of(this.modelGeneration);
+    public void prepareModelGeneration(Consumer<ModelGenerationHolder> consumer) {
+        if (this.modelGeneration != null) {
+            consumer.accept(new ModelGenerationHolder(this.path, this.modelGeneration));
         }
     }
 
     @Override
-    public List<Revision> revisions() {
-        return List.of();
+    public void collectRevision(Consumer<Revision> consumer) {
     }
 
     private static class Factory implements ItemModelFactory<BaseItemModel> {
@@ -84,7 +83,7 @@ public final class BaseItemModel implements ItemModel {
             ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
-                modelGeneration = ModelGeneration.of(modelPath, generation);
+                modelGeneration = ModelGeneration.of(generation);
             }
             return new BaseItemModel(
                     modelPath,

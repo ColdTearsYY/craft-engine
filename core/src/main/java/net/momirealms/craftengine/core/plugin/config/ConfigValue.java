@@ -371,6 +371,25 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
+    public <T> List<T> getAsFixedSizeList(int size, Function<ConfigValue, T> convertor) {
+        if (this.value instanceof List<?> list) {
+            if (list.size() != size) {
+                throw new KnownResourceException(ConfigConstants.PARSE_FIXED_SIZE_LIST_FAILED, this.path, String.valueOf(size));
+            }
+            List<Object> asList = getAsList();
+            List<T> converted = new ArrayList<>(asList.size());
+            for (int i = 0; i < asList.size(); i++) {
+                ConfigValue innerValue = new ConfigValue(assemblePath(i), asList.get(i));
+                converted.add(convertor.apply(innerValue));
+            }
+            return converted;
+        } else if (size == 1) {
+            return List.of(convertor.apply(this));
+        } else {
+            throw new KnownResourceException(ConfigConstants.PARSE_FIXED_SIZE_LIST_FAILED, this.path, String.valueOf(size));
+        }
+    }
+
     public List<String> getAsStringList() {
         if (this.value instanceof List<?> list) {
             List<String> listStr = new ArrayList<>(list.size());

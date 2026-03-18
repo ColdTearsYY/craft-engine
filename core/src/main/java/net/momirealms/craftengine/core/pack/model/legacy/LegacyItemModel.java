@@ -1,27 +1,33 @@
 package net.momirealms.craftengine.core.pack.model.legacy;
 
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
 public final class LegacyItemModel {
-    private final List<ModelGeneration> modelsToGenerate;
     private final Key path;
+    private final ModelGeneration generation;
     private final List<LegacyOverridesModel> overrides;
 
-    public LegacyItemModel(Key path, List<LegacyOverridesModel> overrides, List<ModelGeneration> modelsToGenerate) {
-        this.modelsToGenerate = modelsToGenerate;
+    public LegacyItemModel(Key path, List<LegacyOverridesModel> overrides, ModelGeneration generation) {
+        this.generation = generation;
         this.path = path;
         this.overrides = overrides;
     }
 
-    public List<ModelGeneration> modelsToGenerate() {
-        return this.modelsToGenerate;
+    public void prepareModelGeneration(Consumer<ModelGenerationHolder> consumer) {
+        if (this.generation != null) {
+            consumer.accept(new ModelGenerationHolder(this.path, this.generation));
+        }
+        for (LegacyOverridesModel override : this.overrides) {
+            override.prepareModelGeneration(consumer);
+        }
     }
 
     public List<LegacyOverridesModel> overrides() {
@@ -39,30 +45,33 @@ public final class LegacyItemModel {
         ConfigSection generationSection = section.getSection("generation");
         ModelGeneration baseModelGeneration = null;
         if (generationSection != null) {
-            baseModelGeneration = ModelGeneration.of(legacyModelPath, generationSection);
+            baseModelGeneration = ModelGeneration.of(generationSection);
         }
         ConfigValue overridesValue = section.getValue("overrides");
         if (overridesValue != null) {
-            List<ModelGeneration> modelGenerations = new ArrayList<>();
             List<LegacyOverridesModel> legacyOverridesModels = new ArrayList<>();
-            if (baseModelGeneration != null) modelGenerations.add(baseModelGeneration);
-            legacyOverridesModels.add(new LegacyOverridesModel(new HashMap<>(), legacyModelPath, customModelData));
+            legacyOverridesModels.add(new LegacyOverridesModel(null, legacyModelPath, customModelData, baseModelGeneration));
             overridesValue.forEach(v -> {
                 ConfigSection overrideSection = v.getAsSection();
                 Key overrideModelPath = overrideSection.getNonNullAssetPath(PATH);
                 ConfigSection predicateSection = overrideSection.getNonNullSection("predicate");
                 ConfigSection overrideGenerationSection = overrideSection.getSection("generation");
+                ModelGeneration overrideModelGeneration = null;
                 if (overrideGenerationSection != null) {
-                    modelGenerations.add(ModelGeneration.of(overrideModelPath, overrideGenerationSection));
+                    overrideModelGeneration = ModelGeneration.of(overrideGenerationSection);
                 }
-                legacyOverridesModels.add(new LegacyOverridesModel(predicateSection.values(), overrideModelPath, customModelData));
+                legacyOverridesModels.add(new LegacyOverridesModel(predicateSection.values(), overrideModelPath, customModelData, overrideModelGeneration));
             });
-            return new LegacyItemModel(legacyModelPath, legacyOverridesModels, modelGenerations);
+            return new LegacyItemModel(
+                    legacyModelPath,
+                    legacyOverridesModels,
+                    baseModelGeneration
+            );
         } else {
             return new LegacyItemModel(
                     legacyModelPath,
-                    List.of(new LegacyOverridesModel(null, legacyModelPath, customModelData)),
-                    baseModelGeneration == null ? List.of() : List.of(baseModelGeneration)
+                    List.of(new LegacyOverridesModel(null, legacyModelPath, customModelData, baseModelGeneration)),
+                    baseModelGeneration
             );
         }
     }

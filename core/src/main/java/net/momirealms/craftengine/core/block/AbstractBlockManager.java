@@ -23,6 +23,7 @@ import net.momirealms.craftengine.core.pack.allocator.IdAllocator;
 import net.momirealms.craftengine.core.pack.allocator.VisualBlockStateAllocator;
 import net.momirealms.craftengine.core.pack.model.generation.AbstractModelGenerator;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
@@ -840,7 +841,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 json.addProperty("weight", section.getInt("weight"));
             ConfigSection generationSection = section.getSection("generation");
             if (generationSection != null) {
-                prepareModelGeneration(ModelGeneration.of(modelPath, generationSection));
+                prepareModelGeneration(new ModelGenerationHolder(modelPath, ModelGeneration.of(generationSection)));
             }
             return json;
         }
