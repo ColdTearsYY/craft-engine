@@ -169,6 +169,7 @@ public final class BlockStateGenerator {
     public static class HasPropertyInterceptor {
         public static final HasPropertyInterceptor INSTANCE = new HasPropertyInterceptor();
 
+        @SuppressWarnings("unchecked")
         @RuntimeType
         public boolean intercept(@This Object thisObj, @AllArguments Object[] args) {
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
@@ -176,7 +177,18 @@ public final class BlockStateGenerator {
             if (state == null) return false;
             Object property = args[0];
             String name = PropertyProxy.INSTANCE.getName(property);
-            return state.owner().value().hasProperty(name);
+            Property<?> ceProperty = state.owner().value().getProperty(name);
+            if (ceProperty == null) return false;
+            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(property);
+            Class<?> cePropertyClass = ceProperty.valueClass();
+            if (cePropertyClass == mcPropertyClass) {
+                return PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size();
+            } else if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
+                if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
+                    return PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size();
+                }
+            }
+            return false;
         }
     }
 
@@ -196,15 +208,19 @@ public final class BlockStateGenerator {
             Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(property);
             Class<?> cePropertyClass = ceProperty.valueClass();
             if (mcPropertyClass == cePropertyClass) {
-                return state.get(ceProperty);
+                if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                    return state.get(ceProperty);
+                }
             }
             if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
                 if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
-                    Enum<?> ceEnumValue = (Enum<?>) state.get(ceProperty);
-                    Object[] mcConstants = mcPropertyClass.getEnumConstants();
-                    int ordinal = ceEnumValue.ordinal();
-                    if (ordinal < mcConstants.length) {
-                        return mcConstants[ordinal];
+                    if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                        Enum<?> ceEnumValue = (Enum<?>) state.get(ceProperty);
+                        Object[] mcConstants = mcPropertyClass.getEnumConstants();
+                        int ordinal = ceEnumValue.ordinal();
+                        if (ordinal < mcConstants.length) {
+                            return mcConstants[ordinal];
+                        }
                     }
                 }
             }
@@ -230,14 +246,18 @@ public final class BlockStateGenerator {
             Class<?> cePropertyClass = ceProperty.valueClass();
             Object valueToSet = null;
             if (mcPropertyClass == cePropertyClass) {
-                valueToSet = mcValue;
+                if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                    valueToSet = mcValue;
+                }
             } else if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
                 if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
-                    Enum<?> mcEnumValue = (Enum<?>) mcValue;
-                    Object[] ceConstants = cePropertyClass.getEnumConstants();
-                    int ordinal = mcEnumValue.ordinal();
-                    if (ordinal < ceConstants.length) {
-                        valueToSet = ceConstants[ordinal];
+                    if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                        Enum<?> mcEnumValue = (Enum<?>) mcValue;
+                        Object[] ceConstants = cePropertyClass.getEnumConstants();
+                        int ordinal = mcEnumValue.ordinal();
+                        if (ordinal < ceConstants.length) {
+                            valueToSet = ceConstants[ordinal];
+                        }
                     }
                 }
             }

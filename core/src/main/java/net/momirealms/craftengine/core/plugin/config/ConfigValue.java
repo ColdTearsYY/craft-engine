@@ -111,6 +111,24 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
+    public int getAsInt(int min) {
+        int value = getAsInt();
+        if (value < min) {
+            throw new KnownResourceException("number.no_less_than", this.path, this.value.toString(), String.valueOf(min));
+        }
+        return value;
+    }
+
+    public int getAsInt(int min, int max) {
+        int value = getAsInt();
+        if (value < min) {
+            throw new KnownResourceException("number.no_less_than", this.path, this.value.toString(), String.valueOf(min));
+        } else if (value > max) {
+            throw new KnownResourceException("number.no_greater_than", this.path, this.value.toString(), String.valueOf(max));
+        }
+        return value;
+    }
+
     public float getAsFloat() {
         switch (this.value) {
             case Float f -> { return f; }
@@ -127,6 +145,24 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
+    public float getAsFloat(float min) {
+        float value = getAsFloat();
+        if (value < min) {
+            throw new KnownResourceException("number.no_less_than", this.path, this.value.toString(), String.valueOf(min));
+        }
+        return value;
+    }
+
+    public float getAsFloat(float min, float max) {
+        float value = getAsFloat();
+        if (value < min) {
+            throw new KnownResourceException("number.no_less_than", this.path, this.value.toString(), String.valueOf(min));
+        } else if (value > max) {
+            throw new KnownResourceException("number.no_greater_than", this.path, this.value.toString(), String.valueOf(max));
+        }
+        return value;
+    }
+
     public double getAsDouble() {
         switch (this.value) {
             case Double d -> { return d; }
@@ -141,6 +177,24 @@ public record ConfigValue(String path, @NotNull Object value) {
             case Boolean b -> { return b ? 1.0 : 0.0; }
             default -> throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, this.value.toString());
         }
+    }
+
+    public double getAsDouble(double min) {
+        double value = getAsDouble();
+        if (value < min) {
+            throw new KnownResourceException("number.no_less_than", this.path, this.value.toString(), String.valueOf(min));
+        }
+        return value;
+    }
+
+    public double getAsDouble(double min, double max) {
+        double value = getAsDouble();
+        if (value < min) {
+            throw new KnownResourceException("number.no_less_than", this.path, this.value.toString(), String.valueOf(min));
+        } else if (value > max) {
+            throw new KnownResourceException("number.no_greater_than", this.path, this.value.toString(), String.valueOf(max));
+        }
+        return value;
     }
 
     public long getAsLong() {
