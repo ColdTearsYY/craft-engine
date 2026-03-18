@@ -396,7 +396,11 @@ public abstract class AbstractFontManager implements FontManager {
                     Key imageId = Key.of(split[0].getAsString(), split[1].getAsString());
                     Optional<Image> bitmapImage = imageById(imageId);
                     if (bitmapImage.isPresent() && bitmapImage.get() != DummyImage.INSTANCE) {
-                        image = bitmapImage.get().miniMessageAt(split[2].getAsInt(), split[3].getAsInt());
+                        try {
+                            image = bitmapImage.get().miniMessageAt(split[2].getAsInt(), split[3].getAsInt());
+                        } catch (ArrayIndexOutOfBoundsException e) {
+                            throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
+                        }
                     } else {
                         throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
                     }
@@ -454,7 +458,7 @@ public abstract class AbstractFontManager implements FontManager {
             this.idAllocators.clear();
         }
 
-        public IdAllocator getOrCreateIdAllocator(Key key) {
+        public synchronized IdAllocator getOrCreateIdAllocator(Key key) {
             return this.idAllocators.computeIfAbsent(key, k -> {
                 IdAllocator newAllocator = new IdAllocator(plugin.dataFolderPath().resolve("cache").resolve("font").resolve(k.namespace()).resolve(k.value() + ".json"));
                 newAllocator.reset(Config.codepointStartingValue(k), 1114111); // utf16
@@ -550,17 +554,14 @@ public abstract class AbstractFontManager implements FontManager {
             Object charsObj = section.get(CHAR);
             // 没有设置 chars 自动分配
             if (charsObj == null) {
-                String gridSize = section.getString(GRID_SIZE);
-                if (gridSize != null) {
-                    String[] split = gridSize.split(",");
-                    if (split.length != 2) {
-                        throw new KnownResourceException("resource.image.invalid_grid_size", section.assembleExistingPath("grid_size", "grid-size"), gridSize);
-                    }
-                    rows = Integer.parseInt(split[0]);
-                    columns = Integer.parseInt(split[1]);
+                ConfigValue gridSizeValue = section.getValue(GRID_SIZE);
+                if (gridSizeValue != null) {
+                    ConfigValue[] splitSize = gridSizeValue.splitValuesRestrict(",", 2);
+                    rows = splitSize[0].getAsInt();
+                    columns = splitSize[1].getAsInt();
                     int chars = rows * columns;
                     if (chars <= 0) {
-                        throw new KnownResourceException("resource.image.invalid_grid_size", section.assembleExistingPath("grid_size", "grid-size"), gridSize);
+                        throw new KnownResourceException("resource.image.invalid_grid_size", gridSizeValue.path(), gridSizeValue.getAsString());
                     }
                     for (int i = 0; i < rows; i++) {
                         for (int j = 0; j < columns; j++) {
@@ -634,7 +635,7 @@ public abstract class AbstractFontManager implements FontManager {
                 }
             }
 
-            CompletableFutures.allOf(futureCodepoints).whenCompleteAsync((v, t) -> {
+            allocator.addCombinedFuture(CompletableFutures.allOf(futureCodepoints).whenCompleteAsync((v, t) -> {
                 ResourceConfigUtils.runCatching(path, section.path(), () -> {
                     if (t != null) {
                         if (t instanceof CompletionException e) {
@@ -705,7 +706,7 @@ public abstract class AbstractFontManager implements FontManager {
                     AbstractFontManager.this.cachedImagesSuggestions.add(Suggestion.suggestion(id.asString()));
 
                 }, super.errorHandler);
-            }, AbstractFontManager.this.plugin.scheduler().async());
+            }, AbstractFontManager.this.plugin.scheduler().async()));
         }
     }
 }

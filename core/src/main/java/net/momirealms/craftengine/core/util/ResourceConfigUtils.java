@@ -23,13 +23,15 @@ public final class ResourceConfigUtils {
     }
 
     public static void runCatching(Path filePath, String node, Executor executor, Runnable runnable, Consumer<ResourceException> collector) {
-        try {
-            executor.execute(runnable);
-        } catch (KnownResourceException e) {
-            e.setFilePath(filePath);
-            collector.accept(e);
-        } catch (Throwable t) {
-            collector.accept(new UnknownResourceException(filePath, node, t));
-        }
+        executor.execute(() -> {
+            try {
+                runnable.run();
+            } catch (KnownResourceException e) {
+                e.setFilePath(filePath);
+                collector.accept(e);
+            } catch (Throwable t) {
+                collector.accept(new UnknownResourceException(filePath, node, t));
+            }
+        });
     }
 }
