@@ -11,6 +11,7 @@ import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.injector.RecipeInjector;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
+import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.core.item.BuildableItem;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
@@ -105,7 +106,7 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
     }
 
     public static Object minecraftRecipeManager() {
-        return MinecraftServerProxy.INSTANCE.getRecipeManager(MinecraftServerProxy.INSTANCE.getServer());
+        return MinecraftServerProxy.INSTANCE.getRecipeManager(RegistryUtils.getServer());
     }
 
     public static BukkitRecipeManager instance() {
@@ -289,7 +290,7 @@ public final class BukkitRecipeManager extends AbstractRecipeManager {
 
     private Map<Key, JsonObject> scanResources() {
         Object fileToIdConverter = FileToIdConverterProxy.INSTANCE.json(VersionHelper.isOrAbove1_21() ? "recipe" : "recipes");
-        Object minecraftServer = MinecraftServerProxy.INSTANCE.getServer();
+        Object minecraftServer = RegistryUtils.getServer();
         Object packRepository = MinecraftServerProxy.INSTANCE.getPackRepository(minecraftServer);
         List<Object> selected = PackRepositoryProxy.INSTANCE.getSelected(packRepository);
         List<Object> packResources = new ArrayList<>();

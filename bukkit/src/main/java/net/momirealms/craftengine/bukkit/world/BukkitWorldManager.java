@@ -214,14 +214,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         Object holder = this.configuredFeatures.get(id);
         if (holder == null) {
             Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE);
-            if (registry == null) return null;
-            Optional<Object> optionalHolder;
-            if (VersionHelper.isOrAbove1_21_2()) {
-                optionalHolder = RegistryProxy.INSTANCE.get$1(registry, FeatureUtils.createConfiguredFeatureKey(id));
-            } else {
-                optionalHolder = RegistryProxy.INSTANCE.getHolder$1(registry, FeatureUtils.createConfiguredFeatureKey(id));
-            }
-            holder = optionalHolder.orElse(null);
+            holder = RegistryUtils.getHolder(registry, FeatureUtils.createConfiguredFeatureKey(id));
         }
         return holder;
     }

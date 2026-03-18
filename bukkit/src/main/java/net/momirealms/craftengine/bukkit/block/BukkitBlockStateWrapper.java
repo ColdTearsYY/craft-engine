@@ -6,7 +6,6 @@ import net.momirealms.craftengine.core.block.AbstractBlockStateWrapper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.WorldAccessor;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
@@ -41,7 +40,7 @@ public abstract class BukkitBlockStateWrapper extends AbstractBlockStateWrapper 
     @Override
     public Key fluidState() {
         Object fluid = FluidStateProxy.INSTANCE.getType(BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getFluidState(super.blockState));
-        return KeyUtils.identifierToKey(RegistryProxy.INSTANCE.getKey(RegistryAccessProxy.INSTANCE.lookupOrThrow(RegistryUtils.getRegistryAccess(), RegistriesProxy.FLUID), fluid));
+        return KeyUtils.identifierToKey(RegistryProxy.INSTANCE.getKey(RegistryUtils.lookupOrThrow(RegistriesProxy.FLUID), fluid));
     }
 
     @Override

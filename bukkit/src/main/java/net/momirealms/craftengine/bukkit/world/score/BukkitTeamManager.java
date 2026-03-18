@@ -2,6 +2,7 @@ package net.momirealms.craftengine.bukkit.world.score;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
+import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.core.util.LegacyChatFormatter;
 import net.momirealms.craftengine.core.world.score.TeamManager;
 import net.momirealms.craftengine.proxy.minecraft.ChatFormattingProxy;
@@ -46,7 +47,7 @@ public final class BukkitTeamManager implements TeamManager {
 
     @Override
     public void init() {
-        Object scoreboard = MinecraftServerProxy.INSTANCE.getScoreboard(MinecraftServerProxy.INSTANCE.getServer());
+        Object scoreboard = MinecraftServerProxy.INSTANCE.getScoreboard(RegistryUtils.getServer());
         List<Object> packets = new ObjectArrayList<>();
         LegacyChatFormatter[] values = LegacyChatFormatter.values();
         for (int i = 0; i < 16; i++) {

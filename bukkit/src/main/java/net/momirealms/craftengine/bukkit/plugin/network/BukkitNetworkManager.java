@@ -301,7 +301,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         };
         // Inject server channel
         {
-            Object server = MinecraftServerProxy.INSTANCE.getServer();
+            Object server = RegistryUtils.getServer();
             Object serverConnection = MinecraftServerProxy.INSTANCE.getConnection(server);
             List<ChannelFuture> channels = ServerConnectionListenerProxy.INSTANCE.getChannels(serverConnection);
             ListMonitor<ChannelFuture> monitor = new ListMonitor<>(channels, (future) -> {
@@ -646,7 +646,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
 
     private void updateEnforceSecureProfile() {
         // 更新聊天验证
-        Object settings = DedicatedServerProxy.INSTANCE.getSettings(MinecraftServerProxy.INSTANCE.getServer());
+        Object settings = DedicatedServerProxy.INSTANCE.getSettings(RegistryUtils.getServer());
         Object properties = DedicatedServerSettingsProxy.INSTANCE.getProperties(settings);
         DedicatedServerPropertiesProxy.INSTANCE.setEnforceSecureProfile(properties, false);
     }
