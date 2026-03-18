@@ -146,7 +146,7 @@ public abstract class AbstractCommandManager<C> implements CraftEngineCommandMan
         }
         this.features().values().forEach(feature -> {
             CommandConfig<C> config = getCommandConfig(document, feature.getFeatureID());
-            if (config.isEnable()) {
+            if (config.isEnable() && feature.isAvailable()) {
                 registerFeature(feature, config);
             }
         });

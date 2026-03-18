@@ -32,8 +32,6 @@ public interface CompatibilityManager {
 
     int getViaVersionProtocolVersion(NetWorkUser user);
 
-    void executeMMSkill(String skill, float power, Player player);
-
     TagResolver[] createExternalTagResolvers(Context context);
 
     boolean isBedrockPlayer(Player player);

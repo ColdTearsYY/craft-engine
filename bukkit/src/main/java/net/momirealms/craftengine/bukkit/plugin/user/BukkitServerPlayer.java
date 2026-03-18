@@ -1353,6 +1353,25 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public double health() {
+        return platformPlayer().getHealth();
+    }
+
+    @Override
+    public void setHealth(double amount) {
+        platformPlayer().setHealth(amount);
+    }
+
+    @Override
+    public double maxHealth() {
+        if (VersionHelper.isOrAbove1_21()) {
+            return Objects.requireNonNull(platformPlayer().getAttribute(Attribute.MAX_HEALTH)).getValue();
+        } else {
+            return LegacyAttributeUtils.getMaxHealth(platformPlayer());
+        }
+    }
+
+    @Override
     public int foodLevel() {
         return platformPlayer().getFoodLevel();
     }

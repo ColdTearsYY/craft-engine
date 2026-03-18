@@ -165,6 +165,27 @@ place_feature:
   usage:
     - /ce feature place-feature
 
+set_item_custom_model_data:
+  enable: true
+  permission: ce.command.admin.custom_model_data
+  usage:
+    - /craftengine item custom-model-data
+    - /ce item custom-model-data
+
+set_item_item_model:
+  enable: true
+  permission: ce.command.admin.item_model
+  usage:
+    - /craftengine item item-model
+    - /ce item item-model
+
+remove_item_component:
+  enable: true
+  permission: ce.command.admin.remove_component
+  usage:
+    - /craftengine item remove-component
+    - /ce item remove-component
+
 # Debug commands
 debug_set_block:
   enable: true
@@ -284,6 +305,13 @@ debug_custom_model_data:
   usage:
     - /craftengine debug custom-model-data
     - /ce debug custom-model-data
+
+debug_item_model:
+  enable: true
+  permission: ce.command.debug.item_model
+  usage:
+    - /craftengine debug item-model
+    - /ce debug item-model
 
 debug_image:
   enable: true

@@ -171,6 +171,18 @@ public abstract class Player extends AbstractEntity implements NetWorkUser {
         return gameMode() == GameMode.ADVENTURE;
     }
 
+    public abstract double health();
+
+    public abstract void setHealth(double amount);
+
+    public abstract double maxHealth();
+
+    public void heal(double amount) {
+        double targetHealth = Math.min(this.health() + amount, this.maxHealth());
+        targetHealth = Math.max(targetHealth, health());
+        this.setHealth(targetHealth);
+    }
+
     public abstract int foodLevel();
 
     public abstract void setFoodLevel(int foodLevel);

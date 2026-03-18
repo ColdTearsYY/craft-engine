@@ -17,7 +17,8 @@ import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEn
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineProvider;
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineUtils;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicItemDropListener;
-import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicSkillHelper;
+import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsSkillFunction;
+import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsSpawnFunction;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateHatSettings;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateProviders;
 import net.momirealms.craftengine.bukkit.compatibility.packetevents.WrappedBlockStateHelper;
@@ -36,6 +37,7 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.compatibility.*;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.condition.AlwaysFalseCondition;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
@@ -179,6 +181,9 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
             runCatchingHook(() -> {
                 new MythicItemDropListener(this.plugin);
                 this.registerEntityProvider(new MythicMobsEntityProvider());
+                CommonFunctions.register(Key.ce("mythic_mobs_skill"), MythicMobsSkillFunction.factory(CommonConditions::fromConfig));
+                CommonFunctions.register(Key.ce("cast_mythic_skill"), MythicMobsSkillFunction.factory(CommonConditions::fromConfig));
+                CommonFunctions.register(Key.ce("spawn_mythic_mob"), MythicMobsSpawnFunction.factory(CommonConditions::fromConfig));
             }, "MythicMobs");
         }
         if (this.isPluginEnabled("QuickShop-Hikari")) {
@@ -219,11 +224,6 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
 
     private interface ThrowableRunnable {
         void run() throws Throwable;
-    }
-
-    @Override
-    public void executeMMSkill(String skill, float power, Player player) {
-        MythicSkillHelper.execute(skill, power, player);
     }
 
     @Override
