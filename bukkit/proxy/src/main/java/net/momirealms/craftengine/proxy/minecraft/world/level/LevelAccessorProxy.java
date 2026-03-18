@@ -58,4 +58,7 @@ public interface LevelAccessorProxy extends CommonLevelAccessorProxy {
 
     @MethodInvoker(name = "levelEvent")
     void levelEvent(Object target, int eventId, @Type(clazz = BlockPosProxy.class) Object pos, int data);
+
+    @MethodInvoker(name = "getRandom")
+    Object getRandom(Object target);
 }

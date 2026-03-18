@@ -40,4 +40,8 @@ public final class RegistryUtils {
             return RegistryProxy.INSTANCE.get$2(registry, id);
         }
     }
+
+    public static Object lookupOrThrow(Object registryKey) {
+        return RegistryAccessProxy.INSTANCE.lookupOrThrow(getRegistryAccess(), registryKey);
+    }
 }

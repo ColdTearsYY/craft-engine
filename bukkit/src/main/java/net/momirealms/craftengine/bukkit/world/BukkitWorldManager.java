@@ -28,7 +28,9 @@ import net.momirealms.craftengine.core.world.chunk.storage.StorageAdaptor;
 import net.momirealms.craftengine.core.world.chunk.storage.WorldDataStorage;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftChunkProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.SectionPosProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ChunkMapProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
@@ -51,6 +53,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.*;
+import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -208,7 +211,27 @@ public final class BukkitWorldManager implements WorldManager, Listener {
 
     @Nullable
     public Object configuredFeatureById(Key id) {
-        return this.configuredFeatures.get(id);
+        Object holder = this.configuredFeatures.get(id);
+        if (holder == null) {
+            Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE);
+            if (registry == null) return null;
+            Optional<Object> optionalHolder;
+            if (VersionHelper.isOrAbove1_21_2()) {
+                optionalHolder = RegistryProxy.INSTANCE.get$1(registry, FeatureUtils.createConfiguredFeatureKey(id));
+            } else {
+                optionalHolder = RegistryProxy.INSTANCE.getHolder$1(registry, FeatureUtils.createConfiguredFeatureKey(id));
+            }
+            holder = optionalHolder.orElse(null);
+        }
+        return holder;
+    }
+
+    public Collection<Suggestion> getConfiguredFeatures() {
+        Set<Object> vanilla = RegistryProxy.INSTANCE.keySet(RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE));
+        Set<Key> custom = this.configuredFeatures.keySet();
+        return Stream.concat(vanilla.stream(), custom.stream())
+                .map(it -> Suggestion.suggestion(it.toString()))
+                .toList();
     }
 
     /*

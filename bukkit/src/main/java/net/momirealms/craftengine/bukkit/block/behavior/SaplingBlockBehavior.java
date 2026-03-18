@@ -23,10 +23,7 @@ import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
@@ -97,20 +94,8 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
     private void generateTree(Object world, Object blockPos, Object blockState, Object randomSource) {
         Object holder = BukkitWorldManager.instance().configuredFeatureById(treeFeature());
         if (holder == null) {
-            Object registryAccess = RegistryUtils.getRegistryAccess();
-            Object registry = RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.CONFIGURED_FEATURE);
-            if (registry == null) return;
-            Optional<Object> optionalHolder;
-            if (VersionHelper.isOrAbove1_21_2()) {
-                optionalHolder = RegistryProxy.INSTANCE.get$1(registry, FeatureUtils.createConfiguredFeatureKey(treeFeature()));
-            } else {
-                optionalHolder = RegistryProxy.INSTANCE.getHolder$1(registry, FeatureUtils.createConfiguredFeatureKey(treeFeature()));
-            }
-            if (optionalHolder.isEmpty()) {
-                CraftEngine.instance().logger().warn("Configured feature not found: " + treeFeature());
-                return;
-            }
-            holder = optionalHolder.get();
+            CraftEngine.instance().logger().warn("Configured feature not found: " + treeFeature());
+            return;
         }
         Object chunkGenerator = ServerChunkCacheProxy.INSTANCE.getGenerator(ServerLevelProxy.INSTANCE.getChunkSource(world));
         Object configuredFeature = HolderProxy.INSTANCE.value(holder);

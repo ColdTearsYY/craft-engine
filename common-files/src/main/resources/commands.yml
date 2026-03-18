@@ -159,6 +159,12 @@ toggle_entity_culling:
   usage:
     - /ce feature toggle-entity-culling
 
+place_feature:
+  enable: true
+  permission: ce.command.admin.place_feature
+  usage:
+    - /ce feature place-feature
+
 # Debug commands
 debug_set_block:
   enable: true

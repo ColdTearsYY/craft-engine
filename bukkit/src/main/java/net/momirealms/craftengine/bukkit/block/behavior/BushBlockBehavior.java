@@ -7,25 +7,20 @@ import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Tuple;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
     public static final BlockBehaviorFactory<BushBlockBehavior> FACTORY = new Factory();
     public final List<Object> tagsCanSurviveOn;
-    public final Set<Object> blockStatesCanSurviveOn;
-    public final Set<String> customBlocksCansSurviveOn;
+    public final List<Object> blocksCansSurviveOn;
+    public final List<Object> blockStatesCansSurviveOn;
     public final boolean blacklistMode;
     public final boolean stackable;
     public final int maxHeight;
@@ -36,15 +31,15 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
                                 boolean stackable,
                                 int maxHeight,
                                 List<Object> tagsCanSurviveOn,
-                                Set<Object> blockStatesCanSurviveOn,
-                                Set<String> customBlocksCansSurviveOn) {
+                                List<Object> blocksCansSurviveOn,
+                                List<Object> blockStatesCansSurviveOn) {
         super(block, delay);
         this.blacklistMode = blacklist;
         this.stackable = stackable;
         this.maxHeight = maxHeight;
         this.tagsCanSurviveOn = List.copyOf(tagsCanSurviveOn);
-        this.blockStatesCanSurviveOn = Set.copyOf(blockStatesCanSurviveOn);
-        this.customBlocksCansSurviveOn = Set.copyOf(customBlocksCansSurviveOn);
+        this.blocksCansSurviveOn = List.copyOf(blocksCansSurviveOn);
+        this.blockStatesCansSurviveOn = List.copyOf(blockStatesCansSurviveOn);
     }
 
     private static class Factory implements BlockBehaviorFactory<BushBlockBehavior> {
@@ -52,7 +47,11 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
 
         @Override
         public BushBlockBehavior create(CustomBlock block, ConfigSection section) {
-            Tuple<List<Object>, Set<Object>, Set<String>> tuple = readTagsAndState(section, false);
+            Tuple<List<Object>, List<Object>, List<Object>> tuple = readTagsAndBlockAndState(
+                    section.getValue(new String[]{"bottom_block_tags", "bottom-block-tags"}),
+                    section.getValue(new String[]{"bottom_blocks", "bottom-blocks"}),
+                    section.getValue(new String[]{"bottom_block_states", "bottom-block-states"})
+            );
             return new BushBlockBehavior(
                     block,
                     section.getInt("delay", 0),
@@ -66,28 +65,11 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
         }
     }
 
-    // todo 重构一下
-    public static Tuple<List<Object>, Set<Object>, Set<String>> readTagsAndState(ConfigSection section, boolean aboveOrBelow) {
-        List<Object> mcTags = section.getList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags"}, v -> BlockTags.getOrCreate(v.getAsIdentifier()));
-        Set<Object> mcBlocks = new HashSet<>();
-        Set<String> customBlocks = new HashSet<>();
-        for (String blockState : section.getStringList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags"})) {
-            int index = blockState.indexOf('[');
-            Key blockType = index != -1 ? Key.of(blockState.substring(0, index)) : Key.of(blockState);
-            Material material = Registry.MATERIAL.get(new NamespacedKey(blockType.namespace(), blockType.value()));
-            if (material != null) {
-                if (index == -1) {
-                    // vanilla
-                    mcBlocks.addAll(BlockStateUtils.getPossibleBlockStates(blockType));
-                } else {
-                    mcBlocks.add(BlockStateUtils.blockDataToBlockState(Bukkit.createBlockData(blockState)));
-                }
-            } else {
-                // custom maybe
-                customBlocks.add(blockState);
-            }
-        }
-        return new Tuple<>(mcTags, mcBlocks, customBlocks);
+    public static Tuple<List<Object>, List<Object>, List<Object>> readTagsAndBlockAndState(@Nullable ConfigValue tagsValue, @Nullable ConfigValue blocksValue, @Nullable ConfigValue blockstatesValue) {
+        List<Object> tags = tagsValue == null ? List.of() : tagsValue.getAsList(it -> BlockTags.getOrCreate(it.getAsIdentifier()));
+        List<Object> blocks = blocksValue == null ? List.of() : blocksValue.getAsList(it -> BlockStateUtils.getBlockOwner(it.getAsBlockState().literalObject()));
+        List<Object> blockstates = blockstatesValue == null ? List.of() : blockstatesValue.getAsList(it -> it.getAsBlockState().literalObject());
+        return Tuple.of(tags, blocks, blockstates);
     }
 
     @SuppressWarnings("DuplicatedCode")
@@ -99,31 +81,26 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
     }
 
     boolean mayPlaceOn(Object belowState, Object world, Object belowPos) {
+        if (!this.blockStatesCansSurviveOn.isEmpty() && this.blockStatesCansSurviveOn.contains(belowState)) {
+            return !this.blacklistMode;
+        }
         for (Object tag : this.tagsCanSurviveOn) {
             if (BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.is$1(belowState, tag)) {
                 return !this.blacklistMode;
             }
         }
-        Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(belowState);
-        if (optionalCustomState.isEmpty()) {
-            if (!this.blockStatesCanSurviveOn.isEmpty() && this.blockStatesCanSurviveOn.contains(belowState)) {
+        for (Object block : this.blocksCansSurviveOn) {
+            if (BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.is$0(belowState, block)) {
                 return !this.blacklistMode;
             }
-        } else {
-            ImmutableBlockState belowCustomState = optionalCustomState.get();
-            if (belowCustomState.owner().value() == super.customBlock) {
-                if (!this.stackable || this.maxHeight == 1) return false;
-                if (this.maxHeight > 1) {
-                    return mayStackOn(world, belowPos);
-                }
-                return true;
+        }
+        ImmutableBlockState blockState = BlockStateUtils.getOptionalCustomBlockState(belowState).orElse(null);
+        if (blockState != null && blockState.owner().value() == super.customBlock) {
+            if (!this.stackable || this.maxHeight == 1) return false;
+            if (this.maxHeight > 1) {
+                return mayStackOn(world, belowPos);
             }
-            if (this.customBlocksCansSurviveOn.contains(belowCustomState.owner().value().id().toString())) {
-                return !this.blacklistMode;
-            }
-            if (this.customBlocksCansSurviveOn.contains(belowCustomState.toString())) {
-                return !this.blacklistMode;
-            }
+            return true;
         }
         return this.blacklistMode;
     }
