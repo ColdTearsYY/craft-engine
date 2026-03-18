@@ -175,14 +175,14 @@ public final class BlockStateGenerator {
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
             ImmutableBlockState state = customState.blockState();
             if (state == null) return false;
-            Object property = args[0];
-            String name = PropertyProxy.INSTANCE.getName(property);
+            Object mcProperty = args[0];
+            String name = PropertyProxy.INSTANCE.getName(mcProperty);
             Property<?> ceProperty = state.owner().value().getProperty(name);
             if (ceProperty == null) return false;
-            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(property);
+            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(mcProperty);
             Class<?> cePropertyClass = ceProperty.valueClass();
             if (cePropertyClass == mcPropertyClass) {
-                return PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size();
+                return PropertyProxy.INSTANCE.getPossibleValues(mcProperty).size() == ceProperty.possibleValues().size();
             } else if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
                 if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
                     return PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size();
@@ -201,14 +201,14 @@ public final class BlockStateGenerator {
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
             ImmutableBlockState state = customState.blockState();
             if (state == null) return null;
-            Object property = args[0];
-            String name = PropertyProxy.INSTANCE.getName(property);
+            Object mcProperty = args[0];
+            String name = PropertyProxy.INSTANCE.getName(mcProperty);
             Property<?> ceProperty = state.owner().value().getProperty(name);
             if (ceProperty == null) return null;
-            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(property);
+            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(mcProperty);
             Class<?> cePropertyClass = ceProperty.valueClass();
             if (mcPropertyClass == cePropertyClass) {
-                if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                if (PropertyProxy.INSTANCE.getPossibleValues(mcProperty).size() == ceProperty.possibleValues().size()) {
                     return state.get(ceProperty);
                 }
             }
@@ -246,12 +246,12 @@ public final class BlockStateGenerator {
             Class<?> cePropertyClass = ceProperty.valueClass();
             Object valueToSet = null;
             if (mcPropertyClass == cePropertyClass) {
-                if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                if (PropertyProxy.INSTANCE.getPossibleValues(mcProperty).size() == ceProperty.possibleValues().size()) {
                     valueToSet = mcValue;
                 }
             } else if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
                 if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
-                    if (PropertyProxy.INSTANCE.getPossibleValues(mcPropertyClass).size() == ceProperty.possibleValues().size()) {
+                    if (PropertyProxy.INSTANCE.getPossibleValues(mcProperty).size() == ceProperty.possibleValues().size()) {
                         Enum<?> mcEnumValue = (Enum<?>) mcValue;
                         Object[] ceConstants = cePropertyClass.getEnumConstants();
                         int ordinal = mcEnumValue.ordinal();
