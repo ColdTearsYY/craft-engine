@@ -3,8 +3,6 @@ package net.momirealms.craftengine.bukkit.compatibility;
 import cn.gtemc.itembridge.api.Provider;
 import cn.gtemc.itembridge.core.BukkitItemBridge;
 import cn.gtemc.levelerbridge.core.BukkitLevelerBridge;
-import io.lumine.mythic.api.mobs.entities.SpawnReason;
-import io.lumine.mythic.core.spawning.spawners.MythicSpawner;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.momirealms.craftengine.bukkit.block.entity.renderer.element.BukkitBlockEntityElementConfigs;
 import net.momirealms.craftengine.bukkit.compatibility.bedrock.FloodgateUtils;
@@ -20,6 +18,8 @@ import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEn
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineUtils;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicItemDropListener;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsHelper;
+import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsSkillFunction;
+import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsSpawnFunction;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateHatSettings;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateProviders;
 import net.momirealms.craftengine.bukkit.compatibility.packetevents.WrappedBlockStateHelper;
@@ -38,6 +38,7 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.compatibility.*;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.condition.AlwaysFalseCondition;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
@@ -182,6 +183,9 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
             runCatchingHook(() -> {
                 new MythicItemDropListener(this.plugin);
                 this.registerEntityProvider(new MythicMobsEntityProvider());
+                CommonFunctions.register(Key.ce("mythic_mobs_skill"), MythicMobsSkillFunction.factory(CommonConditions::fromConfig));
+                CommonFunctions.register(Key.ce("cast_mythic_skill"), MythicMobsSkillFunction.factory(CommonConditions::fromConfig));
+                CommonFunctions.register(Key.ce("spawn_mythic_mob"), MythicMobsSpawnFunction.factory(CommonConditions::fromConfig));
             }, "MythicMobs");
         }
         if (this.isPluginEnabled("QuickShop-Hikari")) {

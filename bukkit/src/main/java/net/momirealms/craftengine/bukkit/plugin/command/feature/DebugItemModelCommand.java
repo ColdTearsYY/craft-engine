@@ -1,13 +1,11 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
-import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
@@ -31,10 +29,6 @@ import org.incendo.cloud.suggestion.Suggestion;
 import org.incendo.cloud.suggestion.SuggestionProvider;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSender> {
@@ -81,18 +75,15 @@ public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSen
 
     private void reportItemModel(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
         Item clientBoundItem = plugin().itemManager().s2c(itemStack, player).orElse(itemStack);
+        String itemModel = clientBoundItem.itemModel().orElse("null");
+        TextComponent finalMessage = Component.text(itemModel)
+                .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))
+                .clickEvent(ClickEvent.suggestCommand(itemModel));
+        plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
+    }
 
-        // 1.21.2+ 尝试获取.
-        if (VersionHelper.isOrAbove1_21_2()) {
-            String itemModel = Optional.of(clientBoundItem.getJavaComponent(DataComponentTypes.ITEM_MODEL)).orElse("null").toString();
-            TextComponent finalMessage = Component.text(itemModel)
-                    .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))
-                    .clickEvent(ClickEvent.suggestCommand(itemModel));
-            plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
-            return;
-        }
-
-        // 低版本没有值.
-        plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text("null"));
+    @Override
+    public boolean isAvailable() {
+        return VersionHelper.isOrAbove1_21_2();
     }
 }

@@ -179,6 +179,13 @@ set_item_item_model:
     - /craftengine item item-model
     - /ce item item-model
 
+remove_item_component:
+  enable: true
+  permission: ce.command.admin.remove_component
+  usage:
+    - /craftengine item remove-component
+    - /ce item remove-component
+
 # Debug commands
 debug_set_block:
   enable: true

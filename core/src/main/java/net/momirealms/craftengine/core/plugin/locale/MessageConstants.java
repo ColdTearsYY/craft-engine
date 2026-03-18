@@ -15,9 +15,9 @@ public interface MessageConstants {
     TranslatableComponent.Builder COMMAND_ITEM_GIVE_SUCCESS_SINGLE = Component.translatable().key("command.item.give.success.single");
     TranslatableComponent.Builder COMMAND_ITEM_GIVE_SUCCESS_MULTIPLE = Component.translatable().key("command.item.give.success.multiple");
     TranslatableComponent.Builder COMMAND_ITEM_GIVE_FAILURE_NOT_EXIST = Component.translatable().key("command.item.give.failure.not_exist");
-    TranslatableComponent.Builder COMMAND_ITEM_CUSTOM_MODEL_DATA_SET = Component.translatable().key("command.item.custom_model_data.set");
-    TranslatableComponent.Builder COMMAND_ITEM_ITEM_MODEL_SET_INVALID = Component.translatable().key("command.item.item_model.set.invalid");
-    TranslatableComponent.Builder COMMAND_ITEM_ITEM_MODEL_SET_SUCCESS = Component.translatable().key("command.item.item_model.set.success");
+    TranslatableComponent.Builder COMMAND_ITEM_SET_CUSTOM_MODEL_DATA = Component.translatable().key("command.item.set_custom_model_data");
+    TranslatableComponent.Builder COMMAND_ITEM_SET_ITEM_MODEL = Component.translatable().key("command.item.set_item_model");
+    TranslatableComponent.Builder COMMAND_ITEM_REMOVE_ITEM_COMPONENT = Component.translatable().key("command.item.remove_item_component");
     TranslatableComponent.Builder COMMAND_SEARCH_RECIPE_NOT_FOUND = Component.translatable().key("command.search_recipe.not_found");
     TranslatableComponent.Builder COMMAND_SEARCH_RECIPE_NO_ITEM = Component.translatable().key("command.search_recipe.no_item");
     TranslatableComponent.Builder COMMAND_SEARCH_USAGE_NOT_FOUND = Component.translatable().key("command.search_usage.not_found");

@@ -1,12 +1,10 @@
 package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
-import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
@@ -16,7 +14,6 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -30,9 +27,6 @@ import org.incendo.cloud.suggestion.Suggestion;
 import org.incendo.cloud.suggestion.SuggestionProvider;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public final class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
@@ -67,32 +61,18 @@ public final class DebugCustomModelDataCommand extends BukkitCommandFeature<Comm
             CustomItem customItem = CraftEngineItems.byId(itemId);
             if (customItem == null) return;
             Item item = customItem.buildItem(player);
-            reportCustomModelData(context, item, player);
+            sendMessage(context, item, player);
             return;
         }
 
         if (player != null) {
             Item item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
-            reportCustomModelData(context, item, player);
+            sendMessage(context, item, player);
         }
     }
 
-    private void reportCustomModelData(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
+    private void sendMessage(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
         Item clientBoundItem = plugin().itemManager().s2c(itemStack, player).orElse(itemStack);
-
-        // 1.20.5+ 打印整个 CUSTOM_MODEL_DATA 组件.
-         if (VersionHelper.COMPONENT_RELEASE) {
-             @SuppressWarnings("unchecked")
-             Map<String, Object> component = (Map<String, Object>) clientBoundItem.getJavaComponent(DataComponentTypes.CUSTOM_MODEL_DATA);
-
-             List<Component> readableComponents = new ArrayList<>();
-             DebugItemDataCommand.mapToComponentList(component, readableComponents, 0, false);
-             Component finalMessage = Component.join(JoinConfiguration.separator(Component.newline()), readableComponents);
-             plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
-             return;
-         }
-
-        // 低版本直接发送值.
         int customModelData = clientBoundItem.customModelData().orElse(0);
         Component message = Component.text(customModelData)
                 .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))

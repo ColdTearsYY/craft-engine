@@ -46,8 +46,6 @@ public final class CommonFunctions {
     public static final CommonFunctionType<RemoveFurnitureFunction<Context>> REMOVE_FURNITURE = register(Key.ce("remove_furniture"), RemoveFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<ReplaceFurnitureFunction<Context>> REPLACE_FURNITURE = register(Key.ce("replace_furniture"), ReplaceFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<RotateFurnitureFunction<Context>> ROTATE_FURNITURE = register(Key.ce("rotate_furniture"), RotateFurnitureFunction.factory(CommonConditions::fromConfig));
-    public static final CommonFunctionType<MythicMobsSkillFunction<Context>> MYTHIC_MOBS_SKILL = register(Key.ce("mythic_mobs_skill"), MythicMobsSkillFunction.factory(CommonConditions::fromConfig));
-    public static final CommonFunctionType<MythicMobsSpawnFunction<Context>> MYTHIC_MOBS_SPAWN = register(Key.ce("mythic_mobs_spawn"), MythicMobsSpawnFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<TeleportFunction<Context>> TELEPORT = register(Key.ce("teleport"), TeleportFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<SetVariableFunction<Context>> SET_VARIABLE = register(Key.ce("set_variable"), SetVariableFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<ToastFunction<Context>> TOAST = register(Key.ce("toast"), ToastFunction.factory(CommonConditions::fromConfig));
