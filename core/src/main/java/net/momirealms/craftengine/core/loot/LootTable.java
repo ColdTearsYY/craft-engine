@@ -40,7 +40,7 @@ public final class LootTable {
         List<LootPool> lootPools = section.getList("pools", v -> {
             ConfigSection innerSection = v.getAsSection();
             NumberProvider rolls = innerSection.getValue("rolls", NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
-            NumberProvider bonus_rolls = innerSection.getValue(BONUS_ROLLS, NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
+            NumberProvider bonus_rolls = innerSection.getValue(BONUS_ROLLS, NumberProviders::fromConfig, ConfigConstants.CONSTANT_ZERO);
             List<Condition<LootContext>> conditions = innerSection.getList("conditions", CommonConditions::fromConfig);
             List<LootEntryContainer> containers = innerSection.getList("entries", LootEntryContainers::fromConfig);
             List<LootFunction> functions = innerSection.getList("functions", LootFunctions::fromConfig);
