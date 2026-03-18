@@ -17,7 +17,6 @@ import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEn
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineProvider;
 import net.momirealms.craftengine.bukkit.compatibility.model.modelengine.ModelEngineUtils;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicItemDropListener;
-import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsHelper;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsSkillFunction;
 import net.momirealms.craftengine.bukkit.compatibility.mythicmobs.MythicMobsSpawnFunction;
 import net.momirealms.craftengine.bukkit.compatibility.nameplates.CustomNameplateHatSettings;
@@ -47,7 +46,6 @@ import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.WorldManager;
-import net.momirealms.craftengine.core.world.WorldPosition;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -226,16 +224,6 @@ public final class BukkitCompatibilityManager implements CompatibilityManager {
 
     private interface ThrowableRunnable {
         void run() throws Throwable;
-    }
-
-    @Override
-    public void executeMMSkill(String skill, float power, Player player) {
-        MythicMobsHelper.execute(skill, power, player);
-    }
-
-    @Override
-    public void summonMMEntity(String mobId, WorldPosition worldPosition, double level) {
-        MythicMobsHelper.summonMob(mobId, worldPosition, level);
     }
 
     @Override

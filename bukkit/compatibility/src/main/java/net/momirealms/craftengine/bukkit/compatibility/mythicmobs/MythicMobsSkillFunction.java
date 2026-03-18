@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.bukkit.compatibility.mythicmobs;
 
-import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
@@ -33,7 +32,7 @@ public final class MythicMobsSkillFunction<CTX extends Context> extends Abstract
     protected void runInternal(CTX ctx) {
         ctx.getOptionalParameter(DirectContextParameters.PLAYER).ifPresent(it -> {
             float power = this.power == null ? 1.0f : this.power.getFloat(ctx);
-            CraftEngine.instance().compatibilityManager().executeMMSkill(this.skill.get(ctx), power, it);
+            MythicMobsHelper.executeSkill(this.skill.get(ctx), power, it);
         });
     }
 

@@ -16,7 +16,7 @@ import java.util.List;
 public final class MythicMobsHelper {
     private MythicMobsHelper() {}
 
-    public static void execute(String skill, float power, Player player) {
+    public static void executeSkill(String skill, float power, Player player) {
         org.bukkit.entity.Player casterPlayer = (org.bukkit.entity.Player) player.platformPlayer();
         Location location = casterPlayer.getLocation();
         LivingEntity target = MythicUtil.getTargetedEntity(casterPlayer);

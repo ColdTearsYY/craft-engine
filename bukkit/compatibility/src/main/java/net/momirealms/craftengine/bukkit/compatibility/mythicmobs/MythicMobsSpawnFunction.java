@@ -75,7 +75,7 @@ public final class MythicMobsSpawnFunction<CTX extends Context> extends Abstract
                 this.yaw.getFloat(ctx)
         );
         double level = this.level == null ? 1.0 : this.level.getDouble(ctx);
-        CraftEngine.instance().compatibilityManager().summonMMEntity(this.mobId.get(ctx), worldPosition, Math.max(level, 1.0));
+        MythicMobsHelper.summonMob(this.mobId.get(ctx), worldPosition, Math.max(level, 1.0));
     }
 
     public static <CTX extends Context> FunctionFactory<CTX, MythicMobsSpawnFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {

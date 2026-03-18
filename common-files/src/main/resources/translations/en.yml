@@ -53,9 +53,9 @@ command.item.clear.success.single: <white>Removed <arg:0> item(s) from player <a
 command.item.clear.success.multiple: <white>Removed <arg:0> item(s) from <arg:1> players</white>
 command.item.clear.test.single: <white>Found <arg:0> matching item(s) on player <arg:1></white>
 command.item.clear.test.multiple: <white>Found <arg:0> matching item(s) on <arg:1> players</white>
-command.item.set_custom_model_data: <white> Successfully set the custom-model-data of the item in your main hand to <green><arg:0></green> !</white>
-command.item.set_item_model: <white> Successfully set the item-model of the item in your main hand to <green><arg:0></green> !</white>
-command.item.remove_item_component: <white> Successfully removed item component <green><arg:0></green> from your main hand.</white>
+command.item.set_custom_model_data: <white>Set the CustomModelData to '<arg:0>'</white>
+command.item.set_item_model: <white>Set the ItemModel to '<arg:0>'</white>
+command.item.remove_item_component: <white>Removed item component '<arg:0>'</white>
 command.search_recipe.not_found: <red>No recipe found for this item</red>
 command.search_usage.not_found: <red>No usage found for this item</red>
 command.search_recipe.no_item: <red>Please hold an item before running this command</red>
