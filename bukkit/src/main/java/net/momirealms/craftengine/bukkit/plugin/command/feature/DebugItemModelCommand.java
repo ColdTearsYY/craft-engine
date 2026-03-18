@@ -63,17 +63,17 @@ public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSen
             CustomItem customItem = CraftEngineItems.byId(itemId);
             if (customItem == null) return;
             Item item = customItem.buildItem(player);
-            reportItemModel(context, item, player);
+            sendMessage(context, item, player);
             return;
         }
 
         if (player != null) {
             Item item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
-            reportItemModel(context, item, player);
+            sendMessage(context, item, player);
         }
     }
 
-    private void reportItemModel(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
+    private void sendMessage(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
         Item clientBoundItem = plugin().itemManager().s2c(itemStack, player).orElse(itemStack);
         String itemModel = clientBoundItem.itemModel().orElse("null");
         TextComponent finalMessage = Component.text(itemModel)
