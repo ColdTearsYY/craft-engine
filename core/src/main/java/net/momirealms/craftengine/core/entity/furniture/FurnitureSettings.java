@@ -4,15 +4,13 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
-import net.momirealms.craftengine.core.util.CustomDataType;
-import net.momirealms.craftengine.core.util.ExceptionCollector;
-import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.StringUtils;
+import net.momirealms.craftengine.core.util.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public final class FurnitureSettings {
     FurnitureSounds sounds = FurnitureSounds.EMPTY;
@@ -20,6 +18,8 @@ public final class FurnitureSettings {
     Key itemId;
     Map<CustomDataType<?>, Object> customData = new IdentityHashMap<>(4);
     int hitTimes;
+    boolean allowBreakingInAdventureMode = false;
+    LazyReference<Set<Key>> correctTools = LazyReference.lazyReference(Set::of);
 
     private FurnitureSettings() {}
 
@@ -92,6 +92,10 @@ public final class FurnitureSettings {
         return this.hitTimes;
     }
 
+    public boolean allowBreakingInAdventureMode() {
+        return this.allowBreakingInAdventureMode;
+    }
+
     public FurnitureSettings sounds(FurnitureSounds sounds) {
         this.sounds = sounds;
         return this;
@@ -104,6 +108,16 @@ public final class FurnitureSettings {
 
     public FurnitureSettings hitTimes(int hitTimes) {
         this.hitTimes = hitTimes;
+        return this;
+    }
+
+    public FurnitureSettings allowBreakingInAdventureMode(boolean allowBreaking) {
+        this.allowBreakingInAdventureMode = allowBreaking;
+        return this;
+    }
+
+    public FurnitureSettings correctTools(LazyReference<Set<Key>> correctTools) {
+        this.correctTools = correctTools;
         return this;
     }
 }

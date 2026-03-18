@@ -179,7 +179,7 @@ public class FurnitureItemBehavior extends ItemBehavior {
         Item item = context.getItem();
         if (ItemUtils.isEmpty(item)) return InteractionResult.FAIL;
         // 获取家具物品的一些属性
-        FurnitureDataAccessor dataAccessor = FurnitureDataAccessor.of(new CompoundTag());
+        FurniturePersistentData dataAccessor = FurniturePersistentData.of(new CompoundTag());
         dataAccessor.setVariant(variant.name());
         dataAccessor.setItem(item.copyWithCount(1));
         // 放置家具
@@ -214,6 +214,7 @@ public class FurnitureItemBehavior extends ItemBehavior {
             player.swingHand(context.getHand());
         }
         context.getLevel().playBlockSound(finalPlacePosition, customFurniture.settings().sounds().placeSound());
+        customFurniture.behavior().onPlace(context, bukkitFurniture);
         return InteractionResult.SUCCESS;
     }
 

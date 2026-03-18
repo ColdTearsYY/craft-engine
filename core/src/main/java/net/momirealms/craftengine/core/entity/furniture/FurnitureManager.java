@@ -22,7 +22,7 @@ public interface FurnitureManager extends Manageable {
 
     Collection<Suggestion> cachedSuggestions();
 
-    Furniture place(WorldPosition position, CustomFurniture furniture, FurnitureDataAccessor extraData, boolean playSound);
+    Furniture place(WorldPosition position, CustomFurniture furniture, FurniturePersistentData extraData, boolean playSound);
 
     Optional<CustomFurniture> furnitureById(Key id);
 

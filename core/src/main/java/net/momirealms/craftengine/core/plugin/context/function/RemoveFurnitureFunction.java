@@ -46,7 +46,7 @@ public final class RemoveFurnitureFunction<CTX extends Context> extends Abstract
             ContextHolder.Builder builder = ContextHolder.builder()
                     .withParameter(DirectContextParameters.POSITION, position)
                     .withParameter(DirectContextParameters.FURNITURE, furniture)
-                    .withOptionalParameter(DirectContextParameters.FURNITURE_ITEM, furniture.dataAccessor.item().orElse(null));
+                    .withOptionalParameter(DirectContextParameters.FURNITURE_ITEM, furniture.persistentData.item().orElse(null));
             Optional<Player> optionalPlayer = ctx.getOptionalParameter(DirectContextParameters.PLAYER);
             Player player = optionalPlayer.orElse(null);
             if (player != null) {

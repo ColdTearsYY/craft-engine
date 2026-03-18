@@ -8,11 +8,13 @@ import net.momirealms.craftengine.bukkit.util.CollisionUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.core.entity.furniture.*;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfig;
+import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.util.MiscUtils;
 import net.momirealms.craftengine.core.util.QuaternionUtils;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.core.world.collision.AABB;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.entity.CraftEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundAddEntityPacketProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityProxy;
@@ -29,6 +31,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -40,7 +43,7 @@ public final class BukkitFurniture extends Furniture {
     private final WeakReference<ItemDisplay> metaEntity;
     private Location location;
 
-    public BukkitFurniture(ItemDisplay metaEntity, CustomFurniture config, FurnitureDataAccessor data) {
+    public BukkitFurniture(ItemDisplay metaEntity, CustomFurniture config, FurniturePersistentData data) {
         super(new BukkitEntity(metaEntity), data, config);
         this.metaEntity = new WeakReference<>(metaEntity);
         this.location = metaEntity.getLocation();
@@ -199,7 +202,7 @@ public final class BukkitFurniture extends Furniture {
     @Override
     public void destroy() {
         try {
-            this.config.behavior().onRemove(this);
+            this.config.behavior().onDestroy(this);
         } finally {
             Optional.ofNullable(this.metaEntity.get()).ifPresent(Entity::remove);
             for (Collider entity : super.colliders) {
@@ -247,5 +250,17 @@ public final class BukkitFurniture extends Furniture {
             players.add(BukkitAdaptor.adapt(player));
         }
         return players;
+    }
+
+    @Override
+    public void saveIfDirty() {
+        if (super.persistentData.isUnsaved()) {
+            try {
+                bukkitEntity().getPersistentDataContainer().set(BukkitFurnitureManager.FURNITURE_EXTRA_DATA_KEY, PersistentDataType.BYTE_ARRAY, super.persistentData.toBytes());
+            } catch (IOException e) {
+                CraftEngine.instance().logger().warn("Failed to save furniture data for " + CraftEntityProxy.INSTANCE.getEntity(bukkitEntity()), e);
+            }
+            super.persistentData.clearUnsavedFlag();
+        }
     }
 }

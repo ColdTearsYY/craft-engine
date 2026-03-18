@@ -439,7 +439,7 @@ public final class CEChunk {
         if (blockBehavior == null) {
             this.removeBlockEntityTicker(blockEntity.pos());
         } else {
-            BlockEntityTicker<T> syncTicker = (BlockEntityTicker<T>) blockBehavior.createSyncBlockEntityTicker(this.world, blockState, blockEntity.type());
+            BlockEntityTicker<T> syncTicker = (BlockEntityTicker<T>) blockBehavior.createBlockEntityTicker(this.world, blockState, blockEntity.type());
             if (syncTicker != null) {
                 this.tickingSyncBlockEntitiesByPos.compute(blockEntity.pos(), ((pos, previousTicker) -> {
                     TickingBlockEntity newTicker = new TickingBlockEntityImpl<>(this, blockEntity, syncTicker);

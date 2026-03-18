@@ -5,10 +5,9 @@ import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurnitureManager
 import net.momirealms.craftengine.bukkit.entity.seat.BukkitSeatManager;
 import net.momirealms.craftengine.bukkit.nms.CollisionEntity;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
-import net.momirealms.craftengine.core.entity.furniture.AnchorType;
 import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureDataAccessor;
+import net.momirealms.craftengine.core.entity.furniture.FurniturePersistentData;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootTable;
@@ -119,20 +118,6 @@ public final class CraftEngineFurniture {
      *
      * @param location    location
      * @param furnitureId furniture to place
-     * @param anchorType  anchor type
-     * @return the loaded furniture
-     */
-    @Nullable
-    @Deprecated(since = "0.0.66", forRemoval = true)
-    public static BukkitFurniture place(Location location, Key furnitureId, AnchorType anchorType) {
-        return place(location, furnitureId, anchorType.variantName());
-    }
-
-    /**
-     * Places furniture at certain location
-     *
-     * @param location    location
-     * @param furnitureId furniture to place
      * @param variant  variant type
      * @return the loaded furniture
      */
@@ -140,38 +125,7 @@ public final class CraftEngineFurniture {
     public static BukkitFurniture place(Location location, Key furnitureId, String variant) {
         CustomFurniture furniture = byId(furnitureId);
         if (furniture == null) return null;
-        return BukkitFurnitureManager.instance().place(location, furniture, FurnitureDataAccessor.ofVariant(variant), true);
-    }
-
-    /**
-     * Places furniture at certain location
-     *
-     * @param location   location
-     * @param furniture  furniture to place
-     * @param anchorType anchor type
-     * @return the loaded furniture
-     */
-    @NotNull
-    @Deprecated(since = "0.0.66", forRemoval = true)
-    public static BukkitFurniture place(Location location, CustomFurniture furniture, AnchorType anchorType) {
-        return place(location, furniture, anchorType.variantName(), true);
-    }
-
-    /**
-     * Places furniture at certain location
-     *
-     * @param location    location
-     * @param furnitureId furniture to place
-     * @param anchorType  anchor type
-     * @param playSound   whether to play place sounds
-     * @return the loaded furniture
-     */
-    @Nullable
-    @Deprecated(since = "0.0.66", forRemoval = true)
-    public static BukkitFurniture place(Location location, Key furnitureId, AnchorType anchorType, boolean playSound) {
-        CustomFurniture furniture = byId(furnitureId);
-        if (furniture == null) return null;
-        return place(location, furniture, anchorType.variantName(), playSound);
+        return BukkitFurnitureManager.instance().place(location, furniture, FurniturePersistentData.ofVariant(variant), true);
     }
 
     /**
@@ -195,28 +149,13 @@ public final class CraftEngineFurniture {
      *
      * @param location   location
      * @param furniture  furniture to place
-     * @param anchorType anchor type
-     * @param playSound  whether to play place sounds
-     * @return the loaded furniture
-     */
-    @NotNull
-    @Deprecated(since = "0.0.66", forRemoval = true)
-    public static BukkitFurniture place(Location location, CustomFurniture furniture, AnchorType anchorType, boolean playSound) {
-        return place(location, furniture, anchorType.variantName(), playSound);
-    }
-
-    /**
-     * Places furniture at certain location
-     *
-     * @param location   location
-     * @param furniture  furniture to place
      * @param variant    variant
      * @param playSound  whether to play place sounds
      * @return the loaded furniture
      */
     @NotNull
     public static BukkitFurniture place(Location location, CustomFurniture furniture, String variant, boolean playSound) {
-        return BukkitFurnitureManager.instance().place(location, furniture, FurnitureDataAccessor.ofVariant(variant), playSound);
+        return BukkitFurnitureManager.instance().place(location, furniture, FurniturePersistentData.ofVariant(variant), playSound);
     }
 
     /**
@@ -230,7 +169,7 @@ public final class CraftEngineFurniture {
      */
     @NotNull
     public static BukkitFurniture place(Location location, CustomFurniture furniture, CompoundTag data, boolean playSound) {
-        return BukkitFurnitureManager.instance().place(location, furniture, FurnitureDataAccessor.of(data), playSound);
+        return BukkitFurnitureManager.instance().place(location, furniture, FurniturePersistentData.of(data), playSound);
     }
 
     /**
@@ -243,7 +182,7 @@ public final class CraftEngineFurniture {
      * @return the loaded furniture
      */
     @NotNull
-    public static BukkitFurniture place(Location location, CustomFurniture furniture, FurnitureDataAccessor dataAccessor, boolean playSound) {
+    public static BukkitFurniture place(Location location, CustomFurniture furniture, FurniturePersistentData dataAccessor, boolean playSound) {
         return BukkitFurnitureManager.instance().place(location, furniture, dataAccessor, playSound);
     }
 
@@ -288,18 +227,6 @@ public final class CraftEngineFurniture {
     @Nullable
     public static BukkitFurniture getLoadedFurnitureByMetaEntity(@NotNull Entity baseEntity) {
         return BukkitFurnitureManager.instance().loadedFurnitureByMetaEntityId(baseEntity.getEntityId());
-    }
-
-    /**
-     * Gets the furniture by the meta entity
-     *
-     * @param baseEntity base entity
-     * @return the loaded furniture
-     */
-    @Nullable
-    @Deprecated(since = "0.0.66")
-    public static BukkitFurniture getLoadedFurnitureByBaseEntity(@NotNull Entity baseEntity) {
-        return getLoadedFurnitureByMetaEntity(baseEntity);
     }
 
     /**
@@ -422,7 +349,6 @@ public final class CraftEngineFurniture {
      * @param dropLoot whether to drop loots
      * @param playSound whether to play break sound
      */
-    @SuppressWarnings("unchecked")
     public static void remove(@NotNull Furniture furniture,
                               @Nullable net.momirealms.craftengine.core.entity.player.Player player,
                               boolean dropLoot,
@@ -430,14 +356,14 @@ public final class CraftEngineFurniture {
         if (!furniture.isValid()) return;
         Location location = ((BukkitFurniture) furniture).getDropLocation();
         furniture.destroy();
-        LootTable lootTable = (LootTable) furniture.config.lootTable();
+        LootTable lootTable = furniture.config.lootTable();
         World world = BukkitAdaptor.adapt(location.getWorld());
         WorldPosition position = new WorldPosition(world, location.getX(), location.getY(), location.getZ());
         if (dropLoot && lootTable != null) {
             ContextHolder.Builder builder = ContextHolder.builder()
                     .withParameter(DirectContextParameters.POSITION, position)
                     .withParameter(DirectContextParameters.FURNITURE, furniture)
-                    .withOptionalParameter(DirectContextParameters.FURNITURE_ITEM, furniture.dataAccessor.item().orElse(null));
+                    .withOptionalParameter(DirectContextParameters.FURNITURE_ITEM, furniture.sourceItem());
             if (player != null) {
                 Item itemInHand = player.getItemInHand(InteractionHand.MAIN_HAND);
                 builder.withParameter(DirectContextParameters.PLAYER, player)

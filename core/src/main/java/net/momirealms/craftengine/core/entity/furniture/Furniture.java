@@ -17,10 +17,8 @@ import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitboxPa
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.entity.seat.Seat;
 import net.momirealms.craftengine.core.item.Item;
-import net.momirealms.craftengine.core.item.ItemKeys;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.util.Color;
+import net.momirealms.craftengine.core.util.CustomDataType;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.QuaternionUtils;
@@ -39,7 +37,9 @@ import java.util.concurrent.CompletableFuture;
 public abstract class Furniture implements Cullable {
     public final CustomFurniture config;
     /** Accessor for persistent furniture data */
-    public final FurnitureDataAccessor dataAccessor;
+    public final FurniturePersistentData persistentData;
+    /** Temp data that won't be persisted **/
+    public final LazyReference<Map<CustomDataType<?>, Object>> tempData = LazyReference.lazyReference(IdentityHashMap::new);
     /** The base entity that carries metadata for this furniture */
     public final Entity metaDataEntity;
     /** Cached entity ID of the metadata entity */
@@ -58,9 +58,9 @@ public abstract class Furniture implements Cullable {
     protected int[] colliderEntityIds;
     private boolean hasExternalModel;
 
-    protected Furniture(Entity metaDataEntity, FurnitureDataAccessor data, CustomFurniture config) {
+    protected Furniture(Entity metaDataEntity, FurniturePersistentData data, CustomFurniture config) {
         this.config = config;
-        this.dataAccessor = data;
+        this.persistentData = data;
         this.metaDataEntity = metaDataEntity;
         this.metaDataEntityId = metaDataEntity.entityId();
         this.setVariantInternal(config.getVariant(data));
@@ -75,25 +75,11 @@ public abstract class Furniture implements Cullable {
      * Gets the source item instance
      * Affects the drops when this furniture is broken, as well as the furniture's dyed color
      * <p>
-     * When placing via the API, this value may be empty. If you need to retrieve the items corresponding to a piece of furniture, please call {@link #buildNewFurnitureSourceItem()}.
+     * When placing via the API, this value may be empty. If you need to retrieve the items corresponding to a piece of furniture, please call {@link #buildNewFurnitureItem()}.
      */
     @Nullable
     public Item sourceItem() {
         return this.sourceItem;
-    }
-
-    /**
-     * Build the item corresponding to this piece of furniture. If there are no corresponding item or the item does not exist, return null.
-     *
-     * @return the furniture item
-     */
-    @Nullable
-    public Item buildNewFurnitureSourceItem() {
-        Key itemId = this.config.settings().itemId;
-        if (itemId == null) {
-            return null;
-        }
-        return CraftEngine.instance().itemManager().createWrappedItem(itemId, null);
     }
 
     /**
@@ -107,7 +93,21 @@ public abstract class Furniture implements Cullable {
      */
     public void setSourceItem(@Nullable Item sourceItem) {
         this.sourceItem = sourceItem;
-        this.dataAccessor.setItem(sourceItem);
+        this.persistentData.setItem(sourceItem);
+    }
+
+    /**
+     * Build the item corresponding to this piece of furniture. If there are no corresponding item or the item does not exist, return null.
+     *
+     * @return the furniture item
+     */
+    @Nullable
+    public Item buildNewFurnitureItem() {
+        Key itemId = this.config.settings().itemId;
+        if (itemId == null) {
+            return null;
+        }
+        return CraftEngine.instance().itemManager().createWrappedItem(itemId, null);
     }
 
     /**
@@ -440,12 +440,53 @@ public abstract class Furniture implements Cullable {
     }
 
     /**
-     * Gets the data accessor for this specific furniture instance.
+     * Gets the persistent data container for this specific furniture instance.
      *
-     * @return The {@link FurnitureDataAccessor} for this instance.
+     * @return The {@link FurniturePersistentData} for this instance.
      */
-    public FurnitureDataAccessor dataAccessor() {
-        return this.dataAccessor;
+    public FurniturePersistentData persistentData() {
+        return this.persistentData;
+    }
+
+    /**
+     * Removes the temporary data associated with the specified key.
+     *
+     * @param key The key of the data to remove.
+     * @param <T> The expected type of the data.
+     * @return The previously associated value, or null if there was no mapping.
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T> T removeTempData(CustomDataType<T> key) {
+        return (T) this.tempData.get().remove(key);
+    }
+
+    /**
+     * Associates the specified value with the specified key in the temporary data storage.
+     * If a value was already present for this key, it is replaced.
+     *
+     * @param key   The key with which the value is to be associated.
+     * @param value The value to be stored.
+     * @param <T>   The type of the data.
+     * @return The previous value associated with the key, or null if there was none.
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T> T putTempData(CustomDataType<T> key, T value) {
+        return (T) this.tempData.get().put(key, value);
+    }
+
+    /**
+     * Retrieves the temporary data associated with the specified key.
+     *
+     * @param key The key whose associated value is to be returned.
+     * @param <T> The expected type of the data.
+     * @return The value associated with the key, or null if no mapping exists.
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public <T> T getTempData(CustomDataType<T> key) {
+        return (T) this.tempData.get().get(key);
     }
 
     /**
@@ -522,4 +563,9 @@ public abstract class Furniture implements Cullable {
      * Gets the set of players who are currently "tracking" this furniture.
      */
     public abstract Set<Player> getTrackedBy();
+
+    /**
+     * Save the custom data if it's dirty
+     */
+    public abstract void saveIfDirty();
 }

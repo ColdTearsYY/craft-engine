@@ -168,7 +168,7 @@ public final class ImmutableBlockState {
     public <T extends BlockEntity> BlockEntityTicker<T> createSyncBlockEntityTicker(CEWorld world, BlockEntityType<? extends BlockEntity> type) {
         EntityBlockBehavior blockBehavior = this.behavior.getEntityBehavior();
         if (blockBehavior == null) return null;
-        return (BlockEntityTicker<T>) blockBehavior.createSyncBlockEntityTicker(world, this, type);
+        return (BlockEntityTicker<T>) blockBehavior.createBlockEntityTicker(world, this, type);
     }
 
     @SuppressWarnings("unchecked")

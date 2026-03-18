@@ -667,7 +667,13 @@ public abstract class AbstractPackManager implements PackManager {
             this.generateParticle(generatedPackPath);
 
             Path packMcMetaPath = generatedPackPath.resolve("pack.mcmeta");
-            JsonObject packMcMeta = Files.isRegularFile(packMcMetaPath) ? GsonHelper.readJsonFile(packMcMetaPath).getAsJsonObject() : new JsonObject();
+            JsonObject packMcMeta;
+            if (Files.isRegularFile(packMcMetaPath) && (GsonHelper.readJsonFile(packMcMetaPath) instanceof JsonObject existing)) {
+                packMcMeta = existing;
+            } else {
+                packMcMeta = new JsonObject();
+            }
+
             // 生成revision overlay
             this.generateRevisionOverlays(packMcMeta, revisions);
 

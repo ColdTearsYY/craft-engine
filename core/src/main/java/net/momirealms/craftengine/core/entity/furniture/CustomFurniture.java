@@ -47,7 +47,7 @@ public interface CustomFurniture {
     FurnitureBehavior behavior();
 
     @NotNull
-    default FurnitureVariant getVariant(FurnitureDataAccessor accessor) {
+    default FurnitureVariant getVariant(FurniturePersistentData accessor) {
         Optional<String> optionalVariant = accessor.variant();
         String variantName = null;
         if (optionalVariant.isPresent()) {
@@ -57,7 +57,7 @@ public interface CustomFurniture {
             if (optionalAnchorType.isPresent()) {
                 variantName = optionalAnchorType.get().name().toLowerCase(Locale.ROOT);
                 accessor.setVariant(variantName);
-                accessor.removeCustomData(FurnitureDataAccessor.ANCHOR_TYPE);
+                accessor.removeCustomData(FurniturePersistentData.ANCHOR_TYPE);
             }
         }
         if (variantName == null) {

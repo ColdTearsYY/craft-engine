@@ -71,11 +71,11 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
     }
 
     @Override
-    public Furniture place(WorldPosition position, CustomFurniture furniture, FurnitureDataAccessor dataAccessor, boolean playSound) {
+    public Furniture place(WorldPosition position, CustomFurniture furniture, FurniturePersistentData dataAccessor, boolean playSound) {
         return this.place(LocationUtils.toLocation(position), furniture, dataAccessor, playSound);
     }
 
-    public BukkitFurniture place(Location location, CustomFurniture furniture, FurnitureDataAccessor data, boolean playSound) {
+    public BukkitFurniture place(Location location, CustomFurniture furniture, FurniturePersistentData data, boolean playSound) {
         Entity furnitureEntity = EntityUtils.spawnEntity(location.getWorld(), location, EntityType.ITEM_DISPLAY, entity -> {
             ItemDisplay display = (ItemDisplay) entity;
             display.getPersistentDataContainer().set(BukkitFurnitureManager.FURNITURE_KEY, PersistentDataType.STRING, furniture.id().toString());
@@ -167,7 +167,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
     }
 
     // 当元数据实体被卸载了
-    protected void handleMetaEntityUnload(ItemDisplay entity) {
+    void handleMetaEntityUnload(ItemDisplay entity) {
         // 不是持久化的
         if (!entity.isPersistent()) {
             return;
@@ -195,11 +195,16 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
             for (int sub : furniture.colliderEntityIds()) {
                 this.byColliderEntityId.remove(sub);
             }
+            try {
+                furniture.config.behavior().onUnload(furniture);
+            } finally {
+                furniture.saveIfDirty();
+            }
         }
     }
 
     // 保险起见，collision实体卸载也移除一下
-    protected void handleCollisionEntityUnload(Entity entity) {
+    void handleCollisionEntityUnload(Entity entity) {
         int id = entity.getEntityId();
         this.byColliderEntityId.remove(id);
     }
@@ -212,7 +217,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
         return ceChunk.isEntitiesLoaded();
     }
 
-    protected void handleMetaEntityDuringChunkLoad(ItemDisplay entity) {
+    void handleMetaEntityDuringChunkLoad(ItemDisplay entity) {
         // 实体可能不是持久的
         if (!entity.isPersistent()) {
             return;
@@ -252,11 +257,12 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
         if (previous != null) return;
 
         // 创建新的家具
-        createFurnitureInstance(entity, customFurniture);
+        BukkitFurniture furnitureInstance = createFurnitureInstance(entity, customFurniture);
+        customFurniture.behavior().onLoad(furnitureInstance);
     }
 
     @SuppressWarnings("deprecation")
-    protected void handleMetaEntityAfterChunkLoad(ItemDisplay entity) {
+    void handleMetaEntityAfterChunkLoad(ItemDisplay entity) {
         // 实体可能不是持久的
         if (!entity.isPersistent()) {
             return;
@@ -295,7 +301,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
         }
     }
 
-    protected void handleCollisionEntityAfterChunkLoad(Entity entity) {
+    void handleCollisionEntityAfterChunkLoad(Entity entity) {
         // 如果是碰撞实体，那么就忽略
         if (CraftEntityProxy.INSTANCE.getEntity(entity) instanceof CollisionEntity) {
             return;
@@ -331,14 +337,14 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
         collisionEntity.remove();
     }
 
-    private FurnitureDataAccessor getFurnitureDataAccessor(Entity baseEntity) {
+    private FurniturePersistentData getFurnitureDataAccessor(Entity baseEntity) {
         byte[] extraData = baseEntity.getPersistentDataContainer().get(FURNITURE_EXTRA_DATA_KEY, PersistentDataType.BYTE_ARRAY);
-        if (extraData == null) return new FurnitureDataAccessor(null);
+        if (extraData == null) return new FurniturePersistentData(null);
         try {
-            return FurnitureDataAccessor.fromBytes(extraData);
+            return FurniturePersistentData.fromBytes(extraData);
         } catch (IOException e) {
             // 损坏了？一般不会
-            return new FurnitureDataAccessor(null);
+            return new FurniturePersistentData(null);
         }
     }
 
@@ -348,11 +354,10 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
         initFurniture(bukkitFurniture);
         Location location = display.getLocation();
         runSafeEntityOperation(location, bukkitFurniture::addCollidersToWorld);
-        furniture.behavior().onAdd(bukkitFurniture);
         return bukkitFurniture;
     }
 
-    protected void initFurniture(BukkitFurniture furniture) {
+    void initFurniture(BukkitFurniture furniture) {
         int entityId = furniture.entityId();
         this.byMetaEntityId.put(entityId, furniture);
         for (int id : furniture.virtualEntityIds()) {
@@ -362,7 +367,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
             this.byColliderEntityId.put(collisionEntity.entityId(), furniture);
         }
         if (!this.syncTickers.containsKey(entityId)) {
-            FurnitureTicker<BukkitFurniture> ticker = furniture.config.behavior().createSyncFurnitureTicker(furniture);
+            FurnitureTicker<BukkitFurniture> ticker = furniture.config.behavior().createFurnitureTicker(furniture);
             if (ticker != null) {
                 TickingFurnitureImpl<BukkitFurniture> tickingFurniture = new TickingFurnitureImpl<>(furniture, ticker);
                 this.syncTickers.put(entityId, tickingFurniture);
@@ -370,7 +375,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
             }
         }
         if (!this.asyncTickers.containsKey(entityId)) {
-            FurnitureTicker<BukkitFurniture> ticker = furniture.config.behavior().createAsyncBlockEntityTicker(furniture);
+            FurnitureTicker<BukkitFurniture> ticker = furniture.config.behavior().createAsyncFurnitureTicker(furniture);
             if (ticker != null) {
                 TickingFurnitureImpl<BukkitFurniture> tickingFurniture = new TickingFurnitureImpl<>(furniture, ticker);
                 this.asyncTickers.put(entityId, tickingFurniture);
@@ -379,7 +384,7 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
         }
     }
 
-    protected void invalidateFurniture(BukkitFurniture furniture) {
+    void invalidateFurniture(BukkitFurniture furniture) {
         int entityId = furniture.entityId();
         // 移除entity id映射
         this.byMetaEntityId.remove(entityId);

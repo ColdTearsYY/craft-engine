@@ -17,7 +17,6 @@ import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavi
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigType;
 import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSource;
-import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSourceConfigFactory;
 import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSourceType;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBox;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitboxConfigType;

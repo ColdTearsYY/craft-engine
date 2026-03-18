@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
-import net.momirealms.craftengine.core.entity.furniture.FurnitureDataAccessor;
+import net.momirealms.craftengine.core.entity.furniture.FurniturePersistentData;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
@@ -54,7 +54,7 @@ public final class SpawnFurnitureFunction<CTX extends Context> extends AbstractC
     }
 
     public static void spawnFurniture(Key furnitureId, WorldPosition position, String variant, boolean playSound) {
-        CraftEngine.instance().furnitureManager().furnitureById(furnitureId).ifPresent(furniture -> CraftEngine.instance().furnitureManager().place(position, furniture, FurnitureDataAccessor.ofVariant(Optional.ofNullable(variant).orElseGet(furniture::anyVariantName)), playSound));
+        CraftEngine.instance().furnitureManager().furnitureById(furnitureId).ifPresent(furniture -> CraftEngine.instance().furnitureManager().place(position, furniture, FurniturePersistentData.ofVariant(Optional.ofNullable(variant).orElseGet(furniture::anyVariantName)), playSound));
     }
 
     public static <CTX extends Context> FunctionFactory<CTX, SpawnFurnitureFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {

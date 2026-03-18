@@ -1,13 +1,9 @@
 package net.momirealms.craftengine.core.entity.furniture.element.tint;
 
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
-import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
-import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.sparrow.nbt.Tag;
 
 import java.util.List;
 

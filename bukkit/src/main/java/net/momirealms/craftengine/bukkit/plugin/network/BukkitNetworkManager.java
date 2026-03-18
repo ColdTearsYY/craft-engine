@@ -63,6 +63,7 @@ import net.momirealms.craftengine.core.advancement.network.AdvancementHolder;
 import net.momirealms.craftengine.core.advancement.network.AdvancementProgress;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
+import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureHitData;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavior;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBox;
@@ -1404,7 +1405,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         }
 
         private static void handlePickItemFromEntityOnMainThread(BukkitServerPlayer player, BukkitFurniture furniture) throws Throwable {
-            Item item = furniture.config().behavior().itemToPickup(furniture, player);
+            Item item = furniture.config().behavior().getItemToPickup(furniture, player);
             Object itemStack;
             if (item == null) {
                 Key itemId = furniture.config().settings().itemId();
@@ -3940,6 +3941,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
             int entityId = hasModelEngine() ? plugin.compatibilityManager().interactionToBaseEntity(buf.readVarInt()) : buf.readVarInt();
             BukkitFurniture furniture = BukkitFurnitureManager.instance().loadedFurnitureByVirtualEntityId(entityId);
             if (furniture == null) return;
+            CustomFurniture config = furniture.config;
             int actionType = buf.readVarInt();
             Player platformPlayer = serverPlayer.platformPlayer();
             Location location = furniture.location();
@@ -3962,12 +3964,19 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                 }
 
                 mainThreadTask = () -> {
-                    // todo 冒险模式破坏工具白名单
-                    if (serverPlayer.isAdventureMode() || !furniture.isValid()) return;
+                    if (!furniture.isValid()) {
+                        return;
+                    }
+                    if (serverPlayer.isAdventureMode() && !config.settings().allowBreakingInAdventureMode()) {
+                        return;
+                    }
 
                     // 先检查碰撞箱部分是否存在
                     FurnitureHitBox hitBox = furniture.hitboxByEntityId(entityId);
                     if (hitBox == null) return;
+
+                    if (!BukkitCraftEngine.instance().antiGriefProvider().test(platformPlayer, Flag.BREAK, location))
+                        return;
 
                     ContextHolder.Builder contextBuilder = ContextHolder.builder()
                             .withParameter(DirectContextParameters.FURNITURE, furniture)
@@ -3977,10 +3986,8 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                     FurnitureHitEvent hitEvent = new FurnitureHitEvent(serverPlayer.platformPlayer(), furniture, contextBuilder);
                     if (EventUtils.fireAndCheckCancel(hitEvent))
                         return;
-                    if (!BukkitCraftEngine.instance().antiGriefProvider().test(platformPlayer, Flag.BREAK, location))
-                        return;
 
-                    int hitTimes = furniture.config.settings().hitTimes();
+                    int hitTimes = config.settings().hitTimes();
                     if (hitTimes > 1 && !serverPlayer.isCreativeMode()) {
                         FurnitureHitData furnitureHitData = serverPlayer.furnitureHitData();
                         int previousTimes = furnitureHitData.times(furniture.entityId());
@@ -3992,14 +3999,14 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                                         .withParameter(DirectContextParameters.EVENT, Cancellable.of(hitEvent::isCancelled, hitEvent::setCancelled))
                                         .withParameter(DirectContextParameters.HIT_TIMES, alreadyHit)
                         );
-                        furniture.config().execute(context, EventTrigger.LEFT_CLICK);
+                        config.execute(context, EventTrigger.LEFT_CLICK);
                         if (hitEvent.isCancelled()) {
                             furnitureHitData.setTimes(previousTimes);
                             return;
                         }
 
                         if (alreadyHit < hitTimes) {
-                            SoundData soundData = furniture.config.settings().sounds().hitSound();
+                            SoundData soundData = config.settings().sounds().hitSound();
                             serverPlayer.world().playSound(furniture.position(), soundData.id(), soundData.volume().get(), soundData.pitch().get(), SoundSource.PLAYER);
                             return;
                         } else {
@@ -4015,7 +4022,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
                     // execute functions
                     PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer,
                             contextBuilder.withParameter(DirectContextParameters.EVENT, Cancellable.of(breakEvent::isCancelled, breakEvent::setCancelled)));
-                    furniture.config().execute(context, EventTrigger.BREAK);
+                    config.execute(context, EventTrigger.BREAK);
                     if (breakEvent.isCancelled()) {
                         return;
                     }
