@@ -182,8 +182,6 @@ public class FurnitureItemBehavior extends ItemBehavior {
         FurnitureDataAccessor dataAccessor = FurnitureDataAccessor.of(new CompoundTag());
         dataAccessor.setVariant(variant.name());
         dataAccessor.setItem(item.copyWithCount(1));
-        dataAccessor.setDyedColor(item.dyedColor().orElse(null));
-        dataAccessor.setFireworkExplosionColors(item.fireworkExplosion().map(explosion -> explosion.colors().toIntArray()).orElse(null));
         // 放置家具
         BukkitFurniture bukkitFurniture = BukkitFurnitureManager.instance().place(furnitureLocation.clone(), customFurniture, dataAccessor, false);
         // 触发放置事件

@@ -5,6 +5,7 @@ import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.ints.IntList;
 import net.momirealms.craftengine.bukkit.world.score.BukkitTeamManager;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSource;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -27,6 +28,7 @@ import java.util.function.Consumer;
 public final class ArmorStandFurnitureElement extends AbstractFurnitureElement {
     public final ArmorStandFurnitureElementConfig config;
     public final Furniture furniture;
+    public final FurnitureTintSource tintSource;
     public final Object cachedSpawnPacket;
     public final Object cachedDespawnPacket;
     public final Object cachedScalePacket;
@@ -43,6 +45,7 @@ public final class ArmorStandFurnitureElement extends AbstractFurnitureElement {
         super(config.predicate, config.hasCondition);
         this.config = config;
         this.furniture = furniture;
+        this.tintSource = config.createTintSource(furniture);
         this.entityId = EntityProxy.ENTITY_COUNTER.incrementAndGet();
         WorldPosition furniturePos = furniture.position();
         Vec3d position = Furniture.getRelativePosition(furniturePos, config.position);
@@ -72,7 +75,7 @@ public final class ArmorStandFurnitureElement extends AbstractFurnitureElement {
     public void showInternal(Player player) {
         player.sendPackets(List.of(this.cachedSpawnPacket, ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(this.entityId, this.config.metadata.apply(player))), false);
         player.sendPacket(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player, this.furniture.dataAccessor.getColorSource()).getMinecraftItem())
+                Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player, this.tintSource).getMinecraftItem())
         )), false);
         if (this.cachedScalePacket != null) {
             player.sendPacket(this.cachedScalePacket, false);
@@ -90,7 +93,7 @@ public final class ArmorStandFurnitureElement extends AbstractFurnitureElement {
     @Override
     public void refresh(Player player) {
         player.sendPacket(ClientboundSetEquipmentPacketProxy.INSTANCE.newInstance(this.entityId, List.of(
-                Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player, this.furniture.dataAccessor.getColorSource()).getMinecraftItem())
+                Pair.of(EquipmentSlotProxy.HEAD, this.config.item(player, this.tintSource).getMinecraftItem())
         )), false);
     }
 

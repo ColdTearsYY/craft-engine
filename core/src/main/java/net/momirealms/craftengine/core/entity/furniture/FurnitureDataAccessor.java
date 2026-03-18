@@ -15,8 +15,6 @@ import java.util.Optional;
 
 public final class FurnitureDataAccessor {
     public static final String ITEM = "item";
-    public static final String DYED_COLOR = "dyed_color";
-    public static final String FIREWORK_EXPLOSION_COLORS = "firework_explosion_colors";
     public static final String VARIANT = "variant";
     @ApiStatus.Obsolete
     public static final String ANCHOR_TYPE = "anchor_type";
@@ -71,37 +69,11 @@ public final class FurnitureDataAccessor {
     }
 
     public void setItem(Item item) {
-        this.data.putByteArray(ITEM, item.toByteArray());
-    }
-
-    public FurnitureColorSource getColorSource() {
-        return new FurnitureColorSource(dyedColor().orElse(null), fireworkExplosionColors().orElse(null));
-    }
-
-    public Optional<int[]> fireworkExplosionColors() {
-        if (this.data.containsKey(FIREWORK_EXPLOSION_COLORS)) return Optional.of(this.data.getIntArray(FIREWORK_EXPLOSION_COLORS));
-        return Optional.empty();
-    }
-
-    public void setFireworkExplosionColors(int[] colors) {
-        if (colors == null) {
-            this.data.remove(FIREWORK_EXPLOSION_COLORS);
-            return;
+        if (item == null) {
+            this.data.remove(ITEM);
+        } else {
+            this.data.putByteArray(ITEM, item.toByteArray());
         }
-        this.data.putIntArray(FIREWORK_EXPLOSION_COLORS, colors);
-    }
-
-    public Optional<Color> dyedColor() {
-        if (this.data.containsKey(DYED_COLOR)) return Optional.of(Color.fromDecimal(this.data.getInt(DYED_COLOR)));
-        return Optional.empty();
-    }
-
-    public void setDyedColor(@Nullable Color color) {
-        if (color == null) {
-            this.data.remove(DYED_COLOR);
-            return;
-        }
-        this.data.putInt(DYED_COLOR, color.color());
     }
 
     public Optional<String> variant() {

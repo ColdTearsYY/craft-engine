@@ -3,8 +3,10 @@ package net.momirealms.craftengine.core.entity.furniture;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.momirealms.craftengine.core.entity.culling.CullingData;
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehaviors;
+import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigs;
+import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBox;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigs;
 import net.momirealms.craftengine.core.entity.furniture.tick.TickingFurniture;
@@ -234,8 +236,8 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
                 Optional<ExternalModel> externalModel = Optional.ofNullable(blueprint).map(it -> AbstractFurnitureManager.this.plugin.compatibilityManager().createModel(it));
 
                 // 元素与碰撞箱
-                List<FurnitureElementConfig<?>> elements = variantSection.getList("elements", v -> FurnitureElementConfigs.fromConfig(v.getAsSection()));
-                List<FurnitureHitBoxConfig<?>> hitboxes = variantSection.getList("hitboxes", v -> FurnitureHitBoxConfigs.fromConfig(v.getAsSection()));
+                List<FurnitureElementConfig<? extends FurnitureElement>> elements = variantSection.getList("elements", v -> FurnitureElementConfigs.fromConfig(v.getAsSection()));
+                List<FurnitureHitBoxConfig<? extends FurnitureHitBox>> hitboxes = variantSection.getList("hitboxes", v -> FurnitureHitBoxConfigs.fromConfig(v.getAsSection()));
                 if (hitboxes.isEmpty() && externalModel.isEmpty()) {
                     hitboxes = List.of(defaultHitBox());
                 }

@@ -51,6 +51,7 @@ public abstract class Furniture implements Cullable {
     protected Collider[] colliders;
     protected FurnitureHitBox[] hitboxes;
     protected Int2ObjectMap<FurnitureHitBox> hitboxMap;
+    protected Item sourceItem;
     /** IDs of virtual entities that need to be sent to clients */
     protected int[] virtualEntityIds;
     /** IDs of entities specifically acting as physics colliders */
@@ -63,10 +64,50 @@ public abstract class Furniture implements Cullable {
         this.metaDataEntity = metaDataEntity;
         this.metaDataEntityId = metaDataEntity.entityId();
         this.setVariantInternal(config.getVariant(data));
+        this.sourceItem = data.item().orElse(null);
     }
 
     public Entity metaDataEntity() {
         return this.metaDataEntity;
+    }
+
+    /**
+     * Gets the source item instance
+     * Affects the drops when this furniture is broken, as well as the furniture's dyed color
+     * <p>
+     * When placing via the API, this value may be empty. If you need to retrieve the items corresponding to a piece of furniture, please call {@link #buildNewFurnitureSourceItem()}.
+     */
+    @Nullable
+    public Item sourceItem() {
+        return this.sourceItem;
+    }
+
+    /**
+     * Build the item corresponding to this piece of furniture. If there are no corresponding item or the item does not exist, return null.
+     *
+     * @return the furniture item
+     */
+    @Nullable
+    public Item buildNewFurnitureSourceItem() {
+        Key itemId = this.config.settings().itemId;
+        if (itemId == null) {
+            return null;
+        }
+        return CraftEngine.instance().itemManager().createWrappedItem(itemId, null);
+    }
+
+    /**
+     * Sets the source item instance
+     * Affects the drops when this furniture is broken, as well as the furniture's dyed color
+     * <p>
+     * Note: If you need to change the furniture's color, you must call {@link #refreshElements()}
+     * after setting the sourceItem's color to refresh the display effect
+     *
+     * @param sourceItem The new source item instance
+     */
+    public void setSourceItem(@Nullable Item sourceItem) {
+        this.sourceItem = sourceItem;
+        this.dataAccessor.setItem(sourceItem);
     }
 
     /**
@@ -115,70 +156,6 @@ public abstract class Furniture implements Cullable {
      * @return {@code true} if the variant was successfully changed.
      */
     public abstract boolean setVariant(String variantName, boolean force);
-
-    /**
-     * Gets the dyed color of the furniture.
-     * @return An Optional containing the dyed color, or empty if not dyed.
-     */
-    @NotNull
-    public Optional<Color> dyedColor() {
-        return this.dataAccessor.dyedColor();
-    }
-
-    /**
-     * Sets the dyed color for the furniture.
-     * @param color The color to apply.
-     * @param affectOriginalItem If true, also updates the underlying original item; otherwise only updates the data accessor.
-     */
-    public void setDyedColor(Color color, boolean affectOriginalItem) {
-        this.dataAccessor.setDyedColor(color);
-        if (affectOriginalItem) {
-            this.dataAccessor.item().ifPresent(it -> {
-                Item item = it.dyedColor(color);
-                this.dataAccessor.setItem(item);
-            });
-        }
-        this.refreshElements();
-    }
-
-    /**
-     * Gets the firework explosion colors.
-     * @return An Optional containing an array of color RGB values, or empty if not applicable.
-     */
-    @NotNull
-    public Optional<int[]> fireworkExplosionColors() {
-        return this.dataAccessor.fireworkExplosionColors();
-    }
-
-    /**
-     * Sets the firework explosion colors.
-     * @param colors Array of RGB color values for the explosion.
-     * @param affectOriginalItem If true, also updates the underlying original item; otherwise only updates the data accessor.
-     */
-    public void setFireworkExplosionColors(int[] colors, boolean affectOriginalItem) {
-        this.dataAccessor.setFireworkExplosionColors(colors);
-        if (affectOriginalItem) {
-            this.dataAccessor.item().ifPresent(it -> {
-                if (!it.vanillaId().equals(ItemKeys.FIREWORK_STAR)) return;
-                it.fireworkExplosion().ifPresentOrElse(firework -> {
-                    it.fireworkExplosion(new FireworkExplosion(
-                            firework.shape(),
-                            new IntArrayList(colors),
-                            firework.fadeColors(),
-                            firework.hasTrail(),
-                            firework.hasTwinkle()
-                    ));
-                }, () -> it.fireworkExplosion(new FireworkExplosion(
-                        FireworkExplosion.Shape.SMALL_BALL,
-                        new IntArrayList(colors),
-                        new IntArrayList(),
-                        false,
-                        false
-                )));
-            });
-        }
-        this.refreshElements();
-    }
 
     /**
      * Refreshes the visual elements for all tracking players.

@@ -1,17 +1,19 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.element;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.momirealms.craftengine.bukkit.entity.data.ArmorStandData;
 import net.momirealms.craftengine.bukkit.entity.data.BaseEntityData;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureColorSource;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.DefaultFurnitureTintSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSource;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSources;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
@@ -34,7 +36,7 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
     public final Function<Player, List<Object>> metadata;
     public final Key itemId;
     public final float scale;
-    public final boolean applyDyedColor;
+    public final FurnitureTintSourceConfig<? extends FurnitureTintSource> tint;
     public final Vector3f position;
     public final boolean small;
     public final LegacyChatFormatter glowColor;
@@ -42,15 +44,15 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
     public final boolean hasCondition;
 
     private ArmorStandFurnitureElementConfig(Key itemId,
-                                            float scale,
-                                            Vector3f position,
-                                            boolean applyDyedColor,
-                                            boolean small,
-                                            LegacyChatFormatter glowColor,
-                                            Predicate<PlayerContext> predicate,
-                                            boolean hasCondition) {
+                                             float scale,
+                                             Vector3f position,
+                                             FurnitureTintSourceConfig<? extends FurnitureTintSource> tint,
+                                             boolean small,
+                                             LegacyChatFormatter glowColor,
+                                             Predicate<PlayerContext> predicate,
+                                             boolean hasCondition) {
         this.position = position;
-        this.applyDyedColor = applyDyedColor;
+        this.tint = tint;
         this.small = small;
         this.scale = scale;
         this.itemId = itemId;
@@ -71,19 +73,16 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
         };
     }
 
-    public Item item(Player player, FurnitureColorSource colorSource) {
-        Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
-        if (applyDyedColor && colorSource != null && wrappedItem != null) {
-            Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
-            Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(
-                    FireworkExplosion.Shape.SMALL_BALL,
-                    new IntArrayList(colors),
-                    new IntArrayList(),
-                    false,
-                    false
-            )));
+    public Item item(Player player, FurnitureTintSource tintSource) {
+        Item wrappedItem = BukkitItemManager.instance().createWrappedItem(this.itemId, player);
+        if (tintSource != null && wrappedItem != null) {
+            tintSource.applyTint(wrappedItem);
         }
         return Optional.ofNullable(wrappedItem).orElseGet(() -> BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, null));
+    }
+
+    public FurnitureTintSource createTintSource(@NotNull Furniture furniture) {
+        return this.tint == null ? null : this.tint.create(furniture);
     }
 
     @Override
@@ -92,17 +91,21 @@ public final class ArmorStandFurnitureElementConfig implements FurnitureElementC
     }
 
     private static class Factory implements FurnitureElementConfigFactory<ArmorStandFurnitureElement> {
-        private static final String[] APPLY_DYED_COLOR = new String[] {"apply_dyed_color", "apply-dyed-color"};
-        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
+        private static final String[] APPLY_DYED_COLOR = new String[]{"apply_dyed_color", "apply-dyed-color"};
+        private static final String[] GLOW_COLOR = new String[]{"glow_color", "glow-color"};
+        private static final String[] TINT_SOURCE = new String[]{"tint_source", "tint-source"};
 
         @Override
         public ArmorStandFurnitureElementConfig create(ConfigSection section) {
             List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
+            boolean legacyTintSource = section.getBoolean(APPLY_DYED_COLOR, false);
             return new ArmorStandFurnitureElementConfig(
                     section.getNonNullIdentifier("item"),
                     section.getFloat("scale", 1f),
                     section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
-                    section.getBoolean(APPLY_DYED_COLOR, true),
+                    legacyTintSource ?
+                            DefaultFurnitureTintSourceConfig.create(List.of(DataComponentKeys.DYED_COLOR, DataComponentKeys.FIREWORK_EXPLOSION)) :
+                            section.getValue(TINT_SOURCE, FurnitureTintSources::fromConfig),
                     section.getBoolean("small"),
                     section.getEnum(GLOW_COLOR, LegacyChatFormatter.class),
                     MiscUtils.allOf(conditions),

@@ -20,10 +20,9 @@ public abstract class FurnitureElementConfigs {
         return type;
     }
 
-    @SuppressWarnings("unchecked")
-    public static <E extends FurnitureElement> FurnitureElementConfig<E> fromConfig(ConfigSection section) {
+    public static FurnitureElementConfig<? extends FurnitureElement> fromConfig(ConfigSection section) {
         Key type = getOrGuessType(section);
-        FurnitureElementConfigType<E> configType = (FurnitureElementConfigType<E>) BuiltInRegistries.FURNITURE_ELEMENT_TYPE.getValue(type);
+        FurnitureElementConfigType<? extends FurnitureElement> configType = BuiltInRegistries.FURNITURE_ELEMENT_TYPE.getValue(type);
         if (configType == null) {
             throw new KnownResourceException("resource.furniture.element.unknown_type", section.assemblePath("type"), type.asString());
         }

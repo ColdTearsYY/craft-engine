@@ -18,11 +18,10 @@ public abstract class FurnitureHitBoxConfigs {
         return type;
     }
 
-    @SuppressWarnings("unchecked")
-    public static <H extends FurnitureHitBox> FurnitureHitBoxConfig<H> fromConfig(ConfigSection section) {
+    public static FurnitureHitBoxConfig<? extends FurnitureHitBox> fromConfig(ConfigSection section) {
         String typeName = section.getString("type", "interaction");
         Key type = Key.ce(typeName);
-        FurnitureHitboxConfigType<H> configType = (FurnitureHitboxConfigType<H>) BuiltInRegistries.FURNITURE_HITBOX_TYPE.getValue(type);
+        FurnitureHitboxConfigType<? extends FurnitureHitBox> configType = BuiltInRegistries.FURNITURE_HITBOX_TYPE.getValue(type);
         if (configType == null) {
             throw new KnownResourceException("resource.furniture.hitbox.unknown_type", section.assemblePath("type"), type.asString());
         }

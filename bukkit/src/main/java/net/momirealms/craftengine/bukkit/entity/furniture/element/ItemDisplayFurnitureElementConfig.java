@@ -1,18 +1,20 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.element;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.momirealms.craftengine.bukkit.entity.data.ItemDisplayEntityData;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.core.entity.display.Billboard;
 import net.momirealms.craftengine.core.entity.display.ItemDisplayContext;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureColorSource;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.DefaultFurnitureTintSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSource;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSources;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
@@ -35,7 +37,7 @@ import java.util.function.Predicate;
 
 public final class ItemDisplayFurnitureElementConfig implements FurnitureElementConfig<ItemDisplayFurnitureElement> {
     public static final FurnitureElementConfigFactory<ItemDisplayFurnitureElement> FACTORY = new Factory();
-    public final BiFunction<Player, FurnitureColorSource, List<Object>> metadata;
+    public final BiFunction<Player, FurnitureTintSource, List<Object>> metadata;
     public final Key itemId;
     public final Vector3f scale;
     public final Vector3f position;
@@ -47,7 +49,7 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
     public final Billboard billboard;
     public final float shadowRadius;
     public final float shadowStrength;
-    public final boolean applyDyedColor;
+    public final FurnitureTintSourceConfig<? extends FurnitureTintSource> tint;
     public final Color glowColor;
     public final int blockLight;
     public final int skyLight;
@@ -66,7 +68,7 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
                                              Billboard billboard,
                                              float shadowRadius,
                                              float shadowStrength,
-                                             boolean applyDyedColor,
+                                              FurnitureTintSourceConfig<? extends FurnitureTintSource> tint,
                                              @Nullable Color glowColor,
                                              int blockLight,
                                              int skyLight,
@@ -83,7 +85,7 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
         this.billboard = billboard;
         this.shadowRadius = shadowRadius;
         this.shadowStrength = shadowStrength;
-        this.applyDyedColor = applyDyedColor;
+        this.tint = tint;
         this.itemId = itemId;
         this.glowColor = glowColor;
         this.blockLight = blockLight;
@@ -91,17 +93,10 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
         this.viewRange = viewRange;
         this.predicate = predicate;
         this.hasCondition = hasCondition;
-        BiFunction<Player, FurnitureColorSource, Item> itemFunction = (player, colorSource) -> {
+        BiFunction<Player, FurnitureTintSource, Item> itemFunction = (player, tintSource) -> {
             Item wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
-            if (applyDyedColor && colorSource != null && wrappedItem != null) {
-                Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
-                Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(
-                        FireworkExplosion.Shape.SMALL_BALL,
-                        new IntArrayList(colors),
-                        new IntArrayList(),
-                        false,
-                        false
-                )));
+            if (tintSource != null && wrappedItem != null) {
+                tintSource.applyTint(wrappedItem);
             }
             return Optional.ofNullable(wrappedItem).orElseGet(() -> BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, null));
         };
@@ -132,6 +127,10 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
         return new ItemDisplayFurnitureElement(furniture, this);
     }
 
+    public FurnitureTintSource createTintSource(@NotNull Furniture furniture) {
+        return this.tint == null ? null : this.tint.create(furniture);
+    }
+
     private static class Factory implements FurnitureElementConfigFactory<ItemDisplayFurnitureElement> {
         private static final String[] DISPLAY_CONTEXT = new String[] {"display_context", "display_transform", "display-context", "display-transform"};
         private static final String[] SHADOW_RADIUS = new String[] {"shadow_radius", "shadow-radius"};
@@ -141,11 +140,13 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
         private static final String[] BLOCK_LIGHT = new String[] {"block_light", "block-light"};
         private static final String[] SKY_LIGHT = new String[] {"sky_light", "sky-light"};
         private static final String[] VIEW_RANGE = new String[] {"view_range", "view-range"};
+        private static final String[] TINT_SOURCE = new String[] {"tint_source", "tint-source"};
 
         @Override
         public ItemDisplayFurnitureElementConfig create(ConfigSection section) {
             ConfigSection brightness = section.getSection("brightness");
             List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
+            boolean legacyTintSource = section.getBoolean(APPLY_DYED_COLOR, false);
             return new ItemDisplayFurnitureElementConfig(
                     section.getNonNullIdentifier("item"),
                     section.getVector3f("scale", ConfigConstants.NORMAL_SCALE),
@@ -158,7 +159,9 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
                     section.getEnum("billboard", Billboard.class, Billboard.FIXED),
                     section.getFloat(SHADOW_RADIUS, 0f),
                     section.getFloat(SHADOW_STRENGTH, 1f),
-                    section.getBoolean(APPLY_DYED_COLOR, true),
+                    legacyTintSource ?
+                            DefaultFurnitureTintSourceConfig.create(List.of(DataComponentKeys.DYED_COLOR, DataComponentKeys.FIREWORK_EXPLOSION)) :
+                            section.getValue(TINT_SOURCE, FurnitureTintSources::fromConfig),
                     section.getValue(GLOW_COLOR, ConfigValue::getAsColor),
                     brightness != null ? brightness.getInt(BLOCK_LIGHT, -1) : -1,
                     brightness != null ? brightness.getInt(SKY_LIGHT, -1) : -1,

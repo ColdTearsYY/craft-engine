@@ -16,6 +16,9 @@ import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehavi
 import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureBehaviorType;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigType;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSource;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSourceConfigFactory;
+import net.momirealms.craftengine.core.entity.furniture.element.tint.FurnitureTintSourceType;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBox;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitboxConfigType;
 import net.momirealms.craftengine.core.item.ItemSettingsModifier;
@@ -112,6 +115,7 @@ public final class BuiltInRegistries {
     public static final Registry<BlockEntityElementConfigType<? extends BlockEntityElement>> BLOCK_ENTITY_ELEMENT_TYPE = createConstantBoundRegistry(Registries.BLOCK_ENTITY_ELEMENT_TYPE, 16);
     public static final Registry<CraftRemainderType<? extends CraftRemainder>> CRAFT_REMAINDER_TYPE = createConstantBoundRegistry(Registries.CRAFT_REMAINDER_TYPE, 16);
     public static final Registry<FurnitureElementConfigType<? extends FurnitureElement>> FURNITURE_ELEMENT_TYPE = createConstantBoundRegistry(Registries.FURNITURE_ELEMENT_TYPE, 16);
+    public static final Registry<FurnitureTintSourceType<? extends FurnitureTintSource>> FURNITURE_TINT_SOURCE_TYPE = createConstantBoundRegistry(Registries.FURNITURE_TINT_SOURCE_TYPE, 16);
     public static final Registry<FurnitureHitboxConfigType<? extends FurnitureHitBox>> FURNITURE_HITBOX_TYPE = createConstantBoundRegistry(Registries.FURNITURE_HITBOX_TYPE, 16);
     public static final Registry<FurnitureBehaviorType<? extends FurnitureBehavior>> FURNITURE_BEHAVIOR_TYPE = createConstantBoundRegistry(Registries.FURNITURE_BEHAVIOR_TYPE, 32);
     public static final Registry<FurnitureSettingsModifierType<? extends FurnitureSettingsModifier>> FURNITURE_SETTINGS_TYPE = createConstantBoundRegistry(Registries.FURNITURE_SETTINGS_TYPE, 16);

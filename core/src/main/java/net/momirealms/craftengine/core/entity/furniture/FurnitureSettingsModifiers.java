@@ -16,8 +16,7 @@ public final class FurnitureSettingsModifiers {
         return settings -> settings.sounds = sounds;
     });
     public static final FurnitureSettingsModifierType<FurnitureSettingsModifier> HIT_TIMES = register(Key.ce("hit_times"), value -> {
-        Key itemId = value.getAsIdentifier();
-        return settings -> settings.itemId = itemId;
+        return settings -> settings.hitTimes = value.getAsInt();
     });
 
     private FurnitureSettingsModifiers() {}
