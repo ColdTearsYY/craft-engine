@@ -12,4 +12,7 @@ public interface PropertyProxy {
 
     @MethodInvoker(name = "getName")
     String getName(Object target);
+
+    @MethodInvoker(name = "getValueClass")
+    Class<?> getValueClass(Object target);
 }

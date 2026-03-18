@@ -35,9 +35,13 @@ public interface CustomBlock {
 
     ImmutableBlockState getBlockState(CompoundTag nbt);
 
-    @Nullable Property<?> getProperty(String name);
+    @Nullable
+    Property<?> getProperty(String name);
 
-    @NotNull Collection<Property<?>> properties();
+    boolean hasProperty(String name);
+
+    @NotNull
+    Collection<Property<?>> properties();
 
     ImmutableBlockState defaultState();
 

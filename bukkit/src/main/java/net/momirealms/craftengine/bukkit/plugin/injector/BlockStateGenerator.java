@@ -1,6 +1,8 @@
 package net.momirealms.craftengine.bukkit.plugin.injector;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimap;
 import com.mojang.serialization.MapCodec;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
 import net.bytebuddy.ByteBuddy;
@@ -23,12 +25,15 @@ import net.momirealms.craftengine.core.block.BlockSettings;
 import net.momirealms.craftengine.core.block.DelegatingBlockState;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.properties.type.DoubleBlockHalf;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
+import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
+import net.momirealms.craftengine.proxy.minecraft.core.DirectionProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
@@ -36,7 +41,8 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockStateProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.StateDefinitionProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.properties.BlockStatePropertiesProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.properties.DoubleBlockHalfProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.properties.PropertyProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.storage.loot.LootParamsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.storage.loot.parameters.LootContextParamsProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
@@ -50,6 +56,16 @@ import java.util.concurrent.Callable;
 public final class BlockStateGenerator {
     private static SConstructor3 constructor$CraftEngineBlockState;
     public static Object instance$StateDefinition$Factory;
+    private static final Multimap<Class<? extends Enum<?>>, Class<? extends Enum<?>>> ENUM_MAPPER = ArrayListMultimap.create();
+
+    static {
+        registerEquivalentEnums(Direction.class, DirectionProxy.CLASS);
+        registerEquivalentEnums(DoubleBlockHalf.class, DoubleBlockHalfProxy.CLASS);
+    }
+
+    public static void registerEquivalentEnums(Class<? extends Enum<?>> custom, Class<? extends Enum<?>> minecraft) {
+        ENUM_MAPPER.put(minecraft, custom);
+    }
 
     public static void init() {
         ByteBuddy byteBuddy = new ByteBuddy(ClassFileVersion.JAVA_V17);
@@ -153,34 +169,46 @@ public final class BlockStateGenerator {
     public static class HasPropertyInterceptor {
         public static final HasPropertyInterceptor INSTANCE = new HasPropertyInterceptor();
 
-        @SuppressWarnings("unchecked")
         @RuntimeType
         public boolean intercept(@This Object thisObj, @AllArguments Object[] args) {
-            Object property = args[0];
-            if (property != BlockStatePropertiesProxy.WATERLOGGED) return false;
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
             ImmutableBlockState state = customState.blockState();
             if (state == null) return false;
-            Property<Boolean> waterloggedProperty = (Property<Boolean>) state.owner().value().getProperty("waterlogged");
-            return waterloggedProperty != null;
+            Object property = args[0];
+            String name = PropertyProxy.INSTANCE.getName(property);
+            return state.owner().value().hasProperty(name);
         }
     }
 
-    // TODO 将 property 获取代理到同名 property 上，并检查类型是否兼容
     public static class GetPropertyValueInterceptor {
         public static final GetPropertyValueInterceptor INSTANCE = new GetPropertyValueInterceptor();
 
         @SuppressWarnings("unchecked")
         @RuntimeType
         public Object intercept(@This Object thisObj, @AllArguments Object[] args) {
-            Object property = args[0];
-            if (property != BlockStatePropertiesProxy.WATERLOGGED) return null;
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
             ImmutableBlockState state = customState.blockState();
             if (state == null) return null;
-            Property<Boolean> waterloggedProperty = (Property<Boolean>) state.owner().value().getProperty("waterlogged");
-            if (waterloggedProperty == null) return null;
-            return state.get(waterloggedProperty);
+            Object property = args[0];
+            String name = PropertyProxy.INSTANCE.getName(property);
+            Property<?> ceProperty = state.owner().value().getProperty(name);
+            if (ceProperty == null) return null;
+            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(property);
+            Class<?> cePropertyClass = ceProperty.valueClass();
+            if (mcPropertyClass == cePropertyClass) {
+                return state.get(ceProperty);
+            }
+            if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
+                if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
+                    Enum<?> ceEnumValue = (Enum<?>) state.get(ceProperty);
+                    Object[] mcConstants = mcPropertyClass.getEnumConstants();
+                    int ordinal = ceEnumValue.ordinal();
+                    if (ordinal < mcConstants.length) {
+                        return mcConstants[ordinal];
+                    }
+                }
+            }
+            return null;
         }
     }
 
@@ -190,14 +218,37 @@ public final class BlockStateGenerator {
         @SuppressWarnings("unchecked")
         @RuntimeType
         public Object intercept(@This Object thisObj, @AllArguments Object[] args) {
-            Object property = args[0];
-            if (property != BlockStatePropertiesProxy.WATERLOGGED) return thisObj;
             DelegatingBlockState customState = (DelegatingBlockState) thisObj;
             ImmutableBlockState state = customState.blockState();
             if (state == null) return thisObj;
-            Property<Boolean> waterloggedProperty = (Property<Boolean>) state.owner().value().getProperty("waterlogged");
-            if (waterloggedProperty == null) return thisObj;
-            return state.with(waterloggedProperty, (boolean) args[1]).customBlockState().literalObject();
+            Object mcProperty = args[0];
+            Object mcValue = args[1];
+            String name = PropertyProxy.INSTANCE.getName(mcProperty);
+            Property<?> ceProperty = state.owner().value().getProperty(name);
+            if (ceProperty == null) return thisObj;
+            Class<?> mcPropertyClass = PropertyProxy.INSTANCE.getValueClass(mcProperty);
+            Class<?> cePropertyClass = ceProperty.valueClass();
+            Object valueToSet = null;
+            if (mcPropertyClass == cePropertyClass) {
+                valueToSet = mcValue;
+            } else if (mcPropertyClass.isEnum() && cePropertyClass.isEnum()) {
+                if (ENUM_MAPPER.get((Class<? extends Enum<?>>) mcPropertyClass).contains(cePropertyClass)) {
+                    Enum<?> mcEnumValue = (Enum<?>) mcValue;
+                    Object[] ceConstants = cePropertyClass.getEnumConstants();
+                    int ordinal = mcEnumValue.ordinal();
+                    if (ordinal < ceConstants.length) {
+                        valueToSet = ceConstants[ordinal];
+                    }
+                }
+            }
+            if (valueToSet != null) {
+                try {
+                    return ImmutableBlockState.with(state, ceProperty, valueToSet).customBlockState().literalObject();
+                } catch (IllegalArgumentException e) {
+                    return thisObj;
+                }
+            }
+            return thisObj;
         }
     }
 

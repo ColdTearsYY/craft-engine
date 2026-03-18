@@ -116,6 +116,11 @@ public abstract class AbstractCustomBlock implements CustomBlock {
     }
 
     @Override
+    public boolean hasProperty(String name) {
+        return this.variantProvider.hasProperty(name);
+    }
+
+    @Override
     public @Nullable Property<?> getProperty(String name) {
         return this.variantProvider.getProperty(name);
     }

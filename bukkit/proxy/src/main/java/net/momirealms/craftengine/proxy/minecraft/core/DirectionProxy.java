@@ -10,7 +10,8 @@ import net.momirealms.sparrow.reflection.proxy.annotation.Type;
 @ReflectionProxy(name = "net.minecraft.core.Direction")
 public interface DirectionProxy {
     DirectionProxy INSTANCE = ASMProxyFactory.create(DirectionProxy.class);
-    Class<?> CLASS = SparrowClass.find("net.minecraft.core.Direction");
+    @SuppressWarnings("unchecked")
+    Class<? extends Enum<?>> CLASS = (Class<? extends Enum<?>>) SparrowClass.find("net.minecraft.core.Direction");
     Enum<?>[] VALUES = INSTANCE.values();
     Enum<?> DOWN = VALUES[0];
     Enum<?> UP = VALUES[1];
