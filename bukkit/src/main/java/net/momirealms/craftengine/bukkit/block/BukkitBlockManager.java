@@ -18,6 +18,7 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviors;
 import net.momirealms.craftengine.core.block.behavior.EmptyBlockBehavior;
 import net.momirealms.craftengine.core.block.parser.BlockStateParser;
 import net.momirealms.craftengine.core.loot.LootTable;
+import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -360,7 +361,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
         // 这个会影响全局调色盘
         try {
             unfreezeRegistry();
-            boolean injectBukkitMaterial = Config.injectBukkitMaterial();
+            boolean injectBukkitMaterial = checkInjectBukkitMaterialAvailability();
             int length = injectBukkitMaterial ? Material.values().length : 0;
             Material[] newMaterial = injectBukkitMaterial ? Arrays.copyOf(Material.values(), length + count) : null;
             for (int i = 0; i < count; i++) {
@@ -384,6 +385,18 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             }
         } finally {
             freezeRegistry();
+        }
+    }
+
+    private static boolean checkInjectBukkitMaterialAvailability() {
+        if (!Config.injectBukkitMaterial()) return false;
+        try {
+            MaterialInjector.check();
+            return true;
+        } catch (Throwable e) {
+            Config.setInjectBukkitMaterial(false);
+            CraftEngine.instance().logger().warn("Current environment does not support injecting Bukkit Material", e);
+            return false;
         }
     }
 
