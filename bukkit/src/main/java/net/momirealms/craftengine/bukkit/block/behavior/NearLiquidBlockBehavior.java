@@ -47,7 +47,6 @@ public final class NearLiquidBlockBehavior extends AbstractCanSurviveBlockBehavi
         @Override
         public NearLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
             List<String> liquidTypes = section.getStringList(LIQUID_TYPE, List.of("water"));
-            List<String> positionsToCheck = section.getStringList("positions", List.of("0,-1,0"));
             BlockPos[] positions = section.getList("positions", v -> {
                 ConfigValue[] configValues = v.splitValuesRestrict(",", 3);
                 return new BlockPos(configValues[0].getAsInt(), configValues[1].getAsInt(), configValues[2].getAsInt());

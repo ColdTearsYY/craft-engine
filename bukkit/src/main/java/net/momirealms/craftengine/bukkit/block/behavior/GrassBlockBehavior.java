@@ -4,6 +4,7 @@ import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
+import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
@@ -21,10 +22,7 @@ import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
@@ -133,16 +131,8 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
 
     @Override
     public void performBoneMeal(Object thisBlock, Object[] args) {
-        Object registryAccess = RegistryUtils.getRegistryAccess();
-        Object registry = RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.PLACED_FEATURE);
-        if (registry == null) return;
-        Optional<Object> holder;
-        if (VersionHelper.isOrAbove1_21_2()) {
-            holder = RegistryProxy.INSTANCE.get$1(registry, FeatureUtils.createPlacedFeatureKey(boneMealFeature()));
-        } else {
-            holder = RegistryProxy.INSTANCE.getHolder$1(registry, FeatureUtils.createPlacedFeatureKey(boneMealFeature()));
-        }
-        if (holder.isEmpty()) {
+        Object holder = BukkitWorldManager.instance().placedFeatureById(boneMealFeature());
+        if (holder == null) {
             CraftEngine.instance().logger().warn("Placed feature not found: " + boneMealFeature());
             return;
         }
@@ -176,7 +166,7 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
                 }
                 if (BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isAir(currentState)) {
                     Object chunkGenerator = ServerChunkCacheProxy.INSTANCE.getGenerator(ServerLevelProxy.INSTANCE.getChunkSource(world));
-                    Object placedFeature = HolderProxy.INSTANCE.value(holder.get());
+                    Object placedFeature = HolderProxy.INSTANCE.value(holder);
                     PlacedFeatureProxy.INSTANCE.place(placedFeature, world, chunkGenerator, random, nmsCurrentPos);
                 }
             }

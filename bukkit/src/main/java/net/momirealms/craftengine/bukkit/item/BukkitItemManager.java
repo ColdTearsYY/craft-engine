@@ -30,7 +30,6 @@ import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigExce
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.MappedRegistryProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
@@ -84,11 +83,7 @@ public final class BukkitItemManager extends AbstractItemManager {
         this.slotChangeListener = VersionHelper.isOrAbove1_20_3() ? new SlotChangeListener(this) : null;
         this.networkItemHandler = VersionHelper.isOrAbove1_20_5() ? new ModernNetworkItemHandler() : new LegacyNetworkItemHandler();
         this.registerAllVanillaItems();
-        if (VersionHelper.isOrAbove1_21_2()) {
-            this.bedrockItemHolder = RegistryProxy.INSTANCE.get$1(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, KeyUtils.toIdentifier(Key.of("minecraft:bedrock")))).orElseThrow();
-        } else {
-            this.bedrockItemHolder = RegistryProxy.INSTANCE.getHolder$1(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, KeyUtils.toIdentifier(Key.of("minecraft:bedrock")))).orElseThrow();
-        }
+        this.bedrockItemHolder = Objects.requireNonNull(RegistryUtils.getHolder(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, KeyUtils.toIdentifier(Key.of("minecraft:bedrock")))));
         this.registerCustomTrimMaterial();
         this.loadLastRegisteredPatterns();
         this.emptyItem = wrap(ItemStackProxy.EMPTY);
@@ -221,8 +216,7 @@ public final class BukkitItemManager extends AbstractItemManager {
         if (Config.sacrificedAssetId() != null) {
             this.lastRegisteredPatterns.add(Config.sacrificedAssetId());
         }
-        Object registryAccess = RegistryUtils.getRegistryAccess();
-        Object registry = RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.TRIM_PATTERN);
+        Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.TRIM_PATTERN);
         MappedRegistryProxy.INSTANCE.setFrozen(registry, false);
         for (Key assetId : this.lastRegisteredPatterns) {
             Object identifier = KeyUtils.toIdentifier(assetId);
@@ -285,8 +279,7 @@ public final class BukkitItemManager extends AbstractItemManager {
     }
 
     private void registerCustomTrimMaterial() {
-        Object registryAccess = RegistryUtils.getRegistryAccess();
-        Object registry = RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.TRIM_MATERIAL);
+        Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.TRIM_MATERIAL);
         Object identifier = KeyUtils.toIdentifier(Key.of("minecraft", AbstractPackManager.NEW_TRIM_MATERIAL));
         Object previous = RegistryUtils.getRegistryValue(registry, identifier);
         if (previous == null) {
@@ -389,12 +382,7 @@ public final class BukkitItemManager extends AbstractItemManager {
             Key itemKey = KeyUtils.identifierToKey(identifier);
             VANILLA_ITEMS.add(itemKey);
             UniqueKey uniqueKey = UniqueKey.create(itemKey);
-            Object mcHolder;
-            if (VersionHelper.isOrAbove1_21_2()) {
-                mcHolder = RegistryProxy.INSTANCE.get$1(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, identifier)).orElseThrow();
-            } else {
-                mcHolder = RegistryProxy.INSTANCE.getHolder$1(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, identifier)).orElseThrow();
-            }
+            Object mcHolder = Objects.requireNonNull(RegistryUtils.getHolder(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, identifier)));
             Set<Object> tags = HolderProxy.ReferenceProxy.INSTANCE.getTags(mcHolder);
             for (Object tag : tags) {
                 Key tagId = KeyUtils.identifierToKey(TagKeyProxy.INSTANCE.getLocation(tag));
@@ -416,7 +404,7 @@ public final class BukkitItemManager extends AbstractItemManager {
         }
         Optional<?> optionalPattern;
         if (VersionHelper.isOrAbove1_21_5()) {
-            optionalPattern = RegistryProxy.INSTANCE.get$0(RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.TRIM_PATTERN), KeyUtils.toIdentifier(pattern));
+            optionalPattern = RegistryProxy.INSTANCE.get$0(RegistryUtils.lookupOrThrow(RegistriesProxy.TRIM_PATTERN), KeyUtils.toIdentifier(pattern));
         } else if (VersionHelper.isOrAbove1_20_5()) {
             optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$1(registryAccess, template.getMinecraftItem());
         } else {

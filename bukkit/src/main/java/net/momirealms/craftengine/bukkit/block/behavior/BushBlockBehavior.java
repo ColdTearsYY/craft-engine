@@ -71,7 +71,7 @@ public class BushBlockBehavior extends AbstractCanSurviveBlockBehavior {
         List<Object> mcTags = section.getList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags"}, v -> BlockTags.getOrCreate(v.getAsIdentifier()));
         Set<Object> mcBlocks = new HashSet<>();
         Set<String> customBlocks = new HashSet<>();
-        for (String blockState : section.getStringList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_block_tags", (aboveOrBelow ? "above" : "bottom") + "-block-tags"})) {
+        for (String blockState : section.getStringList(new String[] {(aboveOrBelow ? "above" : "bottom") + "_blocks", (aboveOrBelow ? "above" : "bottom") + "-blocks"})) {
             int index = blockState.indexOf('[');
             Key blockType = index != -1 ? Key.of(blockState.substring(0, index)) : Key.of(blockState);
             Material material = Registry.MATERIAL.get(new NamespacedKey(blockType.namespace(), blockType.value()));

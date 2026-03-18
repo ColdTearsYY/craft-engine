@@ -28,7 +28,9 @@ import net.momirealms.craftengine.core.world.chunk.storage.StorageAdaptor;
 import net.momirealms.craftengine.core.world.chunk.storage.WorldDataStorage;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftChunkProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.SectionPosProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ChunkMapProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
@@ -51,6 +53,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.*;
+import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -79,7 +82,9 @@ public final class BukkitWorldManager implements WorldManager, Listener {
     private final ConfigParser placedFeatureParser = new PlacedFeatureParser();
     // features
     private final Map<Key, Object> configuredFeatures  = new ConcurrentHashMap<>();
-    private List<ConditionalFeature> placedFeatures = List.of();
+    private final Map<Key, Object> placedFeatures = new ConcurrentHashMap<>();
+    private List<ConditionalFeature> customPlacedFeatures = List.of();
+    private List<Suggestion> cachedConfiguredFeaturesSuggestion = List.of();
     public long lastReloadFeatureTime;
 
     public BukkitWorldManager(BukkitCraftEngine plugin) {
@@ -106,8 +111,17 @@ public final class BukkitWorldManager implements WorldManager, Listener {
     }
 
     @Override
+    public void load() {
+        this.cachedConfiguredFeaturesSuggestion = RegistryProxy.INSTANCE.keySet(RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE))
+                .stream()
+                .map(it -> Suggestion.suggestion(it.toString()))
+                .toList();
+    }
+
+    @Override
     public void unload() {
         this.configuredFeatures.clear();
+        this.placedFeatures.clear();
     }
 
     @Override
@@ -182,7 +196,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
      */
 
     public boolean hasCustomFeatures() {
-        return !this.placedFeatures.isEmpty();
+        return !this.customPlacedFeatures.isEmpty();
     }
 
     public synchronized CraftEngineFeatures fetchFeatures(Object serverLevel) {
@@ -194,12 +208,12 @@ public final class BukkitWorldManager implements WorldManager, Listener {
                 ? KeyUtils.identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(HolderProxy.ReferenceProxy.INSTANCE.getKey(holder)))
                 : null;
         List<ConditionalFeature> features = new ArrayList<>();
-        for (ConditionalFeature feature : this.placedFeatures) {
+        for (ConditionalFeature feature : this.customPlacedFeatures) {
             if (feature.isAllowedWorld(name) && feature.isAllowedEnvironment(dimension) && feature.isAllowedDimensionType(dimensionType)) {
                 features.add(feature);
             }
         }
-        return new CraftEngineFeatures(this.placedFeatures, features);
+        return new CraftEngineFeatures(this.customPlacedFeatures, features);
     }
 
     public long lastReloadFeatureTime() {
@@ -208,7 +222,26 @@ public final class BukkitWorldManager implements WorldManager, Listener {
 
     @Nullable
     public Object configuredFeatureById(Key id) {
-        return this.configuredFeatures.get(id);
+        Object holder = this.configuredFeatures.get(id);
+        if (holder == null) {
+            Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.CONFIGURED_FEATURE);
+            holder = RegistryUtils.getHolder(registry, FeatureUtils.createConfiguredFeatureKey(id));
+        }
+        return holder;
+    }
+
+    @Nullable
+    public Object placedFeatureById(Key id) {
+        Object holder = this.placedFeatures.get(id);
+        if (holder == null) {
+            Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.PLACED_FEATURE);
+            holder = RegistryUtils.getHolder(registry, FeatureUtils.createPlacedFeatureKey(id));
+        }
+        return holder;
+    }
+
+    public Collection<Suggestion> cachedConfiguredFeaturesSuggestion() {
+        return this.cachedConfiguredFeaturesSuggestion;
     }
 
     /*
@@ -650,6 +683,15 @@ public final class BukkitWorldManager implements WorldManager, Listener {
         public static final String[] CONFIG_SECTION_NAME = new String[] {"configured-feature", "configured-features", "configured_feature", "configured_features"};
 
         @Override
+        public void postProcess() {
+            List<Suggestion> suggestions = new ArrayList<>(BukkitWorldManager.this.cachedConfiguredFeaturesSuggestion);
+            for (Key id : BukkitWorldManager.this.configuredFeatures.keySet()) {
+                suggestions.add(Suggestion.suggestion(id.asString()));
+            }
+            BukkitWorldManager.this.cachedConfiguredFeaturesSuggestion = Collections.unmodifiableList(suggestions);
+        }
+
+        @Override
         protected void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection rawSection) {
             ConfigSection section = ConfigSection.ofSamePath(rawSection, processFeatureSection(rawSection.values()));
             Object feature;
@@ -711,7 +753,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
 
         @Override
         public void postProcess() {
-            BukkitWorldManager.this.placedFeatures = this.backendFeatures;
+            BukkitWorldManager.this.customPlacedFeatures = this.backendFeatures;
             BukkitWorldManager.this.lastReloadFeatureTime = System.currentTimeMillis();
         }
 
@@ -794,6 +836,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
 
             // 构造 placed feature 实例
             Object placedFeature = PlacedFeatureProxy.INSTANCE.newInstance(configuredFeature, placements);
+            BukkitWorldManager.this.placedFeatures.put(id, placedFeature);
             this.tempFeatures.add(new ConditionalFeature(this.id.getAndIncrement(), placedFeature, biomeFilter, worldFilter, environmentFilter, dimensionTypeFilter));
         }
 

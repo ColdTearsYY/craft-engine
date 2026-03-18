@@ -8,6 +8,7 @@ import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
 import net.momirealms.sparrow.reflection.proxy.annotation.Type;
 
 import java.util.Optional;
+import java.util.Set;
 
 @ReflectionProxy(name = "net.minecraft.core.Registry")
 public interface RegistryProxy extends IdMapProxy, HolderLookupProxy {
@@ -46,4 +47,7 @@ public interface RegistryProxy extends IdMapProxy, HolderLookupProxy {
 
     @MethodInvoker(name = "getHolder", activeIf = "max_version=1.21.1")
     Optional<Object> getHolder$1(Object target, @Type(clazz = ResourceKeyProxy.class) Object key);
+
+    @MethodInvoker(name = "keySet")
+    Set<Object> keySet(Object target);
 }

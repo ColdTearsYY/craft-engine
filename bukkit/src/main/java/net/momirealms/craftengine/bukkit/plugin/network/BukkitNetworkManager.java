@@ -362,7 +362,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
     public void resendTags() {
         Object packet = TagUtils.createUpdateTagsPacket(
                 Map.of(RegistriesProxy.BLOCK, BukkitBlockManager.instance().cachedUpdateTags()),
-                TagNetworkSerializationProxy.INSTANCE.serializeTagsToNetwork(MinecraftServerProxy.INSTANCE.registries(RegistryUtils.getServer()))
+                TagNetworkSerializationProxy.INSTANCE.serializeTagsToNetwork(MinecraftServerProxy.INSTANCE.registries(MinecraftServerProxy.INSTANCE.getServer()))
         );
         for (BukkitServerPlayer player : onlineUsers()) {
             player.sendPacket(packet, false);

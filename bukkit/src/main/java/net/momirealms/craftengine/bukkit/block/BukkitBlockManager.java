@@ -17,7 +17,6 @@ import net.momirealms.craftengine.core.block.behavior.BlockBehaviors;
 import net.momirealms.craftengine.core.block.behavior.EmptyBlockBehavior;
 import net.momirealms.craftengine.core.block.parser.BlockStateParser;
 import net.momirealms.craftengine.core.loot.LootTable;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -133,6 +132,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             block.shapeDelegate().bindValue(BukkitBlockShape.STONE);
             DelegatingBlockState state = (DelegatingBlockState) BlockProxy.INSTANCE.getDefaultBlockState(block);
             state.setBlockState(null);
+            state.setBlockOwner(null);
         }
     }
 
@@ -245,6 +245,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     protected void applyPlatformSettings(CustomBlock block, ImmutableBlockState state) {
         DelegatingBlockState nmsState = (DelegatingBlockState) state.customBlockState().literalObject();
         nmsState.setBlockState(state);
+        nmsState.setBlockOwner(BlockStateUtils.getBlockOwner(block.defaultState().customBlockState().literalObject()));
         Object nmsVisualState = state.visualBlockState().literalObject();
 
         BlockSettings settings = state.settings();
@@ -360,13 +361,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             unfreezeRegistry();
             for (int i = 0; i < count; i++) {
                 Key customBlockId = BlockManager.createCustomBlockKey(i);
-                DelegatingBlock customBlock;
-                try {
-                    customBlock = BlockGenerator.generateBlock(customBlockId);
-                } catch (Throwable t) {
-                    CraftEngine.instance().logger().warn("Failed to generate custom block " + customBlockId, t);
-                    break;
-                }
+                DelegatingBlock customBlock = BlockGenerator.generateBlock(customBlockId);
                 this.customBlocks[i] = customBlock;
                 Object identifier = KeyUtils.toIdentifier(customBlockId);
                 Object blockHolder = RegistryProxy.INSTANCE.registerForHolder$1(BuiltInRegistriesProxy.BLOCK, identifier, customBlock);

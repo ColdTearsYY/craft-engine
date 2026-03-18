@@ -2,6 +2,7 @@ package net.momirealms.craftengine.bukkit.world.score;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
+import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.core.util.LegacyChatFormatter;
 import net.momirealms.craftengine.core.world.score.TeamManager;
 import net.momirealms.craftengine.proxy.minecraft.ChatFormattingProxy;

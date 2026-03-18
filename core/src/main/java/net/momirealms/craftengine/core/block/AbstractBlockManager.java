@@ -421,7 +421,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         private static final String[] MODELS = new String[]{"model", "models"};
         private static final String[] ENTITY_RENDERER = new String[]{"entity_renderer", "entity-renderer", "entity_render", "entity-render"};
         private static final String[] ENTITY_CULLING = new String[]{"entity_culling", "entity-culling"};
-        private static final String[] BEHAVIOR = new String[]{"behavior", "entity-behaviors"};
+        private static final String[] BEHAVIOR = new String[]{"behavior", "behaviors"};
         private static final String[] VIEW_DISTANCE = new String[]{"view_distance", "view-distance"};
         private static final String[] AABB_EXPANSION = new String[]{"aabb_expansion", "aabb-expansion"};
         private static final String[] RAY_TRACING = new String[]{"ray_tracing", "ray-tracing"};

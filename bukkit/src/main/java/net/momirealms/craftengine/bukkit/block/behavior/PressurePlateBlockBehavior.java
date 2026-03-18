@@ -119,7 +119,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
         }
     }
 
-    protected int getSignalStrength(Object level, Object pos) {
+    private int getSignalStrength(Object level, Object pos) {
         Class<?> clazz = switch (this.pressurePlateSensitivity) {
             case EVERYTHING -> EntityProxy.CLASS;
             case MOBS -> LivingEntityProxy.CLASS;
@@ -252,7 +252,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
                     BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
                     onSound,
                     offSound,
-                    section.getEnum("sensitivity", PressurePlateSensitivity.class, PressurePlateSensitivity.EVERYTHING),
+                    section.getValue("sensitivity", it -> it.getAsEnum(PressurePlateSensitivity.class, PressurePlateSensitivity::byId), PressurePlateSensitivity.EVERYTHING),
                     section.getInt(PRESSED_TIME, 20)
             );
         }

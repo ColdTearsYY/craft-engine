@@ -13,7 +13,6 @@ import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.MappedRegistryProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.RegistryAccessProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
@@ -128,8 +127,7 @@ public final class BukkitSoundManager extends AbstractSoundManager {
     @Override
     protected void registerSongs(Map<Key, JukeboxSong> songs) {
         if (songs.isEmpty()) return;
-        Object registryAccess = RegistryUtils.getRegistryAccess();
-        Object registry = RegistryAccessProxy.INSTANCE.lookupOrThrow(registryAccess, RegistriesProxy.JUKEBOX_SONG);
+        Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.JUKEBOX_SONG);
         try {
             // 获取 JUKEBOX_SONG 注册表
             MappedRegistryProxy.INSTANCE.setFrozen(registry, false);

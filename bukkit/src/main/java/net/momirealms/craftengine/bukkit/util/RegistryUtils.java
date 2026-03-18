@@ -9,6 +9,8 @@ import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistr
 import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.MinecraftServerProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlockProxy;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class RegistryUtils {
     private RegistryUtils() {}
@@ -18,7 +20,7 @@ public final class RegistryUtils {
     }
 
     public static int currentBiomeRegistrySize() {
-        return IdMapProxy.INSTANCE.size(RegistryAccessProxy.INSTANCE.lookupOrThrow(getRegistryAccess(), RegistriesProxy.BIOME));
+        return IdMapProxy.INSTANCE.size(lookupOrThrow(RegistriesProxy.BIOME));
     }
 
     public static int currentEntityTypeRegistrySize() {
@@ -26,11 +28,7 @@ public final class RegistryUtils {
     }
 
     public static Object getRegistryAccess() {
-        return MinecraftServerProxy.INSTANCE.registryAccess(getServer());
-    }
-
-    public static Object getServer() {
-        return MinecraftServerProxy.INSTANCE.getServer();
+        return MinecraftServerProxy.INSTANCE.registryAccess(MinecraftServerProxy.INSTANCE.getServer());
     }
 
     public static Object getRegistryValue(Object registry, Object id) {
@@ -38,6 +36,20 @@ public final class RegistryUtils {
             return RegistryProxy.INSTANCE.getValue(registry, id);
         } else {
             return RegistryProxy.INSTANCE.get$2(registry, id);
+        }
+    }
+
+    @NotNull
+    public static Object lookupOrThrow(Object registryKey) {
+        return RegistryAccessProxy.INSTANCE.lookupOrThrow(getRegistryAccess(), registryKey);
+    }
+
+    @Nullable
+    public static Object getHolder(Object registry, Object resourceKey) {
+        if (VersionHelper.isOrAbove1_21_2()) {
+            return RegistryProxy.INSTANCE.get$1(registry, resourceKey).orElse(null);
+        } else {
+            return RegistryProxy.INSTANCE.getHolder$1(registry, resourceKey).orElse(null);
         }
     }
 }

@@ -47,4 +47,8 @@ public interface MessageConstants {
     TranslatableComponent.Builder COMMAND_DISPLAY_ENTITY_VIEW_DISTANCE_SCALE_SET_SUCCESS = Component.translatable().key("command.display_entity_view_distance_scale.set.success");
     TranslatableComponent.Builder COMMAND_ENTITY_CULLING_DISTANCE_SCALE_SET_SUCCESS = Component.translatable().key("command.entity_culling_distance_scale.set.success");
     TranslatableComponent.Builder COMMAND_TOGGLE_ENTITY_CULLING_SUCCESS = Component.translatable().key("command.entity_culling.toggle.success");
+    TranslatableComponent.Builder COMMAND_PLACE_FEATURE_FAILED = Component.translatable().key("command.place_feature.failed");
+    TranslatableComponent.Builder COMMAND_PLACE_FEATURE_SUCCESS = Component.translatable().key("command.place_feature.success");
+    TranslatableComponent.Builder COMMAND_PLACE_FEATURE_INVALID = Component.translatable().key("command.place_feature.invalid");
+    TranslatableComponent.Builder COMMAND_CHUNK_NOT_LOADED = Component.translatable().key("command.chunk.not_loaded");
 }
