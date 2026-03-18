@@ -47,7 +47,7 @@ public final class BukkitTeamManager implements TeamManager {
 
     @Override
     public void init() {
-        Object scoreboard = MinecraftServerProxy.INSTANCE.getScoreboard(RegistryUtils.getServer());
+        Object scoreboard = MinecraftServerProxy.INSTANCE.getScoreboard(MinecraftServerProxy.INSTANCE.getServer());
         List<Object> packets = new ObjectArrayList<>();
         LegacyChatFormatter[] values = LegacyChatFormatter.values();
         for (int i = 0; i < 16; i++) {

@@ -55,7 +55,7 @@ public final class PlaceFeatureCommand extends BukkitCommandFeature<CommandSende
                 .required("feature", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
-                        return CompletableFuture.completedFuture(BukkitWorldManager.instance().getConfiguredFeatures());
+                        return CompletableFuture.completedFuture(BukkitWorldManager.instance().cachedConfiguredFeaturesSuggestion());
                     }
                 }))
                 .optional("location", LocationParser.locationParser())

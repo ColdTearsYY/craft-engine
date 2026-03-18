@@ -28,11 +28,7 @@ public final class RegistryUtils {
     }
 
     public static Object getRegistryAccess() {
-        return MinecraftServerProxy.INSTANCE.registryAccess(getServer());
-    }
-
-    public static Object getServer() {
-        return MinecraftServerProxy.INSTANCE.getServer();
+        return MinecraftServerProxy.INSTANCE.registryAccess(MinecraftServerProxy.INSTANCE.getServer());
     }
 
     public static Object getRegistryValue(Object registry, Object id) {

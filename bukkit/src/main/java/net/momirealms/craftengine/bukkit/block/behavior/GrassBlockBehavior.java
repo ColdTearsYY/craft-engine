@@ -4,6 +4,7 @@ import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
+import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
@@ -22,7 +23,6 @@ import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
-import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
@@ -131,8 +131,7 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
 
     @Override
     public void performBoneMeal(Object thisBlock, Object[] args) {
-        Object registry = RegistryUtils.lookupOrThrow(RegistriesProxy.PLACED_FEATURE);
-        Object holder = RegistryUtils.getHolder(registry, FeatureUtils.createPlacedFeatureKey(boneMealFeature()));
+        Object holder = BukkitWorldManager.instance().placedFeatureById(boneMealFeature());
         if (holder == null) {
             CraftEngine.instance().logger().warn("Placed feature not found: " + boneMealFeature());
             return;

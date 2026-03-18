@@ -301,7 +301,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
         };
         // Inject server channel
         {
-            Object server = RegistryUtils.getServer();
+            Object server = MinecraftServerProxy.INSTANCE.getServer();
             Object serverConnection = MinecraftServerProxy.INSTANCE.getConnection(server);
             List<ChannelFuture> channels = ServerConnectionListenerProxy.INSTANCE.getChannels(serverConnection);
             ListMonitor<ChannelFuture> monitor = new ListMonitor<>(channels, (future) -> {
@@ -362,7 +362,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
     public void resendTags() {
         Object packet = TagUtils.createUpdateTagsPacket(
                 Map.of(RegistriesProxy.BLOCK, BukkitBlockManager.instance().cachedUpdateTags()),
-                TagNetworkSerializationProxy.INSTANCE.serializeTagsToNetwork(MinecraftServerProxy.INSTANCE.registries(RegistryUtils.getServer()))
+                TagNetworkSerializationProxy.INSTANCE.serializeTagsToNetwork(MinecraftServerProxy.INSTANCE.registries(MinecraftServerProxy.INSTANCE.getServer()))
         );
         for (BukkitServerPlayer player : onlineUsers()) {
             player.sendPacket(packet, false);
@@ -646,7 +646,7 @@ public final class BukkitNetworkManager extends AbstractNetworkManager implement
 
     private void updateEnforceSecureProfile() {
         // 更新聊天验证
-        Object settings = DedicatedServerProxy.INSTANCE.getSettings(RegistryUtils.getServer());
+        Object settings = DedicatedServerProxy.INSTANCE.getSettings(MinecraftServerProxy.INSTANCE.getServer());
         Object properties = DedicatedServerSettingsProxy.INSTANCE.getProperties(settings);
         DedicatedServerPropertiesProxy.INSTANCE.setEnforceSecureProfile(properties, false);
     }
