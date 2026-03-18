@@ -593,8 +593,8 @@ public abstract class AbstractPackManager implements PackManager {
                 ResourceException issue = issues.get(i);
                 if (issue instanceof KnownResourceException) {
                     this.plugin.logger().warn(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), issue.getLocalizedMessage()));
-                } else {
-                    this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), ""), issue);
+                } else if (issue instanceof UnknownResourceException) {
+                    this.plugin.logger().severe(TranslationManager.instance().plainTranslation("resource.errors_detail", String.valueOf(i+1), issue.node(), TranslationManager.instance().plainTranslation("resource.unknown_error")), issue.getCause());
                 }
             }
         }

@@ -38,10 +38,10 @@ argument.parse.failure.either: <red>Could not resolve <arg:1> or <arg:2> from '<
 argument.parse.failure.namedtextcolor: <red>'<arg:0>' is not a named text color</red>
 command.reload.too_fast: <red>You are reloading the plugin too quickly; the previous reload has not yet completed
 command.reload.config.failure: <red>Failed to reload configs. Please check console logs
-command.reload.config.success: '<gradient:#F4A460:#FFD700:#F4A460>[CraftEngine]</gradient> <white>Configs reloaded.</white> <gray>( Async: <arg:1>ms | Sync: <arg:2>ms )</gray>'
-command.reload.config.issues: '<#FFA07A>You have <red><arg:0></red> issue(s) remaining to be resolved. Check the console for details.'
+command.reload.config.success: <dark_gray>» </dark_gray><gradient:#F4A460:#FFD700><b>CraftEngine</b></gradient> <gray>•</gray> <white>Configs reloaded <gray>(<hover:show_text:'<gray>Async/Sync'><color:#FFD700><arg:1></color>/<color:#F4A460><arg:2></color></hover> ms)</gray>
+command.reload.config.issues: '<#FF5555>⚠ <bold><arg:0></bold> issue(s) found. <gray><italic>(Check console for details)'
 command.reload.pack.failure: <red>Failed to generate the resource pack. Please check console logs
-command.reload.pack.success: '<gradient:#F4A460:#FFD700:#F4A460>[CraftEngine]</gradient> <white>Resource pack generated.</white> <gray>( Async: <arg:0>ms )</gray>'
+command.reload.pack.success: '<dark_gray>» </dark_gray><gradient:#F4A460:#FFD700><b>CraftEngine</b></gradient> <gray>•</gray> <white>Resource pack generated <gray>(<hover:show_text:"<gray>Async Process"><color:#FFD700><arg:0></color> ms</hover>)</gray>'
 command.item.get.success: <white>Got <arg:0> <arg:1></white>
 command.item.get.failure.not_exist: <red>Unknown item '<arg:0>'</red>
 command.item.give.success.single: <white>Gave <arg:0> <arg:1> to <arg:2>
@@ -179,6 +179,7 @@ resource.config_loaded: Loaded <arg:0> in <arg:1>ms (<arg:2>)
 resource.pack_loaded: 'Loaded pack: <arg:0>. Default namespace: <arg:1>'
 resource.errors_detected: 'Found <arg:1> issue(s) in file ''<arg:0>'':'
 resource.errors_detail: '[<arg:0>] <arg:1> - <arg:2>'
+resource.unknown_error: "Unknown error type"
 resource.duplicated_id: Another file ('<arg:0>') contains a section with the same ID
 resource.missing_argument: 'Required argument ''<arg:0>'' is missing. Expected: ''<arg:1>'''
 resource.placed_feature.invalid_placement: 'Invalid placement modifier. Input: ''<arg:0>''. Cause: ''<arg:1>'''

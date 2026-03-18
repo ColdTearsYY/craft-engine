@@ -396,7 +396,11 @@ public abstract class AbstractFontManager implements FontManager {
                     Key imageId = Key.of(split[0].getAsString(), split[1].getAsString());
                     Optional<Image> bitmapImage = imageById(imageId);
                     if (bitmapImage.isPresent() && bitmapImage.get() != DummyImage.INSTANCE) {
-                        image = bitmapImage.get().miniMessageAt(split[2].getAsInt(), split[3].getAsInt());
+                        try {
+                            image = bitmapImage.get().miniMessageAt(split[2].getAsInt(), split[3].getAsInt());
+                        } catch (ArrayIndexOutOfBoundsException e) {
+                            throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
+                        }
                     } else {
                         throw new KnownResourceException("resource.emoji.unknown_image", section.assemblePath("image"), imageValue.getAsString());
                     }
