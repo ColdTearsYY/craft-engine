@@ -976,7 +976,7 @@ public final class Config {
     }
 
     public static Key deceiveBukkitMaterial(int id) {
-        return instance.block$deceive_bukkit_material$overrides.getOrDefault(id, instance.block$deceive_bukkit_material$default);
+        return instance.block$deceive_bukkit_material$overrides.getOrDefault(id, instance.block$inject_bukkit_material ? null : instance.block$deceive_bukkit_material$default);
     }
 
     public static boolean generateModAssets() {

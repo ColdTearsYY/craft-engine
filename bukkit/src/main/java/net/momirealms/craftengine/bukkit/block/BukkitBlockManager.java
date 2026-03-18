@@ -459,16 +459,13 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     }
 
     private void deceiveBukkitRegistry() {
-        if (Config.injectBukkitMaterial()) {
-            for (DelegatingBlock customBlock : this.customBlocks) {
-                CraftMagicNumbersProxy.BLOCK_MATERIAL.put(customBlock, MaterialInjector.getByBlock(customBlock));
-            }
-        } else {
-            Set<String> invalid = new HashSet<>();
-            for (int i = 0; i < this.customBlocks.length; i++) {
-                DelegatingBlock customBlock = this.customBlocks[i];
-                String value = Config.deceiveBukkitMaterial(i).value();
-                Material material;
+        Set<String> invalid = new HashSet<>();
+        for (int i = 0; i < this.customBlocks.length; i++) {
+            DelegatingBlock customBlock = this.customBlocks[i];
+            Material material;
+            Key key = Config.deceiveBukkitMaterial(i);
+            if (key != null) {
+                String value = key.value();
                 try {
                     material = Material.valueOf(value.toUpperCase(Locale.ROOT));
                 } catch (IllegalArgumentException e) {
@@ -483,8 +480,10 @@ public final class BukkitBlockManager extends AbstractBlockManager {
                     }
                     material = Material.BRICKS;
                 }
-                CraftMagicNumbersProxy.BLOCK_MATERIAL.put(customBlock, material);
+            } else {
+                material = MaterialInjector.getByBlock(customBlock);
             }
+            CraftMagicNumbersProxy.BLOCK_MATERIAL.put(customBlock, material);
         }
     }
 

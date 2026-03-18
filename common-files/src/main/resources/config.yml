@@ -305,10 +305,11 @@ block:
   deceive-bukkit-material:
     default: bricks
     # The numbers here represent the internal real IDs of the blocks. You can find them through command /ce debug real-state-usage
-    overrides:
-      0: bricks
-      1~8: bricks
-  # Inject new enum into Bukkit Material.
+    # overrides:
+    #  1000: chest
+    #  0~999: bricks
+    overrides: {}
+  # Inject new enum constants into Bukkit Material class.
   # A restart is required to apply the changes.
   inject-bukkit-material: false
 
