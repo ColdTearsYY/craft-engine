@@ -23,6 +23,8 @@ dependencies {
     implementation("net.momirealms:craft-engine-s3:0.16")
     // Util
     compileOnly("net.momirealms:sparrow-util:${rootProject.properties["sparrow_util_version"]}")
+    // Reflection
+    compileOnly("net.momirealms:sparrow-reflection:${rootProject.properties["sparrow_reflection_version"]}")
 }
 
 tasks.shadowJar {

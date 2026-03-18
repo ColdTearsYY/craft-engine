@@ -17,6 +17,8 @@ import net.momirealms.craftengine.core.plugin.text.component.ComponentProvider;
 import net.momirealms.sparrow.nbt.Tag;
 import net.momirealms.sparrow.nbt.adventure.NBTComponentSerializer;
 import net.momirealms.sparrow.nbt.adventure.NBTSerializerOptions;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
+import net.momirealms.sparrow.reflection.field.matcher.FieldMatcher;
 
 import java.util.*;
 import java.util.function.Function;
@@ -49,6 +51,10 @@ public final class AdventureHelper {
             deque.addFirst(children.get(i).applyFallbackStyle(component.style()));
         }
     };
+
+    static {
+        SparrowClass.of(SparrowClass.findNoRemap("net.kyori.adventure.text.TextComponentImpl")).getDeclaredSparrowField(FieldMatcher.named("WARN_WHEN_LEGACY_FORMATTING_DETECTED")).mh().set(null, false);
+    }
 
     private AdventureHelper() {
         this.miniMessage = MiniMessage.builder().build();
