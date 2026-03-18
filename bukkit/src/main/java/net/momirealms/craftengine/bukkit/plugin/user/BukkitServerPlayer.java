@@ -859,7 +859,7 @@ public class BukkitServerPlayer extends Player {
                 if (VersionHelper.isOrAbove1_20_5()) {
                     Object serverPlayer = serverPlayer();
                     Object attributeInstance = LivingEntityProxy.INSTANCE.getAttribute(serverPlayer, AttributesProxy.BLOCK_BREAK_SPEED);
-                    sendPacket(ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance(entityId(), Lists.newArrayList(attributeInstance)), true);
+                    sendPacket(ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance$0(entityId(), Lists.newArrayList(attributeInstance)), true);
                 } else {
                     resetEffect(MobEffectsProxy.MINING_FATIGUE);
                     resetEffect(MobEffectsProxy.HASTE);
@@ -870,7 +870,7 @@ public class BukkitServerPlayer extends Player {
                             AttributeModifierProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(Key.CRAFTENGINE_NAMESPACE, "custom_hardness"), -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE) :
                             AttributeModifierProxy.INSTANCE.newInstance(UUID.randomUUID(), Key.CRAFTENGINE_NAMESPACE + ":custom_hardness", -9999d, AttributeModifierProxy.OperationProxy.ADD_VALUE);
                     Object attributeSnapshot = ClientboundUpdateAttributesPacketProxy.AttributeSnapshotProxy.INSTANCE.newInstance(AttributesProxy.BLOCK_BREAK_SPEED, 1d, Lists.newArrayList(attributeModifier));
-                    Object newPacket = ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance(entityId(), Lists.newArrayList(attributeSnapshot));
+                    Object newPacket = ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance$1(entityId(), Lists.newArrayList(attributeSnapshot));
                     sendPacket(newPacket, true);
                 } else {
                     Object fatiguePacket = MobEffectUtils.createPacket(MobEffectsProxy.MINING_FATIGUE, entityId(), (byte) 9, -1, false, false, false);

@@ -50,7 +50,7 @@ public final class ArmorStandBlockEntityElement implements BlockEntityElement {
         if (VersionHelper.isOrAbove1_20_5() && config.scale() != 1) {
             Object attributeIns = AttributeInstanceProxy.INSTANCE.newInstance$0(AttributesProxy.SCALE, $ -> {});
             AttributeInstanceProxy.INSTANCE.setBaseValue(attributeIns, config.scale());
-            this.cachedScalePacket = ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance(entityId, Collections.singletonList(attributeIns));
+            this.cachedScalePacket = ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance$0(entityId, Collections.singletonList(attributeIns));
         } else {
             this.cachedScalePacket = null;
         }
