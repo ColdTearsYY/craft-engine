@@ -688,7 +688,7 @@ public final class BukkitWorldManager implements WorldManager, Listener {
             for (Key id : BukkitWorldManager.this.configuredFeatures.keySet()) {
                 suggestions.add(Suggestion.suggestion(id.asString()));
             }
-            BukkitWorldManager.this.cachedConfiguredFeaturesSuggestion = suggestions;
+            BukkitWorldManager.this.cachedConfiguredFeaturesSuggestion = Collections.unmodifiableList(suggestions);
         }
 
         @Override
