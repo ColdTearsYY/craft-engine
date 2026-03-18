@@ -77,7 +77,6 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         super(plugin);
         this.itemParser = new ItemParser();
         this.equipmentParser = new EquipmentParser();
-        ItemProcessors.init();
     }
 
     protected static void registerVanillaItemExtraBehavior(ItemBehavior behavior, Key... items) {
