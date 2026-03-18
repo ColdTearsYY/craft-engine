@@ -133,6 +133,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
             block.shapeDelegate().bindValue(BukkitBlockShape.STONE);
             DelegatingBlockState state = (DelegatingBlockState) BlockProxy.INSTANCE.getDefaultBlockState(block);
             state.setBlockState(null);
+            state.setBlockOwner(null);
         }
     }
 
@@ -245,6 +246,7 @@ public final class BukkitBlockManager extends AbstractBlockManager {
     protected void applyPlatformSettings(CustomBlock block, ImmutableBlockState state) {
         DelegatingBlockState nmsState = (DelegatingBlockState) state.customBlockState().literalObject();
         nmsState.setBlockState(state);
+        nmsState.setBlockOwner(BlockStateUtils.getBlockOwner(block.defaultState().customBlockState().literalObject()));
         Object nmsVisualState = state.visualBlockState().literalObject();
 
         BlockSettings settings = state.settings();
