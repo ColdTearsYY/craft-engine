@@ -6,10 +6,8 @@ import net.momirealms.craftengine.core.block.DelegatingBlock;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.MaterialProxy;
-import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.field.SField;
-import net.momirealms.sparrow.reflection.field.SIntField;
-import net.momirealms.sparrow.reflection.field.matcher.FieldMatcher;
+import net.momirealms.sparrow.reflection.field.SparrowField;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -21,10 +19,21 @@ import java.util.Objects;
 
 public final class MaterialInjector {
     private static final Map<DelegatingBlock, Material> BY_BLOCK = new HashMap<>();
-    private static final SField Enum$name = SparrowClass.of(Enum.class).getDeclaredSparrowField(FieldMatcher.named("name")).asm();
-    private static final SIntField Enum$ordinal = SparrowClass.of(Enum.class).getDeclaredSparrowField(FieldMatcher.named("ordinal")).asm$int();
-    private static final SField Class$enumConstantDirectory = SparrowClass.of(Class.class).getDeclaredSparrowField(FieldMatcher.named("enumConstantDirectory")).asm();
-    private static final SField Class$enumConstants = SparrowClass.of(Class.class).getDeclaredSparrowField(FieldMatcher.named("enumConstants")).asm();
+    private static final SField Enum$name;
+    private static final SField Enum$ordinal;
+    private static final SField Class$enumConstantDirectory;
+    private static final SField Class$enumConstants;
+
+    static {
+        try {
+            Enum$name = SparrowField.of(Enum.class.getDeclaredField("name")).mh();
+            Enum$ordinal = SparrowField.of(Enum.class.getDeclaredField("ordinal")).mh();
+            Class$enumConstantDirectory = SparrowField.of(Class.class.getDeclaredField("enumConstantDirectory")).mh();
+            Class$enumConstants = SparrowField.of(Class.class.getDeclaredField("enumConstants")).mh();
+        } catch (Exception e) {
+            throw new InjectionException("Failed to access required fields", e);
+        }
+    }
 
     private MaterialInjector() {}
 
@@ -43,12 +52,8 @@ public final class MaterialInjector {
         MaterialProxy.INSTANCE.setIsBlock(material, true);
         MaterialProxy.INSTANCE.setMaxStack(material, 64);
         MaterialProxy.INSTANCE.setDurability(material, (short) 0);
-        try {
-            Enum$name.set(material, (id.namespace() + "_" + id.value()).toUpperCase(Locale.ROOT));
-            Enum$ordinal.set(material, ordinal);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+        Enum$name.set(material, (id.namespace() + "_" + id.value()).toUpperCase(Locale.ROOT));
+        Enum$ordinal.set(material, ordinal);
         BY_BLOCK.put(block, material);
         return material;
     }
@@ -59,15 +64,19 @@ public final class MaterialInjector {
         for (Material material : newValues) {
             MaterialProxy.BY_NAME.put(material.name(), material);
         }
-        try {
-            Class$enumConstantDirectory.set(Material.class, null);
-            Class$enumConstants.set(Material.class, null);
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
+        Class$enumConstantDirectory.set(Material.class, null);
+        Class$enumConstants.set(Material.class, null);
     }
 
     public static Material getByBlock(DelegatingBlock block) {
         return Objects.requireNonNull(BY_BLOCK.get(block), "block not found");
+    }
+
+    public static void check() throws Throwable {
+        Material material = (Material) MaterialProxy.UNSAFE_CONSTRUCTOR.newInstance();
+        MaterialProxy.INSTANCE.setId(material, -1);
+        Enum$name.set(material, "CHECK");
+        Class$enumConstantDirectory.get(Material.class);
+        Class$enumConstants.get(Material.class);
     }
 }

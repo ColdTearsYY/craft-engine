@@ -708,6 +708,10 @@ public final class Config {
         return instance.block$inject_bukkit_material;
     }
 
+    public static void setInjectBukkitMaterial(boolean injectBukkitMaterial) {
+        instance.block$inject_bukkit_material = injectBukkitMaterial;
+    }
+
     public static boolean alwaysUseItemModel() {
         return instance.item$always_use_item_model;
     }
