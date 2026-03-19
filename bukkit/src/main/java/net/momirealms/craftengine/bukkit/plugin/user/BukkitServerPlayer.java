@@ -14,6 +14,7 @@ import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.block.entity.BedBlockEntity;
 import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
+import net.momirealms.craftengine.bukkit.entity.furniture.behavior.SimpleStorageFurnitureBehavior;
 import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
@@ -90,6 +91,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
@@ -485,10 +487,9 @@ public class BukkitServerPlayer extends Player {
         platformPlayer().playSound(new Location(null, pos.x(), pos.y(), pos.z()), sound.toString(), SoundUtils.toBukkit(source), volume, pitch);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void giveItem(Item item) {
-        PlayerUtils.giveItem(this, item.count(), (Item) item);
+        PlayerUtils.giveItem(this, item.count(), item);
     }
 
     @Override
@@ -757,13 +758,19 @@ public class BukkitServerPlayer extends Player {
     private void updateGUI() {
         org.bukkit.inventory.Inventory top = !VersionHelper.isOrAbove1_21() ? LegacyInventoryUtils.getTopInventory(platformPlayer()) : platformPlayer().getOpenInventory().getTopInventory();
         if (!InventoryUtils.isCustomContainer(top)) return;
-        if (top.getHolder() instanceof CraftEngineGUIHolder holder) {
+        InventoryHolder topHolder = top.getHolder();
+        if (topHolder instanceof CraftEngineGUIHolder holder) {
             holder.gui().onTimer();
-        } else if (top.getHolder() instanceof BlockEntityHolder holder) {
+        } else if (topHolder instanceof BlockEntityHolder holder) {
             BlockEntity blockEntity = holder.blockEntity();
             BlockPos blockPos = blockEntity.pos();
             if (!canInteractWithBlock(blockPos, 4d)) {
-                platformPlayer().closeInventory();
+                closeInventory();
+            }
+        } else if (topHolder instanceof SimpleStorageFurnitureBehavior.ItemStorage itemStorage) {
+            WorldPosition position = itemStorage.furniture.position();
+            if (!canInteractPoint(position.toVec3d(), 4d)) {
+                closeInventory();
             }
         }
     }

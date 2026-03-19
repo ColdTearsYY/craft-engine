@@ -3,6 +3,7 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
+import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
@@ -38,7 +39,7 @@ public final class DebugEntityIdCommand extends BukkitCommandFeature<CommandSend
                     }
                     Object entity = EntityLookupProxy.INSTANCE.get(entityLookup, entityId);
                     if (entity == null) {
-                        context.sender().sendMessage("entity not found");
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_ENTITY);
                         return;
                     }
                     context.sender().sendMessage(entity.toString());

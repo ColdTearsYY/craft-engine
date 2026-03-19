@@ -13,10 +13,11 @@ import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
+import org.incendo.cloud.bukkit.data.SinglePlayerSelector;
 import org.incendo.cloud.bukkit.parser.NamespacedKeyParser;
+import org.incendo.cloud.bukkit.parser.selector.SinglePlayerSelectorParser;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.suggestion.Suggestion;
@@ -26,38 +27,41 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public final class RemoveItemComponentCommand extends BukkitCommandFeature<CommandSender> {
-    private List<@NonNull Suggestion> suggestions;
+    private final List<@NonNull Suggestion> suggestions;
 
     public RemoveItemComponentCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
-        if (VersionHelper.COMPONENT_RELEASE) {
-            this.suggestions = RegistryProxy.INSTANCE.keySet(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE).stream()
-                    .map(Object::toString)
-                    .map(Suggestion::suggestion)
-                    .toList();
-        }
+        this.suggestions = VersionHelper.COMPONENT_RELEASE ? RegistryProxy.INSTANCE.keySet(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE).stream()
+                .map(Object::toString)
+                .map(Suggestion::suggestion)
+                .toList() : List.of();
     }
 
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .senderType(Player.class)
-                .required("value", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
+                .required("player", SinglePlayerSelectorParser.singlePlayerSelectorParser())
+                .required("component", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
-                        return CompletableFuture.completedFuture(suggestions);
+                        return CompletableFuture.completedFuture(RemoveItemComponentCommand.this.suggestions);
                     }
                 }))
                 .handler(context -> {
-                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(context.sender());
-                    Item itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
-                    if (itemInHand.isEmpty()) {
+                    SinglePlayerSelector playerSelector = context.get("player");
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
+                    if (serverPlayer == null) {
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
                         return;
                     }
-
-                    String dataComponent = context.get("value").toString();
-                    itemInHand.removeComponent(dataComponent);
-                    handleFeedback(context, MessageConstants.COMMAND_ITEM_REMOVE_ITEM_COMPONENT, Component.text(dataComponent));
+                    String component = context.get("component").toString();
+                    Item itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
+                    if (itemInHand.isEmpty()) {
+                        handleFeedback(context, MessageConstants.COMMAND_PLAYER_ITEMLESS, Component.text(serverPlayer.name()));
+                        return;
+                    }
+                    itemInHand.removeComponent(component);
+                    handleFeedback(context, MessageConstants.COMMAND_ITEM_REMOVE_ITEM_COMPONENT, Component.text(component));
                 });
     }
 

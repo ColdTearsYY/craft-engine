@@ -31,7 +31,7 @@ public final class DebugMigrateTemplatesCommand extends BukkitCommandFeature<Com
                             try {
                                 Files.writeString(file, replacePlaceholders(Files.readString(file)));
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                plugin().logger().warn("Failed to write config file: " + file, e);
                             }
                         }
                     }

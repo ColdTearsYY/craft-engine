@@ -6,10 +6,11 @@ import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
+import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
-import org.incendo.cloud.bukkit.parser.PlayerParser;
+import org.incendo.cloud.bukkit.data.SinglePlayerSelector;
+import org.incendo.cloud.bukkit.parser.selector.SinglePlayerSelectorParser;
 
 public final class DebugClearCooldownCommand extends BukkitCommandFeature<CommandSender> {
 
@@ -20,10 +21,14 @@ public final class DebugClearCooldownCommand extends BukkitCommandFeature<Comman
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .required("player", PlayerParser.playerParser())
+                .required("player", SinglePlayerSelectorParser.singlePlayerSelectorParser())
                 .handler(context -> {
-                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt((Player) context.get("player"));
-                    if (serverPlayer == null) return;
+                    SinglePlayerSelector playerSelector = context.get("player");
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
+                    if (serverPlayer == null) {
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
+                        return;
+                    }
                     serverPlayer.cooldown().clearCooldowns();
                     plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text("Done clearing cooldowns!"));
                 });

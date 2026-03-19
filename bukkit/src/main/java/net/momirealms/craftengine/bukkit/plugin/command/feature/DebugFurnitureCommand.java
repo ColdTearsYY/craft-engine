@@ -23,7 +23,6 @@ public final class DebugFurnitureCommand extends BukkitCommandFeature<CommandSen
                 .senderType(Player.class)
                 .handler(context -> {
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(context.sender());
-                    if (serverPlayer == null) return;
                     boolean b = !serverPlayer.enableFurnitureDebug();
                     serverPlayer.setEnableFurnitureDebug(b);
                     serverPlayer.sendMessage(Component.text("Furniture Debug Mode: ").append(Component.text(b ? "ON" : "OFF").color(b ? NamedTextColor.GREEN : NamedTextColor.RED)), false);

@@ -55,6 +55,11 @@ public final class ClearItemCommand extends BukkitCommandFeature<CommandSender> 
                 .optional("amount", IntegerParser.integerParser(0))
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("player");
+                    Collection<Player> players = selector.values();
+                    if (players.isEmpty()) {
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
+                        return;
+                    }
                     int amount = context.getOrDefault("amount", -1);
                     NamespacedKey namespacedKey = context.get("id");
                     Key idOrTag = Key.of(namespacedKey.namespace(), namespacedKey.value());
@@ -73,7 +78,6 @@ public final class ClearItemCommand extends BukkitCommandFeature<CommandSender> 
                                 return false;
                             };
                     int totalCount = 0;
-                    Collection<Player> players = selector.values();
                     for (Player player : players) {
                         Object serverPlayer = CraftEntityProxy.INSTANCE.getEntity(player);
                         Object inventory = PlayerProxy.INSTANCE.getInventory(serverPlayer);

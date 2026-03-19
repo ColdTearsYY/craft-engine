@@ -6,6 +6,7 @@ import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.item.recipe.Recipe;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
+import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import net.momirealms.craftengine.core.util.Key;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
@@ -44,6 +45,10 @@ public final class SearchUsageAdminCommand extends BukkitCommandFeature<CommandS
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("player");
                     Collection<Player> players = selector.values();
+                    if (players.isEmpty()) {
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
+                        return;
+                    }
                     NamespacedKey namespacedKey = context.get("id");
                     for (Player player : players) {
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);

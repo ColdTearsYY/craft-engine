@@ -5,11 +5,14 @@ import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
+import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.data.MultiplePlayerSelector;
 import org.incendo.cloud.bukkit.parser.selector.MultiplePlayerSelectorParser;
+
+import java.util.Collection;
 
 public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandSender> {
 
@@ -23,7 +26,12 @@ public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandS
                 .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("players");
-                    for (Player player : selector.values()) {
+                    Collection<Player> players = selector.values();
+                    if (players.isEmpty()) {
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
+                        return;
+                    }
+                    for (Player player : players) {
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) return;
                         plugin().itemBrowserManager().open(serverPlayer);

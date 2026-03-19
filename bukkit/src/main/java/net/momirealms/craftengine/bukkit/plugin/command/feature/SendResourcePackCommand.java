@@ -32,6 +32,10 @@ public final class SendResourcePackCommand extends BukkitCommandFeature<CommandS
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("player");
                     Collection<Player> players = selector.values();
+                    if (players.isEmpty()) {
+                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
+                        return;
+                    }
                     for (Player player : players) {
                         BukkitServerPlayer bukkitServerPlayer = BukkitAdaptor.adapt(player);
                         if (bukkitServerPlayer == null) continue;
