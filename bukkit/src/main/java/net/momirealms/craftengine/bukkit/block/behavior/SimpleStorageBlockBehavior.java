@@ -86,7 +86,6 @@ public final class SimpleStorageBlockBehavior extends BukkitBlockBehavior implem
             return InteractionResult.SUCCESS_AND_CANCEL;
         }
         entity.onPlayerOpen(player);
-        bukkitPlayer.openInventory(entity.inventory());
         new BukkitInventory(entity.inventory()).open(player, AdventureHelper.miniMessage().deserialize(this.containerTitle, PlayerOptionalContext.of(player).tagResolvers()));
         return InteractionResult.SUCCESS_AND_CANCEL;
     }

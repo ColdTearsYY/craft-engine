@@ -1,7 +1,9 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.behavior;
 
+import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
+import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.gui.BukkitInventory;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
@@ -13,12 +15,19 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
+import net.momirealms.craftengine.core.sound.SoundData;
+import net.momirealms.craftengine.core.sound.SoundSource;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.CustomDataType;
 import net.momirealms.craftengine.core.util.VersionHelper;
+import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.InteractEntityContext;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.ListTag;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -30,20 +39,33 @@ public final class SimpleStorageFurnitureBehavior extends FurnitureBehavior {
     public static final FurnitureBehaviorFactory<SimpleStorageFurnitureBehavior> FACTORY = new Factory();
     public final String containerTitle;
     public final int rows;
+    public final SoundData openSound;
+    public final SoundData closeSound;
 
     private SimpleStorageFurnitureBehavior(CustomFurniture furniture,
                                            String containerTitle,
-                                           int rows) {
+                                           int rows,
+                                           SoundData openSound,
+                                           SoundData closeSound) {
         super(furniture);
         this.containerTitle = containerTitle;
         this.rows = rows;
+        this.openSound = openSound;
+        this.closeSound = closeSound;
     }
 
     @Override
     public InteractionResult useOnFurniture(InteractEntityContext context, Furniture furniture) {
         ItemStorage storage = furniture.getTempData(ItemStorage.TYPE);
         if (storage == null) return InteractionResult.SUCCESS_AND_CANCEL;
-        storage.onOpen(context.getPlayer());
+        BlockPos blockPos = context.getClickedPos();
+        World bukkitWorld = (World) context.getLevel().platformWorld();
+        Location location = new Location(bukkitWorld, blockPos.x(), blockPos.y(), blockPos.z());
+        Player player = context.getPlayer();
+        if (!BukkitCraftEngine.instance().antiGriefProvider().test((org.bukkit.entity.Player) player.platformPlayer(), Flag.OPEN_CONTAINER, location)) {
+            return InteractionResult.SUCCESS_AND_CANCEL;
+        }
+        storage.onOpen(player);
         return InteractionResult.SUCCESS_AND_CANCEL;
     }
 
@@ -77,10 +99,19 @@ public final class SimpleStorageFurnitureBehavior extends FurnitureBehavior {
 
         @Override
         public SimpleStorageFurnitureBehavior create(CustomFurniture furniture, ConfigSection section) {
+            ConfigSection soundSection = section.getSection("sounds");
+            SoundData openSound = null;
+            SoundData closeSound = null;
+            if (soundSection != null) {
+                openSound = soundSection.getValue("open", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1));
+                closeSound = soundSection.getValue("close", v -> SoundData.fromConfig(v, SoundData.SoundValue.FIXED_0_5, SoundData.SoundValue.RANGED_0_9_1));
+            }
             return new SimpleStorageFurnitureBehavior(
                     furniture,
                     section.getString("title", "<lang:container.chest>"),
-                    section.getInt("rows", 1)
+                    section.getInt("rows", 1),
+                    openSound,
+                    closeSound
             );
         }
     }
@@ -126,12 +157,29 @@ public final class SimpleStorageFurnitureBehavior extends FurnitureBehavior {
         }
 
         public void onOpen(Player player) {
-            org.bukkit.entity.Player bukkitPlayer = (org.bukkit.entity.Player) player.platformPlayer();
-            bukkitPlayer.openInventory(this.inventory);
+            if (!player.isSpectatorMode()) {
+                for (HumanEntity viewer : this.inventory.getViewers()) {
+                    if (viewer.getGameMode() != GameMode.SPECTATOR) return;
+                }
+                SoundData sound = this.behavior.openSound;
+                if (sound != null) {
+                    this.furniture.world().playSound(this.furniture.position(), sound.id(), sound.volume().get(), sound.pitch().get(), SoundSource.MASTER);
+                }
+            }
             new BukkitInventory(this.inventory).open(player, AdventureHelper.miniMessage().deserialize(this.behavior.containerTitle, PlayerOptionalContext.of(player).tagResolvers()));
         }
 
         public void onClose(Player player) {
+            if (!player.isSpectatorMode()) {
+                for (HumanEntity viewer : this.inventory.getViewers()) {
+                    if (viewer.getGameMode() == GameMode.SPECTATOR || viewer == player.platformPlayer()) continue;
+                    return;
+                }
+                SoundData sound = this.behavior.closeSound;
+                if (sound != null) {
+                    this.furniture.world().playSound(this.furniture.position(), sound.id(), sound.volume().get(), sound.pitch().get(), SoundSource.MASTER);
+                }
+            }
         }
 
         @Override
