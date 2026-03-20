@@ -54,7 +54,7 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
                 .flag(CommandFlag.builder("no-sound"))
-                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser())
+                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .required("id", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
@@ -74,10 +74,6 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("players");
                     Collection<Player> players = selector.values();
-                    if (players.isEmpty()) {
-                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
-                        return;
-                    }
                     NamespacedKey namespacedKey = context.get("id");
                     Key key = Key.of(namespacedKey.namespace(), namespacedKey.value());
                     CustomItem customItem = plugin().itemManager().getCustomItem(key).orElse(null);

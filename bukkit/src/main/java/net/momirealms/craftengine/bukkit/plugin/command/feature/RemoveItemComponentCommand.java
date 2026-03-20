@@ -13,11 +13,10 @@ import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.incendo.cloud.Command;
-import org.incendo.cloud.bukkit.data.SinglePlayerSelector;
 import org.incendo.cloud.bukkit.parser.NamespacedKeyParser;
-import org.incendo.cloud.bukkit.parser.selector.SinglePlayerSelectorParser;
 import org.incendo.cloud.context.CommandContext;
 import org.incendo.cloud.context.CommandInput;
 import org.incendo.cloud.suggestion.Suggestion;
@@ -40,7 +39,7 @@ public final class RemoveItemComponentCommand extends BukkitCommandFeature<Comma
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .required("player", SinglePlayerSelectorParser.singlePlayerSelectorParser())
+                .senderType(Player.class)
                 .required("component", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
@@ -48,13 +47,8 @@ public final class RemoveItemComponentCommand extends BukkitCommandFeature<Comma
                     }
                 }))
                 .handler(context -> {
-                    SinglePlayerSelector playerSelector = context.get("player");
-                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
-                    if (serverPlayer == null) {
-                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
-                        return;
-                    }
                     String component = context.get("component").toString();
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(context.sender());
                     Item itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
                     if (itemInHand.isEmpty()) {
                         handleFeedback(context, MessageConstants.COMMAND_PLAYER_ITEMLESS, Component.text(serverPlayer.name()));

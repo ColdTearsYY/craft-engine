@@ -1,4 +1,4 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import dev.dejvokep.boostedyaml.YamlDocument;
 import net.kyori.adventure.text.Component;

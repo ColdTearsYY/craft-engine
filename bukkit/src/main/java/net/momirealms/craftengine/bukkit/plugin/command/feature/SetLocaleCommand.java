@@ -49,10 +49,6 @@ public final class SetLocaleCommand extends BukkitCommandFeature<CommandSender> 
                     }
                     SinglePlayerSelector playerSelector = context.get("player");
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
-                    if (serverPlayer == null) {
-                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
-                        return;
-                    }
                     serverPlayer.setSelectedLocale(locale);
                     handleFeedback(context, MessageConstants.COMMAND_LOCALE_SET_SUCCESS, Component.text(TranslationManager.formatLocale(locale)), Component.text(serverPlayer.name()));
                 });

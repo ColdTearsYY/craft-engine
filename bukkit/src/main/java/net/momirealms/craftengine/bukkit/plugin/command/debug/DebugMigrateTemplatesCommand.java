@@ -1,4 +1,4 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;

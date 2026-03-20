@@ -5,7 +5,6 @@ import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
-import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
@@ -23,14 +22,10 @@ public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandS
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
+                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("players");
                     Collection<Player> players = selector.values();
-                    if (players.isEmpty()) {
-                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
-                        return;
-                    }
                     for (Player player : players) {
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) return;

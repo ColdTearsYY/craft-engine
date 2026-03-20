@@ -5,7 +5,6 @@ import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.ItemWrapper;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import org.bukkit.inventory.ItemStack;

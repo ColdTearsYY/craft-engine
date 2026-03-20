@@ -1,7 +1,6 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
@@ -15,7 +14,6 @@ import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -31,9 +29,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
-public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSender> {
+public final class DebugCustomModelDataCommand extends BukkitCommandFeature<CommandSender> {
 
-    public DebugItemModelCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
+    public DebugCustomModelDataCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
     }
 
@@ -51,7 +49,7 @@ public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSen
 
     @Override
     public String getFeatureID() {
-        return "debug_item_model";
+        return "debug_custom_model_data";
     }
 
     private void handleCommand(CommandContext<CommandSender> context) {
@@ -75,15 +73,11 @@ public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSen
 
     private void sendMessage(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
         Item clientBoundItem = plugin().itemManager().s2c(itemStack, player).orElse(itemStack);
-        String itemModel = clientBoundItem.itemModel().orElse("null");
-        TextComponent finalMessage = Component.text(itemModel)
+        int customModelData = clientBoundItem.customModelData().orElse(0);
+        Component message = Component.text(customModelData)
                 .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))
-                .clickEvent(ClickEvent.suggestCommand(itemModel));
-        plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
+                .clickEvent(ClickEvent.suggestCommand(String.valueOf(customModelData)));
+        plugin().senderFactory().wrap(context.sender()).sendMessage(message);
     }
 
-    @Override
-    public boolean isAvailable() {
-        return VersionHelper.isOrAbove1_21_2();
-    }
 }

@@ -86,8 +86,6 @@ command.place_feature.failed: "<red>Failed to place feature</red>"
 command.place_feature.success: "<white>Placed \"<arg:0>\" at <arg:1>, <arg:2>, <arg:3></white>"
 command.place_feature.invalid: "<red>There is no feature with type \"<arg:0>\"</red>"
 command.chunk.not_loaded: "<red>That position is not loaded</red>"
-command.entity.notfound.entity: "<red>No entity was found</red>"
-command.entity.notfound.player: "<red>No player was found</red>"
 command.player.itemless: "<red><arg:0> is not holding any item</red>"
 snbt.invalid_syntax.parse_error: '<arg:0> at position <arg:1>: <arg:2>'
 snbt.invalid_syntax.here: <--[HERE]

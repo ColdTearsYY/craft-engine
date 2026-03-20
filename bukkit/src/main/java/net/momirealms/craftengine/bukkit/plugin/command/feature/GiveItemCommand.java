@@ -42,7 +42,7 @@ public final class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
-                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
+                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .required("id", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
@@ -53,10 +53,6 @@ public final class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("player");
                     Collection<Player> players = selector.values();
-                    if (players.isEmpty()) {
-                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
-                        return;
-                    }
                     int amount = context.getOrDefault("amount", 1);
                     NamespacedKey namespacedKey = context.get("id");
                     Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());

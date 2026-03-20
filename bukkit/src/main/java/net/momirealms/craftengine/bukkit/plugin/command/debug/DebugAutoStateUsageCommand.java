@@ -1,4 +1,4 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;

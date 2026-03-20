@@ -1,4 +1,4 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
@@ -6,7 +6,6 @@ import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
-import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import org.bukkit.command.CommandSender;
 import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.data.SinglePlayerSelector;
@@ -25,10 +24,6 @@ public final class DebugClearCooldownCommand extends BukkitCommandFeature<Comman
                 .handler(context -> {
                     SinglePlayerSelector playerSelector = context.get("player");
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
-                    if (serverPlayer == null) {
-                        handleFeedback(context, MessageConstants.COMMAND_ENTITY_NOTFOUND_PLAYER);
-                        return;
-                    }
                     serverPlayer.cooldown().clearCooldowns();
                     plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text("Done clearing cooldowns!"));
                 });
