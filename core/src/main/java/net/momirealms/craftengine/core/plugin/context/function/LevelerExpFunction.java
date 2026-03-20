@@ -9,6 +9,7 @@ import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextPar
 import net.momirealms.craftengine.core.plugin.context.selector.PlayerSelector;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class LevelerExpFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final PlayerSelector<CTX> selector;
@@ -58,7 +59,10 @@ public final class LevelerExpFunction<CTX extends Context> extends AbstractCondi
         public LevelerExpFunction<CTX> create(ConfigSection section) {
             return new LevelerExpFunction<>(
                     getPredicates(section),
-                    getPlayerSelector(section), section.getNonNullString("plugin"), section.getNonNullNumber(COUNT), section.getNonNullString(LEVELER)
+                    getPlayerSelector(section),
+                    section.getNonNullString("plugin").toLowerCase(Locale.ROOT),
+                    section.getNonNullNumber(COUNT),
+                    section.getNonNullString(LEVELER)
             );
         }
     }
