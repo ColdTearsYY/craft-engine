@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
 import net.momirealms.craftengine.bukkit.block.entity.SimpleStorageBlockEntity;
+import net.momirealms.craftengine.bukkit.entity.furniture.behavior.SimpleStorageFurnitureBehavior;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.*;
@@ -28,6 +29,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.Merchant;
 import org.bukkit.inventory.MerchantRecipe;
 
@@ -122,11 +124,16 @@ public final class BukkitGuiManager implements GuiManager, Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         org.bukkit.inventory.Inventory inventory = event.getInventory();
         if (!InventoryUtils.isCustomContainer(inventory)) return;
-        if (!(inventory.getHolder(false) instanceof BlockEntityHolder holder)) {
-            return;
+        if (!(event.getPlayer() instanceof Player player)) return;
+        InventoryHolder holder = inventory.getHolder(false);
+        if (holder instanceof BlockEntityHolder blockEntityHolder) {
+            if (blockEntityHolder.blockEntity() instanceof SimpleStorageBlockEntity simpleStorageBlockEntity) {
+                simpleStorageBlockEntity.onPlayerClose(BukkitAdaptor.adapt(player));
+                return;
+            }
         }
-        if (event.getPlayer() instanceof Player player && holder.blockEntity() instanceof SimpleStorageBlockEntity simpleStorageBlockEntity) {
-            simpleStorageBlockEntity.onPlayerClose(BukkitAdaptor.adapt(player));
+        if (holder instanceof SimpleStorageFurnitureBehavior.ItemStorage itemStorage) {
+            itemStorage.onClose(BukkitAdaptor.adapt(player));
         }
     }
 
@@ -135,11 +142,15 @@ public final class BukkitGuiManager implements GuiManager, Listener {
         Player player = event.getPlayer();
         org.bukkit.inventory.Inventory inventory = player.getInventory();
         if (!InventoryUtils.isCustomContainer(inventory)) return;
-        if (!(inventory.getHolder(false) instanceof BlockEntityHolder holder)) {
-            return;
+        InventoryHolder holder = inventory.getHolder(false);
+        if (holder instanceof BlockEntityHolder blockEntityHolder) {
+            if (blockEntityHolder.blockEntity() instanceof SimpleStorageBlockEntity simpleStorageBlockEntity) {
+                simpleStorageBlockEntity.onPlayerClose(BukkitAdaptor.adapt(player));
+                return;
+            }
         }
-        if (holder.blockEntity() instanceof SimpleStorageBlockEntity simpleStorageBlockEntity) {
-            simpleStorageBlockEntity.onPlayerClose(BukkitAdaptor.adapt(player));
+        if (holder instanceof SimpleStorageFurnitureBehavior.ItemStorage itemStorage) {
+            itemStorage.onClose(BukkitAdaptor.adapt(player));
         }
     }
 

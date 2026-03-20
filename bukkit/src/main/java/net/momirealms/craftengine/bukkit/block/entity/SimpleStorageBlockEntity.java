@@ -59,16 +59,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
     protected void saveCustomData(CompoundTag tag) {
         // 保存前先把所有打开此容器的玩家界面关闭
         this.inventory.close();
-        ListTag itemsTag = new ListTag();
-        @Nullable ItemStack[] storageContents = this.inventory.getStorageContents();
-        for (int i = 0; i < storageContents.length; i++) {
-            if (storageContents[i] == null || !(ItemStackUtils.saveBukkitItemAsTag(storageContents[i]) instanceof CompoundTag itemTag)) {
-                continue;
-            }
-            itemTag.putInt("slot", i);
-            itemsTag.add(itemTag);
-        }
-        tag.put("items", itemsTag);
+        tag.put("items", ItemStackUtils.saveBukkitItemsAsListTag(this.inventory.getStorageContents()));
         tag.putInt("data_version", VersionHelper.WORLD_VERSION);
     }
 
@@ -76,16 +67,7 @@ public class SimpleStorageBlockEntity extends BlockEntity {
     public void loadCustomData(CompoundTag tag) {
         ListTag itemsTag = Optional.ofNullable(tag.getList("items")).orElseGet(ListTag::new);
         int dataVersion = tag.getInt("data_version", Config.itemDataFixerUpperFallbackVersion());
-        ItemStack[] storageContents = new ItemStack[this.behavior.rows * 9];
-        for (int i = 0; i < itemsTag.size(); i++) {
-            CompoundTag itemTag = itemsTag.getCompound(i);
-            int slot = itemTag.getInt("slot");
-            if (slot < 0 || slot >= storageContents.length) {
-                continue;
-            }
-            storageContents[slot] = ItemStackUtils.parseBukkitItem(itemTag, dataVersion);
-        }
-        this.inventory.setStorageContents(storageContents);
+        this.inventory.setStorageContents(ItemStackUtils.parseBukkitItems(itemsTag, this.behavior.rows * 9, dataVersion));
     }
 
     public Inventory inventory() {

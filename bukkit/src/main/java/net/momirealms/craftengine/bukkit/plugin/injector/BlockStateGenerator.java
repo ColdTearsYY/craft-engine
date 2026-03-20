@@ -14,7 +14,6 @@ import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.implementation.bind.annotation.AllArguments;
 import net.bytebuddy.implementation.bind.annotation.RuntimeType;
-import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.implementation.bind.annotation.This;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
@@ -51,7 +50,6 @@ import net.momirealms.sparrow.reflection.constructor.SConstructor3;
 import net.momirealms.sparrow.reflection.constructor.matcher.ConstructorMatcher;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 
 public final class BlockStateGenerator {
     private static SConstructor3 constructor$CraftEngineBlockState;
@@ -94,11 +92,7 @@ public final class BlockStateGenerator {
                 .method(ElementMatchers.is(BlockReflections.method$StateHolder$setValue))
                 .intercept(MethodDelegation.to(SetPropertyValueInterceptor.INSTANCE))
                 .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$is))
-                .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE))
-                .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getBlock))
-                .intercept(MethodDelegation.to(GetBlockInterceptor.INSTANCE))
-                .method(ElementMatchers.is(BlockReflections.method$BlockStateBase$getBlockHolder))
-                .intercept(MethodDelegation.to(GetBlockHolderInterceptor.INSTANCE));
+                .intercept(MethodDelegation.to(IsBlockInterceptor.INSTANCE));
         SparrowClass<?> clazz$CraftEngineBlock = SparrowClass.of(stateBuilder.make().load(BlockStateGenerator.class.getClassLoader()).getLoaded());
 
         constructor$CraftEngineBlockState = clazz$CraftEngineBlock.getSparrowConstructor(ConstructorMatcher.takeArguments(
@@ -286,28 +280,6 @@ public final class BlockStateGenerator {
                 return thisBlock == holderBlock;
             }
             return false;
-        }
-    }
-
-    public static class GetBlockInterceptor {
-        public static final GetBlockInterceptor INSTANCE = new GetBlockInterceptor();
-
-        @RuntimeType
-        public Object intercept(@This Object thisObj, @SuperCall Callable<Object> superMethod) throws Exception {
-            DelegatingBlockState customState = (DelegatingBlockState) thisObj;
-            Object block = customState.blockOwner();
-            return block != null ? block : superMethod.call();
-        }
-    }
-
-    public static class GetBlockHolderInterceptor {
-        public static final GetBlockHolderInterceptor INSTANCE = new GetBlockHolderInterceptor();
-
-        @RuntimeType
-        public Object intercept(@This Object thisObj, @SuperCall Callable<Object> superMethod) throws Exception {
-            DelegatingBlockState customState = (DelegatingBlockState) thisObj;
-            Object block = customState.blockOwner();
-            return block != null ? BlockProxy.INSTANCE.getBuiltInRegistryHolder(block) : superMethod.call();
         }
     }
 

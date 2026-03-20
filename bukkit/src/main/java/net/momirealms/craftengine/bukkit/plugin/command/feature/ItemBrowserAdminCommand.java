@@ -11,6 +11,8 @@ import org.incendo.cloud.Command;
 import org.incendo.cloud.bukkit.data.MultiplePlayerSelector;
 import org.incendo.cloud.bukkit.parser.selector.MultiplePlayerSelectorParser;
 
+import java.util.Collection;
+
 public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandSender> {
 
     public ItemBrowserAdminCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
@@ -20,10 +22,11 @@ public final class ItemBrowserAdminCommand extends BukkitCommandFeature<CommandS
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
+                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("players");
-                    for (Player player : selector.values()) {
+                    Collection<Player> players = selector.values();
+                    for (Player player : players) {
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) return;
                         plugin().itemBrowserManager().open(serverPlayer);

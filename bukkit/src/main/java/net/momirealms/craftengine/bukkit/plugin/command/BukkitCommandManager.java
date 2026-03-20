@@ -3,6 +3,7 @@ package net.momirealms.craftengine.bukkit.plugin.command;
 import net.kyori.adventure.util.Index;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
+import net.momirealms.craftengine.bukkit.plugin.command.debug.*;
 import net.momirealms.craftengine.bukkit.plugin.command.feature.*;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.command.AbstractCommandManager;

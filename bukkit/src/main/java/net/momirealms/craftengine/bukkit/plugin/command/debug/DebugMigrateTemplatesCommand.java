@@ -1,4 +1,4 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
@@ -31,7 +31,7 @@ public final class DebugMigrateTemplatesCommand extends BukkitCommandFeature<Com
                             try {
                                 Files.writeString(file, replacePlaceholders(Files.readString(file)));
                             } catch (IOException e) {
-                                e.printStackTrace();
+                                plugin().logger().warn("Failed to write config file: " + file, e);
                             }
                         }
                     }

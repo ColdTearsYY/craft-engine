@@ -26,38 +26,36 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public final class RemoveItemComponentCommand extends BukkitCommandFeature<CommandSender> {
-    private List<@NonNull Suggestion> suggestions;
+    private final List<@NonNull Suggestion> suggestions;
 
     public RemoveItemComponentCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
-        if (VersionHelper.COMPONENT_RELEASE) {
-            this.suggestions = RegistryProxy.INSTANCE.keySet(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE).stream()
-                    .map(Object::toString)
-                    .map(Suggestion::suggestion)
-                    .toList();
-        }
+        this.suggestions = VersionHelper.COMPONENT_RELEASE ? RegistryProxy.INSTANCE.keySet(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE).stream()
+                .map(Object::toString)
+                .map(Suggestion::suggestion)
+                .toList() : List.of();
     }
 
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .senderType(Player.class)
-                .required("value", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
+                .required("component", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
-                        return CompletableFuture.completedFuture(suggestions);
+                        return CompletableFuture.completedFuture(RemoveItemComponentCommand.this.suggestions);
                     }
                 }))
                 .handler(context -> {
+                    String component = context.get("component").toString();
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(context.sender());
                     Item itemInHand = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
                     if (itemInHand.isEmpty()) {
+                        handleFeedback(context, MessageConstants.COMMAND_PLAYER_ITEMLESS, Component.text(serverPlayer.name()));
                         return;
                     }
-
-                    String dataComponent = context.get("value").toString();
-                    itemInHand.removeComponent(dataComponent);
-                    handleFeedback(context, MessageConstants.COMMAND_ITEM_REMOVE_ITEM_COMPONENT, Component.text(dataComponent));
+                    itemInHand.removeComponent(component);
+                    handleFeedback(context, MessageConstants.COMMAND_ITEM_REMOVE_ITEM_COMPONENT, Component.text(component));
                 });
     }
 

@@ -1,4 +1,4 @@
-package net.momirealms.craftengine.bukkit.plugin.command.feature;
+package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
 import com.google.gson.*;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;

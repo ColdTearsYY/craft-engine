@@ -28,7 +28,7 @@ public final class SendResourcePackCommand extends BukkitCommandFeature<CommandS
     public Command.Builder<? extends CommandSender> assembleCommand(CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
-                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
+                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("player");
                     Collection<Player> players = selector.values();

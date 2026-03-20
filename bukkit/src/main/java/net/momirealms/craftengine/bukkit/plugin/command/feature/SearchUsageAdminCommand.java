@@ -34,7 +34,7 @@ public final class SearchUsageAdminCommand extends BukkitCommandFeature<CommandS
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
+                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .required("id", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {

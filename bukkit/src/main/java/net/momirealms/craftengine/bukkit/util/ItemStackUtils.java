@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.bukkit.util;
 
 import com.mojang.serialization.Dynamic;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.core.item.Item;
@@ -14,6 +15,8 @@ import net.momirealms.craftengine.proxy.minecraft.util.DataFixersProxy;
 import net.momirealms.craftengine.proxy.minecraft.util.datafix.fixes.ReferencesProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.LivingEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
+import net.momirealms.sparrow.nbt.CompoundTag;
+import net.momirealms.sparrow.nbt.ListTag;
 import net.momirealms.sparrow.nbt.Tag;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -37,7 +40,7 @@ public final class ItemStackUtils {
     public static boolean hasCustomItem(ItemStack[] stack) {
         for (ItemStack itemStack : stack) {
             if (!ItemStackUtils.isEmpty(itemStack)) {
-                if (BukkitItemManager.instance().wrap(itemStack).customId().isPresent()) {
+                if (BukkitAdaptor.adapt(itemStack).customId().isPresent()) {
                     return true;
                 }
             }
@@ -47,7 +50,7 @@ public final class ItemStackUtils {
 
     public static boolean isCustomItem(ItemStack stack) {
         if (!ItemStackUtils.isEmpty(stack)) {
-            return BukkitItemManager.instance().wrap(stack).customId().isPresent();
+            return BukkitAdaptor.adapt(stack).customId().isPresent();
         }
         return false;
     }
@@ -65,7 +68,7 @@ public final class ItemStackUtils {
     }
 
     public static ItemStack asCraftMirror(Object itemStack) {
-        return ItemStackUtils.getBukkitStack(itemStack);
+        return getBukkitStack(itemStack);
     }
 
     public static ItemStack getBukkitStack(Object itemStack) {
@@ -123,5 +126,30 @@ public final class ItemStackUtils {
         } else {
             ItemStackProxy.INSTANCE.hurtAndBreak(nmsStack, amount, livingEntity, entity -> LivingEntityProxy.INSTANCE.broadcastBreakEvent(entity, slot));
         }
+    }
+
+    public static ItemStack[] parseBukkitItems(ListTag tag, int size, int dataVersion) {
+        ItemStack[] itemStacks = new ItemStack[size];
+        for (int i = 0; i < tag.size(); i++) {
+            CompoundTag itemTag = tag.getCompound(i);
+            int slot = itemTag.getInt("slot");
+            if (slot < 0 || slot >= itemStacks.length) {
+                continue;
+            }
+            itemStacks[slot] = ItemStackUtils.parseBukkitItem(itemTag, dataVersion);
+        }
+        return itemStacks;
+    }
+
+    public static ListTag saveBukkitItemsAsListTag(ItemStack[] itemStack) {
+        ListTag itemsTag = new ListTag();
+        for (int i = 0; i < itemStack.length; i++) {
+            if (itemStack[i] == null || !(saveBukkitItemAsTag(itemStack[i]) instanceof CompoundTag itemTag)) {
+                continue;
+            }
+            itemTag.putInt("slot", i);
+            itemsTag.add(itemTag);
+        }
+        return itemsTag;
     }
 }

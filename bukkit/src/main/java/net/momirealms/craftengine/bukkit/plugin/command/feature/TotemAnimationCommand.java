@@ -54,7 +54,7 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
                 .flag(CommandFlag.builder("no-sound"))
-                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser())
+                .required("players", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .required("id", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
@@ -72,6 +72,8 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
                 .optional("min-volume", FloatParser.floatParser(0f))
                 .optional("min-pitch", FloatParser.floatParser(0f, 2f))
                 .handler(context -> {
+                    MultiplePlayerSelector selector = context.get("players");
+                    Collection<Player> players = selector.values();
                     NamespacedKey namespacedKey = context.get("id");
                     Key key = Key.of(namespacedKey.namespace(), namespacedKey.value());
                     CustomItem customItem = plugin().itemManager().getCustomItem(key).orElse(null);
@@ -89,8 +91,6 @@ public final class TotemAnimationCommand extends BukkitCommandFeature<CommandSen
                         soundData = SoundData.of(KeyUtils.namespacedKeyToKey(soundKey.get()), SoundData.SoundValue.ranged(minVolume, volume), SoundData.SoundValue.ranged(minPitch, pitch));
                     }
                     boolean removeSound = context.flags().hasFlag("no-sound");
-                    MultiplePlayerSelector selector = context.get("players");
-                    Collection<Player> players = selector.values();
                     for (Player player : players) {
                         BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
                         if (serverPlayer == null) continue;

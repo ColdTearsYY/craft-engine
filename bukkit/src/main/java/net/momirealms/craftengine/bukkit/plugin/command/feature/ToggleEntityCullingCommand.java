@@ -11,9 +11,9 @@ import net.momirealms.craftengine.core.plugin.command.FlagKeys;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
-import org.incendo.cloud.bukkit.parser.PlayerParser;
+import org.incendo.cloud.bukkit.data.SinglePlayerSelector;
+import org.incendo.cloud.bukkit.parser.selector.SinglePlayerSelectorParser;
 import org.incendo.cloud.parser.standard.BooleanParser;
 
 import java.util.Optional;
@@ -28,24 +28,23 @@ public final class ToggleEntityCullingCommand extends BukkitCommandFeature<Comma
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
-                .required("player", PlayerParser.playerParser())
+                .required("player", SinglePlayerSelectorParser.singlePlayerSelectorParser())
                 .optional("state", BooleanParser.booleanParser())
                 .handler(context -> {
                     if (!Config.enableEntityCulling()) {
                         plugin().senderFactory().wrap(context.sender()).sendMessage(Component.text("Entity culling is not enabled on this server").color(NamedTextColor.RED));
                         return;
                     }
-                    Player player = context.get("player");
-                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-                    if (serverPlayer == null) return;
+                    SinglePlayerSelector playerSelector = context.get("player");
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
                     Optional<Boolean> state = context.optional("state");
                     boolean isEnabled = serverPlayer.enableEntityCulling();
                     if (state.isPresent()) {
                         serverPlayer.setEnableEntityCulling(state.get());
-                        handleFeedback(context, MessageConstants.COMMAND_TOGGLE_ENTITY_CULLING_SUCCESS, Component.text(state.get()), Component.text(player.getName()));
+                        handleFeedback(context, MessageConstants.COMMAND_TOGGLE_ENTITY_CULLING_SUCCESS, Component.text(state.get()), Component.text(serverPlayer.name()));
                     } else {
                         serverPlayer.setEnableEntityCulling(!isEnabled);
-                        handleFeedback(context, MessageConstants.COMMAND_TOGGLE_ENTITY_CULLING_SUCCESS, Component.text(!isEnabled), Component.text(player.getName()));
+                        handleFeedback(context, MessageConstants.COMMAND_TOGGLE_ENTITY_CULLING_SUCCESS, Component.text(!isEnabled), Component.text(serverPlayer.name()));
                     }
                 });
     }

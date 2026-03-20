@@ -9,9 +9,9 @@ import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.FlagKeys;
 import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.incendo.cloud.Command;
-import org.incendo.cloud.bukkit.parser.PlayerParser;
+import org.incendo.cloud.bukkit.data.SinglePlayerSelector;
+import org.incendo.cloud.bukkit.parser.selector.SinglePlayerSelectorParser;
 
 public final class UnsetLocaleCommand extends BukkitCommandFeature<CommandSender> {
 
@@ -23,13 +23,12 @@ public final class UnsetLocaleCommand extends BukkitCommandFeature<CommandSender
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
-                .required("player", PlayerParser.playerParser())
+                .required("player", SinglePlayerSelectorParser.singlePlayerSelectorParser())
                 .handler(context -> {
-                    Player player = context.get("player");
-                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-                    if (serverPlayer == null) return;
+                    SinglePlayerSelector playerSelector = context.get("player");
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
                     serverPlayer.setSelectedLocale(null);
-                    handleFeedback(context, MessageConstants.COMMAND_LOCALE_UNSET_SUCCESS, Component.text(player.getName()));
+                    handleFeedback(context, MessageConstants.COMMAND_LOCALE_UNSET_SUCCESS, Component.text(serverPlayer.name()));
                 });
     }
 

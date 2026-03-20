@@ -229,7 +229,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
                 ConfigSection variantSection = variantsSection.getNonNullSection(variant);
 
                 // 掉落物偏移
-                Vector3f lootSpawnOffset =variantSection.getVector3f(LOOT_SPAWN_OFFSET, ConfigConstants.ZERO_VECTOR3);
+                Vector3f lootSpawnOffset = variantSection.getVector3f(LOOT_SPAWN_OFFSET, ConfigConstants.ZERO_VECTOR3);
 
                 // 外部模型
                 String blueprint = variantSection.getString(BLUEPRINT);
@@ -279,7 +279,7 @@ public abstract class AbstractFurnitureManager implements FurnitureManager {
             // TODO 复合行为
             ConfigSection behaviorSection = section.getSection(BEHAVIORS);
             if (behaviorSection != null) {
-                ((CustomFurnitureImpl) furniture).setBehavior(FurnitureBehaviors.fromConfig(furniture,behaviorSection));
+                ((CustomFurnitureImpl) furniture).setBehavior(FurnitureBehaviors.fromConfig(furniture, behaviorSection));
             }
             AbstractFurnitureManager.this.byId.put(id, furniture);
         }

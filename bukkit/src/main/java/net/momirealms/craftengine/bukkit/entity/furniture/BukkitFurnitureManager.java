@@ -138,6 +138,15 @@ public final class BukkitFurnitureManager extends AbstractFurnitureManager {
 
     @Override
     public void disable() {
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity instanceof ItemDisplay itemDisplay) {
+                    handleMetaEntityUnload(itemDisplay);
+                } else if (BukkitFurnitureManager.COLLISION_ENTITY_CLASS.isInstance(entity)) {
+                    handleCollisionEntityUnload(entity);
+                }
+            }
+        }
         super.disable();
         HandlerList.unregisterAll(this.furnitureEventListener);
         unload();
