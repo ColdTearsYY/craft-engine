@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.item.recipe.remainder;
 
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
@@ -22,7 +23,7 @@ public final class RecipeBasedCraftRemainder implements CraftRemainder {
     }
 
     @Override
-    public <T> Item remainder(Key recipeId, Item item) {
+    public Item remainder(Key recipeId, Item item) {
         CraftRemainder remainder = this.remainders.get(recipeId);
         if (remainder != null) {
             return remainder.remainder(recipeId, item);
@@ -31,7 +32,7 @@ public final class RecipeBasedCraftRemainder implements CraftRemainder {
     }
 
     private static class Factory implements CraftRemainderFactory<RecipeBasedCraftRemainder> {
-        private static final String[] CRAFT_REMAINDER = new String[] {"craft_remainder", "craft_remaining_item", "craft-remainder", "craft-remaining-item"};
+        private static final String[] CRAFT_REMAINDER = ConfigKeys.of("craft_remainder|craft_remaining_item");
 
         @Override
         public RecipeBasedCraftRemainder create(ConfigSection section) {

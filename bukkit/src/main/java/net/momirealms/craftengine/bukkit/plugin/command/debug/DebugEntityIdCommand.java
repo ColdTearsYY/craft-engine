@@ -1,13 +1,10 @@
 package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
-import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
+import net.momirealms.craftengine.bukkit.util.LevelUtils;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
-import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
-import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.craftengine.proxy.paper.chunk.system.entity.EntityLookupProxy;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
@@ -31,18 +28,19 @@ public final class DebugEntityIdCommand extends BukkitCommandFeature<CommandSend
                     World world = context.get("world");
                     int entityId = context.get("entityId");
                     Object level = CraftWorldProxy.INSTANCE.getWorld(world);
-                    Object entityLookup;
-                    if (VersionHelper.isOrAbove1_21()) {
-                        entityLookup = LevelProxy.INSTANCE.moonrise$getEntityLookup(level);
-                    } else {
-                        entityLookup = ServerLevelProxy.INSTANCE.getEntityLookup(level);
-                    }
+                    Object entityLookup = LevelUtils.getEntityLookup(level);
                     Object entity = EntityLookupProxy.INSTANCE.get(entityLookup, entityId);
+                    var sender = plugin().senderFactory().wrap(context.sender());
                     if (entity == null) {
-                        handleFeedback(context, Component.translatable().key("argument.entity.notfound.entity"));
+                        sender.sendMessage(DebugCommandOutput.error("Entity was not found"));
+                        sender.sendMessage(DebugCommandOutput.value("World", world.getName()));
+                        sender.sendMessage(DebugCommandOutput.value("Entity ID", entityId));
                         return;
                     }
-                    context.sender().sendMessage(entity.toString());
+                    sender.sendMessage(DebugCommandOutput.title("Entity Lookup"));
+                    sender.sendMessage(DebugCommandOutput.value("World", world.getName()));
+                    sender.sendMessage(DebugCommandOutput.value("Entity ID", entityId));
+                    sender.sendMessage(DebugCommandOutput.value("Entity", entity.toString()));
                 });
     }
 

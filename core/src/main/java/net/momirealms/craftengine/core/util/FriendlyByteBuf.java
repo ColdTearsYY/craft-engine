@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.core.util;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.datafixers.util.Either;
 import io.netty.buffer.ByteBuf;
@@ -14,9 +15,11 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.registry.Registry;
 import net.momirealms.craftengine.core.world.BlockPos;
+import net.momirealms.craftengine.core.world.GlobalPos;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.sparrow.nbt.NBT;
 import net.momirealms.sparrow.nbt.Tag;
+import net.momirealms.sparrow.nbt.TagTypes;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,15 +53,15 @@ public class FriendlyByteBuf extends ByteBuf {
     }
 
     public Component readComponent() {
-        if (VersionHelper.isOrAbove1_20_3()) {
+        if (VersionHelper.isOrAbove1_20_3) {
             return AdventureHelper.nbtToComponent(this.readNbt(false));
         } else {
-            return AdventureHelper.jsonToComponent(this.readUtf());
+            return AdventureHelper.jsonToComponent(this.readUtf(262144));
         }
     }
 
     public void writeComponent(Component component) {
-        if (VersionHelper.isOrAbove1_20_3()) {
+        if (VersionHelper.isOrAbove1_20_3) {
             this.writeNbt(AdventureHelper.componentToNbt(component), false);
         } else {
             this.writeUtf(AdventureHelper.componentToJson(component));
@@ -73,21 +76,21 @@ public class FriendlyByteBuf extends ByteBuf {
         this.writeLong(instant.toEpochMilli());
     }
 
-    public static <T> IntFunction<T> limitValue(IntFunction<T> applier, int max) {
-        return (j) -> {
-            if (j > max) {
-                throw new DecoderException("Value " + j + " is larger than limit " + max);
+    public static <T> IntFunction<T> limitValue(IntFunction<T> original, int limit) {
+        return (value) -> {
+            if (value > limit) {
+                throw new DecoderException("Value " + value + " is larger than limit " + limit);
             } else {
-                return applier.apply(j);
+                return original.apply(value);
             }
         };
     }
 
-    public <T, C extends Collection<T>> C readCollection(IntFunction<C> collectionFactory, Reader<T> reader) {
+    public <T, C extends Collection<T>> C readCollection(IntFunction<C> ctor, Reader<T> elementDecoder) {
         int i = this.readVarInt();
-        C collection = collectionFactory.apply(i);
+        C collection = ctor.apply(i);
         for (int j = 0; j < i; ++j) {
-            collection.add(reader.apply(this));
+            collection.add(elementDecoder.apply(this));
         }
         return collection;
     }
@@ -97,6 +100,10 @@ public class FriendlyByteBuf extends ByteBuf {
         for (T t : collection) {
             writer.accept(this, t);
         }
+    }
+
+    public <T> List<T> readList(Reader<T> reader) {
+        return this.readCollection(Lists::newArrayListWithCapacity, reader);
     }
 
     @SuppressWarnings("unchecked")
@@ -125,6 +132,7 @@ public class FriendlyByteBuf extends ByteBuf {
         return i == 0 ? OptionalInt.empty() : OptionalInt.of(i - 1);
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public void writeOptionalVarInt(OptionalInt optionalInt) {
         if (optionalInt.isPresent()) {
             this.writeVarInt(optionalInt.getAsInt() + 1);
@@ -134,11 +142,11 @@ public class FriendlyByteBuf extends ByteBuf {
     }
 
     public int readContainerId() {
-        return VersionHelper.isOrAbove1_21_2() ? this.readVarInt() : this.readUnsignedByte();
+        return VersionHelper.isOrAbove1_21_2 ? this.readVarInt() : this.readUnsignedByte();
     }
 
     public void writeContainerId(int id) {
-        if (VersionHelper.isOrAbove1_21_2()) {
+        if (VersionHelper.isOrAbove1_21_2) {
             this.writeVarInt(id);
         } else {
             this.writeByte(id);
@@ -272,6 +280,7 @@ public class FriendlyByteBuf extends ByteBuf {
         return enumSet;
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public <T> void writeOptional(Optional<T> value, FriendlyByteBuf.Writer<T> writer) {
         if (value.isPresent()) {
             this.writeBoolean(true);
@@ -533,6 +542,18 @@ public class FriendlyByteBuf extends ByteBuf {
         }
     }
 
+    public FriendlyByteBuf skipNbt(boolean named) {
+        int type = this.readUnsignedByte();
+        if (type == Tag.TAG_END_ID) return this;
+        if (named) this.skipBytes(this.readUnsignedShort());
+        try {
+            TagTypes.typeById(type).skip(new ByteBufInputStream(this));
+        } catch (IOException e) {
+            throw new DecoderException("Failed to skip NBT tag: " + e.getMessage(), e);
+        }
+        return this;
+    }
+
     public String readUtf() {
         return this.readUtf(32767);
     }
@@ -658,6 +679,31 @@ public class FriendlyByteBuf extends ByteBuf {
                 this.writeVarInt((int) (l >> 2));
             }
         }
+    }
+
+    public Vec3d readVec3() {
+        return new Vec3d(this.readDouble(), this.readDouble(), this.readDouble());
+    }
+
+    public void writeVec3(Vec3d vec3) {
+        this.writeDouble(vec3.x);
+        this.writeDouble(vec3.y);
+        this.writeDouble(vec3.z);
+    }
+
+    public GlobalPos readGlobalPos() {
+        return GlobalPos.of(this.readKey(), this.readBlockPos());
+    }
+
+    public void writeGlobalPos(GlobalPos pos) {
+        this.writeKey(pos.dimension);
+        this.writeBlockPos(pos.pos);
+    }
+
+    public byte[] readFixedBytes(int length) {
+        byte[] bytes = new byte[length];
+        this.readBytes(bytes);
+        return bytes;
     }
 
     @FunctionalInterface

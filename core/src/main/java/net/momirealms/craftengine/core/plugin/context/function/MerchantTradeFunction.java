@@ -11,6 +11,7 @@ import net.momirealms.craftengine.core.item.processor.TagsProcessor;
 import net.momirealms.craftengine.core.item.trade.MerchantOffer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.*;
@@ -47,12 +48,12 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
     public void runInternal(CTX ctx) {
         if (this.selector == null) {
             ctx.getOptionalParameter(DirectContextParameters.PLAYER).ifPresent(it -> {
-                CraftEngine.instance().guiManager().openMerchant(it, this.title == null ? null : AdventureHelper.miniMessage().deserialize(this.title, ctx.tagResolvers()), this.offers.apply(it, ctx));
+                CraftEngine.instance().guiManager().openMerchant(it, this.title == null ? null : AdventureHelper.deserialize(this.title, ctx), this.offers.apply(it, ctx));
             });
         } else {
             for (Player viewer : this.selector.get(ctx)) {
                 RelationalContext relationalContext = ViewerContext.of(ctx, PlayerOptionalContext.of(viewer));
-                CraftEngine.instance().guiManager().openMerchant(viewer, this.title == null ? null : AdventureHelper.miniMessage().deserialize(this.title, relationalContext.tagResolvers()), this.offers.apply(viewer, relationalContext));
+                CraftEngine.instance().guiManager().openMerchant(viewer, this.title == null ? null : AdventureHelper.deserialize(this.title, relationalContext), this.offers.apply(viewer, relationalContext));
             }
         }
     }
@@ -62,10 +63,10 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, MerchantTradeFunction<CTX>> {
-        private static final String[] OFFERS = new String[] {"offers", "offer"};
-        private static final String[] COST_1 = new String[] {"cost_1", "cost-1"};
-        private static final String[] COST_2 = new String[] {"cost_2", "cost-2"};
-        private static final String[] EXP = new String[] {"exp", "experience"};
+        private static final String[] OFFERS = ConfigKeys.of("offer(s)");
+        private static final String[] COST_1 = ConfigKeys.of("cost_1");
+        private static final String[] COST_2 = ConfigKeys.of("cost_2");
+        private static final String[] EXP = ConfigKeys.of("exp|experience");
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -98,10 +99,10 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
                     });
         }
 
-        private static final String[] ITEM = new String[] {"item", "id"};
-        private static final String[] COUNT = new String[] {"count", "amount"};
-        private static final String[] COMPONENT = new String[] {"components", "component"};
-        private static final String[] NBT = new String[] {"nbt", "tags"};
+        private static final String[] ITEM = ConfigKeys.of("item|id");
+        private static final String[] COUNT = ConfigKeys.of("count|amount");
+        private static final String[] COMPONENT = ConfigKeys.of("component(s)");
+        private static final String[] NBT = ConfigKeys.of("nbt|tags");
 
         private TempItem parseTempItem(ConfigValue value) {
             if (value.is(Map.class)) {
@@ -113,12 +114,12 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
                 if (VersionHelper.COMPONENT_RELEASE) {
                     ConfigSection components = section.getSection(COMPONENT);
                     if (components != null) {
-                        componentsProcessor = new ComponentsProcessor(components.values());
+                        componentsProcessor = new ComponentsProcessor(components);
                     }
                 } else {
                     ConfigSection nbt = section.getSection(NBT);
                     if (nbt != null) {
-                        tagsProcessor = new TagsProcessor(nbt.values());
+                        tagsProcessor = new TagsProcessor(nbt);
                     }
                 }
                 return new TempItem(itemId, count, componentsProcessor, tagsProcessor);
@@ -133,17 +134,21 @@ public final class MerchantTradeFunction<CTX extends Context> extends AbstractCo
         public record TempItem(Key id, NumberProvider count, ComponentsProcessor components, TagsProcessor nbt) {
 
             public Item build(Player player, Context context) {
-                Item item = CraftEngine.instance().itemManager().createWrappedItem(this.id, player);
+                Item item = Item.byId(this.id, player);
                 if (item == null) {
-                    item = CraftEngine.instance().itemManager().createWrappedItem(ItemKeys.STONE, player);
+                    item = Item.byId(ItemKeys.STONE, player);
                     assert item != null;
                     item.itemNameComponent(Component.text(this.id.asString()).color(NamedTextColor.RED));
                 } else {
                     if (this.components != null) {
-                        this.components.apply(item, ItemBuildContext.empty());
+                        ItemBuildContext empty = ItemBuildContext.empty();
+                        empty.setItem(item);
+                        this.components.apply(empty);
                     }
                     if (this.nbt != null) {
-                        this.nbt.apply(item, ItemBuildContext.empty());
+                        ItemBuildContext empty = ItemBuildContext.empty();
+                        empty.setItem(item);
+                        this.nbt.apply(empty);
                     }
                 }
                 item.count(this.count.getInt(context));

@@ -1,7 +1,9 @@
 package net.momirealms.craftengine.core.pack.model.definition.condition;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import org.jetbrains.annotations.NotNull;
 
 public final class HasComponentConditionProperty implements ConditionProperty {
     public static final ConditionPropertyFactory<HasComponentConditionProperty> FACTORY = new Factory();
@@ -9,11 +11,12 @@ public final class HasComponentConditionProperty implements ConditionProperty {
     private final String component;
     private final boolean ignoreDefault;
 
-    public HasComponentConditionProperty(String component, boolean ignoreDefault) {
+    public HasComponentConditionProperty(@NotNull String component, boolean ignoreDefault) {
         this.component = component;
         this.ignoreDefault = ignoreDefault;
     }
 
+    @NotNull
     public String component() {
         return this.component;
     }
@@ -23,16 +26,16 @@ public final class HasComponentConditionProperty implements ConditionProperty {
     }
 
     @Override
-    public void accept(JsonObject jsonObject) {
-        jsonObject.addProperty("property", "has_component");
-        jsonObject.addProperty("component", this.component);
+    public void writeProperty(JsonObject model) {
+        model.addProperty("property", "has_component");
+        model.addProperty("component", this.component);
         if (this.ignoreDefault) {
-            jsonObject.addProperty("ignore_default", true);
+            model.addProperty("ignore_default", true);
         }
     }
 
     private static class Factory implements ConditionPropertyFactory<HasComponentConditionProperty> {
-        private static final String[] IGNORE_DEFAULT = new String[]{"ignore_default", "ignore-default"};
+        private static final String[] IGNORE_DEFAULT = ConfigKeys.of("ignore_default");
 
         @Override
         public HasComponentConditionProperty create(ConfigSection section) {

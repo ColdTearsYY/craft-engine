@@ -11,7 +11,7 @@ import java.util.HexFormat;
 public final class HashUtils {
     private HashUtils() {}
 
-    public static String calculateLocalFileSha1(Path filePath) {
+    public static String sha1(Path filePath) {
         try (InputStream is = Files.newInputStream(filePath)) {
             MessageDigest md = MessageDigest.getInstance("SHA-1");
             byte[] buffer = new byte[8192];
@@ -23,6 +23,14 @@ public final class HashUtils {
             return HexFormat.of().formatHex(digest);
         } catch (IOException | NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to calculate SHA1", e);
+        }
+    }
+
+    public static String sha1(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 }

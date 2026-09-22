@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
-import net.momirealms.craftengine.core.util.ItemUtils;
 
 import java.util.Optional;
 
@@ -20,7 +19,7 @@ public final class HasItemCondition<CTX extends Context> implements Condition<CT
         Optional<Item> item = ctx.getOptionalParameter(DirectContextParameters.ITEM_IN_HAND);
         if (item.isEmpty()) return false;
         Item itemInHand = item.get();
-        return !ItemUtils.isEmpty(itemInHand);
+        return !itemInHand.isEmpty();
     }
 
     public static <CTX extends Context> ConditionFactory<CTX, HasItemCondition<CTX>> factory() {

@@ -11,6 +11,7 @@ public interface BlocksProxy {
     Object AIR = INSTANCE.getAir();
     Object STONE = INSTANCE.getStone();
     Object FIRE = INSTANCE.getFire();
+    Object SOUL_FIRE = INSTANCE.getSoulFire();
     Object ICE = INSTANCE.getIce();
     Object SHORT_GRASS = INSTANCE.getShortGrass();
     Object COMPOSTER = INSTANCE.getComposter();
@@ -22,6 +23,13 @@ public interface BlocksProxy {
     Object JACK_O_LANTERN = INSTANCE.getJackOLantern();
     Object MELON = INSTANCE.getMelon();
     Object PUMPKIN = INSTANCE.getPumpkin();
+    Object CAMPFIRE = INSTANCE.getCampFire();
+    Object SOUL_CAMPFIRE = INSTANCE.getSoulCampFire();
+    Object FURNACE = INSTANCE.getFurnace();
+    Object SMOKER = INSTANCE.getSmoker();
+    Object BLAST_FURNACE = INSTANCE.getBlastFurnace();
+    Object LIGHT = INSTANCE.getLight();
+
     Object AIR$defaultState = BlockProxy.INSTANCE.getDefaultBlockState(AIR);
     Object STONE$defaultState = BlockProxy.INSTANCE.getDefaultBlockState(STONE);
     Object WATER$defaultState = BlockProxy.INSTANCE.getDefaultBlockState(WATER);
@@ -38,6 +46,9 @@ public interface BlocksProxy {
 
     @FieldGetter(name = "FIRE", isStatic = true)
     Object getFire();
+
+    @FieldGetter(name = "SOUL_FIRE", isStatic = true)
+    Object getSoulFire();
 
     @FieldGetter(name = "ICE", isStatic = true)
     Object getIce();
@@ -72,4 +83,21 @@ public interface BlocksProxy {
     @FieldGetter(name = "PUMPKIN", isStatic = true)
     Object getPumpkin();
 
+    @FieldGetter(name = "CAMPFIRE", isStatic = true)
+    Object getCampFire();
+
+    @FieldGetter(name = "SOUL_CAMPFIRE", isStatic = true)
+    Object getSoulCampFire();
+
+    @FieldGetter(name = "FURNACE", isStatic = true)
+    Object getFurnace();
+
+    @FieldGetter(name = "SMOKER", isStatic = true)
+    Object getSmoker();
+
+    @FieldGetter(name = "BLAST_FURNACE", isStatic = true)
+    Object getBlastFurnace();
+
+    @FieldGetter(name = "LIGHT", isStatic = true)
+    Object getLight();
 }

@@ -1,16 +1,22 @@
 package net.momirealms.craftengine.core.plugin.config;
 
+import com.google.gson.JsonElement;
+import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.block.AbstractBlockManager;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
+import net.momirealms.craftengine.core.loot.Loot;
+import net.momirealms.craftengine.core.loot.LootTable;
 import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.context.expression.Expressions;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
+import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
+import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.Vec3i;
 import net.momirealms.craftengine.core.world.collision.AABB;
 import net.momirealms.sparrow.nbt.Tag;
-import org.jetbrains.annotations.NotNull;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -18,8 +24,11 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public record ConfigValue(String path, @NotNull Object value) {
+public final class ConfigValue {
     private static final Map<Class<?>, Function<ConfigValue, ?>> SERIALIZERS = new HashMap<>();
+    private final String path;
+    private final Object value;
+
     static {
         registerSerializer(ConfigSection.class, ConfigValue::getAsSection);
         registerSerializer(Integer.class, ConfigValue::getAsInt);
@@ -31,7 +40,7 @@ public record ConfigValue(String path, @NotNull Object value) {
         registerSerializer(List.class, ConfigValue::getAsList);
         registerSerializer(Map.class, ConfigValue::getAsMap);
         registerSerializer(UUID.class, ConfigValue::getAsUUID);
-        registerSerializer(BlockStateWrapper.class, ConfigValue::getAsBlockState);
+        registerSerializer(BlockStateWrapper.class, ConfigValue::getAsVanillaBlockState);
         registerSerializer(Key.class, ConfigValue::getAsKey);
         registerSerializer(NumberProvider.class, ConfigValue::getAsNumber);
         registerSerializer(Tag.class, ConfigValue::getAsSNBT);
@@ -47,15 +56,27 @@ public record ConfigValue(String path, @NotNull Object value) {
         SERIALIZERS.put(clazz, serializer);
     }
 
-    public static ConfigValue of(String path, Object value) {
-        return new ConfigValue(path, value);
+    ConfigValue(String path, Object value) {
+        this.path = path;
+        this.value = value;
+    }
+
+    public String path() {
+        return path;
     }
 
     public Object value() {
         return this.value;
     }
 
+    public static ConfigValue of(String path, Object value) {
+        return new ConfigValue(path, value);
+    }
+
     public boolean is(Class<?> type) {
+        if (this.value == null) {
+            return false;
+        }
         return type.isAssignableFrom(this.value.getClass());
     }
 
@@ -103,7 +124,13 @@ public record ConfigValue(String path, @NotNull Object value) {
                 try {
                     return Integer.parseInt(s.replace("_", ""));
                 } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.path, s);
+                    try {
+                        return (int) Expressions.evaluate(this.path, s);
+                    } catch (KnownResourceException ex) {
+                        throw ex;
+                    } catch (Throwable ex) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_INT_FAILED, this.path, s);
+                    }
                 }
             }
             case Boolean b -> { return b ? 1 : 0; }
@@ -137,7 +164,13 @@ public record ConfigValue(String path, @NotNull Object value) {
                 try {
                     return Float.parseFloat(s.replace("_", ""));
                 } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, s);
+                    try {
+                        return (float) Expressions.evaluate(this.path, s);
+                    } catch (KnownResourceException ex) {
+                        throw ex;
+                    } catch (Throwable ex) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_FLOAT_FAILED, this.path, s);
+                    }
                 }
             }
             case Boolean b -> { return b ? 1.0f : 0.0f; }
@@ -171,7 +204,13 @@ public record ConfigValue(String path, @NotNull Object value) {
                 try {
                     return Double.parseDouble(s.replace("_", ""));
                 } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, s);
+                    try {
+                        return Expressions.evaluate(this.path, s);
+                    } catch (KnownResourceException ex) {
+                        throw ex;
+                    } catch (Throwable ex) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_DOUBLE_FAILED, this.path, s);
+                    }
                 }
             }
             case Boolean b -> { return b ? 1.0 : 0.0; }
@@ -205,7 +244,13 @@ public record ConfigValue(String path, @NotNull Object value) {
                 try {
                     return Long.parseLong(s.replace("_", ""));
                 } catch (NumberFormatException e) {
-                    throw new KnownResourceException(ConfigConstants.PARSE_LONG_FAILED, this.path, s);
+                    try {
+                        return (long) Expressions.evaluate(this.path, s);
+                    } catch (KnownResourceException ex) {
+                        throw ex;
+                    } catch (Throwable ex) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_LONG_FAILED, this.path, s);
+                    }
                 }
             }
             case Boolean b -> { return b ? 1L : 0L; }
@@ -222,8 +267,14 @@ public record ConfigValue(String path, @NotNull Object value) {
                 throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.path, String.valueOf(n));
             }
             case String s -> {
-                if (s.equalsIgnoreCase("true") || s.equalsIgnoreCase("yes") || s.equalsIgnoreCase("on")) return true;
-                if (s.equalsIgnoreCase("false") || s.equalsIgnoreCase("no") || s.equalsIgnoreCase("off")) return false;
+                switch (s) {
+                    case "1", "true", "True", "TRUE", "yes", "YES", "Yes", "on", "ON", "On" -> {
+                        return true;
+                    }
+                    case "0", "false", "False", "FALSE", "no", "NO", "No", "off", "OFF", "Off" -> {
+                        return false;
+                    }
+                }
                 throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.path, s);
             }
             default -> throw new KnownResourceException(ConfigConstants.PARSE_BOOLEAN_FAILED, this.path, this.value.toString());
@@ -296,7 +347,12 @@ public record ConfigValue(String path, @NotNull Object value) {
         if (this.value instanceof Number number) {
             return Color.fromDecimal(number.intValue());
         } else {
-            return Color.fromStrings(getAsString().split(",", 4));
+            String colorString = getAsString();
+            if (colorString.startsWith("#")) {
+                return Color.fromHex(colorString);
+            } else {
+                return Color.fromStrings(colorString.split(",", 4));
+            }
         }
     }
 
@@ -356,6 +412,18 @@ public record ConfigValue(String path, @NotNull Object value) {
         return List.of(this.value);
     }
 
+    public List<ConfigValue> getAsValueList() {
+        if (this.value instanceof List<?> list) {
+            List<ConfigValue> values = new ArrayList<>();
+            for (int i = 0; i < list.size(); i++) {
+                values.add(new ConfigValue(assemblePath(i), list.get(i)));
+            }
+            return values;
+        } else {
+            return List.of(this);
+        }
+    }
+
     public <T> List<T> getAsList(Function<ConfigValue, T> convertor) {
         if (this.is(List.class)) {
             List<Object> asList = getAsList();
@@ -379,6 +447,21 @@ public record ConfigValue(String path, @NotNull Object value) {
             return (List<Object>) list;
         } else {
             return List.of(this.value);
+        }
+    }
+
+    public List<ConfigValue> getAsNonEmptyValueList() {
+        if (this.value instanceof List<?> list) {
+            if (list.isEmpty()) {
+                throw new KnownResourceException(ConfigConstants.PARSE_NONEMPTY_LIST_FAILED, this.path);
+            }
+            List<ConfigValue> values = new ArrayList<>();
+            for (int i = 0; i < list.size(); i++) {
+                values.add(new ConfigValue(assemblePath(i), list.get(i)));
+            }
+            return values;
+        } else {
+            return List.of(this);
         }
     }
 
@@ -609,13 +692,31 @@ public record ConfigValue(String path, @NotNull Object value) {
         }
     }
 
+    public Tag getAsTag() {
+        if (this.is(String.class)) {
+            String stringValue = this.getAsString();
+            if (stringValue.startsWith("(json) ")) {
+                JsonElement element = GsonHelper.get().fromJson(stringValue.substring("(json) ".length()), JsonElement.class);
+                return CraftEngine.instance().platform().jsonToSparrowNBT(element);
+            } else if (stringValue.startsWith("(snbt) ")) {
+                String snbt = stringValue.substring("(snbt) ".length());
+                try {
+                    return TagParser.parseTagFully(snbt);
+                } catch (Exception e) {
+                    throw new KnownResourceException(ConfigConstants.PARSE_SNBT_FAILED, this.path(), snbt, e.getMessage());
+                }
+            }
+        }
+        return CraftEngine.instance().platform().javaToSparrowNBT(this.value());
+    }
+
     // 五种合理情况
     // minecraft:note_block:10
     // note_block:10
     // minecraft:note_block[xxx=xxx]
     // note_block[xxx=xxx]
     // minecraft:barrier
-    public BlockStateWrapper getAsBlockState() {
+    public BlockStateWrapper getAsVanillaBlockState() {
         String stringFormat = getAsString();
         String[] split = stringFormat.split(":");
         if (split.length >= 4) {
@@ -662,5 +763,21 @@ public record ConfigValue(String path, @NotNull Object value) {
 
     public NumberProvider getAsNumber() {
         return NumberProviders.fromConfig(this);
+    }
+
+    public Loot getAsLoot() {
+        if (this.is(Map.class)) {
+            return LootTable.fromConfig(this.getAsSection());
+        } else {
+            return CraftEngine.instance().lootManager().createReference(this.getAsIdentifier());
+        }
+    }
+
+    public TextProvider getAsText() {
+        return TextProviders.fromString(this.getAsString());
+    }
+
+    public Component getAsComponent() {
+        return AdventureHelper.miniMessage().deserialize(this.getAsString());
     }
 }

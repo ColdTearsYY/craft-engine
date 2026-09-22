@@ -1,6 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.special;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
@@ -8,6 +10,7 @@ import net.momirealms.craftengine.core.util.MiscUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
+import java.util.function.Consumer;
 
 public final class ShulkerBoxSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<ShulkerBoxSpecialModel> FACTORY = new Factory();
@@ -35,12 +38,19 @@ public final class ShulkerBoxSpecialModel implements SpecialModel {
     }
 
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public void collectRevision(Consumer<Revision> consumer) {
+        if (this.orientation != null) {
+            consumer.accept(Revisions.From_1_21_4_To_1_21_11);
+        }
+    }
+
+    @Override
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "shulker_box");
         json.addProperty("texture", this.texture);
-        if (this.orientation != null) {
-            json.addProperty("orientation", this.orientation.name().toLowerCase(Locale.ENGLISH));
+        if (min.isBelow(MinecraftVersion.V26_1) && this.orientation != null) {
+            json.addProperty("orientation", this.orientation.name().toLowerCase(Locale.ROOT));
         }
         json.addProperty("openness", this.openness);
         return json;

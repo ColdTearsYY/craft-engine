@@ -1,12 +1,14 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.hitbox;
 
 import net.momirealms.craftengine.bukkit.entity.data.BaseEntityData;
-import net.momirealms.craftengine.bukkit.entity.data.InteractionEntityData;
+import net.momirealms.craftengine.bukkit.entity.data.InteractionData;
+import net.momirealms.craftengine.core.entity.furniture.ColliderProperties;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.AbstractFurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigFactory;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<InteractionFurnitureHitbox> {
+    public final ColliderProperties colliderProperties;
     public static final FurnitureHitBoxConfigFactory<InteractionFurnitureHitbox> FACTORY = new Factory();
     public static final InteractionFurnitureHitboxConfig DEFAULT = new InteractionFurnitureHitboxConfig();
     public final Vector3f size;
@@ -35,12 +38,13 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
                                             Vector3f size,
                                             boolean interactive) {
         super(seats, position, canUseItemOn, blocksBuilding, canBeHitByProjectile);
+        this.colliderProperties = ColliderProperties.of(false, blocksBuilding, canBeHitByProjectile);
         this.size = size;
         this.responsive = interactive;
         this.invisible = invisible;
-        InteractionEntityData.Height.addEntityDataIfNotDefaultValue(size.y, this.cachedValues);
-        InteractionEntityData.Width.addEntityDataIfNotDefaultValue(size.x, this.cachedValues);
-        InteractionEntityData.Responsive.addEntityDataIfNotDefaultValue(interactive, this.cachedValues);
+        InteractionData.Height.addEntityDataIfNotDefaultValue(size.y, this.cachedValues);
+        InteractionData.Width.addEntityDataIfNotDefaultValue(size.x, this.cachedValues);
+        InteractionData.Response.addEntityDataIfNotDefaultValue(interactive, this.cachedValues);
         if (invisible) {
             BaseEntityData.SharedFlags.addEntityDataIfNotDefaultValue((byte) 0x20, this.cachedValues);
         }
@@ -48,6 +52,7 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
 
     private InteractionFurnitureHitboxConfig() {
         super(new SeatConfig[0], new Vector3f(), false, false, false);
+        this.colliderProperties = ColliderProperties.NONE;
         this.size = new Vector3f(1);
         this.responsive = true;
         this.invisible = false;
@@ -70,6 +75,11 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
     }
 
     @Override
+    public ColliderProperties colliderProperties() {
+        return this.colliderProperties;
+    }
+
+    @Override
     public void prepareBoundingBox(WorldPosition targetPos, Consumer<AABB> aabbConsumer, boolean ignoreBlocksBuilding) {
         if (this.blocksBuilding || ignoreBlocksBuilding) {
             Vec3d relativePosition = Furniture.getRelativePosition(targetPos, this.position);
@@ -83,9 +93,9 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
     }
 
     private static class Factory implements FurnitureHitBoxConfigFactory<InteractionFurnitureHitbox> {
-        private static final String[] CAN_USE_ITEM_ON = new String[] {"can_use_item_on", "can-use-item-on"};
-        private static final String[] BLOCKS_BUILDING = new String[] {"blocks_building", "blocks-building"};
-        private static final String[] CAN_BE_HIT_BY_PROJECTILE = new String[] {"can_be_hit_by_projectile", "can-be-hit-by-projectile"};
+        private static final String[] CAN_USE_ITEM_ON = ConfigKeys.of("can_use_item_on");
+        private static final String[] BLOCKS_BUILDING = ConfigKeys.of("blocks_building");
+        private static final String[] CAN_BE_HIT_BY_PROJECTILE = ConfigKeys.of("can_be_hit_by_projectile");
 
         @Override
         public InteractionFurnitureHitboxConfig create(ConfigSection section) {
@@ -93,9 +103,20 @@ public final class InteractionFurnitureHitboxConfig extends AbstractFurnitureHit
             float height;
             ConfigValue optionalScale = section.getValue("scale");
             if (optionalScale != null) {
-                ConfigValue[] split = optionalScale.splitValuesRestrict(",", 2);
-                width = split[0].getAsFloat();
-                height = split[1].getAsFloat();
+                String scaleString = optionalScale.getAsString();
+                String[] splitScale = scaleString.split(",");
+                if (splitScale.length == 1) {
+                    width = optionalScale.getAsFloat();
+                    height = optionalScale.getAsFloat();
+                } else if (splitScale.length == 2) {
+                    ConfigValue[] split = optionalScale.splitValuesRestrict(",", 2);
+                    width = split[0].getAsFloat();
+                    height = split[1].getAsFloat();
+                } else {
+                    ConfigValue[] split = optionalScale.splitValues(",");
+                    width = split[0].getAsFloat();
+                    height = split[1].getAsFloat();
+                }
             } else {
                 width = section.getFloat("width", 1f);
                 height = section.getFloat("height", 1f);

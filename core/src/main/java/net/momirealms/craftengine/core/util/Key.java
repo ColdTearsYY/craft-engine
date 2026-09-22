@@ -7,8 +7,8 @@ import java.util.function.UnaryOperator;
 public final class Key {
     public static final String CRAFTENGINE_NAMESPACE = "craftengine";
     public static final String MINECRAFT_NAMESPACE = "minecraft";
-    private final String namespace;
-    private final String value;
+    public final String namespace;
+    public final String value;
 
     public Key(String namespace, String value) {
         this.namespace = namespace;
@@ -45,6 +45,10 @@ public final class Key {
         return of(decompose(namespacedId, MINECRAFT_NAMESPACE));
     }
 
+    public static Key minecraft(String namespacedId) {
+        return of(decompose(namespacedId, MINECRAFT_NAMESPACE));
+    }
+
     public static Key ce(String namespacedId) {
         return of(decompose(namespacedId, CRAFTENGINE_NAMESPACE));
     }
@@ -58,13 +62,21 @@ public final class Key {
     }
 
     public String[] decompose() {
-        return new String[] { this.namespace, this.value };
+        return new String[]{ this.namespace, this.value };
     }
 
     public Key transform(UnaryOperator<String> transformer) {
         return new Key(transformer.apply(this.namespace), transformer.apply(this.value));
     }
 
+    public boolean isMinecraftNamespace() {
+        return this.namespace.equals(MINECRAFT_NAMESPACE);
+    }
+
+    public boolean isCraftEngineNamespace() {
+        return this.namespace.equals(CRAFTENGINE_NAMESPACE);
+    }
+    
     public boolean contains(String key) {
         return this.value.contains(key) || this.namespace.contains(key);
     }

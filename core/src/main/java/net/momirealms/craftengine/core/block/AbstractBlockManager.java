@@ -7,23 +7,27 @@ import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.momirealms.craftengine.core.block.behavior.BlockBehavior;
-import net.momirealms.craftengine.core.block.behavior.EmptyBlockBehavior;
-import net.momirealms.craftengine.core.block.behavior.EntityBlockBehavior;
-import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElement;
+import net.momirealms.craftengine.core.block.behavior.EntityBlock;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfig;
 import net.momirealms.craftengine.core.block.entity.render.element.BlockEntityElementConfigs;
+import net.momirealms.craftengine.core.block.entity.render.element.ConstantBlockEntityElement;
 import net.momirealms.craftengine.core.block.parser.BlockNbtParser;
-import net.momirealms.craftengine.core.block.properties.Properties;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.property.Properties;
+import net.momirealms.craftengine.core.block.property.Property;
+import net.momirealms.craftengine.core.block.setting.BlockSettings;
 import net.momirealms.craftengine.core.entity.culling.CullingData;
-import net.momirealms.craftengine.core.loot.LootTable;
+import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.loot.Loot;
+import net.momirealms.craftengine.core.pack.Identifier;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.allocator.BlockStateCandidate;
 import net.momirealms.craftengine.core.pack.allocator.IdAllocator;
 import net.momirealms.craftengine.core.pack.allocator.VisualBlockStateAllocator;
+import net.momirealms.craftengine.core.pack.model.bbmodel.BBModelConverter;
 import net.momirealms.craftengine.core.pack.model.generation.AbstractModelGenerator;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
+import net.momirealms.craftengine.core.pack.model.simplified.block.*;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
@@ -31,7 +35,10 @@ import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.EventTrigger;
+import net.momirealms.craftengine.core.plugin.context.EventTriggerResolver;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
+import net.momirealms.craftengine.core.plugin.network.mod.ClientCustomPacket;
+import net.momirealms.craftengine.core.plugin.network.mod.protocol.ClientboundVisualBlockStatesPacket;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Holder;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
@@ -51,12 +58,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 public abstract class AbstractBlockManager extends AbstractModelGenerator implements BlockManager {
+    private static final EventTriggerResolver EVENT_TRIGGER_RESOLVER = EventTriggerResolver.withAlias("break", EventTrigger.BLOCK_BREAK);
     private static final JsonElement EMPTY_VARIANT_MODEL = MiscUtils.init(new JsonObject(), o -> o.addProperty("model", "minecraft:block/empty"));
     private static final AABB DEFAULT_BLOCK_ENTITY_AABB = new AABB(-.5, -.5, -.5, .5, .5, .5);
     protected final IdSectionConfigParser blockParser = new BlockParser();
     protected final SectionConfigParser blockStateMappingParser;
     // 根据id获取自定义方块
-    protected final Map<Key, CustomBlock> byId = new ConcurrentHashMap<>(128, 0.5f);
+    protected final Map<Key, BlockDefinition> byId = new ConcurrentHashMap<>(128, 0.5f);
     // 缓存的指令建议
     protected final List<Suggestion> cachedSuggestions = new ArrayList<>(128);
     // 缓存的使用中的命名空间
@@ -64,7 +72,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
     // Map<方块类型, Map<方块状态NBT,模型>>，用于生成block state json
     protected final Map<Key, Map<String, JsonElement>> blockStateOverrides = new ConcurrentHashMap<>(128);
     // 用于生成mod使用的block state json
-    protected final Map<Key, JsonElement> modBlockStateOverrides = new ConcurrentHashMap<>(128);
+    protected final Map<Integer, JsonElement> modBlockStateOverrides = new ConcurrentHashMap<>(128);
     // 根据外观查找真实状态，用于debug指令
     protected final Map<Integer, List<Integer>> appearanceToRealState = Collections.synchronizedMap(new Int2ObjectOpenHashMap<>());
     // 用于note_block:0这样格式的自动分配
@@ -95,6 +103,16 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
     // 自动分配
     protected final IdAllocator internalIdAllocator;
     protected final VisualBlockStateAllocator visualBlockStateAllocator;
+    // 缓存的 visual_block_state 自定义包
+    private List<ClientCustomPacket> cachedClientVisualBlockStatesPackets;
+    // 简化方块模型读取
+    private static final Map<Integer, SimplifiedBlockModelReader> SIMPLIFIED_BLOCK_MODEL_READERS = Map.of(
+            1, CubeAllBlockModelReader.INSTANCE,
+            2, CubeColumnBlockModelReader.INSTANCE,
+            3, CubeBottomTopBlockModelReader.INSTANCE,
+            4, OrientableBlockModelReader.INSTANCE,
+            5, CubeFiveTexturesBlockModelReader.INSTANCE
+    );
 
     protected AbstractBlockManager(CraftEngine plugin, int vanillaBlockStateCount, int customBlockCount) {
         super(plugin);
@@ -108,8 +126,8 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         this.tempVanillaBlockStateModels = new JsonElement[vanillaBlockStateCount];
         this.blockStateMappingParser = new BlockStateMappingParser();
         this.viewBlockingBlocks = new boolean[vanillaBlockStateCount + customBlockCount];
-        this.internalIdAllocator = new IdAllocator(AbstractBlockManager.this.plugin.dataFolderPath().resolve("cache").resolve("custom-block-states.json"));
-        this.visualBlockStateAllocator = new VisualBlockStateAllocator(AbstractBlockManager.this.plugin.dataFolderPath().resolve("cache").resolve("visual-block-states.json"), this.autoVisualBlockStateCandidates, AbstractBlockManager.this::createVanillaBlockState);
+        this.internalIdAllocator = new IdAllocator(AbstractBlockManager.this.plugin.dataFolderPath().resolve("cache").resolve("custom_block_states.json"));
+        this.visualBlockStateAllocator = new VisualBlockStateAllocator(AbstractBlockManager.this.plugin.dataFolderPath().resolve("cache").resolve("visual_block_states.json"), this.autoVisualBlockStateCandidates, AbstractBlockManager.this::createVanillaBlockState);
         Arrays.fill(this.blockStateMappings, -1);
     }
 
@@ -141,7 +159,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         this.appearanceToRealState.clear();
         this.isTransparentModelInUse = false;
         Arrays.fill(this.blockStateMappings, -1);
-        Arrays.fill(this.immutableBlockStates, EmptyBlock.STATE);
+        Arrays.fill(this.immutableBlockStates, EmptyBlockDefinition.STATE);
         Arrays.fill(this.autoVisualBlockStateCandidates, null);
         for (AutoStateGroup autoStateGroup : AutoStateGroup.values()) {
             autoStateGroup.reset();
@@ -154,6 +172,16 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         this.updateTags();
         this.processSounds();
         this.clearCache();
+        this.cachedClientVisualBlockStatesPackets = ClientboundVisualBlockStatesPacket.create();
+        for (Player player : CraftEngine.instance().networkManager().onlineUsers()) {
+            if (!player.clientCustomBlockEnabled()) continue;
+            player.sendCustomPackets(this.cachedClientVisualBlockStatesPackets);
+        }
+    }
+
+    @Override
+    public List<ClientCustomPacket> cachedClientVisualBlockStatesPackets() {
+        return this.cachedClientVisualBlockStatesPackets;
     }
 
     @Override
@@ -162,12 +190,12 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
     }
 
     @Override
-    public Map<Key, CustomBlock> loadedBlocks() {
+    public Map<Key, BlockDefinition> loadedBlocks() {
         return Collections.unmodifiableMap(this.byId);
     }
 
     @Override
-    public Optional<CustomBlock> blockById(Key id) {
+    public Optional<BlockDefinition> blockById(Key id) {
         return Optional.ofNullable(this.byId.get(id));
     }
 
@@ -175,7 +203,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         return this.blockStateArranger;
     }
 
-    protected abstract void applyPlatformSettings(CustomBlock block, ImmutableBlockState state);
+    protected abstract void applyPlatformSettings(BlockDefinition block, ImmutableBlockState state);
 
     @Override
     public ConfigParser[] parsers() {
@@ -183,7 +211,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
     }
 
     @Override
-    public Map<Key, JsonElement> modBlockStates() {
+    public Map<Integer, JsonElement> modBlockStates() {
         return Collections.unmodifiableMap(this.modBlockStateOverrides);
     }
 
@@ -221,7 +249,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         this.cachedSuggestions.clear();
         this.namespacesInUse.clear();
         Set<String> states = new HashSet<>();
-        for (CustomBlock block : this.byId.values()) {
+        for (BlockDefinition block : this.byId.values()) {
             states.add(block.id().toString());
             this.namespacesInUse.add(block.id().namespace());
             for (ImmutableBlockState state : block.variantProvider().states()) {
@@ -240,7 +268,9 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
 
     public abstract void registerBlockStatePacketListener();
 
-    public abstract BlockBehavior createBlockBehavior(CustomBlock customBlock, ConfigValue value);
+    public abstract BlockBehavior createFallbackBehavior(BlockDefinition definition);
+
+    public abstract BlockBehavior createBlockBehavior(BlockDefinition blockDefinition, ConfigValue value);
 
     public boolean isViewBlockingBlock(int stateId) {
         return this.viewBlockingBlocks[stateId];
@@ -252,20 +282,23 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
 
     protected abstract Key getBlockOwnerId(int id);
 
-    protected abstract void setVanillaBlockTags(Key id, List<String> tags);
-
-    protected abstract int vanillaBlockStateCount();
+    protected abstract void setVanillaBlockTags(Key id, List<Key> tags);
 
     protected abstract void processSounds();
 
-    protected abstract CustomBlock createCustomBlock(@NotNull Holder.Reference<CustomBlock> holder,
-                                                     @NotNull BlockStateVariantProvider variantProvider,
-                                                     @NotNull Map<EventTrigger, List<Function<Context>>> events,
-                                                     @Nullable LootTable lootTable);
+    protected abstract BlockDefinition createCustomBlock(@NotNull Holder.Reference<BlockDefinition> holder,
+                                                         @NotNull BlockStateVariantProvider variantProvider,
+                                                         @NotNull Map<EventTrigger, List<Function<Context>>> events,
+                                                         @Nullable Loot loot);
 
     private final class BlockStateMappingParser extends SectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[]{"block-state-mappings", "block-state-mapping", "block_state_mappings", "block_state_mapping"};
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("block_state_mapping(s)");
         private int count;
+
+        @Override
+        public Key type() {
+            return Key.ce("block_state_mapping");
+        }
 
         @Override
         public String[] sectionId() {
@@ -289,10 +322,8 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
 
         @Override
         public void parseSection(Pack pack, Path path, ConfigSection section) {
-            Map<String, Object> values = section.values();
-            for (Map.Entry<String, Object> entry : values.entrySet()) {
-                String before = entry.getKey();
-                String after = entry.getValue().toString();
+            for (String before : section.keySet()) {
+                String after = section.getNonEmptyString(before);
                 BlockStateWrapper beforeState = createVanillaBlockState(before);
                 BlockStateWrapper afterState = createVanillaBlockState(after);
                 if (beforeState == null) {
@@ -332,7 +363,12 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
     }
 
     private final class BlockParser extends IdSectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[]{"blocks", "block"};
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("block(s)");
+
+        @Override
+        public Key type() {
+            return Key.ce("block");
+        }
 
         @Override
         public int count() {
@@ -352,14 +388,32 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         @Override
         public void postProcess() {
             AbstractBlockManager.this.internalIdAllocator.processPendingAllocations();
-            AbstractBlockManager.this.internalIdAllocator.combinedFuture().join();
+            for (CompletableFuture<?> future : AbstractBlockManager.this.internalIdAllocator.combinedFutures()) {
+                try {
+                    future.join();
+                } catch (CompletionException e) {
+                    if (e.getCause() instanceof IdAllocator.IdExhaustedException) {
+                        continue;
+                    }
+                    AbstractBlockManager.this.plugin.logger().warn("Error while assigning internal block states", e);
+                }
+            }
             try {
                 AbstractBlockManager.this.internalIdAllocator.saveToCache();
             } catch (IOException e) {
                 AbstractBlockManager.this.plugin.logger().warn("Error while saving custom block states allocation", e);
             }
             AbstractBlockManager.this.visualBlockStateAllocator.processPendingAllocations();
-            AbstractBlockManager.this.visualBlockStateAllocator.combinedFuture().join();
+            for (CompletableFuture<?> future : AbstractBlockManager.this.visualBlockStateAllocator.combinedFutures()) {
+                try {
+                    future.join();
+                } catch (CompletionException e) {
+                    if (e.getCause() instanceof VisualBlockStateAllocator.StateExhaustedException) {
+                        continue;
+                    }
+                    AbstractBlockManager.this.plugin.logger().warn("Error while assigning visual block states", e);
+                }
+            }
             try {
                 AbstractBlockManager.this.visualBlockStateAllocator.saveToCache();
             } catch (IOException e) {
@@ -391,7 +445,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
 
         @Override
         public boolean async() {
-            return true;
+            return Config.multiThreadedConfigLoad();
         }
 
         @Override
@@ -399,36 +453,38 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             if (isVanillaBlock(id)) {
                 parseVanillaBlock(id, section);
             } else {
-                parseCustomBlock(path, id, section);
+                parseCustomBlock(pack, path, id, section);
             }
         }
 
-        private static final String[] CLIENT_BOUND_TAGS = new String[]{"client_bound_tags", "client-bound-tags"};
+        private static final String[] CLIENT_BOUND_TAGS = ConfigKeys.of("client_bound_tags");
 
         private void parseVanillaBlock(Key id, ConfigSection section) {
             ConfigSection settingsSection = section.getSection("settings");
             if (settingsSection != null) {
                 ConfigValue configValue = settingsSection.getValue(CLIENT_BOUND_TAGS);
                 if (configValue != null) {
-                    List<String> tags = configValue.getAsList(v -> v.getAsIdentifier().asString());
+                    List<Key> tags = configValue.getAsList(ConfigValue::getAsIdentifier);
                     AbstractBlockManager.this.setVanillaBlockTags(id, tags);
                 }
             }
         }
 
-        private static final String[] STATE = new String[]{"state", "states"};
-        private static final String[] EVENTS = new String[]{"events", "event"};
-        private static final String[] AUTO_STATE = new String[]{"auto_state", "auto-state"};
-        private static final String[] MODELS = new String[]{"model", "models"};
-        private static final String[] ENTITY_RENDERER = new String[]{"entity_renderer", "entity-renderer", "entity_render", "entity-render"};
-        private static final String[] ENTITY_CULLING = new String[]{"entity_culling", "entity-culling"};
-        private static final String[] BEHAVIOR = new String[]{"behavior", "behaviors"};
-        private static final String[] VIEW_DISTANCE = new String[]{"view_distance", "view-distance"};
-        private static final String[] AABB_EXPANSION = new String[]{"aabb_expansion", "aabb-expansion"};
-        private static final String[] RAY_TRACING = new String[]{"ray_tracing", "ray-tracing"};
-        private static final String[] APPEARANCE = new String[]{"appearance", "appearances"};
+        private static final String[] STATE = ConfigKeys.of("state(s)");
+        private static final String[] EVENTS = ConfigKeys.of("event(s)");
+        private static final String[] AUTO_STATE = ConfigKeys.of("auto_state");
+        private static final String[] MODELS = ConfigKeys.of("model(s)");
+        private static final String[] ENTITY_RENDERER = ConfigKeys.of("entity_render(er)");
+        private static final String[] ENTITY_CULLING = ConfigKeys.of("entity_culling");
+        private static final String[] BEHAVIOR = ConfigKeys.of("behavior(s)");
+        private static final String[] VIEW_DISTANCE = ConfigKeys.of("view_distance");
+        private static final String[] AABB_EXPANSION = ConfigKeys.of("aabb_expansion");
+        private static final String[] RAY_TRACING = ConfigKeys.of("ray_tracing");
+        private static final String[] APPEARANCE = ConfigKeys.of("appearance(s)");
+        private static final String[] PATH = ConfigKeys.of("path|model");
+        private static final String[] TEXTURE = ConfigKeys.of("texture(s)");
 
-        private void parseCustomBlock(Path path, Key id, ConfigSection section) {
+        private void parseCustomBlock(Pack pack, Path path, Key id, ConfigSection section) {
             // 获取共享方块设置 （可异常）
             BlockSettings settings = BlockSettings.of().itemId(id);
             try {
@@ -442,12 +498,12 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             // 读取方块属性
             Map<String, Property<?>> properties = stateSection.getValue("properties", v -> parseBlockProperties(v.getAsSection()), Map.of());
             // 注册方块容器
-            Holder.Reference<CustomBlock> holder = ((WritableRegistry<CustomBlock>) BuiltInRegistries.BLOCK).getOrRegisterForHolder(ResourceKey.create(BuiltInRegistries.BLOCK.key().location(), id));
+            Holder.Reference<BlockDefinition> holder = ((WritableRegistry<BlockDefinition>) BuiltInRegistries.BLOCK).getOrRegisterForHolder(ResourceKey.create(BuiltInRegistries.BLOCK.key().location(), id));
             // 先绑定无效方块，防止因为后续报错导致未绑定
-            holder.bindValue(new InactiveCustomBlock(holder));
+            holder.bindValue(new InactiveBlockDefinition(holder));
             // 根据properties生成variant provider
-            BlockStateVariantProvider variantProvider = new BlockStateVariantProvider(holder, (owner, propertyMap) -> {
-                ImmutableBlockState blockState = new ImmutableBlockState(owner, propertyMap);
+            BlockStateVariantProvider variantProvider = new BlockStateVariantProvider(holder, (owner, provider, propertyMap) -> {
+                ImmutableBlockState blockState = new ImmutableBlockState(owner, provider, propertyMap);
                 blockState.setSettings(settings);
                 return blockState;
             }, properties);
@@ -507,10 +563,10 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                         Throwable cause = e.getCause();
                         // 这里不会有conflict了，因为之前已经判断过了
                         if (cause instanceof IdAllocator.IdExhaustedException) {
-                            throw new KnownResourceException("resource.block.state.real_state_exhausted", stateSection.path());
+                            error(new KnownResourceException(path, "resource.block.state.real_state_exhausted", stateSection.path()));
                         }
                     }
-                    ThrowableUtils.sneakyThrow(t1);
+                    return;
                 }
 
                 // 将自定义状态与nms状态绑定
@@ -526,29 +582,41 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 }
 
                 // 解析事件 （可异常）
-                Map<EventTrigger, List<Function<Context>>> events = new EnumMap<>(EventTrigger.class);
+                Map<EventTrigger, List<Function<Context>>> events = new HashMap<>();
                 try {
-                    CommonFunctions.parseEvents(section.getValue(EVENTS), (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>(4)).add(f));
+                    CommonFunctions.parseEvents(
+                            section.getValue(EVENTS),
+                            EVENT_TRIGGER_RESOLVER,
+                            (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>(4)).add(f));
                 } catch (KnownResourceException e) {
                     error(e, path);
                 }
 
                 // 解析战利品表 （可异常）
-                LootTable lootTable = null;
+                Loot loot = null;
                 try {
-                    lootTable = section.getValue("loot", v -> LootTable.fromConfig(v.getAsSection()));
+                    loot = section.getValue("loot", ConfigValue::getAsLoot);
                 } catch (KnownResourceException e) {
                     error(e, path);
                 }
 
                 // 创建自定义方块
-                AbstractCustomBlock customBlock = (AbstractCustomBlock) createCustomBlock(holder, variantProvider, events, lootTable);
+                AbstractBlockDefinition customBlock = (AbstractBlockDefinition) createCustomBlock(holder, variantProvider, events, loot);
 
                 // 读取外观设置
                 Map<String, ConfigSection> appearanceConfigs;
                 Map<String, CompletableFuture<BlockStateWrapper>> futureVisualStates = new HashMap<>();
                 if (properties.isEmpty()) {
-                    appearanceConfigs = Map.of("", stateSection);
+                    // 兼容无属性方块用 appearances 包裹单一外观
+                    ConfigSection appearancesSection = stateSection.getSection(APPEARANCE);
+                    if (appearancesSection != null && !appearancesSection.keySet().isEmpty()) {
+                        if (appearancesSection.keySet().size() > 1) {
+                            error(new KnownResourceException(path, "resource.block.state.appearance_without_properties", appearancesSection.path()));
+                        }
+                        appearanceConfigs = Map.of("", appearancesSection.getNonNullSection(appearancesSection.keySet().iterator().next()));
+                    } else {
+                        appearanceConfigs = Map.of("", stateSection);
+                    }
                 } else {
                     appearanceConfigs = new LinkedHashMap<>(4);
                     ConfigSection appearanceSection = stateSection.getNonNullSection(APPEARANCE);
@@ -587,7 +655,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                                 appearanceName,
                                 AbstractBlockManager.this.visualBlockStateAllocator.assignFixedBlockState(
                                         appearanceName.isEmpty() ? id.asString() : id.asString() + ":" + appearanceName,
-                                        stateValue.getAsBlockState()
+                                        stateValue.getAsVanillaBlockState()
                                 )
                         );
                     }
@@ -598,14 +666,18 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                         if (t2 instanceof CompletionException e) {
                             Throwable cause = e.getCause();
                             if (cause instanceof VisualBlockStateAllocator.StateExhaustedException exhausted) {
-                                throw new KnownResourceException("resource.block.state.visual_state_exhausted",
+                                error(new KnownResourceException(path,
+                                        "resource.block.state.visual_state_exhausted",
+                                        stateSection.path(),
                                         exhausted.group().id(),
                                         String.valueOf(exhausted.group().candidateCount()),
                                         exhausted.appearance()
-                                );
+                                ));
+                                return;
                             }
                         }
-                        ThrowableUtils.sneakyThrow(t2);
+                        // 并不改变 future 结果
+                        return;
                     }
 
                     BlockStateAppearance anyAppearance = null;
@@ -623,9 +695,44 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                             AbstractBlockManager.this.isTransparentModelInUse = true;
                             this.arrangeModelForStateAndVerify(visualBlockState, EMPTY_VARIANT_MODEL, appearanceSection.path());
                         } else {
+                            ConfigValue textureValue = appearanceSection.getValue(TEXTURE);
                             ConfigValue modelValue = appearanceSection.getValue(MODELS);
-                            if (modelValue != null) {
-                                this.arrangeModelForStateAndVerify(visualBlockState, parseBlockModel(modelValue), modelValue.path());
+                            ConfigValue blueprintValue = appearanceSection.getValue("blueprint");
+                            if (blueprintValue != null) {
+                                BBModelConverter.Converted converted = BBModelConverter.convert(pack, path, "block", modelValue, blueprintValue);
+                                JsonObject json = new JsonObject();
+                                json.addProperty("model", converted.model().asMinimalString());
+                                applyOtherBlockStateProperties(json, appearanceSection);
+                                prepareModelGeneration(new ModelGenerationHolder(converted.model(), ModelGeneration.raw(converted.json(), converted.textures())));
+                                arrangeModelForStateAndVerify(visualBlockState, json, blueprintValue.path());
+                            } else if (textureValue != null) {
+                                Pair<List<Key>, Key> pair = parseTextures(textureValue);
+                                ConfigValue activeConfigValue;
+                                Key modelPath;
+                                if (modelValue != null) {
+                                    modelPath = modelValue.getAsAssetPath();
+                                    activeConfigValue = modelValue;
+                                } else if (pair.left().size() == 1) {
+                                    modelPath = pair.left().getFirst();
+                                    activeConfigValue = textureValue;
+                                } else {
+                                    // 这里肯定会报错的
+                                    appearanceSection.getNonNullIdentifier(MODELS);
+                                    continue;
+                                }
+
+                                JsonObject json = new JsonObject();
+                                json.addProperty("model", modelPath.asMinimalString());
+                                applyOtherBlockStateProperties(json, appearanceSection);
+
+                                SimplifiedBlockModelReader reader = SIMPLIFIED_BLOCK_MODEL_READERS.getOrDefault(pair.left().size(), CubeBlockModelReader.INSTANCE);
+                                ModelGeneration gen = reader.read(pair.left(), pair.right());
+                                prepareModelGeneration(new ModelGenerationHolder(modelPath, gen));
+                                arrangeModelForStateAndVerify(visualBlockState, json, activeConfigValue.path());
+                            } else {
+                                if (modelValue != null) {
+                                    arrangeModelForStateAndVerify(visualBlockState, parseBlockModel(pack, path, modelValue), modelValue.path());
+                                }
                             }
                         }
                         BlockStateAppearance blockStateAppearance = new BlockStateAppearance(
@@ -667,7 +774,7 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                                 }
 
                                 // 绑定方块外观
-                                String appearanceName = variantSection.getString("appearance");
+                                String appearanceName = variantSection.getString(APPEARANCE);
                                 if (appearanceName != null) {
                                     BlockStateAppearance appearance = appearances.get(appearanceName);
                                     if (appearance == null) {
@@ -690,18 +797,20 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                         blockBehavior = createBlockBehavior(customBlock, section.getValue(BEHAVIOR));
                     } catch (KnownResourceException e) {
                         error(e, path);
-                        blockBehavior = new EmptyBlockBehavior(customBlock);
+                        blockBehavior = createFallbackBehavior(customBlock);
                     }
 
                     // 获取方块实体行为
-                    EntityBlockBehavior entityBlockBehavior = blockBehavior.getEntityBehavior();
-                    boolean isEntityBlock = entityBlockBehavior != null;
+                    boolean isEntityBlock = blockBehavior.getFirst(EntityBlock.class) != null;
+                    if (isEntityBlock && blockBehavior instanceof EntityBlock entityBlock) {
+                        entityBlock.initControllerId(0);
+                    }
 
                     // 绑定行为
                     for (ImmutableBlockState state : states) {
 
                         if (isEntityBlock) {
-                            state.setBlockEntityType(entityBlockBehavior.blockEntityType(state));
+                            state.setHasBlockEntity();
                         }
 
                         state.setBehavior(blockBehavior);
@@ -724,14 +833,14 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                         AbstractBlockManager.this.tempVisualBlockStatesInUse.add(visualState);
                         AbstractBlockManager.this.tempVisualBlocksInUse.add(getBlockOwnerId(visualState));
                         AbstractBlockManager.this.applyPlatformSettings(customBlock, state);
-                        // generate mod assets
-                        if (Config.generateModAssets()) {
-                            AbstractBlockManager.this.modBlockStateOverrides.put(
-                                    BlockManager.createCustomBlockKey(index),
-                                    // 如果未指定模型，说明复用原版模型？但是插件目前无法得知其原版变体模型，且部分模型是多部位模型，无法使用变体解决问题
-                                    Optional.ofNullable(AbstractBlockManager.this.tempVanillaBlockStateModels[appearanceId]).orElse(EMPTY_VARIANT_MODEL)
-                            );
+                        // 生成 mod 资产
+                        JsonElement model = AbstractBlockManager.this.tempVanillaBlockStateModels[appearanceId];
+                        // 如果未指定模型，说明复用原版模型？但是插件目前无法得知其原版变体模型，且部分模型是多部位模型，无法使用变体解决问题
+                        if (model == null) {
+                            model = EMPTY_VARIANT_MODEL;
+                            AbstractBlockManager.this.isTransparentModelInUse = true;
                         }
+                        AbstractBlockManager.this.modBlockStateOverrides.put(index, model);
                     }
 
                     // 一定要到最后再绑定
@@ -743,6 +852,28 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
                 }, super.errorHandler), AbstractBlockManager.this.plugin.scheduler().async()));
 
             }, super.errorHandler), AbstractBlockManager.this.plugin.scheduler().async()));
+        }
+
+        private Pair<List<Key>, Key> parseTextures(ConfigValue textureValue) {
+            List<Key> textures = new ArrayList<>(6);
+            ObjectHolder<Key> particleKey = new ObjectHolder<>();
+            textureValue.forEach(v -> {
+                String string = v.getAsString();
+                boolean isParticle = false;
+                if (string.startsWith("^")) {
+                    string = string.substring(1);
+                    isParticle = true;
+                }
+                String stringFormat = CharacterUtils.replaceBackslashWithSlash(string.toLowerCase(Locale.ROOT));
+                if (Identifier.isValid(stringFormat)) {
+                    Key key = Key.of(stringFormat);
+                    textures.add(key);
+                    if (isParticle) particleKey.bindValue(key);
+                } else {
+                    throw new KnownResourceException(ConfigConstants.PARSE_IDENTIFIER_FAILED, v.path(), string);
+                }
+            });
+            return Pair.of(textures, particleKey.value());
         }
 
         private CullingData parseCullingData(@Nullable ConfigValue value) {
@@ -763,9 +894,9 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         }
 
         @SuppressWarnings("unchecked")
-        private Optional<BlockEntityElementConfig<? extends BlockEntityElement>[]> parseBlockEntityRender(ConfigValue arguments) {
+        private Optional<BlockEntityElementConfig<? extends ConstantBlockEntityElement>[]> parseBlockEntityRender(ConfigValue arguments) {
             if (arguments == null) return Optional.empty();
-            List<BlockEntityElementConfig<BlockEntityElement>> configs = arguments.getAsList(v -> BlockEntityElementConfigs.fromConfig(v.getAsSection()));
+            List<BlockEntityElementConfig<ConstantBlockEntityElement>> configs = arguments.getAsList(v -> BlockEntityElementConfigs.fromConfig(v.getAsSection()));
             if (configs.isEmpty()) return Optional.empty();
             return Optional.of(configs.toArray(new BlockEntityElementConfig[0]));
         }
@@ -781,15 +912,15 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
         }
 
         @Nullable
-        private JsonElement parseBlockModel(ConfigValue modelOrModels) {
+        private JsonElement parseBlockModel(Pack pack, Path path, ConfigValue modelOrModels) {
             if (modelOrModels == null) return null;
             List<JsonObject> variants;
             if (modelOrModels.is(List.class)) {
-                variants = modelOrModels.getAsNonEmptyList(v -> this.parseAppearanceModelSectionAsJson(v.getAsSection()));
+                variants = modelOrModels.getAsNonEmptyList(v -> this.parseAppearanceModelSectionAsJson(pack, path, v.getAsSection()));
             } else if (modelOrModels.is(Map.class)) {
-                variants = List.of(this.parseAppearanceModelSectionAsJson(modelOrModels.getAsSection()));
+                variants = List.of(this.parseAppearanceModelSectionAsJson(pack, path, modelOrModels.getAsSection()));
             } else {
-                variants = List.of(MiscUtils.init(new JsonObject(), j -> j.addProperty("model", modelOrModels.getAsIdentifier().asMinimalString())));
+                variants = List.of(MiscUtils.init(new JsonObject(), j -> j.addProperty("model", modelOrModels.getAsAssetPath().asMinimalString())));
             }
             return variants.isEmpty() ? null : minimizeVariant(variants);
         }
@@ -823,27 +954,87 @@ public abstract class AbstractBlockManager extends AbstractModelGenerator implem
             AbstractBlockManager.this.tempVanillaBlockStateModels[blockStateWrapper.registryId()] = variant;
         }
 
-        private static final String[] PATH = new String[] {"path", "model"};
-
-        private JsonObject parseAppearanceModelSectionAsJson(ConfigSection section) {
+        private JsonObject parseAppearanceModelSectionAsJson(Pack pack, Path path, ConfigSection section) {
             JsonObject json = new JsonObject();
-            Key modelPath = section.getNonNullIdentifier(PATH);
+            // 可选的 textures
+            ConfigValue textureValue = section.getValue(TEXTURE);
+            Pair<List<Key>, Key> pair = null;
+            if (textureValue != null) {
+                pair = parseTextures(textureValue);
+            }
+
+            Key modelPath;
+            // 显式指定 bbmodel 源文件：path 可选，用于指定生成 json 的路径
+            ConfigValue blueprintValue = section.getValue("blueprint");
+            ConfigValue pathValue = section.getValue(PATH);
+            if (blueprintValue != null) {
+                BBModelConverter.Converted converted = BBModelConverter.convert(pack, path, "block", pathValue, blueprintValue);
+                modelPath = converted.model();
+                prepareModelGeneration(new ModelGenerationHolder(modelPath, ModelGeneration.raw(converted.json(), converted.textures())));
+            }
+            // 直接设定了 path
+            else if (pathValue != null) {
+                modelPath = section.getNonNullAssetPath(PATH);
+            }
+            // 单贴图生成的情况下，读第一个贴图的路径
+            else if (pair != null && pair.left().size() == 1) {
+                modelPath = pair.left().getFirst();
+            }
+            // 否则强制要 path
+            else {
+                modelPath = section.getNonNullAssetPath(PATH);
+            }
             json.addProperty("model", modelPath.asMinimalString());
-            if (section.containsKey("x"))
-                json.addProperty("x", section.getInt("x"));
-            if (section.containsKey("y"))
-                json.addProperty("y", section.getInt("y"));
-            if (section.containsKey("z"))
-                json.addProperty("z", section.getInt("z"));
+            // 添加其他的属性
+            applyOtherBlockStateProperties(json, section);
+            // 有模型生成优先走模型生成
+            ConfigSection generationSection = section.getSection("generation");
+            if (generationSection != null) {
+                prepareModelGeneration(new ModelGenerationHolder(modelPath, ModelGeneration.of(generationSection)));
+            } else if (pair != null && !pair.left().isEmpty()) {
+                // 否则使用textures，根据textures数量拿预设模型
+                SimplifiedBlockModelReader reader = SIMPLIFIED_BLOCK_MODEL_READERS.getOrDefault(pair.left().size(), CubeBlockModelReader.INSTANCE);
+                ModelGeneration gen = reader.read(pair.left(), pair.right());
+                prepareModelGeneration(new ModelGenerationHolder(modelPath, gen));
+            }
+            return json;
+        }
+
+        private void applyOtherBlockStateProperties(JsonObject json, ConfigSection section) {
+            if (section.containsKey("x")) {
+                int x = section.getInt("x");
+                if (x != 0) {
+                    if (x % 90 == 0) {
+                        json.addProperty("x", x);
+                    } else {
+                        throw new KnownResourceException("resource.block.state.invalid_rotation", section.path(), "x", String.valueOf(x));
+                    }
+                }
+            }
+            if (section.containsKey("y")) {
+                int y = section.getInt("y");
+                if (y != 0) {
+                    if (y % 90 == 0) {
+                        json.addProperty("y", y);
+                    } else {
+                        throw new KnownResourceException("resource.block.state.invalid_rotation", section.path(), "y", String.valueOf(y));
+                    }
+                }
+            }
+            if (section.containsKey("z")) {
+                int z = section.getInt("z");
+                if (z != 0) {
+                    if (z % 90 == 0) {
+                        json.addProperty("z", z);
+                    } else {
+                        throw new KnownResourceException("resource.block.state.invalid_rotation", section.path(), "z", String.valueOf(z));
+                    }
+                }
+            }
             if (section.containsKey("uvlock"))
                 json.addProperty("uvlock", section.getBoolean("uvlock"));
             if (section.containsKey("weight"))
                 json.addProperty("weight", section.getInt("weight"));
-            ConfigSection generationSection = section.getSection("generation");
-            if (generationSection != null) {
-                prepareModelGeneration(new ModelGenerationHolder(modelPath, ModelGeneration.of(generationSection)));
-            }
-            return json;
         }
     }
 

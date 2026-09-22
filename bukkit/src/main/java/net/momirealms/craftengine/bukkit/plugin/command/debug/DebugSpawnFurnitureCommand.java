@@ -4,7 +4,7 @@ import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurnitureManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
-import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureDefinition;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.FlagKeys;
@@ -48,7 +48,7 @@ public final class DebugSpawnFurnitureCommand extends BukkitCommandFeature<Comma
                         NamespacedKey namespacedKey = context.get("id");
                         Key id = KeyUtils.namespacedKeyToKey(namespacedKey);
                         BukkitFurnitureManager furnitureManager = BukkitFurnitureManager.instance();
-                        Optional<CustomFurniture> optionalCustomFurniture = furnitureManager.furnitureById(id);
+                        Optional<FurnitureDefinition> optionalCustomFurniture = furnitureManager.furnitureById(id);
                         return optionalCustomFurniture.<CompletableFuture<? extends Iterable<? extends Suggestion>>>map(config -> CompletableFuture.completedFuture(config.variants().keySet().stream().map(Suggestion::suggestion).toList())).orElseGet(() -> CompletableFuture.completedFuture(List.of()));
                     }
                 }))
@@ -57,16 +57,31 @@ public final class DebugSpawnFurnitureCommand extends BukkitCommandFeature<Comma
                     NamespacedKey namespacedKey = context.get("id");
                     Key id = KeyUtils.namespacedKeyToKey(namespacedKey);
                     BukkitFurnitureManager furnitureManager = BukkitFurnitureManager.instance();
-                    Optional<CustomFurniture> optionalCustomFurniture = furnitureManager.furnitureById(id);
+                    Optional<FurnitureDefinition> optionalCustomFurniture = furnitureManager.furnitureById(id);
                     if (optionalCustomFurniture.isEmpty()) {
+                        if (!context.flags().hasFlag("silent")) {
+                            plugin().senderFactory().wrap(context.sender()).sendMessage(
+                                    DebugCommandOutput.error("Unknown furniture '" + id + "'"));
+                        }
                         return;
                     }
                     Location location = context.get("location");
-                    CustomFurniture customFurniture = optionalCustomFurniture.get();
-                    String variant = (String) context.optional("variant").orElse(customFurniture.anyVariantName());
+                    FurnitureDefinition furnitureDefinition = optionalCustomFurniture.get();
+                    String variant = (String) context.optional("variant").orElse(furnitureDefinition.anyVariantName());
                     boolean playSound = context.flags().hasFlag("silent");
-                    CraftEngineFurniture.place(location, customFurniture, variant, playSound);
+                    CraftEngineFurniture.place(location, furnitureDefinition, variant, playSound);
+                    if (!context.flags().hasFlag("silent")) {
+                        var sender = plugin().senderFactory().wrap(context.sender());
+                        sender.sendMessage(DebugCommandOutput.success("Spawned debug furniture"));
+                        sender.sendMessage(DebugCommandOutput.value("Furniture", id));
+                        sender.sendMessage(DebugCommandOutput.value("Variant", variant));
+                        sender.sendMessage(DebugCommandOutput.value("Location", formatLocation(location)));
+                    }
                 });
+    }
+
+    private static String formatLocation(Location location) {
+        return location.getWorld().getName() + " @ " + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ();
     }
 
     @Override

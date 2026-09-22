@@ -18,12 +18,19 @@ public interface RegistriesProxy {
     Object FLUID = INSTANCE.getFluid();
     Object RECIPE_TYPE = INSTANCE.getRecipeType();
     Object DIMENSION_TYPE = INSTANCE.getDimensionType();
+    Object DIMENSION = INSTANCE.getDimension();
     Object CONFIGURED_FEATURE = INSTANCE.getConfiguredFeature();
     Object PLACED_FEATURE = INSTANCE.getPlacedFeature();
     Object TRIM_PATTERN = INSTANCE.getTrimPattern();
     Object TRIM_MATERIAL = INSTANCE.getTrimMaterial();
     Object JUKEBOX_SONG = INSTANCE.getJukeboxSong();
     Object RECIPE = INSTANCE.getRecipe();
+    Object LOOT_TABLE = INSTANCE.getLootTable();
+    Object PAINTING_VARIANT = INSTANCE.getPaintingVariant();
+    Object STRUCTURE = INSTANCE.getStructure();
+
+    @FieldGetter(name = "ROOT_REGISTRY_NAME", isStatic = true, activeIf = "min_version=1.20.4")
+    Object getRootRegistryName();
 
     @FieldGetter(name = "BLOCK", isStatic = true)
     Object getBlock();
@@ -58,6 +65,9 @@ public interface RegistriesProxy {
     @FieldGetter(name = "DIMENSION_TYPE", isStatic = true)
     Object getDimensionType();
 
+    @FieldGetter(name = "DIMENSION", isStatic = true)
+    Object getDimension();
+
     @FieldGetter(name = "CONFIGURED_FEATURE", isStatic = true)
     Object getConfiguredFeature();
 
@@ -79,4 +89,15 @@ public interface RegistriesProxy {
     default Object getRecipe() {
         return null;
     }
+
+    @FieldGetter(name = "LOOT_TABLE", isStatic = true, activeIf = "min_version=1.20.5")
+    default Object getLootTable() {
+        return null;
+    }
+
+    @FieldGetter(name = "PAINTING_VARIANT", isStatic = true)
+    Object getPaintingVariant();
+
+    @FieldGetter(name = "STRUCTURE", isStatic = true)
+    Object getStructure();
 }

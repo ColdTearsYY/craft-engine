@@ -31,11 +31,17 @@ public interface AbstractContainerMenuProxy {
     @MethodInvoker(name = "broadcastChanges")
     void broadcastChanges(Object target);
 
+    @MethodInvoker(name = "incrementStateId")
+    int incrementStateId(Object target);
+
     @MethodInvoker(name = "getSlot")
     Object getSlot(Object target, int slotIndex);
 
     @FieldGetter(name = "dataSlots")
     List<Object> getDataSlots(Object target);
+
+    @FieldGetter(name = "slots")
+    List<Object> getSlots(Object target);
 
     @MethodInvoker(name = "getCarried")
     Object getCarried(Object target);

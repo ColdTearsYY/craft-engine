@@ -2,11 +2,14 @@ package net.momirealms.craftengine.core.plugin.config;
 
 import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
+import net.momirealms.craftengine.core.util.Key;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public interface ConfigParser {
+
+    Key type();
 
     String[] sectionId();
 
@@ -31,7 +34,7 @@ public interface ConfigParser {
     void setErrorHandler(Consumer<ResourceException> errorHandler);
 
     default int count() {
-        return -1;
+        return 0;
     }
 
     default boolean silentIfNotExists() {

@@ -4,6 +4,7 @@ import com.google.gson.*;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
+import net.momirealms.craftengine.core.plugin.command.sender.Sender;
 import net.momirealms.craftengine.core.util.FileUtils;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import org.bukkit.command.CommandSender;
@@ -29,64 +30,68 @@ public final class DebugGenerateInternalAssetsCommand extends BukkitCommandFeatu
     @Override
     public Command.Builder<? extends CommandSender> assembleCommand(org.incendo.cloud.CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
-                .required("path", StringParser.stringParser())
+                .required("path", StringParser.stringComponent(StringParser.StringMode.GREEDY_FLAG_YIELDING))
                 .handler(context -> {
                     // 这里指向的完整的minecraft原版资源包文件夹路径
                     String pathName = context.get("path");
-                    Path resourcePackPath = this.plugin().dataFolderPath().resolve(pathName);
+                    Path resourcePackPath = this.plugin().dataFolderPath().resolve(pathName.replace('\\', '/'));
+                    Sender sender = plugin().senderFactory().wrap(context.sender());
                     if (!Files.exists(resourcePackPath)) {
-                        context.sender().sendMessage("Could not find path: " + resourcePackPath);
+                        sender.sendMessage(DebugCommandOutput.error("Resource-pack path does not exist"));
+                        sender.sendMessage(DebugCommandOutput.value("Path", resourcePackPath));
                         return;
                     }
                     Path assetsPath = resourcePackPath.resolve("assets");
                     Path internalPath = resourcePackPath.resolve("internal");
                     if (!Files.exists(assetsPath)) {
-                        context.sender().sendMessage("Could not find path: " + assetsPath);
+                        sender.sendMessage(DebugCommandOutput.error("Assets path does not exist"));
+                        sender.sendMessage(DebugCommandOutput.value("Path", assetsPath));
                         return;
                     }
                     Path minecraftNamespacePath = assetsPath.resolve("minecraft");
                     if (!Files.exists(minecraftNamespacePath)) {
-                        context.sender().sendMessage("Could not find path: " + minecraftNamespacePath);
+                        sender.sendMessage(DebugCommandOutput.error("Minecraft namespace path does not exist"));
+                        sender.sendMessage(DebugCommandOutput.value("Path", minecraftNamespacePath));
                         return;
                     }
 
                     // 复制atlas
                     {
-                        Path atlasPath = minecraftNamespacePath.resolve("atlases").resolve("blocks.json");
-                        Path assetsAtlasPath = internalPath.resolve("atlases").resolve("blocks.json");
-                        try {
-                            Files.createDirectories(assetsAtlasPath.getParent());
-                            Files.copy(atlasPath, assetsAtlasPath, StandardCopyOption.REPLACE_EXISTING);
-                        } catch (IOException e) {
-                            plugin().logger().warn("Failed to copy atlas file", e);
+                        for (String fileName : List.of("blocks.json", "items.json")) {
+                            Path atlasPath = minecraftNamespacePath.resolve("atlases").resolve(fileName);
+                            Path assetsAtlasPath = internalPath.resolve("atlases").resolve(fileName);
+                            try {
+                                Files.createDirectories(assetsAtlasPath.getParent());
+                                Files.copy(atlasPath, assetsAtlasPath, StandardCopyOption.REPLACE_EXISTING);
+                            } catch (IOException e) {
+                                plugin().logger().warn("Failed to copy atlas file", e);
+                            }
                         }
                     }
 
                     // 复制sounds
                     {
                         Path soundPath = minecraftNamespacePath.resolve("sounds.json");
-                        if (Files.exists(soundPath)) {
-                            Path targetSoundPath = internalPath.resolve("sounds.json");
-                            try {
-                                Files.createDirectories(targetSoundPath.getParent());
-                                Files.copy(soundPath, targetSoundPath, StandardCopyOption.REPLACE_EXISTING);
-                            } catch (IOException e) {
-                                plugin().logger().warn("Failed to create internal sounds file", e);
-                            }
+                        Path targetSoundPath = internalPath.resolve("sounds.json");
+                        try {
+                            Files.createDirectories(targetSoundPath.getParent());
+                            Files.copy(soundPath, targetSoundPath, StandardCopyOption.REPLACE_EXISTING);
+                        } catch (IOException e) {
+                            plugin().logger().warn("Failed to create internal sounds file", e);
                         }
                     }
 
                     // 复制items
                     {
                         Path allPath = minecraftNamespacePath.resolve("items").resolve("_all.json");
-                        Path targetAllPath = internalPath.resolve("items").resolve("_all.json");
-                        try {
-                            if (Files.exists(allPath)) {
+                        if (Files.exists(allPath)) {
+                            try {
+                                Path targetAllPath = internalPath.resolve("items").resolve("_all.json");
                                 Files.createDirectories(targetAllPath.getParent());
                                 Files.copy(allPath, targetAllPath, StandardCopyOption.REPLACE_EXISTING);
+                            } catch (IOException e) {
+                                plugin().logger().warn("Failed to create internal items file", e);
                             }
-                        } catch (IOException e) {
-                            plugin().logger().warn("Failed to create internal items file", e);
                         }
                     }
 
@@ -96,10 +101,8 @@ public final class DebugGenerateInternalAssetsCommand extends BukkitCommandFeatu
                             Path allPath = minecraftNamespacePath.resolve("models").resolve(name).resolve("_all.json");
                             Path targetAllPath = internalPath.resolve("models").resolve(name).resolve("_all.json");
                             try {
-                                if (Files.exists(allPath)) {
-                                    Files.createDirectories(targetAllPath.getParent());
-                                    Files.copy(allPath, targetAllPath, StandardCopyOption.REPLACE_EXISTING);
-                                }
+                                Files.createDirectories(targetAllPath.getParent());
+                                Files.copy(allPath, targetAllPath, StandardCopyOption.REPLACE_EXISTING);
                             } catch (IOException e) {
                                 plugin().logger().warn("Failed to create internal models file", e);
                             }
@@ -125,10 +128,28 @@ public final class DebugGenerateInternalAssetsCommand extends BukkitCommandFeatu
                         Files.createDirectories(resolve.getParent());
                         GsonHelper.writeJsonFile(allSounds, resolve);
                     } catch (IOException e) {
-                        plugin().logger().warn("Failed to collect textures", e);
+                        plugin().logger().warn("Failed to collect sounds", e);
                     }
 
-                    context.sender().sendMessage("Done");
+                    // 收集lang
+                    JsonArray allLang = new JsonArray();
+                    try {
+                        Path allPath = minecraftNamespacePath.resolve("lang/_list.json");
+                        JsonObject langJson = GsonHelper.readJsonFromFile(allPath).getAsJsonObject();
+                        for (JsonElement file : langJson.getAsJsonArray("files")) {
+                            String string = file.getAsString();
+                            if ("deprecated.json".equals(string)) continue;
+                            allLang.add(string.substring(0, string.length() - ".json".length()));
+                        }
+                        Path resolve = internalPath.resolve("lang/processed.json");
+                        Files.createDirectories(resolve.getParent());
+                        GsonHelper.writeJsonFile(allLang, resolve);
+                    } catch (Exception e) {
+                        plugin().logger().warn("Failed to collect lang", e);
+                    }
+
+                    sender.sendMessage(DebugCommandOutput.success("Generated internal assets"));
+                    sender.sendMessage(DebugCommandOutput.value("Output", internalPath));
                 });
     }
 

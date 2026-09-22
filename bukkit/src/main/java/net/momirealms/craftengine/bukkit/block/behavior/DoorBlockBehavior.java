@@ -8,22 +8,22 @@ import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LevelUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.behavior.IsPathFindableBlockBehavior;
-import net.momirealms.craftengine.core.block.properties.Property;
-import net.momirealms.craftengine.core.block.properties.type.DoorHinge;
-import net.momirealms.craftengine.core.block.properties.type.DoubleBlockHalf;
+import net.momirealms.craftengine.core.block.behavior.PathFindingBlock;
+import net.momirealms.craftengine.core.block.property.Property;
+import net.momirealms.craftengine.core.block.property.type.DoorHinge;
+import net.momirealms.craftengine.core.block.property.type.DoubleBlockHalf;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
-import net.momirealms.craftengine.core.util.HorizontalDirection;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.*;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
@@ -51,15 +51,15 @@ import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 import static net.momirealms.craftengine.core.block.UpdateFlags.*;
 
 @SuppressWarnings("DuplicatedCode")
-public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior implements IsPathFindableBlockBehavior {
+public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior
+        implements PathFindingBlock {
     public static final BlockBehaviorFactory<DoorBlockBehavior> FACTORY = new Factory();
     public final Property<DoubleBlockHalf> halfProperty;
-    public final Property<HorizontalDirection> facingProperty;
+    public final Property<Direction> facingProperty;
     public final Property<DoorHinge> hingeProperty;
     public final Property<Boolean> poweredProperty;
     public final Property<Boolean> openProperty;
@@ -68,16 +68,16 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     public final SoundData openSound;
     public final SoundData closeSound;
 
-    private DoorBlockBehavior(CustomBlock block,
-                             Property<DoubleBlockHalf> halfProperty,
-                             Property<HorizontalDirection> facingProperty,
-                             Property<DoorHinge> hingeProperty,
-                             Property<Boolean> poweredProperty,
-                             Property<Boolean> openProperty,
-                             boolean canOpenWithHand,
-                             boolean canOpenByWindCharge,
-                             SoundData openSound,
-                             SoundData closeSound) {
+    private DoorBlockBehavior(BlockDefinition block,
+                              Property<DoubleBlockHalf> halfProperty,
+                              Property<Direction> facingProperty,
+                              Property<DoorHinge> hingeProperty,
+                              Property<Boolean> poweredProperty,
+                              Property<Boolean> openProperty,
+                              boolean canOpenWithHand,
+                              boolean canOpenByWindCharge,
+                              SoundData openSound,
+                              SoundData closeSound) {
         super(block, 0);
         this.halfProperty = halfProperty;
         this.facingProperty = facingProperty;
@@ -95,7 +95,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     }
 
     @Override
-    public Object updateShape(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public Object updateShape(Object thisBlock, Object[] args) {
         Object level = args[updateShape$level];
         Object blockPos = args[updateShape$blockPos];
         Object blockState = args[0];
@@ -105,19 +105,19 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
         }
         ImmutableBlockState customState = optionalCustomState.get();
         DoubleBlockHalf half = customState.get(this.halfProperty);
-        Object direction = VersionHelper.isOrAbove1_21_2() ? args[4] : args[1];
+        Object direction = VersionHelper.isOrAbove1_21_2 ? args[4] : args[1];
         if (DirectionProxy.INSTANCE.getAxis(direction) == AxisProxy.Y && half == DoubleBlockHalf.LOWER == (direction == DirectionProxy.UP)) {
             Optional<ImmutableBlockState> optionalNeighborState = BlockStateUtils.getOptionalCustomBlockState(args[updateShape$neighborState]);
             if (optionalNeighborState.isEmpty()) {
                 return BlocksProxy.AIR$defaultState;
             }
             ImmutableBlockState neighborState = optionalNeighborState.get();
-            Optional<DoorBlockBehavior> anotherDoorBehavior = neighborState.behavior().getAs(DoorBlockBehavior.class);
-            if (anotherDoorBehavior.isEmpty()) {
+            DoorBlockBehavior anotherDoorBehavior = neighborState.behavior().getFirst(DoorBlockBehavior.class);
+            if (anotherDoorBehavior == null) {
                 return BlocksProxy.AIR$defaultState;
             }
-            if (neighborState.get(anotherDoorBehavior.get().halfProperty) != half) {
-                return neighborState.with(anotherDoorBehavior.get().halfProperty, half).customBlockState().literalObject();
+            if (neighborState.get(anotherDoorBehavior.halfProperty) != half) {
+                return neighborState.with(anotherDoorBehavior.halfProperty, half).customBlockState().minecraftState();
             }
             return BlocksProxy.AIR$defaultState;
         } else {
@@ -131,21 +131,25 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     }
 
     @Override
-    public Object playerWillDestroy(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public Object playerWillDestroy(Object thisBlock, Object[] args) {
         Object level = args[0];
         Object pos = args[1];
         Object state = args[2];
         Object player = args[3];
         ImmutableBlockState blockState = BukkitBlockManager.instance().getImmutableBlockState(BlockStateUtils.blockStateToId(state));
-        if (blockState == null || blockState.isEmpty()) return superMethod.call();
+        if (blockState == null || blockState.isEmpty()) {
+            return state;
+        }
         org.bukkit.entity.Player bukkitPlayer = ServerPlayerProxy.INSTANCE.getBukkitEntity(player);
         BukkitServerPlayer cePlayer = BukkitAdaptor.adapt(bukkitPlayer);
-        if (cePlayer == null) return superMethod.call();
+        if (cePlayer == null) {
+            return state;
+        }
         Item item = cePlayer.getItemInHand(InteractionHand.MAIN_HAND);
         if (cePlayer.canInstabuild() || !BlockStateUtils.isCorrectTool(blockState, item)) {
             preventDropFromBottomPart(level, pos, blockState, player);
         }
-        return superMethod.call();
+        return state;
     }
 
     private void preventDropFromBottomPart(Object level, Object pos, ImmutableBlockState state, Object player) {
@@ -155,15 +159,15 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             Object blockState = BlockGetterProxy.INSTANCE.getBlockState(level, blockPos);
             ImmutableBlockState belowState = BukkitBlockManager.instance().getImmutableBlockState(BlockStateUtils.blockStateToId(blockState));
             if (belowState == null || belowState.isEmpty()) return;
-            Optional<DoorBlockBehavior> belowDoorBehavior = belowState.behavior().getAs(DoorBlockBehavior.class);
-            if (belowDoorBehavior.isEmpty() || belowState.get(this.halfProperty) != DoubleBlockHalf.LOWER) return;
+            DoorBlockBehavior belowDoorBehavior = belowState.behavior().getFirst(DoorBlockBehavior.class);
+            if (belowDoorBehavior == null || belowState.get(belowDoorBehavior.halfProperty) != DoubleBlockHalf.LOWER) return;
             LevelWriterProxy.INSTANCE.setBlock(level, blockPos, BlocksProxy.AIR$defaultState, UPDATE_NEIGHBORS | UPDATE_CLIENTS | UPDATE_SUPPRESS_DROPS);
             LevelUtils.levelEvent(level, player, WorldEvents.BLOCK_BREAK_EFFECT, blockPos, belowState.customBlockState().registryId());
         }
     }
 
     @Override
-    public void onExplosionHit(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void preExplosionHit(Object thisBlock, Object[] args) {
         if (this.canOpenByWindCharge && ExplosionProxy.INSTANCE.canTriggerBlocks(args[3])) {
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(args[0]);
             if (optionalCustomState.isEmpty()) return;
@@ -184,11 +188,11 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     }
 
     @Override
-    public void placeMultiState(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void placeMultiState(Object thisBlock, Object[] args) {
         Object blockState = args[2];
         Object pos = args[1];
         Optional<ImmutableBlockState> immutableBlockState = BlockStateUtils.getOptionalCustomBlockState(blockState);
-        immutableBlockState.ifPresent(state -> LevelWriterProxy.INSTANCE.setBlock(args[0], LocationUtils.above(pos), state.with(this.halfProperty, DoubleBlockHalf.UPPER).customBlockState().literalObject(), UpdateFlags.UPDATE_ALL));
+        immutableBlockState.ifPresent(state -> LevelWriterProxy.INSTANCE.setBlock(args[0], LocationUtils.above(pos), state.with(this.halfProperty, DoubleBlockHalf.UPPER).customBlockState().minecraftState(), UpdateFlags.UPDATE_ALL));
     }
 
     @Override
@@ -199,12 +203,12 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     @Override
     public ImmutableBlockState updateStateForPlacement(BlockPlaceContext context, ImmutableBlockState state) {
         World world  = context.getLevel();
-        Object level = world.serverWorld();
+        Object level = world.minecraftWorld();
         BlockPos pos = context.getClickedPos();
         if (pos.y() < world.worldHeight().getMaxBuildHeight() - 1 && world.getBlock(pos.above()).canBeReplaced(context)) {
             boolean hasSignal = SignalGetterProxy.INSTANCE.hasNeighborSignal(level, LocationUtils.toBlockPos(pos)) || SignalGetterProxy.INSTANCE.hasNeighborSignal(level, LocationUtils.toBlockPos(pos.above()));
             return state.with(this.poweredProperty, hasSignal)
-                    .with(this.facingProperty, context.getHorizontalDirection().toHorizontalDirection())
+                    .with(this.facingProperty, context.getHorizontalDirection())
                     .with(this.openProperty, hasSignal)
                     .with(this.halfProperty, DoubleBlockHalf.LOWER)
                     .with(this.hingeProperty, getHinge(context));
@@ -213,7 +217,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
     }
 
     private DoorHinge getHinge(BlockPlaceContext context) {
-        Object serverLevel = context.getLevel().serverWorld();
+        Object serverLevel = context.getLevel().minecraftWorld();
         BlockPos clickedPos = context.getClickedPos();
         Direction horizontalDirection = context.getHorizontalDirection();
         BlockPos blockPos = clickedPos.above();
@@ -259,16 +263,16 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             BlockData blockData = BlockStateUtils.fromBlockData(blockState);
             return blockData instanceof Door door && door.getHalf() == Bisected.Half.BOTTOM;
         } else {
-            Optional<DoorBlockBehavior> optional = optionalCustomState.get().behavior().getAs(DoorBlockBehavior.class);
-            return optional.isPresent() && optionalCustomState.get().get(optional.get().halfProperty) == DoubleBlockHalf.LOWER;
+            DoorBlockBehavior doorBlockBehavior = optionalCustomState.get().behavior().getFirst(DoorBlockBehavior.class);
+            return doorBlockBehavior != null && optionalCustomState.get().get(doorBlockBehavior.halfProperty) == DoubleBlockHalf.LOWER;
         }
     }
 
     public void setOpen(@Nullable Player player, Object serverLevel, ImmutableBlockState state, BlockPos pos, boolean isOpen) {
         if (isOpen(state) != isOpen) {
             org.bukkit.World world = LevelProxy.INSTANCE.getWorld(serverLevel);
-            LevelWriterProxy.INSTANCE.setBlock(serverLevel, LocationUtils.toBlockPos(pos), state.with(this.openProperty, isOpen).customBlockState().literalObject(), UPDATE_CLIENTS | UPDATE_IMMEDIATE);
-            world.sendGameEvent(player == null ? null : (org.bukkit.entity.Player) player.platformPlayer(), isOpen ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(pos.x(), pos.y(), pos.z()));
+            LevelWriterProxy.INSTANCE.setBlock(serverLevel, LocationUtils.toBlockPos(pos), state.with(this.openProperty, isOpen).customBlockState().minecraftState(), UPDATE_CLIENTS | UPDATE_IMMEDIATE);
+            LevelUtils.sendGameEvent(world, player == null ? null : (org.bukkit.entity.Player) player.platformPlayer(), isOpen ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(pos.x(), pos.y(), pos.z()));
             SoundData soundData = isOpen ? this.openSound : this.closeSound;
             if (soundData != null) {
                 BukkitAdaptor.adapt(world).playBlockSound(
@@ -293,13 +297,13 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
                 return InteractionResult.SUCCESS_AND_CANCEL;
             }
         }
-        setOpen(player, world.serverWorld(), state, pos, !state.get(this.openProperty));
+        setOpen(player, world.minecraftWorld(), state, pos, !state.get(this.openProperty));
         return InteractionResult.SUCCESS_AND_CANCEL;
     }
 
     @Override
-    public boolean isPathFindable(Object thisBlock, Object[] args, Callable<Object> superMethod) {
-        Object type = VersionHelper.isOrAbove1_20_5() ? args[1] : args[3];
+    public boolean isPathFindable(Object thisBlock, Object[] args) {
+        Object type = VersionHelper.isOrAbove1_20_5 ? args[1] : args[3];
         Object blockState = args[0];
         Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(blockState);
         if (optionalCustomState.isEmpty()) return false;
@@ -311,7 +315,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
 
     @SuppressWarnings("UnstableApiUsage")
     @Override
-    public void neighborChanged(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void neighborChanged(Object thisBlock, Object[] args) {
         Object blockPos = args[2];
         Object level = args[1];
         Object blockState = args[0];
@@ -329,7 +333,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             boolean flag = event.getNewCurrent() > 0;
             if (flag != customState.get(this.openProperty)) {
                 org.bukkit.World world = LevelProxy.INSTANCE.getWorld(level);
-                world.sendGameEvent(null, flag ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(bukkitBlock.getX(), bukkitBlock.getY(), bukkitBlock.getZ()));
+                LevelUtils.sendGameEvent(world, null, flag ? GameEvent.BLOCK_OPEN : GameEvent.BLOCK_CLOSE, new Vector(bukkitBlock.getX(), bukkitBlock.getY(), bukkitBlock.getZ()));
                 SoundData soundData = flag ? this.openSound : this.closeSound;
                 if (soundData != null) {
                     BukkitAdaptor.adapt(world).playBlockSound(
@@ -338,36 +342,36 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
                     );
                 }
             }
-            LevelWriterProxy.INSTANCE.setBlock(level, blockPos, customState.with(this.poweredProperty, flag).with(this.openProperty, flag).customBlockState().literalObject(), UpdateFlags.UPDATE_CLIENTS);
+            LevelWriterProxy.INSTANCE.setBlock(level, blockPos, customState.with(this.poweredProperty, flag).with(this.openProperty, flag).customBlockState().minecraftState(), UpdateFlags.UPDATE_CLIENTS);
         }
     }
 
     @Override
-    public boolean canSurvive(Object thisBlock, Object state, Object world, Object blockPos) throws Exception {
+    public boolean canSurvive(Object thisBlock, Object state, Object level, Object blockPos) {
         Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(state);
         if (optionalCustomState.isEmpty()) return false;
         int x = Vec3iProxy.INSTANCE.getX(blockPos);
         int y = Vec3iProxy.INSTANCE.getY(blockPos) - 1;
         int z = Vec3iProxy.INSTANCE.getZ(blockPos);
         Object belowPos = BlockPosProxy.INSTANCE.newInstance(x, y, z);
-        Object belowState = BlockGetterProxy.INSTANCE.getBlockState(world, belowPos);
+        Object belowState = BlockGetterProxy.INSTANCE.getBlockState(level, belowPos);
         if (optionalCustomState.get().get(this.halfProperty) == DoubleBlockHalf.UPPER) {
             Optional<ImmutableBlockState> belowCustomState = BlockStateUtils.getOptionalCustomBlockState(belowState);
-            return belowCustomState.filter(immutableBlockState -> immutableBlockState.owner().value() == super.customBlock).isPresent();
+            return belowCustomState.filter(immutableBlockState -> immutableBlockState.owner().value() == super.blockDefinition).isPresent();
         } else {
             return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isFaceSturdy(
-                    belowState, world, belowPos, DirectionProxy.UP,
+                    belowState, level, belowPos, DirectionProxy.UP,
                     SupportTypeProxy.FULL
             );
         }
     }
 
     private static class Factory implements BlockBehaviorFactory<DoorBlockBehavior> {
-        private static final String[] CAN_OPEN_WITH_HAND = new String[] {"can_open_with_hand", "can-open-with-hand"};
-        private static final String[] CAN_OPEN_BY_WIND_CHARGE = new String[] {"can_open_by_wind_charge", "can-open-by-wind-charge"};
+        private static final String[] CAN_OPEN_WITH_HAND = ConfigKeys.of("can_open_with_hand");
+        private static final String[] CAN_OPEN_BY_WIND_CHARGE = ConfigKeys.of("can_open_by_wind_charge");
 
         @Override
-        public DoorBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public DoorBlockBehavior create(BlockDefinition block, ConfigSection section) {
             ConfigSection soundSection = section.getSection("sounds");
             SoundData openSound = null;
             SoundData closeSound = null;
@@ -378,7 +382,7 @@ public final class DoorBlockBehavior extends AbstractCanSurviveBlockBehavior imp
             return new DoorBlockBehavior(
                     block,
                     BlockBehaviorFactory.getProperty(section.path(), block, "half", DoubleBlockHalf.class),
-                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", HorizontalDirection.class),
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", Direction.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "hinge", DoorHinge.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "powered", Boolean.class),
                     BlockBehaviorFactory.getProperty(section.path(), block, "open", Boolean.class),

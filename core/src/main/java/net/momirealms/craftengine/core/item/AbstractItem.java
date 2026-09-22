@@ -1,18 +1,20 @@
 package net.momirealms.craftengine.core.item;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.core.attribute.AttributeModifier;
+import net.momirealms.craftengine.core.attribute.vanilla.VanillaAttributeModifier;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
-import net.momirealms.craftengine.core.item.data.Enchantment;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
-import net.momirealms.craftengine.core.item.data.JukeboxPlayable;
-import net.momirealms.craftengine.core.item.data.Trim;
-import net.momirealms.craftengine.core.item.setting.EquipmentData;
+import net.momirealms.craftengine.core.item.component.value.Enchantment;
+import net.momirealms.craftengine.core.item.component.value.FireworkExplosion;
+import net.momirealms.craftengine.core.item.component.value.JukeboxPlayable;
+import net.momirealms.craftengine.core.item.component.value.Trim;
+import net.momirealms.craftengine.core.item.setting.value.EquipmentData;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -51,6 +53,17 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     @Override
     public Optional<String> itemModel() {
         return this.factory.itemModel(this.item);
+    }
+
+    @Override
+    public Item useRemainder(Item item, int count) {
+        this.factory.useRemainder(this.item, item, count);
+        return this;
+    }
+
+    @Override
+    public Optional<Item> useRemainder() {
+        return this.factory.useRemainder(this.item).map(this::withSameFactory);
     }
 
     @Override
@@ -153,23 +166,29 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Optional<CustomItem> getCustomItem() {
-        return factory.plugin.itemManager().getCustomItem(id());
+    public Optional<ItemDefinition> getDefinition() {
+        return factory.plugin.itemManager().getItemDefinition(id());
     }
 
     @Override
-    public Optional<List<ItemBehavior>> getItemBehavior() {
+    public Optional<ItemBehavior> getBehavior() {
         return factory.plugin.itemManager().getItemBehavior(id());
     }
 
     @Override
     public boolean isCustomItem() {
-        return factory.plugin.itemManager().getCustomItem(id()).isPresent();
+        Optional<ItemDefinition> itemDefinition = this.factory.plugin.itemManager().getItemDefinition(id());
+        return itemDefinition.filter(definition -> !definition.isVanillaItem()).isPresent();
     }
 
     @Override
     public boolean isBlockItem() {
         return factory.isBlockItem(item);
+    }
+
+    @Override
+    public boolean hasPluginTag(Key tag) {
+        return this.factory.hasPluginTag(this.item, tag);
     }
 
     @Override
@@ -227,12 +246,12 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Optional<String> customNameJson() {
+    public Optional<JsonElement> customNameJson() {
         return this.factory.customNameJson(this.item);
     }
 
     @Override
-    public Item customNameJson(String displayName) {
+    public Item customNameJson(JsonElement displayName) {
         this.factory.customNameJson(this.item, displayName);
         return this;
     }
@@ -249,13 +268,13 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Item loreJson(List<String> lore) {
+    public Item loreJson(JsonArray lore) {
         this.factory.loreJson(this.item, lore);
         return this;
     }
 
     @Override
-    public Optional<List<String>> loreJson() {
+    public Optional<JsonArray> loreJson() {
         return this.factory.loreJson(this.item);
     }
 
@@ -271,7 +290,7 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Item attributeModifiers(List<AttributeModifier> modifiers) {
+    public Item attributeModifiers(List<VanillaAttributeModifier> modifiers) {
         this.factory.attributeModifiers(this.item, modifiers);
         return this;
     }
@@ -288,13 +307,13 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Item itemNameJson(String itemName) {
+    public Item itemNameJson(JsonElement itemName) {
         this.factory.itemNameJson(this.item, itemName);
         return this;
     }
 
     @Override
-    public Optional<String> itemNameJson() {
+    public Optional<JsonElement> itemNameJson() {
         return this.factory.itemNameJson(this.item);
     }
 
@@ -343,6 +362,17 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
+    public Optional<Boolean> glint() {
+        return this.factory.glint(this.item);
+    }
+
+    @Override
+    public Item glint(boolean value) {
+        this.factory.glint(this.item, value);
+        return this;
+    }
+
+    @Override
     public int maxStackSize() {
         return this.factory.maxStackSize(this.item);
     }
@@ -360,18 +390,34 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Object getJavaTag(Object... path) {
-        return this.factory.getJavaTag(this.item, path);
+    public boolean hasTag(Object... path) {
+        return this.factory.hasTag(this.item, path);
     }
 
     @Override
-    public Tag getTag(Object... path) {
-        return this.factory.getTag(this.item, path);
+    public boolean removeTag(Object... path) {
+        return this.factory.removeTag(this.item, path);
+    }
+
+
+    @Override
+    public Object getTagAsJava(Object... path) {
+        return this.factory.getTagAsJava(this.item, path);
     }
 
     @Override
-    public Object getExactTag(Object... path) {
-        return this.factory.getExactTag(this.item, path);
+    public Object getMinecraftTag(Object... path) {
+        return this.factory.getMinecraftTag(this.item, path);
+    }
+
+    @Override
+    public Tag getSparrowTag(Object... path) {
+        return this.factory.getSparrowTag(this.item, path);
+    }
+
+    @Override
+    public JsonElement getTagAsJson(Object... path) {
+        return this.factory.getTagAsJson(this.item, path);
     }
 
     @Override
@@ -381,13 +427,27 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public boolean hasTag(Object... path) {
-        return this.factory.hasTag(this.item, path);
+    public Item setMinecraftTag(Object value, Object... path) {
+        this.factory.setMinecraftTag(this.item, value, path);
+        return this;
     }
 
     @Override
-    public boolean removeTag(Object... path) {
-        return this.factory.removeTag(this.item, path);
+    public Item setJsonTag(JsonElement value, Object... path) {
+        this.factory.setJsonTag(this.item, value, path);
+        return this;
+    }
+
+    @Override
+    public Item setJavaTag(Object value, Object... path) {
+        this.factory.setJavaTag(this.item, value, path);
+        return this;
+    }
+
+    @Override
+    public Item setSparrowTag(Tag value, Object... path) {
+        this.factory.setSparrowTag(this.item, value, path);
+        return this;
     }
 
     @Override
@@ -416,23 +476,23 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public Object getJavaComponent(Object type) {
-        return this.factory.getJavaComponent(this.item, type);
+    public Object getComponentAsJava(Object type) {
+        return this.factory.getComponentAsJava(this.item, type);
     }
 
     @Override
-    public JsonElement getJsonComponent(Object type) {
-        return this.factory.getJsonComponent(this.item, type);
+    public JsonElement getComponentAsJson(Object type) {
+        return this.factory.getComponentAsJson(this.item, type);
     }
 
     @Override
-    public Tag getSparrowNBTComponent(Object type) {
-        return this.factory.getSparrowNBTComponent(this.item, type);
+    public Tag getComponentAsSparrowTag(Object type) {
+        return this.factory.getComponentAsSparrowTag(this.item, type);
     }
 
     @Override
-    public Object getNBTComponent(Object type) {
-        return this.factory.getNBTComponent(this.item, type);
+    public Object getComponentAsMinecraftTag(Object type) {
+        return this.factory.getComponentAsMinecraftTag(this.item, type);
     }
 
     @Override
@@ -451,8 +511,13 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public void setNBTComponent(Object type, Tag value) {
-        this.factory.setNBTComponent(this.item, type, value);
+    public void setSparrowTagComponent(Object type, Tag value) {
+        this.factory.setSparrowTagComponent(this.item, type, value);
+    }
+
+    @Override
+    public void setMinecraftTagComponent(Object type, Object value) {
+        this.factory.setMinecraftTagComponent(this.item, type, value);
     }
 
     @Override
@@ -462,18 +527,29 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
 
     @SuppressWarnings({"unchecked"})
     @Override
+    public AbstractItem<W> copy() {
+        return withSameFactory((W) this.item.copy());
+    }
+
+    @SuppressWarnings({"unchecked"})
+    @Override
     public AbstractItem<W> copyWithCount(int count) {
         return withSameFactory((W) this.item.copyWithCount(count));
     }
 
     @Override
-    public boolean hasItemTag(Key itemTag) {
-        return this.factory.hasItemTag(this.item, itemTag);
+    public boolean hasVanillaTag(Key itemTag) {
+        return this.factory.hasVanillaTag(this.item, itemTag);
     }
 
     @Override
-    public Object getMinecraftItem() {
-        return this.item.getMinecraftItem();
+    public Object minecraftItem() {
+        return this.item.minecraftItem();
+    }
+
+    @Override
+    public Object platformItem() {
+        return this.item.platformItem();
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -499,8 +575,19 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     }
 
     @Override
-    public byte[] toByteArray() {
+    public byte[] toBytes() {
         return this.factory.toByteArray(this.item);
+    }
+
+    @Override
+    public CompoundTag toNBT() {
+        return this.factory.toNBT(this.item);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Override
+    public boolean isSimilar(Item another) {
+        return this.factory.isSimilar(this.item, (W) ((AbstractItem) another).item);
     }
 
     @Override
@@ -516,5 +603,10 @@ public abstract class AbstractItem<W extends ItemWrapper> implements Item {
     @Override
     public void hurtAndBreak(int amount, @NotNull Player player, @Nullable EquipmentSlot slot) {
         this.item.hurtAndBreak(amount, player, slot);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{minecraftItem=" + minecraftItem() + "}";
     }
 }

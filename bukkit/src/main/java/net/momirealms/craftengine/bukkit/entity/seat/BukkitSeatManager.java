@@ -1,13 +1,12 @@
 package net.momirealms.craftengine.bukkit.entity.seat;
 
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.entity.furniture.DismountListener1_20;
-import net.momirealms.craftengine.bukkit.entity.furniture.DismountListener1_20_3;
+import net.momirealms.craftengine.bukkit.entity.furniture.listener.DismountListener1_20_3;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
-import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.EntityUtils;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.core.entity.seat.SeatManager;
+import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.NBT;
@@ -39,7 +38,7 @@ public final class BukkitSeatManager implements SeatManager, Listener {
 
     public BukkitSeatManager(BukkitCraftEngine plugin) {
         this.plugin = plugin;
-        this.dismountListener = VersionHelper.isOrAbove1_20_3() ? new DismountListener1_20_3(this::handleDismount) : new DismountListener1_20(this::handleDismount);
+        this.dismountListener = VersionHelper.isOrAbove1_20_3 ? new DismountListener1_20_3(this::handleDismount) : new DismountListener1_20(this::handleDismount);
         instance = this;
     }
 
@@ -72,7 +71,11 @@ public final class BukkitSeatManager implements SeatManager, Listener {
         for (Player player : Bukkit.getOnlinePlayers()) {
             Entity vehicle = player.getVehicle();
             if (vehicle != null) {
-                tryLeavingSeat(player, vehicle);
+                try {
+                    tryLeavingSeat(player, vehicle);
+                } catch (Throwable t) {
+                    Debugger.COMMON.warn(() -> "Failed to leave seat for player " + player.getName(), t);
+                }
             }
         }
     }
@@ -89,7 +92,7 @@ public final class BukkitSeatManager implements SeatManager, Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerDeath(PlayerDeathEvent event) {
-        Player player = event.getPlayer();
+        Player player = event.getEntity();
         Entity entity = player.getVehicle();
         if (entity == null) return;
         if (this.isSeatEntityType(entity)) {
@@ -107,11 +110,11 @@ public final class BukkitSeatManager implements SeatManager, Listener {
         }
     }
 
-    protected boolean isSeatEntityType(Entity entity) {
+    private boolean isSeatEntityType(Entity entity) {
         return (entity instanceof ArmorStand || entity instanceof ItemDisplay);
     }
 
-    protected void tryLeavingSeat(@NotNull Player player, @NotNull Entity seat) {
+    private void tryLeavingSeat(@NotNull Player player, @NotNull Entity seat) {
         boolean isSeat = seat.getPersistentDataContainer().has(SEAT_KEY);
         if (!isSeat) return;
         Location location = seat.getLocation();
@@ -123,11 +126,6 @@ public final class BukkitSeatManager implements SeatManager, Listener {
         seat.remove();
         location.add(0, 0.301, 0); // 防止座椅较低卡进地下
         EntityUtils.safeDismount(player, location);
-        // 床方块实体特殊处理
-        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-        if (serverPlayer == null) return;
-        serverPlayer.setBedBlockEntity(null);
-        serverPlayer.platformPlayer().updateInventory();
     }
 
     public static BukkitSeatManager instance() {

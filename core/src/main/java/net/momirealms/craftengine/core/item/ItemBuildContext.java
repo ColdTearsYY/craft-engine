@@ -1,6 +1,5 @@
 package net.momirealms.craftengine.core.item;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
@@ -8,19 +7,27 @@ import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextPar
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
-
 public class ItemBuildContext extends PlayerOptionalContext {
-
-    /**
-     * Use {@link #empty()} instead
-     */
-    @Deprecated(since = "0.0.63", forRemoval = true)
+    @Deprecated(forRemoval = true, since = "26.9")
     public static final ItemBuildContext EMPTY = new ItemBuildContext(null, ContextHolder.empty());
-    public static final TagResolver[] EMPTY_RESOLVERS = empty().tagResolvers();
+    protected Item item;
 
     public ItemBuildContext(@Nullable Player player, @NotNull ContextHolder contexts) {
         super(player, contexts);
+    }
+
+    public ItemBuildContext(@Nullable Player player, @NotNull Item item, @NotNull ContextHolder contexts) {
+        super(player, contexts);
+        this.item = item;
+    }
+
+    public void setItem(@NotNull Item item) {
+        this.item = item;
+        this.contexts.withParameter(DirectContextParameters.ITEM, item);
+    }
+
+    public Item item() {
+        return this.item;
     }
 
     @NotNull
@@ -29,19 +36,28 @@ public class ItemBuildContext extends PlayerOptionalContext {
     }
 
     @NotNull
+    public static ItemBuildContext of(@Nullable Player player, @NotNull ContextHolder.Builder builder) {
+        if (player != null) {
+            builder.withParameter(DirectContextParameters.PLAYER, player);
+        }
+        return new ItemBuildContext(player, builder.build());
+    }
+
+    @NotNull
     public static ItemBuildContext of(@Nullable Player player, @NotNull ContextHolder contexts) {
         return new ItemBuildContext(player, contexts);
     }
 
     @NotNull
-    public static ItemBuildContext of(@Nullable Player player, @NotNull ContextHolder.Builder builder) {
-        if (player != null) builder.withParameter(DirectContextParameters.PLAYER, player);
-        return new ItemBuildContext(player, builder.build());
+    public static ItemBuildContext of(@Nullable Player player, @NotNull Item item, @NotNull ContextHolder contexts) {
+        return new ItemBuildContext(player, item, contexts);
     }
 
     @NotNull
     public static ItemBuildContext of(@Nullable Player player) {
-        if (player == null) return new ItemBuildContext(null, ContextHolder.empty());
-        return new ItemBuildContext(player, new ContextHolder(Map.of(DirectContextParameters.PLAYER, () -> player)));
+        if (player == null) {
+            return new ItemBuildContext(null, ContextHolder.empty());
+        }
+        return new ItemBuildContext(player, ContextHolder.builder(DirectContextParameters.PLAYER, player).build());
     }
 }

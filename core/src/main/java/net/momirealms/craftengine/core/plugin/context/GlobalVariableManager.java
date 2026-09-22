@@ -2,19 +2,18 @@ package net.momirealms.craftengine.core.plugin.context;
 
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.Manageable;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.IdValueConfigParser;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedException;
 import net.momirealms.craftengine.core.util.Key;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public final class GlobalVariableManager implements Manageable {
@@ -48,10 +47,12 @@ public final class GlobalVariableManager implements Manageable {
     }
 
     private final class GlobalVariableParser extends IdValueConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {
-                "global-variables", "global-variable",
-                "global_variables", "global_variable"
-        };
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("global_variable(s)");
+
+        @Override
+        public Key type() {
+            return Key.ce("global_variable");
+        }
 
         @Override
         public String[] sectionId() {
@@ -64,18 +65,13 @@ public final class GlobalVariableManager implements Manageable {
         }
 
         @Override
-        public void parseValue(Pack pack, Path filePath, Key id, ConfigValue value) throws LocalizedException {
+        public void parseValue(Pack pack, Path filePath, Key id, ConfigValue value) {
             GlobalVariableManager.this.globalVariables.put(id.value(), value.getAsString());
         }
 
         @Override
         public LoadingStage loadingStage() {
             return LoadingStages.GLOBAL_VARIABLE;
-        }
-
-        @Override
-        public List<LoadingStage> dependencies() {
-            return List.of(LoadingStages.TEMPLATE);
         }
     }
 }

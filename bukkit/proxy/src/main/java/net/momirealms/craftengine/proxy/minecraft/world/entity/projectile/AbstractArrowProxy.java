@@ -16,4 +16,10 @@ public interface AbstractArrowProxy extends ProjectileProxy {
 
     @FieldGetter(name = "inGround", activeIf = "max_version=1.21.1")
     boolean isInGround$1(Object target);
+
+    @MethodInvoker(name = "getPickupItem")
+    Object getPickupItem(Object target);
+
+    @MethodInvoker(name = "getWeaponItem", activeIf = "min_version=1.21")
+    Object getWeaponItem(Object target);
 }

@@ -2,7 +2,6 @@ package net.momirealms.craftengine.core.plugin.config;
 
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
-import net.momirealms.craftengine.core.util.EnumUtils;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.collision.AABB;
 import net.momirealms.sparrow.nbt.Tag;
@@ -41,8 +40,8 @@ public final class ConfigSection {
         return new ConfigSection(path, (Map<String, Object>) value);
     }
 
-    public static ConfigSection ofSamePath(ConfigSection section, Map<String, Object> value) {
-        return new ConfigSection(section.path, value);
+    public ConfigSection withSamePath(Map<String, Object> value) {
+        return new ConfigSection(this.path, value);
     }
 
     public ConfigSection copy() {
@@ -54,7 +53,7 @@ public final class ConfigSection {
     }
 
     public ConfigValue toValue() {
-        return new ConfigValue(this.path, this.value);
+        return ConfigValue.of(this.path, this.value);
     }
 
     public String path() {
@@ -109,6 +108,10 @@ public final class ConfigSection {
 
     public Set<String> keySet() {
         return this.value.keySet();
+    }
+
+    public int size() {
+        return this.value.size();
     }
 
     // 获取 config value
@@ -190,7 +193,7 @@ public final class ConfigSection {
     public ConfigValue getNonNullValue(String key, String argType) {
         Object value = this.value.get(key);
         if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, key, TranslationManager.instance().plainTranslation(argType));
+            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), key, TranslationManager.instance().plainTranslation(argType));
         }
         return new ConfigValue(assemblePath(key), value);
     }
@@ -203,7 +206,7 @@ public final class ConfigSection {
                 return new ConfigValue(assemblePath(key), value);
             }
         }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().plainTranslation(argType));
+        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), keys[0], TranslationManager.instance().plainTranslation(argType));
     }
 
     // 获取非空 config value 进行基础转换
@@ -332,10 +335,6 @@ public final class ConfigSection {
 
     public Key getIdentifier(String key, Supplier<Key> def) {
         return getValue(key, (Function<ConfigValue, Key>) ConfigValue::getAsIdentifier, def);
-    }
-
-    public Key getIdentifier(String[] keys, Supplier<Key> def) {
-        return getValue(keys, (Function<ConfigValue, Key>) ConfigValue::getAsIdentifier, def);
     }
 
     // 键
@@ -468,28 +467,18 @@ public final class ConfigSection {
     }
 
     @NotNull
+    public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass, Function<String, T> custom) {
+        return getNonNullValue(key, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass, custom));
+    }
+
+    @NotNull
     public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass) {
         return getNonNullValue(keys, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass));
     }
 
     @NotNull
-    public <T extends Enum<T>> T getNonNullEnum(String key, Class<T> enumClass, Function<String, T> getter) {
-        Object value = this.value.get(key);
-        if (value == null) {
-            throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(key), TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
-        }
-        return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
-    }
-
-    @NotNull
-    public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass, Function<String, T> getter) {
-        for (String key : keys) {
-            Object value = this.value.get(key);
-            if (value != null) {
-                return new ConfigValue(assemblePath(key), value).getAsEnum(enumClass, getter);
-            }
-        }
-        throw new KnownResourceException(ConfigConstants.MISSING_ARGUMENT, assemblePath(keys[0]), TranslationManager.instance().plainTranslation(ConfigConstants.ARGUMENT_ENUM), EnumUtils.toString(enumClass.getEnumConstants()));
+    public <T extends Enum<T>> T getNonNullEnum(String[] keys, Class<T> enumClass, Function<String, T> custom) {
+        return getNonNullValue(keys, ConfigConstants.ARGUMENT_ENUM, v -> v.getAsEnum(enumClass, custom));
     }
 
     public <T extends Enum<T>> T getEnum(String key, Class<T> enumClass, T def) {
@@ -914,10 +903,9 @@ public final class ConfigSection {
 
     public <T> List<T> getNonEmptyList(String key, Function<ConfigValue, T> parser) {
         ConfigValue value = getNonNullValue(key, ConfigConstants.ARGUMENT_LIST);
-        List<Object> list = value.getAsNonEmptyList();
+        List<ConfigValue> list = value.getAsNonEmptyValueList();
         List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+        for (ConfigValue configValue : list) {
             result.add(parser.apply(configValue));
         }
         return result;
@@ -925,10 +913,9 @@ public final class ConfigSection {
 
     public <T> List<T> getNonEmptyList(String[] keys, Function<ConfigValue, T> parser) {
         ConfigValue value = getNonNullValue(keys, ConfigConstants.ARGUMENT_LIST);
-        List<Object> list = value.getAsNonEmptyList();
+        List<ConfigValue> list = value.getAsNonEmptyValueList();
         List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+        for (ConfigValue configValue : list) {
             result.add(parser.apply(configValue));
         }
         return result;
@@ -939,10 +926,9 @@ public final class ConfigSection {
         if (value == null) {
             return List.of();
         }
-        List<Object> list = value.getAsList();
+        List<ConfigValue> list = value.getAsValueList();
         List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+        for (ConfigValue configValue : list) {
             result.add(parser.apply(configValue));
         }
         return result;
@@ -953,10 +939,9 @@ public final class ConfigSection {
         if (value == null) {
             return List.of();
         }
-        List<Object> list = value.getAsList();
+        List<ConfigValue> list = value.getAsValueList();
         List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+        for (ConfigValue configValue : list) {
             result.add(parser.apply(configValue));
         }
         return result;
@@ -967,10 +952,9 @@ public final class ConfigSection {
         if (value == null) {
             return List.of();
         }
-        List<Object> list = value.getAsList();
+        List<ConfigValue> list = value.getAsValueList();
         List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+        for (ConfigValue configValue : list) {
             result.add(parser.apply(configValue.getAsSection()));
         }
         return result;
@@ -981,10 +965,9 @@ public final class ConfigSection {
         if (value == null) {
             return List.of();
         }
-        List<Object> list = value.getAsList();
+        List<ConfigValue> list = value.getAsValueList();
         List<T> result = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            ConfigValue configValue = new ConfigValue(value.assemblePath(i), list.get(i));
+        for (ConfigValue configValue : list) {
             result.add(parser.apply(configValue.getAsSection()));
         }
         return result;

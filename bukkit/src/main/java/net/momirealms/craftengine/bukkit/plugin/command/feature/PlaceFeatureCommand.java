@@ -61,13 +61,14 @@ public final class PlaceFeatureCommand extends BukkitCommandFeature<CommandSende
                 .optional("location", LocationParser.locationParser())
                 .handler(context -> {
                     Key id = KeyUtils.namespacedKeyToKey(context.get("feature"));
-                    Object feature = BukkitWorldManager.instance().configuredFeatureById(id);
+                    Object feature = BukkitWorldManager.instance().configuredFeatureHolderById(id);
                     Player sender = context.sender();
                     if (feature == null) {
                         handleFeedback(sender, MessageConstants.COMMAND_PLACE_FEATURE_INVALID, Component.text(id.asString()));
                         return;
                     }
                     BukkitServerPlayer player = BukkitAdaptor.adapt(sender);
+                    if (player == null) return;
                     BlockPos pos;
                     if (context.contains("location")) {
                         Location location = context.get("location");
@@ -75,7 +76,7 @@ public final class PlaceFeatureCommand extends BukkitCommandFeature<CommandSende
                     } else {
                         pos = new BlockPos(MiscUtils.floor(player.x()), MiscUtils.floor(player.y()), MiscUtils.floor(player.z()));
                     }
-                    Object level = player.world().serverWorld();
+                    Object level = player.world().minecraftWorld();
                     Object configuredFeature = HolderProxy.INSTANCE.value(feature);
                     int chunkX = pos.x >> 4;
                     int chunkZ = pos.z >> 4;

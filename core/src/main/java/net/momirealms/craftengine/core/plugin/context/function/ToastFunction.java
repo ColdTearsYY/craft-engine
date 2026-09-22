@@ -3,7 +3,7 @@ package net.momirealms.craftengine.core.plugin.context.function;
 import net.momirealms.craftengine.core.advancement.AdvancementType;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
-import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
@@ -35,11 +35,11 @@ public final class ToastFunction<CTX extends Context> extends AbstractConditiona
     @Override
     public void runInternal(CTX ctx) {
         if (this.selector == null) {
-            ctx.getOptionalParameter(DirectContextParameters.PLAYER).ifPresent(it -> it.sendToast(AdventureHelper.miniMessage().deserialize(this.toast, ctx.tagResolvers()), this.icon.apply(it), this.advancementType));
+            ctx.getOptionalParameter(DirectContextParameters.PLAYER).ifPresent(it -> it.sendToast(AdventureHelper.deserialize(this.toast, ctx), this.icon.apply(it), this.advancementType));
         } else {
             for (Player viewer : this.selector.get(ctx)) {
                 RelationalContext relationalContext = ViewerContext.of(ctx, PlayerOptionalContext.of(viewer));
-                viewer.sendToast(AdventureHelper.miniMessage().deserialize(this.toast, relationalContext.tagResolvers()), this.icon.apply(viewer), this.advancementType);
+                viewer.sendToast(AdventureHelper.deserialize(this.toast, relationalContext), this.icon.apply(viewer), this.advancementType);
             }
         }
     }
@@ -49,9 +49,9 @@ public final class ToastFunction<CTX extends Context> extends AbstractConditiona
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, ToastFunction<CTX>> {
-        private static final String[] ITEM = new String[] {"item", "icon"};
-        private static final String[] TOAST = new String[] {"toast", "message"};
-        private static final String[] ADVANCEMENT_TYPE = new String[] {"advancement_type", "advancement-type"};
+        private static final String[] ITEM = ConfigKeys.of("item|icon");
+        private static final String[] TOAST = ConfigKeys.of("toast|message");
+        private static final String[] ADVANCEMENT_TYPE = ConfigKeys.of("advancement_type");
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -64,7 +64,7 @@ public final class ToastFunction<CTX extends Context> extends AbstractConditiona
                     getPredicates(section),
                     getPlayerSelector(section),
                     AdventureHelper.legacyToMiniMessage(section.getNonNullString(TOAST)),
-                    player -> CraftEngine.instance().itemManager().createWrappedItem(item, player),
+                    player -> Item.byId(item, player),
                     section.getEnum(ADVANCEMENT_TYPE, AdvancementType.class, AdvancementType.GOAL)
             );
         }

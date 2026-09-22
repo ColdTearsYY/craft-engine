@@ -5,7 +5,10 @@ import net.momirealms.craftengine.core.pack.CachedConfigSection;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.PendingConfigSection;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.template.ArgumentString;
 import net.momirealms.craftengine.core.plugin.config.template.TemplateManager;
+import net.momirealms.craftengine.core.plugin.config.template.argument.PlainStringTemplateArgument;
+import net.momirealms.craftengine.core.plugin.config.template.argument.TemplateArgument;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
@@ -31,8 +34,11 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
         for (int i = 0, size = this.configStorage.size(); i < size; i++) {
             CachedConfigSection cachedMajorSection = (CachedConfigSection) elements[i];
             ConfigSection config = cachedMajorSection.config;
-            for (Map.Entry<String, Object> entry : config.values().entrySet()) {
-                String key = entry.getKey();
+            for (String key : config.keySet()) {
+                ConfigValue configValue = config.getValue(key);
+                if (cachedMajorSection.hasArguments() && key.contains("$")) {
+                    key = ArgumentString.preParse(config.path(), key).get(config.path(), cachedMajorSection.arguments).toString();
+                }
                 Key id = Key.withDefaultNamespace(key, cachedMajorSection.pack.namespace());
                 Path filePath = cachedMajorSection.path();
                 String currentNode = config.assemblePath(key);
@@ -41,13 +47,24 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
                 }
                 Object value;
                 try {
-                    value = TemplateManager.INSTANCE.applyTemplates(id, entry.getValue(), currentNode);
+                    Map<String, TemplateArgument> arguments = cachedMajorSection.arguments;
+                    if (arguments == null) {
+                        value = TemplateManager.INSTANCE.applyTemplates(configValue, Map.of(
+                                "__NAMESPACE__", PlainStringTemplateArgument.plain(id.namespace()),
+                                "__ID__", PlainStringTemplateArgument.plain(id.value())
+                        ));
+                    } else {
+                        value = TemplateManager.INSTANCE.applyTemplates(configValue, MiscUtils.init(arguments, map -> {
+                            map.put("__NAMESPACE__", PlainStringTemplateArgument.plain(id.namespace()));
+                            map.put("__ID__", PlainStringTemplateArgument.plain(id.value()));
+                        }));
+                    }
                 } catch (KnownResourceException e) {
                     error(e, filePath);
                     continue;
                 }
                 if (!(value instanceof Map<?, ?> section)) {
-                    error(new KnownResourceException(filePath, ConfigConstants.PARSE_SECTION_FAILED, currentNode, value.getClass().getSimpleName()));
+                    error(new KnownResourceException(filePath, ConfigConstants.PARSE_SECTION_FAILED, currentNode, value != null ? value.getClass().getSimpleName() : "null"));
                     continue;
                 }
                 try {
@@ -56,7 +73,7 @@ public abstract class IdSectionConfigParser extends IdConfigParser {
                         return;
                     }
                     if (innerSection.getBoolean("debug")) {
-                        CraftEngine.instance().logger().info(GsonHelper.get().toJson(section.values()));
+                        CraftEngine.instance().logger().info(GsonHelper.get().toJson(section));
                     }
                     this.pendingConfigSections.add(new PendingConfigSection(cachedMajorSection.pack, filePath, id, innerSection));
                 } catch (KnownResourceException e) {

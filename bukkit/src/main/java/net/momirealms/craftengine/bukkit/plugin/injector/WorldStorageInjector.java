@@ -1,14 +1,18 @@
 package net.momirealms.craftengine.bukkit.plugin.injector;
 
 import net.bytebuddy.implementation.bind.annotation.This;
+import net.momirealms.craftengine.bukkit.block.entity.renderer.display.BukkitDestroyStageDisplayRecorder;
 import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.util.LightUtils;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.DelegatingBlockState;
-import net.momirealms.craftengine.core.block.EmptyBlock;
+import net.momirealms.craftengine.core.block.EmptyBlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.entity.BlockEntity;
 import net.momirealms.craftengine.core.block.entity.render.ConstantBlockEntityRenderer;
+import net.momirealms.craftengine.core.block.entity.render.display.DestroyStageDisplayEntitySetting;
+import net.momirealms.craftengine.core.block.entity.render.display.DestroyStageDisplayRecorder;
+import net.momirealms.craftengine.core.block.setting.BlockSettings;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.util.SectionPosUtils;
@@ -22,7 +26,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.chunk.LevelChunkSe
 import net.momirealms.craftengine.proxy.minecraft.world.level.chunk.PalettedContainerProxy;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
 
 public final class WorldStorageInjector {
@@ -91,8 +94,22 @@ public final class WorldStorageInjector {
             if (previousImmutableBlockState == newImmutableBlockState) return;
             // 处理  自定义块到自定义块或原版块到自定义块
             CEChunk chunk = holder.chunk();
-            chunk.setDirty(true);
-
+            chunk.setUnsaved(true);
+            // 尽量还是减少判断逻辑，性能为上，允许存在小幅破坏进度不同步
+            BlockSettings settings = previousImmutableBlockState.settings();
+            if (settings != null) {
+                DestroyStageDisplayEntitySetting destroyStages = settings.destroyStageDisplay();
+                if (destroyStages != null) {
+                    BlockPos pos = new BlockPos(chunk.chunkPos.x * 16 + x, section.sectionY * 16 + y, chunk.chunkPos.z * 16 + z);
+                    DestroyStageDisplayRecorder.PosKey key = new DestroyStageDisplayRecorder.PosKey(chunk.world.uuid(), pos.asLong());
+                    DestroyStageDisplayEntitySetting newDestroyStages = newImmutableBlockState.settings().destroyStageDisplay();
+                    if (newDestroyStages == null) {
+                        BukkitDestroyStageDisplayRecorder.INSTANCE.remove(key);
+                    } else {
+                        BukkitDestroyStageDisplayRecorder.INSTANCE.swap(key, newDestroyStages);
+                    }
+                }
+            }
             ConstantBlockEntityRenderer previousRenderer = null;
             // 如果两个方块没有相同的主人 且 旧方块有方块实体
             if (!previousImmutableBlockState.isEmpty()) {
@@ -101,7 +118,9 @@ public final class WorldStorageInjector {
                     BlockEntity blockEntity = chunk.getBlockEntity(pos, false);
                     if (blockEntity != null) {
                         try {
-                            blockEntity.preRemove();
+                            if (chunk.isLoaded()) {
+                                blockEntity.preRemove();
+                            }
                         } catch (Throwable t) {
                             CraftEngine.instance().logger().warn("Error removing block entity " + blockEntity.getClass().getName(), t);
                         }
@@ -118,20 +137,17 @@ public final class WorldStorageInjector {
             if (newImmutableBlockState.hasBlockEntity()) {
                 BlockPos pos = new BlockPos(chunk.chunkPos.x * 16 + x, section.sectionY * 16 + y, chunk.chunkPos.z * 16 + z);
                 BlockEntity blockEntity = chunk.getBlockEntity(pos, false);
-                if (blockEntity != null && !blockEntity.isValidBlockState(newImmutableBlockState)) {
-                    chunk.removeBlockEntity(pos);
-                    blockEntity = null;
-                }
                 if (blockEntity == null) {
-                    blockEntity = Objects.requireNonNull(newImmutableBlockState.behavior().getEntityBehavior()).createBlockEntity(pos, newImmutableBlockState);
-                    if (blockEntity != null) {
-                        chunk.addBlockEntity(blockEntity);
-                    }
+                    // 如果新状态有方块实体
+                    blockEntity = new BlockEntity(pos, newImmutableBlockState);
+                    chunk.addBlockEntity(blockEntity);
                 } else {
                     blockEntity.setBlockState(newImmutableBlockState);
                     // 方块类型未变，仅更新状态，选择性更新ticker
-                    chunk.replaceOrCreateTickingBlockEntity(blockEntity);
-                    chunk.createDynamicBlockEntityRenderer(blockEntity);
+                    if (chunk.isActivated()) {
+                        chunk.replaceOrCreateTickingBlockEntity(blockEntity);
+                        chunk.createDynamicBlockEntityRenderer(blockEntity);
+                    }
                 }
             }
 
@@ -142,28 +158,32 @@ public final class WorldStorageInjector {
             }
 
             // 如果新方块的光照属性和客户端认为的不同
-            if (Config.enableLightSystem()) {
+            if (Config.enableBlockLightSystem() && chunk.isLoaded()) {
                 if (previousImmutableBlockState.isEmpty()) {
                     // 原版块到自定义块，只需要判断新块是否和客户端视觉一致
-                    updateLight(holder, newImmutableBlockState.visualBlockState().literalObject(), newState, x, y, z);
+                    updateLight(holder, newImmutableBlockState.visualBlockState().minecraftState(), newState, x, y, z);
                 } else {
                     // 自定义块到自定义块
-                    updateLight$complex(holder, newImmutableBlockState.visualBlockState().literalObject(), newState, previousState, x, y, z);
+                    updateLight$complex(holder, newImmutableBlockState.visualBlockState().minecraftState(), newState, previousState, x, y, z);
                 }
             }
         } else {
             // 如果是原版方块
             // 那么应该清空自定义块
-            ImmutableBlockState previous = section.setBlockState(x, y, z, EmptyBlock.STATE);
+            ImmutableBlockState previous = section.setBlockState(x, y, z, EmptyBlockDefinition.STATE);
             // 处理  自定义块 -> 原版块
             if (previous != null && !previous.isEmpty()) {
                 CEChunk chunk = holder.chunk();
-                chunk.setDirty(true);
+                chunk.setUnsaved(true);
                 if (previous.hasBlockEntity()) {
                     BlockPos pos = new BlockPos(chunk.chunkPos.x * 16 + x, section.sectionY * 16 + y, chunk.chunkPos.z * 16 + z);
                     BlockEntity blockEntity = chunk.getBlockEntity(pos, false);
                     if (blockEntity != null) {
-                        blockEntity.preRemove();
+                        try {
+                            blockEntity.preRemove();
+                        } catch (Throwable t) {
+                            CraftEngine.instance().logger().warn("Error removing block entity " + blockEntity.getClass().getName(), t);
+                        }
                         chunk.removeBlockEntity(pos);
                     }
                 }
@@ -171,11 +191,19 @@ public final class WorldStorageInjector {
                     BlockPos pos = new BlockPos(chunk.chunkPos.x * 16 + x, section.sectionY * 16 + y, chunk.chunkPos.z * 16 + z);
                     chunk.removeConstantBlockEntityRenderer(pos);
                 }
-                if (Config.enableLightSystem()) {
+                BlockSettings settings = previous.settings();
+                if (settings != null) {
+                    DestroyStageDisplayEntitySetting destroyStages = settings.destroyStageDisplay();
+                    if (destroyStages != null) {
+                        BlockPos pos = new BlockPos(chunk.chunkPos.x * 16 + x, section.sectionY * 16 + y, chunk.chunkPos.z * 16 + z);
+                        BukkitDestroyStageDisplayRecorder.INSTANCE.remove(new DestroyStageDisplayRecorder.PosKey(chunk.world.uuid(), pos.asLong()));
+                    }
+                }
+                if (Config.enableBlockLightSystem() && chunk.isLoaded()) {
                     // 自定义块到原版块，只需要判断旧块是否和客户端一直
                     BlockStateWrapper wrapper = previous.visualBlockState();
                     if (wrapper != null) {
-                        updateLight(holder, wrapper.literalObject(), previousState, x, y, z);
+                        updateLight(holder, wrapper.minecraftState(), previousState, x, y, z);
                     }
                 }
             }
@@ -184,7 +212,8 @@ public final class WorldStorageInjector {
 
     @SuppressWarnings("DuplicatedCode")
     private static void updateLight(@This InjectedStorage thisObj, Object clientState, Object serverState, int x, int y, int z) {
-        CEWorld world = thisObj.chunk().world;
+        CEChunk chunk = thisObj.chunk();
+        CEWorld world = chunk.world;
         if (LightUtils.hasDifferentLightProperties(serverState, clientState)) {
             SectionPos sectionPos = thisObj.pos();
             List<SectionPos> pos = SectionPosUtils.calculateAffectedRegions((sectionPos.x() << 4) + x, (sectionPos.y() << 4) + y, (sectionPos.z() << 4) + z, 15);
@@ -194,7 +223,8 @@ public final class WorldStorageInjector {
 
     @SuppressWarnings("DuplicatedCode")
     private static void updateLight$complex(@This InjectedStorage thisObj, Object newClientState, Object newServerState, Object oldServerState, int x, int y, int z) {
-        CEWorld world = thisObj.chunk().world;
+        CEChunk chunk = thisObj.chunk();
+        CEWorld world = chunk.world;
         // 如果客户端新状态和服务端新状态光照属性不同
         if (LightUtils.hasDifferentLightProperties(newClientState, newServerState)) {
             SectionPos sectionPos = thisObj.pos();

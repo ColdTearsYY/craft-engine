@@ -8,7 +8,6 @@ import net.momirealms.craftengine.core.plugin.context.function.*;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
-import net.momirealms.craftengine.core.util.EnumUtils;
 import net.momirealms.craftengine.core.util.ExceptionCollector;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
@@ -41,12 +40,15 @@ public final class CommonFunctions {
     public static final CommonFunctionType<RemovePotionEffectFunction<Context>> REMOVE_POTION_EFFECT = register(Key.ce("remove_potion_effect"), RemovePotionEffectFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<LevelerExpFunction<Context>> LEVELER_EXP = register(Key.ce("leveler_exp"), LevelerExpFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<SetCooldownFunction<Context>> SET_COOLDOWN = register(Key.ce("set_cooldown"), SetCooldownFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<SetItemCooldownFunction<Context>> SET_ITEM_COOLDOWN = register(Key.ce("set_item_cooldown"), SetItemCooldownFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<RemoveCooldownFunction<Context>> REMOVE_COOLDOWN = register(Key.ce("remove_cooldown"), RemoveCooldownFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<SpawnFurnitureFunction<Context>> SPAWN_FURNITURE = register(Key.ce("spawn_furniture"), SpawnFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<RemoveFurnitureFunction<Context>> REMOVE_FURNITURE = register(Key.ce("remove_furniture"), RemoveFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<ReplaceFurnitureFunction<Context>> REPLACE_FURNITURE = register(Key.ce("replace_furniture"), ReplaceFurnitureFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<RotateFurnitureFunction<Context>> ROTATE_FURNITURE = register(Key.ce("rotate_furniture"), RotateFurnitureFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<SetFurnitureVariantFunction<Context>> SET_FURNITURE_VARIANT = register(Key.ce("set_furniture_variant"), SetFurnitureVariantFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<TeleportFunction<Context>> TELEPORT = register(Key.ce("teleport"), TeleportFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<TransferFunction<Context>> TRANSFER = register(Key.ce("transfer"), TransferFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<SetVariableFunction<Context>> SET_VARIABLE = register(Key.ce("set_variable"), SetVariableFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<ToastFunction<Context>> TOAST = register(Key.ce("toast"), ToastFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<DamageFunction<Context>> DAMAGE = register(Key.ce("damage"), DamageFunction.factory(CommonConditions::fromConfig));
@@ -62,7 +64,9 @@ public final class CommonFunctions {
     public static final CommonFunctionType<SetLevelFunction<Context>> SET_LEVEL = register(Key.ce("set_level"), SetLevelFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<PlayTotemAnimationFunction<Context>> PLAY_TOTEM_ANIMATION = register(Key.ce("play_totem_animation"), PlayTotemAnimationFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<CloseInventoryFunction<Context>> CLOSE_INVENTORY = register(Key.ce("close_inventory"), CloseInventoryFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<DiscoverRecipeFunction<Context>> DISCOVER_RECIPE = register(Key.ce("discover_recipe"), DiscoverRecipeFunction.factory(CommonConditions::fromConfig));
     public static final CommonFunctionType<ClearItemFunction<Context>> CLEAR_ITEM = register(Key.ce("clear_item"), ClearItemFunction.factory(CommonConditions::fromConfig));
+    public static final CommonFunctionType<JsFunction<Context>> JS = register(Key.ce("js"), JsFunction.factory(CommonConditions::fromConfig));
 
     private CommonFunctions() {}
 
@@ -74,11 +78,22 @@ public final class CommonFunctions {
     }
 
     public static Function<Context> fromConfig(ConfigValue value) {
-        return fromConfig(value.getAsSection());
+        if (value.is(List.class)) {
+            List<Function<Context>> list = value.getAsList(v -> fromConfig(v.getAsSection()));
+            if (list.isEmpty()) {
+                return DummyFunction.INSTANCE;
+            }
+            if (list.size() == 1) {
+                return list.getFirst();
+            }
+            return AllOfFunction.allOf(list);
+        } else {
+            return fromConfig(value.getAsSection());
+        }
     }
 
     public static Function<Context> fromConfig(ConfigSection section) {
-        String type = section.getNonNullString("type");
+        String type = section.getNonEmptyString("type");
         Key key = Key.ce(type);
         CommonFunctionType<? extends Function<Context>> functionType = BuiltInRegistries.COMMON_FUNCTION_TYPE.getValue(key);
         if (functionType == null) {
@@ -88,6 +103,12 @@ public final class CommonFunctions {
     }
 
     public static void parseEvents(ConfigValue eventValue, BiConsumer<EventTrigger, Function<Context>> consumer) {
+        parseEvents(eventValue, EventTriggerResolver.registered(), consumer);
+    }
+
+    public static void parseEvents(ConfigValue eventValue,
+                                   EventTriggerResolver triggerResolver,
+                                   BiConsumer<EventTrigger, Function<Context>> consumer) {
         if (eventValue == null) {
            return;
         }
@@ -106,7 +127,7 @@ public final class CommonFunctions {
         if (eventValue.is(Map.class)) {
             ConfigSection eventsSection = eventValue.getAsSection();
             for (String eventType : eventsSection.keySet()) {
-                EventTrigger eventTrigger = EventTrigger.byId(eventType);
+                EventTrigger eventTrigger = triggerResolver.resolve(eventType);
                 if (eventTrigger != null) {
                     eventsSection.getNonNullValue(eventType, ConfigConstants.ARGUMENT_SECTION).forEach(v -> {
                         exceptionCollector.runCatching(() -> {
@@ -114,7 +135,7 @@ public final class CommonFunctions {
                         });
                     });
                 } else {
-                    exceptionCollector.add(new KnownResourceException(ConfigConstants.PARSE_ENUM_FAILED, eventsSection.path(), eventType, EnumUtils.toString(EventTrigger.values())));
+                    exceptionCollector.add(unknownEventTrigger(eventsSection.path(), eventType));
                 }
             }
         }
@@ -122,7 +143,7 @@ public final class CommonFunctions {
         /*
 
         events:
-          - on: break:
+          - on: block_break
             functions:
               - type: a
               - type: b
@@ -133,14 +154,14 @@ public final class CommonFunctions {
                 ConfigSection innerSection = value.getAsSection();
                 ConfigValue triggerValue = innerSection.getNonNullValue("on", ConfigConstants.ARGUMENT_STRING);
                 if (triggerValue.is(List.class)) {
-                    List<EventTrigger> triggers = triggerValue.getAsList(v -> v.getAsEnum(EventTrigger.class, EventTrigger::byId));
+                    List<EventTrigger> triggers = triggerValue.getAsList(v -> resolveEventTrigger(v, triggerResolver));
                     if (innerSection.containsKey("type")) {
-                        triggers.forEach(trigger -> consumer.accept(trigger, CommonFunctions.fromConfig(triggerValue)));
+                        triggers.forEach(trigger -> consumer.accept(trigger, CommonFunctions.fromConfig(innerSection)));
                     } else if (innerSection.containsKey("functions")) {
                         triggers.forEach(trigger -> consumer.accept(trigger, RUN.factory().create(innerSection)));
                     }
                 } else {
-                    EventTrigger eventTrigger = triggerValue.getAsEnum(EventTrigger.class, EventTrigger::byId);
+                    EventTrigger eventTrigger = resolveEventTrigger(triggerValue, triggerResolver);
                     if (innerSection.containsKey("type")) {
                         consumer.accept(eventTrigger, CommonFunctions.fromConfig(innerSection));
                     } else if (innerSection.containsKey("functions")) {
@@ -151,5 +172,23 @@ public final class CommonFunctions {
         }
 
         exceptionCollector.throwIfPresent();
+    }
+
+    private static EventTrigger resolveEventTrigger(ConfigValue value, EventTriggerResolver triggerResolver) {
+        String id = value.getAsString();
+        EventTrigger trigger = triggerResolver.resolve(id);
+        if (trigger == null) {
+            throw unknownEventTrigger(value.path(), id);
+        }
+        return trigger;
+    }
+
+    private static KnownResourceException unknownEventTrigger(String path, String id) {
+        return new KnownResourceException(
+                ConfigConstants.PARSE_ENUM_FAILED,
+                path,
+                id,
+                String.join(", ", EventTrigger.registeredIds())
+        );
     }
 }

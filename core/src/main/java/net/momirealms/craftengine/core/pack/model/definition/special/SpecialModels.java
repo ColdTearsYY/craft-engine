@@ -23,6 +23,9 @@ public final class SpecialModels {
     public static final SpecialModelType<SignSpecialModel> STANDING_SIGN = register(Key.of("standing_sign"), SignSpecialModel.FACTORY, SignSpecialModel.READER);
     public static final SpecialModelType<SignSpecialModel> HANGING_SIGN = register(Key.of("hanging_sign"), SignSpecialModel.FACTORY, SignSpecialModel.READER);
     public static final SpecialModelType<SimpleSpecialModel> TRIDENT = register(Key.of("trident"), SimpleSpecialModel.FACTORY, SimpleSpecialModel.READER);
+    public static final SpecialModelType<SimpleSpecialModel> BELL = register(Key.of("bell"), SimpleSpecialModel.FACTORY, SimpleSpecialModel.READER);
+    public static final SpecialModelType<BookSpecialModel> BOOK = register(Key.of("book"), BookSpecialModel.FACTORY, BookSpecialModel.READER);
+    public static final SpecialModelType<EndCubeSpecialModel> END_CUBE = register(Key.of("end_cube"), EndCubeSpecialModel.FACTORY, EndCubeSpecialModel.READER);
 
     private SpecialModels() {}
 
@@ -34,7 +37,8 @@ public final class SpecialModels {
     }
 
     public static SpecialModel fromConfig(ConfigSection section) {
-        Key type = section.getNonNullIdentifier("type");
+        String typeName = section.getNonEmptyString("type");
+        Key type = Key.minecraft(typeName);
         SpecialModelType<? extends SpecialModel> specialModelType = BuiltInRegistries.SPECIAL_MODEL_TYPE.getValue(type);
         if (specialModelType == null) {
             throw new KnownResourceException("resource.item.model_definition.special.unknown_type", section.assemblePath("property"), type.asString());
@@ -44,7 +48,7 @@ public final class SpecialModels {
 
     public static SpecialModel fromJson(JsonObject json) {
         String type = json.get("type").getAsString();
-        Key key = Key.withDefaultNamespace(type, "minecraft");
+        Key key = Key.minecraft(type);
         SpecialModelType<? extends SpecialModel> specialModelType = BuiltInRegistries.SPECIAL_MODEL_TYPE.getValue(key);
         if (specialModelType == null) {
             throw new IllegalArgumentException("Invalid special model type: " + key);

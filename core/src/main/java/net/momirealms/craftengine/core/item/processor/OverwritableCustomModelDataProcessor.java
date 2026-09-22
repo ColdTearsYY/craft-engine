@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.util.Key;
@@ -17,10 +16,15 @@ public final class OverwritableCustomModelDataProcessor implements SimpleNetwork
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        if (item.customModelData().isPresent()) return item;
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
+        if (item.customModelData().isPresent()) return;
         item.customModelData(this.argument.getInt(context));
-        return item;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return this.argument.isConstant();
     }
 
     @Override

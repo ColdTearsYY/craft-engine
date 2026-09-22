@@ -37,7 +37,7 @@ public final class SetLocaleCommand extends BukkitCommandFeature<CommandSender> 
                 .required("locale", StringParser.stringComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
-                        return CompletableFuture.completedFuture(TranslationManager.ALL_LANG_SUGGESTIONS);
+                        return CompletableFuture.completedFuture(TranslationManager.instance().allLangSuggestions());
                     }
                 }))
                 .handler(context -> {
@@ -49,6 +49,7 @@ public final class SetLocaleCommand extends BukkitCommandFeature<CommandSender> 
                     }
                     SinglePlayerSelector playerSelector = context.get("player");
                     BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(playerSelector.single());
+                    if (serverPlayer == null) return;
                     serverPlayer.setSelectedLocale(locale);
                     handleFeedback(context, MessageConstants.COMMAND_LOCALE_SET_SUCCESS, Component.text(TranslationManager.formatLocale(locale)), Component.text(serverPlayer.name()));
                 });

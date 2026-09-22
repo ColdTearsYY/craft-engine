@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
@@ -24,10 +23,16 @@ public final class OverwritableDyedColorProcessor implements SimpleNetworkItemPr
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
         Optional<Color> previous = item.dyedColor();
-        if (previous.isPresent()) return item;
-        return item.dyedColor(this.color);
+        if (previous.isPresent()) return;
+        item.dyedColor(this.color);
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     @Override

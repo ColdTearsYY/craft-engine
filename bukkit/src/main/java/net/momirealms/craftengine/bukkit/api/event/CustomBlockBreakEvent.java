@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.bukkit.api.event;
 
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
-import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
@@ -14,35 +13,27 @@ import org.jetbrains.annotations.NotNull;
 
 public final class CustomBlockBreakEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList HANDLER_LIST = new HandlerList();
-    private final CustomBlock customBlock;
+    private final BlockDefinition blockDefinition;
     private final ImmutableBlockState state;
     private final Location location;
     private final Block bukkitBlock;
     private final BukkitServerPlayer player;
     private boolean cancelled;
-    private boolean dropItems = true;
-    private final ContextHolder.Builder contextBuilder;
+    private boolean dropItems;
 
     @ApiStatus.Internal
     public CustomBlockBreakEvent(@NotNull BukkitServerPlayer player,
                                  @NotNull Location location,
                                  @NotNull Block bukkitBlock,
                                  @NotNull ImmutableBlockState state,
-                                 boolean dropItems,
-                                 @NotNull ContextHolder.Builder contextBuilder) {
+                                 boolean dropItems) {
         super(player.platformPlayer());
-        this.customBlock = state.owner().value();
+        this.blockDefinition = state.owner().value();
         this.state = state;
         this.bukkitBlock = bukkitBlock;
         this.location = location;
         this.player = player;
         this.dropItems = dropItems;
-        this.contextBuilder = contextBuilder;
-    }
-
-    @NotNull
-    public ContextHolder.Builder contextBuilder() {
-        return this.contextBuilder;
     }
 
     public BukkitServerPlayer player() {
@@ -63,8 +54,8 @@ public final class CustomBlockBreakEvent extends PlayerEvent implements Cancella
     }
 
     @NotNull
-    public CustomBlock customBlock() {
-        return this.customBlock;
+    public BlockDefinition customBlock() {
+        return this.blockDefinition;
     }
 
     @NotNull

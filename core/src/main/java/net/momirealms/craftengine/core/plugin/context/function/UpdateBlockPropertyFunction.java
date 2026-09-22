@@ -2,6 +2,7 @@ package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -14,7 +15,6 @@ import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.sparrow.nbt.CompoundTag;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public final class UpdateBlockPropertyFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
@@ -52,7 +52,7 @@ public final class UpdateBlockPropertyFunction<CTX extends Context> extends Abst
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, UpdateBlockPropertyFunction<CTX>> {
-        private static final String[] UPDATE_FLAGS = new String[] {"update_flags", "update-flags"};
+        private static final String[] UPDATE_FLAGS = ConfigKeys.of("update_flags");
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -62,8 +62,8 @@ public final class UpdateBlockPropertyFunction<CTX extends Context> extends Abst
         public UpdateBlockPropertyFunction<CTX> create(ConfigSection section) {
             ConfigSection propertiesSection = section.getNonNullSection("properties");
             CompoundTag properties = new CompoundTag();
-            for (Map.Entry<String, Object> entry : propertiesSection.values().entrySet()) {
-                properties.putString(entry.getKey(), String.valueOf(entry.getValue()));
+            for (String key : propertiesSection.keySet()) {
+                properties.putString(key, propertiesSection.getNonEmptyString(key));
             }
             return new UpdateBlockPropertyFunction<>(
                     getPredicates(section),

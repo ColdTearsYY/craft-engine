@@ -1,9 +1,13 @@
 package net.momirealms.craftengine.proxy.minecraft.server;
 
+import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.chat.ComponentProxy;
+import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.*;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -31,6 +35,27 @@ public interface MinecraftServerProxy {
 
     @MethodInvoker(name = "registries")
     Object registries(Object target);
+
+    @MethodInvoker(name = "getLootData", activeIf = "max_version=1.20.4")
+    Object getLootData(Object target);
+
+    @MethodInvoker(name = "reloadableRegistries", activeIf = "min_version=1.20.5")
+    Object reloadableRegistries(Object target);
+
+    @MethodInvoker(name = "isUnderSpawnProtection")
+    boolean isUnderSpawnProtection(Object target, @Type(clazz = ServerLevelProxy.class) Object level, @Type(clazz = BlockPosProxy.class) Object pos, @Type(clazz = PlayerProxy.class) Object player);
+
+    @MethodInvoker(name = "getLevel")
+    Object getLevel(Object target, @Type(clazz = ResourceKeyProxy.class) Object dimension);
+
+    @MethodInvoker(name = "hasStopped")
+    boolean hasStopped(Object target);
+
+    @MethodInvoker(name = "isRunning")
+    boolean isRunning(Object target);
+
+    @FieldGetter(name = "structureTemplateManager")
+    Object getStructureTemplateManager(Object target);
 
     @ReflectionProxy(name = "net.minecraft.server.MinecraftServer$ServerResourcePackInfo")
     interface ServerResourcePackInfoProxy {

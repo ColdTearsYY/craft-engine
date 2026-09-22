@@ -1,8 +1,15 @@
 package net.momirealms.craftengine.core.world;
 
-import java.util.Objects;
+import net.momirealms.craftengine.core.plugin.context.ChainParameterSource;
+import net.momirealms.craftengine.core.plugin.context.ContextKey;
+import net.momirealms.craftengine.core.plugin.context.parameter.PositionParameterProvider;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.MiscUtils;
 
-public final class WorldPosition implements Position {
+import java.util.Objects;
+import java.util.Optional;
+
+public final class WorldPosition implements Position, ChainParameterSource {
     public final World world;
     public final double x;
     public final double y;
@@ -55,6 +62,14 @@ public final class WorldPosition implements Position {
         this.yRot = yRot;
     }
 
+    public ExistingBlock getBlock() {
+        return this.world.getBlock(MiscUtils.floor(this.x), MiscUtils.floor(this.y), MiscUtils.floor(this.z));
+    }
+
+    public Key getBiome() {
+        return this.world.getNoiseBiome(MiscUtils.floor(this.x), MiscUtils.floor(this.y), MiscUtils.floor(this.z));
+    }
+
     @Override
     public double x() {
         return x;
@@ -84,6 +99,27 @@ public final class WorldPosition implements Position {
 
     public Vec3d toVec3d() {
         return new Vec3d(x, y, z);
+    }
+
+    public WorldPosition relative(Vec3d relative) {
+        return new WorldPosition(world, x + relative.x, y + relative.y, z + relative.z, xRot, yRot);
+    }
+
+    @Override
+    public <T> Optional<T> getParameter(ContextKey<T> key) {
+        return PositionParameterProvider.INSTANCE.getOptionalParameter(key, this);
+    }
+
+    @Override
+    public String toString() {
+        return "WorldPosition{" +
+                "world=" + world +
+                ", x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                ", xRot=" + xRot +
+                ", yRot=" + yRot +
+                '}';
     }
 
     @Override

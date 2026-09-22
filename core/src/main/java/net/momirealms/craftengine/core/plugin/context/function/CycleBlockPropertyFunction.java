@@ -1,9 +1,9 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
-import com.google.common.collect.Maps;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -15,10 +15,7 @@ import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.WorldPosition;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public final class CycleBlockPropertyFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final String property;
@@ -82,7 +79,7 @@ public final class CycleBlockPropertyFunction<CTX extends Context> extends Abstr
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, CycleBlockPropertyFunction<CTX>> {
-        private static final String[] UPDATE_FLAGS = new String[]{"update_flags", "update-flags"};
+        private static final String[] UPDATE_FLAGS = ConfigKeys.of("update_flags");
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
@@ -93,7 +90,10 @@ public final class CycleBlockPropertyFunction<CTX extends Context> extends Abstr
             ConfigSection rulesSection = section.getSection("rules");
             Map<String, String> rules = null;
             if (rulesSection != null) {
-                rules = Maps.transformValues(rulesSection.values(), Object::toString);
+                rules = new HashMap<>();
+                for (String key : rulesSection.keySet()) {
+                    rules.put(key, rulesSection.getNonEmptyString(key));
+                }
             }
             return new CycleBlockPropertyFunction<>(
                     getPredicates(section),

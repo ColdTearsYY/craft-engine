@@ -1,19 +1,22 @@
 package net.momirealms.craftengine.core.plugin.network;
 
+import ca.spottedleaf.concurrentutil.map.concurrent.ints.ConcurrentChainedInt2ObjectHashTable;
 import com.mojang.authlib.properties.PropertyMap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import net.kyori.adventure.text.Component;
+import net.momirealms.craftengine.core.pack.host.ResourcePackDownloadData;
 import net.momirealms.craftengine.core.plugin.Plugin;
+import net.momirealms.craftengine.core.plugin.network.mod.ClientCustomPacket;
 import net.momirealms.craftengine.core.util.IntIdentityList;
-import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.chunk.client.ClientChunk;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
+import java.net.InetAddress;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public interface NetWorkUser {
@@ -59,7 +62,11 @@ public interface NetWorkUser {
 
     void sendPackets(List<Object> packet, boolean immediately, Runnable sendListener);
 
-    void sendCustomPayload(Key channel, byte[] data);
+    void sendCustomPacket(ClientCustomPacket packet);
+
+    void sendCustomPackets(List<? extends ClientCustomPacket> packets);
+
+    void sendByteBufPacket(ByteBuf buf, boolean immediately);
 
     void kick(@Nullable Component message);
 
@@ -73,15 +80,17 @@ public interface NetWorkUser {
 
     World clientSideWorld();
 
-    Object serverPlayer();
+    ConcurrentChainedInt2ObjectHashTable<EntityPacketHandler> entityViews();
 
-    Object platformPlayer();
+    boolean clientCustomBlockEnabled();
 
-    Map<Integer, EntityPacketHandler> entityPacketHandlers();
+    void setClientCustomBlock(boolean enable);
 
-    boolean clientModEnabled();
+    boolean hasClientMod();
 
-    void setClientModState(boolean enable);
+    int clientModProtocol();
+
+    void setClientModProtocol(int version);
 
     void addResourcePackUUID(UUID uuid);
 
@@ -101,10 +110,15 @@ public interface NetWorkUser {
 
     void removeTrackedChunk(long chunkPos);
 
-    @Nullable
     IntIdentityList clientBlockList();
 
     void setClientBlockList(IntIdentityList integers);
+
+    IntIdentityList clientBiomeList();
+
+    void setClientBiomeList(IntIdentityList biomes);
+
+    boolean needsBlockStateBitWidthConversion();
 
     ProtocolVersion protocolVersion();
 
@@ -115,4 +129,11 @@ public interface NetWorkUser {
     void setDecoderState(ConnectionState decoderState);
 
     void setEncoderState(ConnectionState encoderState);
+
+    void resendChunks();
+
+    void addResourcePackTasks(List<ResourcePackDownloadData> dataList);
+
+    @Nullable
+    InetAddress address();
 }

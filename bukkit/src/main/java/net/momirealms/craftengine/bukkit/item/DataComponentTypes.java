@@ -3,7 +3,7 @@ package net.momirealms.craftengine.bukkit.item;
 
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.bukkit.util.RegistryUtils;
-import net.momirealms.craftengine.core.item.DataComponentKeys;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
@@ -35,11 +35,13 @@ public final class DataComponentTypes {
     public static final Object CONTAINER = byId(DataComponentKeys.CONTAINER);
     public static final Object BLOCK_STATE = byId(DataComponentKeys.BLOCK_STATE);
     public static final Object MAP_ID = byId(DataComponentKeys.MAP_ID);
+    public static final Object USE_REMAINDER = byId(DataComponentKeys.USE_REMAINDER);
+    public static final Object WRITTEN_BOOK_CONTENT = byId(DataComponentKeys.WRITTEN_BOOK_CONTENT);
 
     private DataComponentTypes() {}
 
     public static Object byId(Key key) {
-        if (!VersionHelper.isOrAbove1_20_5()) return null;
+        if (!VersionHelper.isOrAbove1_20_5) return null;
         return RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.DATA_COMPONENT_TYPE, KeyUtils.toIdentifier(key));
     }
 }

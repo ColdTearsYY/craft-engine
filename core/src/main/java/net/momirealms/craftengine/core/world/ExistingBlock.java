@@ -1,15 +1,25 @@
 package net.momirealms.craftengine.core.world;
 
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
-import net.momirealms.craftengine.core.block.CustomBlock;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.StatePropertyAccessor;
+import net.momirealms.craftengine.core.plugin.context.ChainParameterSource;
+import net.momirealms.craftengine.core.plugin.context.ContextKey;
+import net.momirealms.craftengine.core.plugin.context.parameter.BlockParameterProvider;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface ExistingBlock {
+import java.util.Optional;
+
+public interface ExistingBlock extends ChainParameterSource {
+
+    @Override
+    default <T> Optional<T> getParameter(ContextKey<T> key) {
+        return BlockParameterProvider.INSTANCE.getOptionalParameter(key, this);
+    }
 
     default boolean canBeReplaced(BlockPlaceContext blockPlaceContext) {
         return false;
@@ -20,7 +30,7 @@ public interface ExistingBlock {
     }
 
     @Nullable
-    CustomBlock customBlock();
+    BlockDefinition customBlock();
 
     boolean isCustom();
 

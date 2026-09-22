@@ -12,6 +12,10 @@ public final class BlockRegistry<T> extends AbstractMappedRegistry<T> {
         super(key, expectedSize, true);
     }
 
+    public synchronized Holder.Reference<T> getOrRegisterForHolder(ResourceKey<T> key) {
+        return this.get(key).orElseGet(() -> registerForHolder(key));
+    }
+
     @Override
     public Holder.Reference<T> registerForHolder(ResourceKey<T> key) {
         Objects.requireNonNull(key);

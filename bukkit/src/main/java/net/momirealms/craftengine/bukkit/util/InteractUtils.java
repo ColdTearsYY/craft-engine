@@ -1,13 +1,10 @@
 package net.momirealms.craftengine.bukkit.util;
 
-import io.papermc.paper.entity.Shearable;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.item.behavior.BlockItemBehavior;
 import net.momirealms.craftengine.bukkit.item.behavior.FlintAndSteelItemBehavior;
 import net.momirealms.craftengine.bukkit.item.recipe.BukkitRecipeManager;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
-import net.momirealms.craftengine.bukkit.world.BukkitWorld;
 import net.momirealms.craftengine.core.block.BlockKeys;
 import net.momirealms.craftengine.core.entity.EntityTypeKeys;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
@@ -24,17 +21,17 @@ import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.core.world.BlockHitResult;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.BlockPlaceContext;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.entity.CraftEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.InteractionHandProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.ShearableProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.BlockItemProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.context.BlockPlaceContextProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.phys.BlockHitResultProxy;
+import org.bukkit.*;
 import org.bukkit.DyeColor;
-import org.bukkit.GameMode;
-import org.bukkit.Registry;
-import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
@@ -44,13 +41,15 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Levelled;
 import org.bukkit.block.data.Lightable;
 import org.bukkit.block.data.type.*;
-import org.bukkit.block.data.type.Observer;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 public final class InteractUtils {
     private static final Map<Key, QuadFunction<Player, Item, BlockData, BlockHitResult, Boolean>> INTERACTIONS = new HashMap<>();
@@ -67,7 +66,7 @@ public final class InteractUtils {
 
     // 方块
     static {
-        registerInteraction(BlockKeys.NOTE_BLOCK, (player, item, blockState, result) -> result.direction() != Direction.UP || !item.hasItemTag(NOTE_BLOCK_TOP_INSTRUMENTS));
+        registerInteraction(BlockKeys.NOTE_BLOCK, (player, item, blockState, result) -> result.direction() != Direction.UP || !item.hasVanillaTag(NOTE_BLOCK_TOP_INSTRUMENTS));
         registerInteraction(BlockKeys.POWDER_SNOW, (player, item, blockState, result) -> {
             Key id = item.vanillaId();
             return ItemKeys.BUCKET.equals(id);
@@ -201,8 +200,7 @@ public final class InteractUtils {
                         && redstoneWire.getFace(BlockFace.WEST).equals(RedstoneWire.Connection.NONE);
                 if (isCross || isDot) {
                     BlockPos blockPos = result.blockPos();
-                    BukkitWorld bukkitWorld = BukkitAdaptor.adapt(player.getWorld());
-                    World world = bukkitWorld.platformWorld();
+                    World world = player.getWorld();
 
                     Direction[] directions = {Direction.EAST, Direction.WEST, Direction.SOUTH, Direction.NORTH};
                     for (Direction direction : directions) {
@@ -241,31 +239,16 @@ public final class InteractUtils {
         registerInteraction(BlockKeys.CRAFTER, (player, item, blockState, result) -> true);
         registerInteraction(BlockKeys.HOPPER, (player, item, blockState, result) -> true);
         registerInteraction(BlockKeys.TNT, (player, item, blockState, result) -> {
-            Optional<List<ItemBehavior>> behaviors = item.getItemBehavior();
-            if (behaviors.isPresent()) {
-                for (ItemBehavior behavior : behaviors.get()) {
-                    if (behavior instanceof FlintAndSteelItemBehavior) return true;
-                }
-            }
-            return false;
+            Optional<ItemBehavior> behavior = item.getBehavior();
+            return behavior.filter(itemBehavior -> itemBehavior.getFirst(FlintAndSteelItemBehavior.class) != null).isPresent();
         });
         registerInteraction(BlockKeys.REDSTONE_ORE, (player, item, blockState, result) -> {
-            Optional<List<ItemBehavior>> behaviors = item.getItemBehavior();
-            if (behaviors.isPresent()) {
-                for (ItemBehavior behavior : behaviors.get()) {
-                    if (behavior instanceof BlockItemBehavior) return false;
-                }
-            }
-            return true;
+            Optional<ItemBehavior> behavior = item.getBehavior();
+            return behavior.map(itemBehavior -> itemBehavior.getFirst(BlockItemBehavior.class) == null).orElse(true);
         });
         registerInteraction(BlockKeys.DEEPSLATE_REDSTONE_ORE, (player, item, blockState, result) -> {
-            Optional<List<ItemBehavior>> behaviors = item.getItemBehavior();
-            if (behaviors.isPresent()) {
-                for (ItemBehavior behavior : behaviors.get()) {
-                    if (behavior instanceof BlockItemBehavior) return false;
-                }
-            }
-            return true;
+            Optional<ItemBehavior> behavior = item.getBehavior();
+            return behavior.map(itemBehavior -> itemBehavior.getFirst(BlockItemBehavior.class) == null).orElse(true);
         });
         // 管理员用品
         registerInteraction(BlockKeys.COMMAND_BLOCK, (player, item, blockState, result) -> player.isOp() && player.getGameMode() == GameMode.CREATIVE);
@@ -455,7 +438,7 @@ public final class InteractUtils {
         });
         // 蛋糕
         registerInteraction(BlockKeys.CAKE, (player, item, blockState, result) -> {
-            if (blockState instanceof Cake cake && cake.getBites() == 0 && item.hasItemTag(CANDLES)) return true;
+            if (blockState instanceof Cake cake && cake.getBites() == 0 && item.hasVanillaTag(CANDLES)) return true;
             return canEat(player);
         });
         registerInteraction(BlockKeys.CANDLE_CAKE, (player, item, blockState, result) -> {
@@ -802,12 +785,11 @@ public final class InteractUtils {
         });
         registerEntityInteraction(EntityTypeKeys.TADPOLE, (player, entity, item) ->     {
             Key id = item.vanillaId();
-            return ItemKeys.WATER_BUCKET.equals(id) || item.hasItemTag(FROG_FOOD);
+            return ItemKeys.WATER_BUCKET.equals(id) || item.hasVanillaTag(FROG_FOOD);
         });
-
         registerEntityInteraction(EntityTypeKeys.SHEEP, (player, entity, item) -> {
             Key id = item.vanillaId();
-            if (entity instanceof Sheep sheep && sheep.readyToBeSheared() && ArrayUtils.contains(ItemKeys.DYES, item)) {
+            if (entity instanceof Sheep sheep && ShearableProxy.INSTANCE.readyForShearing(CraftEntityProxy.INSTANCE.getEntity(entity)) && ArrayUtils.contains(ItemKeys.DYES, item)) {
                 DyeColor sheepColor = sheep.getColor();
                 if (sheepColor != null) {
                     String color = sheepColor.name().toLowerCase(Locale.ROOT);
@@ -833,13 +815,8 @@ public final class InteractUtils {
         });
 
         registerEntityInteraction(EntityTypeKeys.CREEPER, (player, entity, item) -> {
-            Optional<List<ItemBehavior>> behaviors = item.getItemBehavior();
-            if (behaviors.isPresent()) {
-                for (ItemBehavior behavior : behaviors.get()) {
-                    if (behavior instanceof FlintAndSteelItemBehavior) return true;
-                }
-            }
-            return false;
+            Optional<ItemBehavior> behaviors = item.getBehavior();
+            return behaviors.filter(itemBehavior -> itemBehavior.getFirst(FlintAndSteelItemBehavior.class) != null).isPresent();
         });
         registerEntityInteraction(EntityTypeKeys.PIGLIN, (player, entity, item) -> {
             Key id = item.vanillaId();
@@ -853,7 +830,7 @@ public final class InteractUtils {
         registerEntityInteraction(EntityTypeKeys.WOLF, (player, entity, item) -> canBeFeed(entity, item) || isPetOwner(player, entity));
         registerEntityInteraction(EntityTypeKeys.CAT, (player, entity, item) -> canBeFeed(entity, item) || isPetOwner(player, entity));
         registerEntityInteraction(EntityTypeKeys.PARROT, (player, entity, item) -> {
-            if (item.hasItemTag(PARROT_POISONOUS_FOOD)) return true;
+            if (item.hasVanillaTag(PARROT_POISONOUS_FOOD)) return true;
             return canBeFeed(entity, item) || isPetOwner(player, entity);
         });
 
@@ -950,8 +927,8 @@ public final class InteractUtils {
         registerEntityInteraction(EntityTypeKeys.HAPPY_GHAST, (player, entity, item) -> {
             if (entity instanceof HappyGhast happyGhast && isAdult(entity)) {
                 ItemStack bodyItem = happyGhast.getEquipment().getItem(EquipmentSlot.BODY);
-                boolean hasHarness = BukkitItemManager.instance().wrap(bodyItem).hasItemTag(HARNESSES);
-                if (item.hasItemTag(HARNESSES) && !hasHarness) return true;
+                boolean hasHarness = BukkitItemManager.instance().wrap(bodyItem).hasVanillaTag(HARNESSES);
+                if (item.hasVanillaTag(HARNESSES) && !hasHarness) return true;
                 return !player.isSneaking();
             }
             return canBeFeed(entity, item);
@@ -995,7 +972,6 @@ public final class InteractUtils {
     }
 
     // 这个方法用于解决玩家使用仙人掌放在基于仙人掌的方块上，物品暂时消失的类似问题，但是无法彻底解决
-    // todo 需要通过创建代理Level来实现getBlockState的方法拦截，从而实现模拟客户端测的方块状态更新，这个过程可能也需要创建代理Chunk和代理Section
     public static boolean canPlaceVisualBlock(Player player, BlockData state, BlockHitResult hit, @Nullable Item item) {
         if (item == null) return false;
         Key blockType = BlockStateUtils.getBlockOwnerIdFromData(state);
@@ -1021,7 +997,7 @@ public final class InteractUtils {
     }
 
     private static boolean isFood(String food, Item item) {
-        return item.hasItemTag(Key.of(food));
+        return item.hasVanillaTag(Key.of(food));
     }
 
     private static boolean canBeFeed(Entity entity, Item item) {
@@ -1070,7 +1046,11 @@ public final class InteractUtils {
     }
 
     private static boolean isPetOwner(Player player, Entity entity) {
-        return entity instanceof Tameable tameable && tameable.isTamed() && player.getUniqueId().equals(tameable.getOwnerUniqueId());
+        if (VersionHelper.hasPaperPatch) {
+            return entity instanceof Tameable tameable && tameable.isTamed() && player.getUniqueId().equals(tameable.getOwnerUniqueId());
+        } else {
+            return entity instanceof Tameable tameable && tameable.isTamed() && tameable.getOwner() instanceof OfflinePlayer offlinePlayer && offlinePlayer.getUniqueId().equals(player.getUniqueId());
+        }
     }
 
     // 判断单座位实体是否载有乘客
@@ -1084,17 +1064,19 @@ public final class InteractUtils {
 
     private static boolean canBeSheared(Entity entity, Item item) {
         Key id = item.vanillaId();
-        return entity instanceof Shearable shearable && shearable.readyToBeSheared() && ItemKeys.SHEARS.equals(id);
+        Object serverEntity = CraftEntityProxy.INSTANCE.getEntity(entity);
+        return ShearableProxy.CLASS.isInstance(serverEntity) && ShearableProxy.INSTANCE.readyForShearing(serverEntity) && ItemKeys.SHEARS.equals(id);
     }
 
     public static boolean canPlaceBlock(BlockPlaceContext context) {
-        Object item = ItemStackProxy.INSTANCE.getItem(context.getItem().getMinecraftItem());
+        Object item = ItemStackProxy.INSTANCE.getItem(context.getItem().minecraftItem());
         Object block = BlockItemProxy.INSTANCE.getBlock(item);
         Object stateToPlace = BlockProxy.INSTANCE.getStateForPlacement(block, toNMSBlockPlaceContext(context));
-        return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.canSurvive(stateToPlace, context.getLevel().serverWorld(), LocationUtils.toBlockPos(context.getClickedPos()));
+        if (stateToPlace == null) return false;
+        return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.canSurvive(stateToPlace, context.getLevel().minecraftWorld(), LocationUtils.toBlockPos(context.getClickedPos()));
     }
 
-    private static Object toNMSHitResult(BlockHitResult result) {
+    public static Object toNMSHitResult(BlockHitResult result) {
         return BlockHitResultProxy.INSTANCE.newInstance(
                 LocationUtils.toVec(result.location()),
                 DirectionUtils.toNMSDirection(result.direction()),
@@ -1103,12 +1085,12 @@ public final class InteractUtils {
         );
     }
 
-    private static Object toNMSBlockPlaceContext(BlockPlaceContext context) {
+    public static Object toNMSBlockPlaceContext(BlockPlaceContext context) {
         return BlockPlaceContextProxy.INSTANCE.newInstance(
-                context.getLevel().serverWorld(),
-                Optional.ofNullable(context.getPlayer()).map(net.momirealms.craftengine.core.entity.player.Player::serverPlayer).orElse(null),
+                context.getLevel().minecraftWorld(),
+                Optional.ofNullable(context.getPlayer()).map(net.momirealms.craftengine.core.entity.player.Player::minecraftPlayer).orElse(null),
                 context.getHand() == InteractionHand.MAIN_HAND ? InteractionHandProxy.MAIN_HAND : InteractionHandProxy.OFF_HAND,
-                context.getItem().getMinecraftItem(),
+                context.getItem().minecraftItem(),
                 toNMSHitResult(context.getHitResult())
         );
     }

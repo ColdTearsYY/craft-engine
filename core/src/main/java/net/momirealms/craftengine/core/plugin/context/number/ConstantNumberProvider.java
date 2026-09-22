@@ -1,23 +1,26 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
-import com.ezylang.evalex.EvaluationException;
-import com.ezylang.evalex.Expression;
-import com.ezylang.evalex.parser.ParseException;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
-import net.momirealms.craftengine.core.util.random.RandomSource;
+import net.momirealms.craftengine.core.plugin.context.Context;
+import net.momirealms.craftengine.core.plugin.context.expression.Expressions;
 
 public record ConstantNumberProvider(double value) implements NumberProvider {
     public static final NumberProviderFactory<ConstantNumberProvider> FACTORY = new Factory();
 
     @Override
-    public float getFloat(RandomSource random) {
+    public float getFloat(Context context) {
         return (float) this.value;
     }
 
     @Override
-    public double getDouble(RandomSource random) {
+    public double getDouble(Context context) {
         return this.value;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     public static ConstantNumberProvider constant(final double value) {
@@ -33,10 +36,14 @@ public record ConstantNumberProvider(double value) implements NumberProvider {
                 double value = Double.parseDouble(plainOrExpression);
                 return new ConstantNumberProvider(value);
             } catch (NumberFormatException e) {
-                Expression expression = new Expression(plainOrExpression);
                 try {
-                    return new ConstantNumberProvider(expression.evaluate().getNumberValue().doubleValue());
-                } catch (ParseException | EvaluationException ex) {
+                    return new ConstantNumberProvider(Expressions.evaluate(
+                            section.assemblePath("value"),
+                            plainOrExpression
+                    ));
+                } catch (KnownResourceException ex) {
+                    throw ex;
+                } catch (RuntimeException ex) {
                     throw new KnownResourceException("number.fixed.invalid_expression", section.assemblePath("value"), plainOrExpression);
                 }
             }

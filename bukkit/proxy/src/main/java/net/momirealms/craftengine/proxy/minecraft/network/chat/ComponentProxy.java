@@ -2,6 +2,7 @@ package net.momirealms.craftengine.proxy.minecraft.network.chat;
 
 import com.google.gson.JsonElement;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderLookupProxy;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.MethodInvoker;
 import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
@@ -12,6 +13,7 @@ import javax.annotation.Nullable;
 @ReflectionProxy(name = "net.minecraft.network.chat.Component")
 public interface ComponentProxy {
     ComponentProxy INSTANCE = ASMProxyFactory.create(ComponentProxy.class);
+    Class<?> CLASS = SparrowClass.find("net.minecraft.network.chat.Component");
 
     @MethodInvoker(name = "empty", isStatic = true)
     Object empty();
@@ -25,6 +27,9 @@ public interface ComponentProxy {
     @ReflectionProxy(name = "net.minecraft.network.chat.Component$Serializer", activeIf = "max_version=1.21.5")
     interface SerializerProxy {
         SerializerProxy INSTANCE = ASMProxyFactory.create(SerializerProxy.class);
+
+        @MethodInvoker(name = "toJsonTree", isStatic = true, activeIf = "max_version=1.20.4")
+        JsonElement toJsonTree(@Type(clazz = ComponentProxy.class) Object text);
 
         @MethodInvoker(name = "fromJson", isStatic = true, activeIf = "min_version=1.20.5 && max_version=1.21.5")
         Object fromJson(@Nullable JsonElement json, @Type(clazz = HolderLookupProxy.ProviderProxy.class) Object registries);

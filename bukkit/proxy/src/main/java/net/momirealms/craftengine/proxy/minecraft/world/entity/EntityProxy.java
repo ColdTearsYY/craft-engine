@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.proxy.minecraft.world.entity;
 
 import net.momirealms.craftengine.proxy.minecraft.world.damagesource.DamageSourceProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
 import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.*;
@@ -13,10 +14,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 public interface EntityProxy {
     EntityProxy INSTANCE = ASMProxyFactory.create(EntityProxy.class);
     Class<?> CLASS = SparrowClass.find("net.minecraft.world.entity.Entity");
-    AtomicInteger ENTITY_COUNTER = INSTANCE.getEntityCounter();
 
-    @FieldGetter(name = "ENTITY_COUNTER")
+    @FieldGetter(name = "ENTITY_COUNTER", isStatic = true, activeIf = "max_version=26.1.2")
     AtomicInteger getEntityCounter();
+
+    @FieldGetter(name = "yRot")
+    float getYRot(Object target);
+
+    @FieldGetter(name = "xRot")
+    float getXRot(Object target);
+
+    @MethodInvoker(name = "getX")
+    double getX(Object target);
+
+    @MethodInvoker(name = "getY")
+    double getY(Object target);
+
+    @MethodInvoker(name = "getZ")
+    double getZ(Object target);
 
     @FieldGetter(name = "xo")
     double getXo(Object target);
@@ -57,10 +72,10 @@ public interface EntityProxy {
     @FieldSetter(name = "hurtMarked")
     void setHurtMarked(Object target, boolean hurtMarked);
 
-    @FieldGetter(name = {"trackedEntity", "tracker"})
+    @FieldGetter(name = {"trackedEntity", "tracker"}, activeIf = "has_patch=paper")
     Object getTrackedEntity(Object target);
 
-    @FieldSetter(name = {"trackedEntity", "tracker"})
+    @FieldSetter(name = {"trackedEntity", "tracker"}, activeIf = "has_patch=paper")
     void setTrackedEntity(Object target, Object trackedEntity);
 
     @FieldGetter(name = "wasTouchingWater")
@@ -84,6 +99,15 @@ public interface EntityProxy {
     @MethodInvoker(name = "getVehicleAttachmentPoint", activeIf = "min_version=1.20.5")
     Object getVehicleAttachmentPoint(Object target, @Type(clazz = EntityProxy.class) Object vehicle);
 
+    @FieldGetter(name = "vehicle")
+    Object getVehicle(Object target);
+
+    @FieldGetter(name = "eyeHeight")
+    float getEyeHeight(Object target);
+
+    @MethodInvoker(name = "getEyeHeight")
+    float getEyeHeight(Object target, @Type(clazz = PoseProxy.class) Object pose);
+
     @MethodInvoker(name = "getPassengersRidingOffset", activeIf = "max_version=1.20.1")
     double getPassengersRidingOffset(Object target);
 
@@ -93,8 +117,20 @@ public interface EntityProxy {
     @MethodInvoker(name = "isSpectator")
     boolean isSpectator(Object target);
 
+    @MethodInvoker(name = "isShiftKeyDown")
+    boolean isShiftKeyDown(Object target);
+
     @MethodInvoker(name = "setDeltaMovement")
     void setDeltaMovement(Object target, double x, double y, double z);
+
+    @MethodInvoker(name = "setDeltaMovement")
+    void setDeltaMovement(Object target, @Type(clazz = Vec3Proxy.class) Object deltaMovement);
+
+    @MethodInvoker(name = "setPos")
+    void setPos(Object target, double x, double y, double z);
+
+    @MethodInvoker(name = "blockPosition")
+    Object getBlockPosition(Object target);
 
     @MethodInvoker(name = "getDeltaMovement")
     Object getDeltaMovement(Object target);
@@ -126,10 +162,13 @@ public interface EntityProxy {
     @FieldGetter(name = "blocksBuilding")
     boolean getBlocksBuilding(Object target);
 
+    @FieldSetter(name = "blocksBuilding")
+    void setBlocksBuilding(Object target, boolean blocksBuilding);
+
     @MethodInvoker(name = "getBoundingBox")
     Object getBoundingBox(Object target);
 
-    @FieldGetter(name = "level")
+    @MethodInvoker(name = "level")
     Object getLevel(Object target);
 
     @FieldSetter(name = "level")
@@ -140,4 +179,25 @@ public interface EntityProxy {
 
     @MethodInvoker(name = "isAlive")
     boolean isAlive(Object target);
+
+    @MethodInvoker(name = "getEyeY")
+    double getEyeY(Object target);
+
+    @MethodInvoker(name = "isSilent")
+    boolean isSilent(Object target);
+
+    @MethodInvoker(name = "setRot")
+    void setRot(Object target, float yRot, float xRot);
+
+    @MethodInvoker(name = "setPose")
+    void setPose(Object target, @Type(clazz = PoseProxy.class) Object pose);
+
+    @MethodInvoker(name = "getEyePosition")
+    Object getEyePosition(Object target);
+
+    @MethodInvoker(name = "getLookAngle")
+    Object getLookAngle(Object target);
+
+    @MethodInvoker(name = "getPose")
+    Object getPose(Object target);
 }

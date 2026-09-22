@@ -1,7 +1,9 @@
 package net.momirealms.craftengine.core.plugin.locale;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TranslatableComponent;
 import net.momirealms.craftengine.core.pack.Pack;
@@ -11,19 +13,23 @@ import net.momirealms.craftengine.core.plugin.PluginProperties;
 import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
+import net.momirealms.craftengine.core.plugin.config.yaml.TranslationConfigConstructor;
 import net.momirealms.craftengine.core.plugin.text.minimessage.ImageTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.IndexedArgumentTag;
 import net.momirealms.craftengine.core.plugin.text.minimessage.ShiftTag;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.FileUtils;
 import net.momirealms.craftengine.core.util.GsonHelper;
-import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.util.Key;
+import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.LoaderOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.representer.Representer;
+import org.snakeyaml.engine.v2.api.Dump;
+import org.snakeyaml.engine.v2.api.DumpSettings;
+import org.snakeyaml.engine.v2.api.Load;
+import org.snakeyaml.engine.v2.api.LoadSettings;
+import org.snakeyaml.engine.v2.common.FlowStyle;
+import org.snakeyaml.engine.v2.common.ScalarStyle;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,10 +41,10 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class TranslationManagerImpl implements TranslationManager {
     private static final Locale DEFAULT_LOCALE = Locale.ENGLISH;
-    private static final Yaml TRANSLATION_YAML = new Yaml(new TranslationConfigConstructor(new LoaderOptions()));
     static TranslationManager instance;
     private final Plugin plugin;
     private final Set<Locale> installed = ConcurrentHashMap.newKeySet();
@@ -51,6 +57,9 @@ public final class TranslationManagerImpl implements TranslationManager {
     private final Map<String, ServerLangData> serverLangData = new HashMap<>();
     private final LangParser langParser;
     private final TranslationParser translationParser;
+    private final Set<String> allLang;
+    private final List<Suggestion> allLangSuggestions;
+    private final Map<String, List<String>> locale2Countries;
     private Map<Locale, CachedTranslation> cachedTranslations = Map.of();
 
     public TranslationManagerImpl(Plugin plugin) {
@@ -65,10 +74,38 @@ public final class TranslationManagerImpl implements TranslationManager {
         this.langParser = new LangParser();
         this.translationParser = new TranslationParser();
         try (InputStream is = plugin.resourceStream("translations/en.yml")) {
-            this.translationFallback.putAll(TRANSLATION_YAML.load(is));
+            LoadSettings settings = LoadSettings.builder().setLabel("translations/en.yml").build();
+            TranslationConfigConstructor constructor = new TranslationConfigConstructor(settings);
+            Load load = new Load(settings, constructor);
+            @SuppressWarnings("unchecked")
+            Map<String, String> data = (Map<String, String>) load.loadFromInputStream(is);
+            if (data != null) {
+                this.translationFallback.putAll(data);
+            }
         } catch (IOException e) {
             CraftEngine.instance().logger().warn("Failed to load default translation file", e);
+        } catch (Exception e) {
+            CraftEngine.instance().logger().error("YAML syntax error in default translation file", e);
         }
+        Set<String> allLang = new HashSet<>();
+        try (InputStream inputStream = CraftEngine.instance().resourceStream("internal/lang/processed.json")) {
+            Objects.requireNonNull(inputStream);
+            JsonArray listJson = JsonParser.parseReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)).getAsJsonArray();
+            for (JsonElement element : listJson) {
+                allLang.add(element.getAsString());
+            }
+        } catch (Exception e) {
+            CraftEngine.instance().logger().warn("Failed to load internal/lang/processed.json", e);
+        }
+        this.allLang = Collections.unmodifiableSet(allLang);
+        this.allLangSuggestions = this.allLang.stream().map(Suggestion::suggestion).toList();
+        this.locale2Countries = this.allLang.stream()
+                .map(lang -> lang.split("_"))
+                .filter(split -> split.length >= 2)
+                .collect(Collectors.groupingBy(
+                        split -> split[0],
+                        Collectors.mapping(split -> split[1], Collectors.toUnmodifiableList())
+                ));
     }
 
     private Set<String> getSupportedLanguages() {
@@ -175,6 +212,11 @@ public final class TranslationManagerImpl implements TranslationManager {
         return this.serverLangData.keySet();
     }
 
+    @Override
+    public ServerLangData translationData(String key) {
+        return this.serverLangData.get(key);
+    }
+
     private void loadFromCache() {
         // 第一阶段：先注册所有没有国家/地区的locale
         for (Map.Entry<Locale, CachedTranslation> entry : this.cachedTranslations.entrySet()) {
@@ -230,8 +272,12 @@ public final class TranslationManagerImpl implements TranslationManager {
                         if (cachedFile != null && cachedFile.lastModified() == lastModifiedTime && cachedFile.size() == size) {
                             TranslationManagerImpl.this.cachedTranslations.put(locale, cachedFile);
                         } else {
-                            try (InputStreamReader inputStream = new InputStreamReader(Files.newInputStream(path), StandardCharsets.UTF_8)) {
-                                Map<String, String> data = TRANSLATION_YAML.load(inputStream);
+                            try (InputStream inputStream = Files.newInputStream(path)) {
+                                LoadSettings settings = LoadSettings.builder().setLabel(path.toAbsolutePath().toString()).build();
+                                TranslationConfigConstructor constructor = new TranslationConfigConstructor(settings);
+                                Load load = new Load(settings, constructor);
+                                @SuppressWarnings("unchecked")
+                                Map<String, String> data = (Map<String, String>) load.loadFromInputStream(inputStream);
                                 if (data == null) return FileVisitResult.CONTINUE;
                                 String langVersion = data.getOrDefault("lang-version", "");
                                 if (!langVersion.equals(TranslationManagerImpl.this.langVersion) && TranslationManagerImpl.this.supportedLanguages.contains(localeName)) {
@@ -239,8 +285,8 @@ public final class TranslationManagerImpl implements TranslationManager {
                                 }
                                 cachedFile = new CachedTranslation(data, lastModifiedTime, size);
                                 TranslationManagerImpl.this.cachedTranslations.put(locale, cachedFile);
-                            } catch (IOException e) {
-                                TranslationManagerImpl.this.plugin.logger().severe("Error while reading translation file: " + path, e);
+                            } catch (Exception e) {
+                                TranslationManagerImpl.this.plugin.logger().error("Error while reading translation file: " + path, e);
                                 return FileVisitResult.CONTINUE;
                             }
                         }
@@ -248,37 +294,51 @@ public final class TranslationManagerImpl implements TranslationManager {
                     return FileVisitResult.CONTINUE;
                 }
             });
-        } catch (IOException e) {
+        } catch (Exception e) {
             this.plugin.logger().warn("Failed to load translation file from folder", e);
         }
     }
 
-    @Override
-    public void log(String id, String... args) {
-        String translation = miniMessageTranslation(id);
-        if (translation == null || translation.isEmpty()) translation = id;
-        this.plugin.senderFactory().console().sendMessage(AdventureHelper.miniMessage().deserialize(translation, new IndexedArgumentTag(Arrays.stream(args).map(Component::text).toList())));
-    }
-
     private Map<String, String> updateLangFile(Map<String, String> previous, Path translationFile) throws IOException {
-        DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        options.setPrettyFlow(true);
-        options.setIndent(2);
-        options.setSplitLines(false);
-        options.setDefaultScalarStyle(DumperOptions.ScalarStyle.PLAIN);
-        Yaml yaml = new Yaml(new StringKeyConstructor(translationFile, new LoaderOptions()), new Representer(options), options);
+        String fileName = translationFile.getFileName().toString();
+
+        LoadSettings loadSettings = LoadSettings.builder()
+                .setLabel(fileName)
+                .build();
+
+        DumpSettings dumpSettings = DumpSettings.builder()
+                .setDefaultFlowStyle(FlowStyle.BLOCK)
+                .setIndent(2)
+                .setIndicatorIndent(2)
+                .setSplitLines(false)
+                .setDefaultScalarStyle(ScalarStyle.PLAIN)
+                .build();
+
         LinkedHashMap<String, String> newFileContents = new LinkedHashMap<>();
-        try (InputStream is = this.plugin.resourceStream("translations/" + translationFile.getFileName())) {
-            Map<String, String> newMap = yaml.load(is);
+
+        try (InputStream is = this.plugin.resourceStream("translations/" + fileName)) {
+            TranslationConfigConstructor constructor = new TranslationConfigConstructor(loadSettings);
+            Load load = new Load(loadSettings, constructor);
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> newMap = (Map<String, String>) load.loadFromInputStream(is);
+
             previous.remove("lang-version");
             newFileContents.put("lang-version", this.langVersion);
             newFileContents.putAll(this.translationFallback);
-            newFileContents.putAll(newMap);
+            if (newMap != null) {
+                newFileContents.putAll(newMap);
+            }
             newFileContents.putAll(previous);
-            String yamlString = yaml.dump(newFileContents);
+
+            Dump dump = new Dump(dumpSettings);
+            String yamlString = dump.dumpToString(newFileContents);
+
             Files.writeString(translationFile, yamlString);
+
             return newFileContents;
+        } catch (Exception e) {
+            throw new IOException("Error processing YAML for " + fileName, e);
         }
     }
 
@@ -290,50 +350,77 @@ public final class TranslationManagerImpl implements TranslationManager {
     @Override
     public void addClientTranslation(String langId, Map<String, String> translations) {
         if ("all".equals(langId)) {
-            ALL_LANG.forEach(lang -> this.clientLangData.computeIfAbsent(lang, k -> new ClientLangData())
+            this.allLang.forEach(lang -> this.clientLangData.computeIfAbsent(lang, k -> new ClientLangData())
                     .addTranslations(translations));
             return;
         }
 
-        if (ALL_LANG.contains(langId)) {
+        if (this.allLang.contains(langId)) {
             this.clientLangData.computeIfAbsent(langId, k -> new ClientLangData())
                     .addTranslations(translations);
             return;
         }
 
-        List<String> langCountries = LOCALE_2_COUNTRIES.getOrDefault(langId, Collections.emptyList());
+        List<String> langCountries = this.locale2Countries.getOrDefault(langId, Collections.emptyList());
         for (String lang : langCountries) {
             this.clientLangData.computeIfAbsent(langId + "_" + lang, k -> new ClientLangData())
                     .addTranslations(translations);
         }
     }
 
+    @Override
+    public Set<String> allLang() {
+        return this.allLang;
+    }
+
+    @Override
+    public List<Suggestion> allLangSuggestions() {
+        return this.allLangSuggestions;
+    }
+
+    @Override
+    public Map<String, List<String>> locale2Countries() {
+        return this.locale2Countries;
+    }
+
+    @Override
+    public Map<String, ServerLangData> serverLangData() {
+        return Collections.unmodifiableMap(this.serverLangData);
+    }
+
     // 为了解决如下的格式兼容 a.b.c
     // a:
     //  b:
     //   c: xxx
-    private static void loadLangKeyDeeply(String prefix, Map<String, Object> data, BiConsumer<String, String> collector) {
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            if (entry.getValue() instanceof Map<?,?> map) {
-                loadLangKeyDeeply(assembleLangKey(prefix, entry.getKey()), MiscUtils.castToMap(map, false), collector);
+    private static void loadLangKeyDeeply(@Nullable String prefix, ConfigSection section, BiConsumer<String, String> collector) {
+        for (String key : section.keySet()) {
+            ConfigValue value = section.getValue(key);
+            if (value == null) continue;
+            if (value.is(Map.class)) {
+                loadLangKeyDeeply(assembleLangKey(prefix, key), value.getAsSection(), collector);
             } else {
-                collector.accept(assembleLangKey(prefix, entry.getKey()), String.valueOf(entry.getValue()));
+                collector.accept(assembleLangKey(prefix, key), value.getAsString());
             }
         }
     }
 
-    private static String assembleLangKey(String prefix, String lang) {
-        if (prefix.isEmpty()) {
+    private static String assembleLangKey(@Nullable String prefix, String lang) {
+        if (prefix == null) {
             return lang;
         }
         return prefix + "." + lang;
     }
 
     private final class TranslationParser extends SectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"translations", "translation", "l10n", "localization", "i18n", "internationalization"};
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("translation(s)|l10n|localization|i18n|internationalization");
         private final Map<Locale, List<Map<String, String>>> withoutCountry = new HashMap<>();
         private final Map<Locale, List<Map<String, String>>> withCountry = new HashMap<>();
         private int count;
+
+        @Override
+        public Key type() {
+            return Key.ce("translation");
+        }
 
         @Override
         public String[] sectionId() {
@@ -358,11 +445,6 @@ public final class TranslationManagerImpl implements TranslationManager {
         }
 
         @Override
-        public List<LoadingStage> dependencies() {
-            return List.of(LoadingStages.TEMPLATE);
-        }
-
-        @Override
         protected void parseSection(Pack pack, Path path, ConfigSection section) {
             for (String langId : section.keySet()) {
                 Locale locale = TranslationManager.parseLocale(langId);
@@ -372,7 +454,7 @@ public final class TranslationManagerImpl implements TranslationManager {
                 }
                 ConfigSection dataSection = section.getNonNullSection(langId);
                 Map<String, String> bundle = new HashMap<>();
-                loadLangKeyDeeply("", dataSection.values(), bundle::put);
+                loadLangKeyDeeply(null, dataSection, bundle::put);
                 this.count += bundle.size();
                 if (locale.getCountry().isEmpty()) {
                     this.withoutCountry.computeIfAbsent(locale, k -> new ArrayList<>()).add(bundle);
@@ -401,12 +483,17 @@ public final class TranslationManagerImpl implements TranslationManager {
     }
 
     private final class LangParser extends SectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"lang", "language", "languages"};
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("lang|language(s)");
         private static final Function<String, String> LANG_FORMATTER = s -> {
             Component deserialize = AdventureHelper.miniMessage().deserialize(AdventureHelper.legacyToMiniMessage(s), ShiftTag.INSTANCE, ImageTag.INSTANCE);
             return AdventureHelper.getLegacy().serialize(deserialize);
         };
         private int count;
+
+        @Override
+        public Key type() {
+            return Key.ce("language");
+        }
 
         @Override
         public String[] sectionId() {
@@ -435,11 +522,10 @@ public final class TranslationManagerImpl implements TranslationManager {
 
         @Override
         protected void parseSection(Pack pack, Path path, ConfigSection section) {
-            Map<String, Object> locales = section.values();
-            for (String langId : locales.keySet()) {
+            for (String langId : section.keySet()) {
                 ConfigSection langSection = section.getNonNullSection(langId);
                 Map<String, String> sectionData = new HashMap<>();
-                loadLangKeyDeeply("", langSection.values(), (key, value) -> sectionData.put(key, LANG_FORMATTER.apply(value)));
+                loadLangKeyDeeply(null, langSection, (key, value) -> sectionData.put(key, LANG_FORMATTER.apply(value)));
                 this.count += sectionData.size();
                 TranslationManagerImpl.this.addClientTranslation(langId, sectionData);
             }

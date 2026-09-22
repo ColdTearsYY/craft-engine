@@ -1,7 +1,11 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.*;
-import net.momirealms.craftengine.core.item.data.Enchantment;
+import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.item.ItemBuildContext;
+import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.item.component.value.Enchantment;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
@@ -28,17 +32,23 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
         return merge;
     }
 
+    @Override
+    public boolean isConstant() {
+        return true;
+    }
+
     public List<Enchantment> enchantments() {
         return enchantments;
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
         if (item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK)) {
             if (this.merge) {
                 Optional<List<Enchantment>> previousEnchantments = item.storedEnchantments();
                 if (previousEnchantments.isPresent()) {
-                    return item.setStoredEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
+                    item.setStoredEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
                             .collect(Collectors.toMap(
                                     Enchantment::id,
                                     enchantment -> enchantment,
@@ -48,14 +58,15 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
                             .values()
                             .stream()
                             .toList());
+                    return;
                 }
             }
-            return item.setStoredEnchantments(this.enchantments);
+            item.setStoredEnchantments(this.enchantments);
         } else {
             if (this.merge) {
                 Optional<List<Enchantment>> previousEnchantments = item.enchantments();
                 if (previousEnchantments.isPresent()) {
-                    return item.setEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
+                    item.setEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
                             .collect(Collectors.toMap(
                                     Enchantment::id,
                                     enchantment -> enchantment,
@@ -65,9 +76,10 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
                             .values()
                             .stream()
                             .toList());
+                    return;
                 }
             }
-            return item.setEnchantments(this.enchantments);
+            item.setEnchantments(this.enchantments);
         }
     }
 
@@ -101,7 +113,7 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
             }
             List<Enchantment> enchantments = new ArrayList<>();
             for (String enchantment : enchantSection.keySet()) {
-                enchantments.add(new Enchantment(Key.of(enchantment), enchantSection.getInt(enchantment)));
+                enchantments.add(new Enchantment(Key.of(enchantment), enchantSection.getNonNullValue(enchantment, ConfigConstants.ARGUMENT_INT, v -> v.getAsInt(1, 255))));
             }
             return new EnchantmentsProcessor(enchantments, merge);
         }

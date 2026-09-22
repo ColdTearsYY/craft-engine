@@ -26,10 +26,10 @@ public final class ComponentConditionProperty implements ConditionProperty {
     }
 
     @Override
-    public void accept(JsonObject jsonObject) {
-        jsonObject.addProperty("property", "component");
-        jsonObject.addProperty("predicate", this.predicate);
-        jsonObject.add("value", this.value);
+    public void writeProperty(JsonObject model) {
+        model.addProperty("property", "component");
+        model.addProperty("predicate", this.predicate);
+        model.add("value", this.value);
     }
 
     private static class Factory implements ConditionPropertyFactory<ComponentConditionProperty> {
@@ -37,7 +37,7 @@ public final class ComponentConditionProperty implements ConditionProperty {
         public ComponentConditionProperty create(ConfigSection section) {
             return new ComponentConditionProperty(
                     section.getNonNullString("predicate"),
-                    section.getNonNullValue("value", ConfigConstants.ARGUMENT_ANY, it -> GsonHelper.get().toJsonTree(it))
+                    section.getNonNullValue("value", ConfigConstants.ARGUMENT_ANY, it -> GsonHelper.get().toJsonTree(it.value()))
             );
         }
     }

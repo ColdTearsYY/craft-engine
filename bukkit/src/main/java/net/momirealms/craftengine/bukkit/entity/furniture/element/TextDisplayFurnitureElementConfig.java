@@ -1,14 +1,15 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.element;
 
-import net.momirealms.craftengine.bukkit.entity.data.TextDisplayEntityData;
+import net.momirealms.craftengine.bukkit.entity.data.DisplayData;
 import net.momirealms.craftengine.bukkit.util.ComponentUtils;
 import net.momirealms.craftengine.core.entity.display.Billboard;
 import net.momirealms.craftengine.core.entity.display.TextDisplayAlignment;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.ConditionalFurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
-import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.entity.furniture.element.TransformableFurnitureElementConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
@@ -18,6 +19,7 @@ import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.world.WorldPosition;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -25,12 +27,11 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
-public final class TextDisplayFurnitureElementConfig implements FurnitureElementConfig<TextDisplayFurnitureElement> {
+public final class TextDisplayFurnitureElementConfig implements TransformableFurnitureElementConfig<TextDisplayFurnitureElement> {
     public static final FurnitureElementConfigFactory<TextDisplayFurnitureElement> FACTORY = new Factory();
-    public final Function<Player, List<Object>> metadata;
+    public final FurnitureMetadataProvider metadata;
     public final String text;
     public final Vector3f scale;
     public final Vector3f position;
@@ -53,7 +54,6 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
     public final boolean useDefaultBackgroundColor;
     public final TextDisplayAlignment alignment;
     public final Predicate<PlayerContext> predicate;
-    public final boolean hasCondition;
 
     private TextDisplayFurnitureElementConfig(String text,
                                              Vector3f scale,
@@ -76,8 +76,7 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
                                              boolean isSeeThrough,
                                              boolean useDefaultBackgroundColor,
                                              TextDisplayAlignment alignment,
-                                             Predicate<PlayerContext> predicate,
-                                             boolean hasCondition) {
+                                             Predicate<PlayerContext> predicate) {
         this.text = text;
         this.scale = scale;
         this.position = position;
@@ -99,56 +98,86 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
         this.useDefaultBackgroundColor = useDefaultBackgroundColor;
         this.alignment = alignment;
         this.isSeeThrough = isSeeThrough;
-        this.hasCondition = hasCondition;
         this.predicate = predicate;
-        this.metadata = (player) -> {
-            List<Object> dataValues = new ArrayList<>();
-            if (glowColor != null) {
-                TextDisplayEntityData.SharedFlags.addEntityData((byte) 0x40, dataValues);
-                TextDisplayEntityData.GlowColorOverride.addEntityData(glowColor.color(), dataValues);
+        Object[] spawnMetadata = createStaticMetadata(false);
+        Object[] updateMetadata = createStaticMetadata(true);
+        this.metadata = (player, tintSource, force) -> {
+            Object[] staticMetadata = force ? updateMetadata : spawnMetadata;
+            List<Object> dataValues = new ArrayList<>(staticMetadata.length + 2);
+            for (Object value : staticMetadata) {
+                dataValues.add(value);
             }
-            TextDisplayEntityData.Scale.addEntityDataIfNotDefaultValue(this.scale, dataValues);
-            TextDisplayEntityData.RotationLeft.addEntityDataIfNotDefaultValue(this.rotation, dataValues);
-            TextDisplayEntityData.BillboardConstraints.addEntityDataIfNotDefaultValue(this.billboard.id(), dataValues);
-            TextDisplayEntityData.Translation.addEntityDataIfNotDefaultValue(this.translation, dataValues);
-            TextDisplayEntityData.ShadowRadius.addEntityDataIfNotDefaultValue(this.shadowRadius, dataValues);
-            TextDisplayEntityData.ShadowStrength.addEntityDataIfNotDefaultValue(this.shadowStrength, dataValues);
-            TextDisplayEntityData.Text.addEntityData(ComponentUtils.adventureToMinecraft(AdventureHelper.miniMessage().deserialize(this.text, NetworkTextReplaceContext.of(player).tagResolvers())), dataValues);
-            TextDisplayEntityData.LineWidth.addEntityDataIfNotDefaultValue(this.lineWidth, dataValues);
-            TextDisplayEntityData.BackgroundColor.addEntityDataIfNotDefaultValue(this.backgroundColor, dataValues);
-            TextDisplayEntityData.TextOpacity.addEntityDataIfNotDefaultValue(this.opacity, dataValues);
-            TextDisplayEntityData.TextDisplayMasks.addEntityDataIfNotDefaultValue(TextDisplayEntityData.encodeMask(this.hasShadow, this.isSeeThrough, this.useDefaultBackgroundColor, this.alignment), dataValues);
-            if (this.blockLight != -1 && this.skyLight != -1) {
-                TextDisplayEntityData.BrightnessOverride.addEntityData(this.blockLight << 4 | this.skyLight << 20, dataValues);
-            }
-            TextDisplayEntityData.ViewRange.addEntityDataIfNotDefaultValue((float) (this.viewRange * player.displayEntityViewDistance()), dataValues);
+            DisplayData.TextDisplayData.Text.addEntityData(ComponentUtils.adventureToMinecraft(AdventureHelper.deserialize(this.text, NetworkTextReplaceContext.of(player))), dataValues);
+            DisplayData.TextDisplayData.ViewRange.addEntityData((float) (this.viewRange * player.displayEntityViewDistance()), dataValues, force);
             return dataValues;
         };
     }
 
+    private Object[] createStaticMetadata(boolean force) {
+        List<Object> dataValues = new ArrayList<>();
+        if (glowColor != null) {
+            DisplayData.TextDisplayData.SharedFlags.addEntityData((byte) 0x40, dataValues);
+            DisplayData.TextDisplayData.GlowColorOverride.addEntityData(glowColor.color(), dataValues);
+        } else {
+            DisplayData.TextDisplayData.SharedFlags.addEntityData((byte) 0x0, dataValues, force);
+            DisplayData.TextDisplayData.GlowColorOverride.addEntityData(-1, dataValues, force);
+        }
+        DisplayData.TextDisplayData.Scale.addEntityData(this.scale, dataValues, force);
+        DisplayData.TextDisplayData.LeftRotation.addEntityData(this.rotation, dataValues, force);
+        DisplayData.TextDisplayData.BillboardConstraints.addEntityData(this.billboard.id(), dataValues, force);
+        DisplayData.TextDisplayData.Translation.addEntityData(this.translation, dataValues, force);
+        DisplayData.TextDisplayData.ShadowRadius.addEntityData(this.shadowRadius, dataValues, force);
+        DisplayData.TextDisplayData.ShadowStrength.addEntityData(this.shadowStrength, dataValues, force);
+        DisplayData.TextDisplayData.LineWidth.addEntityData(this.lineWidth, dataValues, force);
+        DisplayData.TextDisplayData.BackgroundColor.addEntityData(this.backgroundColor, dataValues, force);
+        DisplayData.TextDisplayData.TextOpacity.addEntityData(this.opacity, dataValues, force);
+        DisplayData.TextDisplayData.Flags.addEntityData(DisplayData.TextDisplayData.encodeFlags(this.hasShadow, this.isSeeThrough, this.useDefaultBackgroundColor, this.alignment), dataValues, force);
+        if (this.blockLight != -1 && this.skyLight != -1) {
+            DisplayData.TextDisplayData.BrightnessOverride.addEntityData(this.blockLight << 4 | this.skyLight << 20, dataValues);
+        } else {
+            DisplayData.TextDisplayData.BrightnessOverride.addEntityData(-1, dataValues, force);
+        }
+        return dataValues.toArray();
+    }
+
     @Override
-    public TextDisplayFurnitureElement create(@NotNull Furniture furniture) {
-        return new TextDisplayFurnitureElement(furniture, this);
+    public @NotNull TextDisplayFurnitureElement create(@NotNull Furniture furniture, @NotNull WorldPosition pos) {
+        return new TextDisplayFurnitureElement(furniture, this, pos);
+    }
+
+    @Override
+    public @NotNull TextDisplayFurnitureElement transform(@NotNull Furniture furniture, @NotNull TextDisplayFurnitureElement previous, @NotNull WorldPosition pos) {
+        return new TextDisplayFurnitureElement(furniture, this, pos, previous.entityId);
+    }
+
+    @Override
+    public Class<TextDisplayFurnitureElement> elementClass() {
+        return TextDisplayFurnitureElement.class;
+    }
+
+    @Override
+    public @NotNull WorldPosition getPos(@NotNull Furniture furniture) {
+        return furniture.placement().elementPosition(this.position, this.xRot, this.yRot);
     }
 
     private static class Factory implements FurnitureElementConfigFactory<TextDisplayFurnitureElement> {
-        private static final String[] SHADOW_RADIUS = new String[] {"shadow_radius", "shadow-radius"};
-        private static final String[] SHADOW_STRENGTH = new String[] {"shadow_strength", "shadow-strength"};
-        private static final String[] GLOW_COLOR = new String[] {"glow_color", "glow-color"};
-        private static final String[] BLOCK_LIGHT = new String[] {"block_light", "block-light"};
-        private static final String[] SKY_LIGHT = new String[] {"sky_light", "sky-light"};
-        private static final String[] VIEW_RANGE = new String[] {"view_range", "view-range"};
-        private static final String[] LINE_WIDTH = new String[] {"line_width", "line-width"};
-        private static final String[] BACKGROUND_COLOR = new String[] {"background_color", "background-color"};
-        private static final String[] TEXT_OPACITY = new String[] {"text_opacity", "text-opacity"};
-        private static final String[] HAS_SHADOW = new String[] {"has_shadow", "has-shadow"};
-        private static final String[] IS_SEE_THROUGH = new String[] {"is_see_through", "is-see-through"};
-        private static final String[] USE_DEFAULT_BACKGROUND_COLOR = new String[] {"use_default_background_color", "use-default-background-color"};
+        private static final String[] SHADOW_RADIUS = ConfigKeys.of("shadow_radius");
+        private static final String[] SHADOW_STRENGTH = ConfigKeys.of("shadow_strength");
+        private static final String[] GLOW_COLOR = ConfigKeys.of("glow_color");
+        private static final String[] BLOCK_LIGHT = ConfigKeys.of("block_light");
+        private static final String[] SKY_LIGHT = ConfigKeys.of("sky_light");
+        private static final String[] VIEW_RANGE = ConfigKeys.of("view_range");
+        private static final String[] LINE_WIDTH = ConfigKeys.of("line_width");
+        private static final String[] BACKGROUND_COLOR = ConfigKeys.of("background_color");
+        private static final String[] TEXT_OPACITY = ConfigKeys.of("text_opacity");
+        private static final String[] HAS_SHADOW = ConfigKeys.of("has_shadow");
+        private static final String[] IS_SEE_THROUGH = ConfigKeys.of("is_see_through");
+        private static final String[] USE_DEFAULT_BACKGROUND_COLOR = ConfigKeys.of("use_default_background_color");
 
         @Override
         public TextDisplayFurnitureElementConfig create(ConfigSection section) {
             ConfigSection brightness = section.getSection("brightness");
-            List<Condition<PlayerContext>> conditions = section.getSectionList("conditions", CommonConditions::fromConfig);
+            List<Condition<PlayerContext>> conditions = section.getSectionList(ConfigKeys.of("condition(s)"), CommonConditions::fromConfig);
             return new TextDisplayFurnitureElementConfig(
                     section.getNonNullString("text"),
                     section.getVector3f("scale", ConfigConstants.NORMAL_SCALE),
@@ -171,8 +200,7 @@ public final class TextDisplayFurnitureElementConfig implements FurnitureElement
                     section.getBoolean(IS_SEE_THROUGH),
                     section.getBoolean(USE_DEFAULT_BACKGROUND_COLOR),
                     section.getEnum("alignment", TextDisplayAlignment.class, TextDisplayAlignment.CENTER),
-                    MiscUtils.allOf(conditions),
-                    !conditions.isEmpty()
+                    conditions.isEmpty() ? ConditionalFurnitureElement.ALWAYS_VISIBLE : MiscUtils.allOf(conditions)
             );
         }
     }

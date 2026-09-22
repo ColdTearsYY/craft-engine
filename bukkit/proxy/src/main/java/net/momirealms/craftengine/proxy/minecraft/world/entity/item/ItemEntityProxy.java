@@ -34,10 +34,10 @@ public interface ItemEntityProxy {
     @FieldSetter(name = "age")
     void setAge(Object target, int age);
 
-    @FieldGetter(name = "despawnRate")
+    @FieldGetter(name = "despawnRate", activeIf = "has_patch=paper")
     int getDespawnRate(Object target);
 
-    @FieldSetter(name = "despawnRate")
+    @FieldSetter(name = "despawnRate", activeIf = "has_patch=paper")
     void setDespawnRate(Object target, int despawnRate);
 
     @MethodInvoker(name = "setNoPickUpDelay")
@@ -51,4 +51,10 @@ public interface ItemEntityProxy {
 
     @MethodInvoker(name = "setDefaultPickUpDelay")
     void setDefaultPickUpDelay(Object target);
+
+    @MethodInvoker(name = "getItem")
+    Object getItem(Object target);
+
+    @MethodInvoker(name = "setItem")
+    void setItem(Object target, @Type(clazz = ItemStackProxy.class) Object item);
 }

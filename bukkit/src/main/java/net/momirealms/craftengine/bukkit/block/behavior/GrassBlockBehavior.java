@@ -7,14 +7,16 @@ import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.bukkit.util.ParticleUtils;
 import net.momirealms.craftengine.bukkit.world.BukkitExistingBlock;
 import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.block.behavior.BonemealableBlock;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ItemUtils;
@@ -40,11 +42,11 @@ import org.bukkit.block.Block;
 import java.util.Optional;
 
 @SuppressWarnings("DuplicatedCode")
-public final class GrassBlockBehavior extends BukkitBlockBehavior {
+public final class GrassBlockBehavior extends BukkitBlockBehavior implements BonemealableBlock {
     public static final BlockBehaviorFactory<GrassBlockBehavior> FACTORY = new Factory();
     public final Key feature;
 
-    private GrassBlockBehavior(CustomBlock block, Key feature) {
+    private GrassBlockBehavior(BlockDefinition block, Key feature) {
         super(block);
         this.feature = feature;
     }
@@ -54,15 +56,15 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public boolean isValidBoneMealTarget(Object thisBlock, Object[] args) {
+    public boolean isValidBonemealTarget(Object thisBlock, Object[] args) {
         Object above = LocationUtils.above(args[1]);
         Object aboveState = BlockGetterProxy.INSTANCE.getBlockState(args[0], above);
         return BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.isAir(aboveState);
     }
 
     @Override
-    public boolean isBoneMealSuccess(Object thisBlock, Object[] args) {
-        if (!VersionHelper.isOrAbove1_20_2()) return true;
+    public boolean isBonemealSuccess(Object thisBlock, Object[] args) {
+        if (!VersionHelper.isOrAbove1_20_2) return true;
         Object level = args[0];
         Object blockPos = args[2];
         Object blockState = args[3];
@@ -72,7 +74,7 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
         }
         boolean sendParticles = false;
         ImmutableBlockState customState = optionalCustomState.get();
-        Object visualState = customState.visualBlockState().literalObject();
+        Object visualState = customState.visualBlockState().minecraftState();
         Object visualStateBlock = BlockStateUtils.getBlockOwner(visualState);
         if (BonemealableBlockProxy.CLASS.isInstance(visualStateBlock)) {
             boolean is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, level, blockPos, visualState);
@@ -110,14 +112,14 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
         if (!block.isEmpty())
             return InteractionResult.PASS;
         boolean sendSwing = false;
-        Object visualState = state.visualBlockState().literalObject();
+        Object visualState = state.visualBlockState().minecraftState();
         Object visualStateBlock = BlockStateUtils.getBlockOwner(visualState);
         if (BonemealableBlockProxy.CLASS.isInstance(visualStateBlock)) {
             boolean is;
-            if (VersionHelper.isOrAbove1_20_2()) {
-                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.serverWorld(), LocationUtils.toBlockPos(pos), visualState);
+            if (VersionHelper.isOrAbove1_20_2) {
+                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.minecraftWorld(), LocationUtils.toBlockPos(pos), visualState);
             } else {
-                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.serverWorld(), LocationUtils.toBlockPos(pos), visualState, true);
+                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.minecraftWorld(), LocationUtils.toBlockPos(pos), visualState, true);
             }
             if (!is) {
                 sendSwing = true;
@@ -132,8 +134,8 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public void performBoneMeal(Object thisBlock, Object[] args) {
-        Object holder = BukkitWorldManager.instance().placedFeatureById(boneMealFeature());
+    public void performBonemeal(Object thisBlock, Object[] args) {
+        Object holder = BukkitWorldManager.instance().placedFeatureHolderById(boneMealFeature());
         if (holder == null) {
             CraftEngine.instance().logger().warn("Placed feature not found: " + boneMealFeature());
             return;
@@ -155,7 +157,7 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
                 if (optionalCustomState.isEmpty()) {
                     continue out;
                 }
-                if (optionalCustomState.get().owner().value() != super.customBlock) {
+                if (optionalCustomState.get().owner().value() != super.blockDefinition) {
                     continue out;
                 }
                 Object nmsCurrentPos = LocationUtils.toBlockPos(currentPos);
@@ -176,10 +178,10 @@ public final class GrassBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<GrassBlockBehavior> {
-        private static final String[] FEATURE = new String[]{"feature", "placed_feature", "placed-feature"};
+        private static final String[] FEATURE = ConfigKeys.of("feature|placed_feature");
 
         @Override
-        public GrassBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public GrassBlockBehavior create(BlockDefinition block, ConfigSection section) {
             return new GrassBlockBehavior(
                     block,
                     section.getNonNullIdentifier(FEATURE)

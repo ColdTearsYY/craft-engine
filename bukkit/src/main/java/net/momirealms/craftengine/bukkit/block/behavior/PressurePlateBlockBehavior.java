@@ -1,14 +1,14 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
-import io.papermc.paper.event.entity.EntityInsideBlockEvent;
 import net.momirealms.antigrieflib.Flag;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.*;
-import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.property.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
@@ -39,7 +39,6 @@ import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<PressurePlateBlockBehavior> FACTORY = new Factory();
@@ -49,7 +48,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     public final PressurePlateSensitivity pressurePlateSensitivity;
     public final int pressedTime;
 
-    private PressurePlateBlockBehavior(CustomBlock block,
+    private PressurePlateBlockBehavior(BlockDefinition block,
                                        Property<Boolean> poweredProperty,
                                        SoundData onSound,
                                        SoundData offSound,
@@ -65,11 +64,11 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
 
     @SuppressWarnings("DuplicatedCode")
     @Override
-    public Object updateShape(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public Object updateShape(Object thisBlock, Object[] args) {
         Object state = args[0];
         Object level = args[updateShape$level];
         Object blockPos = args[updateShape$blockPos];
-        Direction direction = DirectionUtils.fromNMSDirection(VersionHelper.isOrAbove1_21_2() ? args[4] : args[1]);
+        Direction direction = DirectionUtils.fromNMSDirection(VersionHelper.isOrAbove1_21_2 ? args[4] : args[1]);
         if (direction == Direction.DOWN && !BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.canSurvive(state, level, blockPos)) {
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(state);
             if (optionalCustomState.isEmpty()) {
@@ -83,7 +82,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public boolean canSurvive(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public boolean canSurvive(Object thisBlock, Object[] args) {
         Object blockPos = LocationUtils.below(args[2]);
         Object level = args[1];
         return BlockProxy.INSTANCE.canSupportRigidBlock(level, blockPos)
@@ -91,7 +90,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public void tick(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public void tick(Object thisBlock, Object[] args) {
         Object state = args[0];
         int signalForState = this.getSignalForState(state);
         if (signalForState > 0) {
@@ -100,13 +99,13 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    @SuppressWarnings("UnstableApiUsage")
-    public void entityInside(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void entityInside(Object thisBlock, Object[] args) {
         Entity entity = EntityProxy.INSTANCE.getBukkitEntity(args[3]);
         Block block = CraftBlockProxy.INSTANCE.at(args[1], args[2]);
-        EntityInsideBlockEvent event = new EntityInsideBlockEvent(entity, block);
-        if (EventUtils.fireAndCheckCancel(event)) {
-            return;
+        if (VersionHelper.hasPaperPatch) {
+            if (EventUtils.fireAndCheckCancel(PaperEventUtils.entityInside(entity, block))) {
+                return;
+            }
         }
         boolean cannotInteract = entity instanceof Player p && !BukkitCraftEngine.instance().antiGriefProvider().test(p, Flag.USE_PRESSURE_PLATE, block.getLocation());
         if (cannotInteract) {
@@ -134,7 +133,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     private Object setSignalForState(Object state, int strength) {
         Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(state);
         if (optionalCustomState.isEmpty()) return state;
-        return optionalCustomState.get().with(this.poweredProperty, strength > 0).customBlockState().literalObject();
+        return optionalCustomState.get().with(this.poweredProperty, strength > 0).customBlockState().minecraftState();
     }
 
     private void checkPressed(@Nullable Object entity, Object level, Object pos, Object state, int currentSignal, Object thisBlock) {
@@ -162,14 +161,15 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
         }
 
         if (isActive) {
-            LevelUtils.scheduleBlockTick(level, pos, thisBlock, this.pressedTime);
+            LevelAccessorProxy.INSTANCE.scheduleTick$0(level, pos, thisBlock, this.pressedTime);
         }
     }
 
     private void handleDeactivation(Object entity, org.bukkit.World craftWorld, Object pos, Vector positionVector) {
-        World world = BukkitWorldManager.instance().getWorld(craftWorld).world();
+        World world = BukkitAdaptor.adapt(craftWorld);
         world.playBlockSound(LocationUtils.toVec3d(LocationUtils.fromBlockPos(pos)), this.offSound);
-        craftWorld.sendGameEvent(
+        LevelUtils.sendGameEvent(
+                craftWorld,
                 entity != null ? EntityProxy.INSTANCE.getBukkitEntity(entity) : null,
                 GameEvent.BLOCK_DEACTIVATE,
                 positionVector
@@ -177,9 +177,10 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     private void handleActivation(Object entity, org.bukkit.World craftWorld, Object pos, Vector positionVector) {
-        World world = BukkitWorldManager.instance().getWorld(craftWorld).world();
+        World world = BukkitAdaptor.adapt(craftWorld);
         world.playBlockSound(LocationUtils.toVec3d(LocationUtils.fromBlockPos(pos)), this.onSound);
-        craftWorld.sendGameEvent(
+        LevelUtils.sendGameEvent(
+                craftWorld,
                 entity != null ? EntityProxy.INSTANCE.getBukkitEntity(entity) : null,
                 GameEvent.BLOCK_ACTIVATE,
                 positionVector
@@ -187,9 +188,9 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public void affectNeighborsAfterRemoval(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public void affectNeighborsAfterRemoval(Object thisBlock, Object[] args) {
         boolean flag;
-        if (VersionHelper.isOrAbove1_21_5()) {
+        if (VersionHelper.isOrAbove1_21_5) {
             flag = !(boolean) args[3];
         } else {
             flag = !(boolean) args[4] && !BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.is$0(args[0], BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getBlock(args[3]));
@@ -198,14 +199,12 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
             if (this.getSignalForState(args[0]) > 0) {
                 this.updateNeighbours(args[1], args[2], thisBlock);
             }
-            if (!VersionHelper.isOrAbove1_21_5()) {
-                superMethod.call();
-            }
+            super.affectNeighborsAfterRemoval(args[0], args);
         }
     }
 
     private void updateNeighbours(Object level, Object pos, Object thisBlock) {
-        if (VersionHelper.isOrAbove1_21_5()) {
+        if (VersionHelper.isOrAbove1_21_5) {
             LevelAccessorProxy.INSTANCE.updateNeighborsAt(level, pos, thisBlock);
             LevelAccessorProxy.INSTANCE.updateNeighborsAt(level, LocationUtils.below(pos), thisBlock);
         } else {
@@ -215,7 +214,7 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public int getSignal(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public int getSignal(Object thisBlock, Object[] args) {
         return this.getSignalForState(args[0]);
     }
 
@@ -225,21 +224,21 @@ public final class PressurePlateBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public int getDirectSignal(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public int getDirectSignal(Object thisBlock, Object[] args) {
         Direction direction = DirectionUtils.fromNMSDirection(args[3]);
         return direction == Direction.UP ? this.getSignalForState(args[0]) : 0;
     }
 
     @Override
-    public boolean isSignalSource(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public boolean isSignalSource(Object thisBlock, Object[] args) {
         return true;
     }
 
     private static class Factory implements BlockBehaviorFactory<PressurePlateBlockBehavior> {
-        private static final String[] PRESSED_TIME = new String[] {"pressed_time", "pressed-time"};
+        private static final String[] PRESSED_TIME = ConfigKeys.of("pressed_time");
 
         @Override
-        public PressurePlateBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public PressurePlateBlockBehavior create(BlockDefinition block, ConfigSection section) {
             ConfigSection soundSection = section.getSection("sounds");
             SoundData onSound = null;
             SoundData offSound = null;

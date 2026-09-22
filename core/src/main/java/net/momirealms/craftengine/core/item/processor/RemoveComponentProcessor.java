@@ -2,8 +2,8 @@ package net.momirealms.craftengine.core.item.processor;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
-import net.momirealms.craftengine.core.item.NetworkItemHandler;
+import net.momirealms.craftengine.core.item.network.NetworkItemBuildContext;
+import net.momirealms.craftengine.core.item.network.NetworkItemHandler;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.sparrow.nbt.CompoundTag;
@@ -25,22 +25,27 @@ public final class RemoveComponentProcessor implements ItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
         for (Key argument : this.arguments) {
             item.removeComponent(argument);
         }
-        return item;
     }
 
     @Override
-    public Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
+    public boolean isConstant() {
+        return true;
+    }
+
+    @Override
+    public void prepareNetworkItem(NetworkItemBuildContext context, CompoundTag networkData) {
+        Item item = context.item();
         for (Key component : this.arguments) {
-            Tag previous = item.getSparrowNBTComponent(component);
+            Tag previous = item.getComponentAsSparrowTag(component);
             if (previous != null) {
                 networkData.put(component.asString(), NetworkItemHandler.pack(NetworkItemHandler.Operation.ADD, previous));
             }
         }
-        return item;
     }
 
     private static class Factory implements ItemProcessorFactory<RemoveComponentProcessor> {

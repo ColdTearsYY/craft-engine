@@ -2,11 +2,13 @@ package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.properties.IntegerProperty;
+import net.momirealms.craftengine.core.block.behavior.RandomTickBlock;
+import net.momirealms.craftengine.core.block.property.IntegerProperty;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
@@ -17,29 +19,37 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
-public final class VerticalCropBlockBehavior extends BukkitBlockBehavior {
+public final class VerticalCropBlockBehavior extends BukkitBlockBehavior implements RandomTickBlock {
     public static final BlockBehaviorFactory<VerticalCropBlockBehavior> FACTORY = new Factory();
     public final int maxHeight;
     public final IntegerProperty ageProperty;
     public final float growSpeed;
+    public final int baseGrowth;
+    public final float extraGrowChance;
     public final boolean direction;
 
-    private VerticalCropBlockBehavior(CustomBlock customBlock,
+    private VerticalCropBlockBehavior(BlockDefinition blockDefinition,
                                       IntegerProperty ageProperty,
                                       int maxHeight,
                                       float growSpeed,
                                       boolean direction) {
-        super(customBlock);
+        super(blockDefinition);
         this.maxHeight = maxHeight;
         this.ageProperty = ageProperty;
         this.growSpeed = growSpeed;
+        this.baseGrowth = (int) growSpeed;
+        this.extraGrowChance = growSpeed - baseGrowth;
         this.direction = direction;
     }
 
     @Override
-    public void randomTick(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public boolean canRandomlyTick(ImmutableBlockState state) {
+        return true;
+    }
+
+    @Override
+    public void randomTick(Object thisBlock, Object[] args) {
         Object blockState = args[0];
         Object level = args[1];
         Object blockPos = args[2];
@@ -56,38 +66,40 @@ public final class VerticalCropBlockBehavior extends BukkitBlockBehavior {
                 Object nextPos = LocationUtils.toBlockPos(currentPos.x(), this.direction ? currentPos.y() - currentHeight : currentPos.y() + currentHeight, currentPos.z());
                 Object nextState = BlockGetterProxy.INSTANCE.getBlockState(level, nextPos);
                 Optional<ImmutableBlockState> optionalBelowCustomState = BlockStateUtils.getOptionalCustomBlockState(nextState);
-                if (optionalBelowCustomState.isPresent() && optionalBelowCustomState.get().owner().value() == super.customBlock) {
+                if (optionalBelowCustomState.isPresent() && optionalBelowCustomState.get().owner().value() == super.blockDefinition) {
                     currentHeight++;
                 } else {
                     break;
                 }
             }
             if (currentHeight < this.maxHeight) {
-                int age = currentState.get(ageProperty);
-                if (age >= this.ageProperty.max || RandomUtils.generateRandomFloat(0, 1) < this.growSpeed) {
+                // 计算更新之后的 Age
+                int age = currentState.get(this.ageProperty) + this.baseGrowth;
+                if (age < this.ageProperty.max && this.extraGrowChance > 0 && RandomUtils.generateRandomFloat(0, 1) < this.extraGrowChance) {
+                    age++;
+                }
+                // 检查是否需要生长
+                if (age >= this.ageProperty.max) {
                     Object nextPos = this.direction ? LocationUtils.above(blockPos) : LocationUtils.below(blockPos);
-                    boolean success;
-                    if (VersionHelper.isOrAbove1_21_5()) {
-                        success = CraftEventFactoryProxy.INSTANCE.handleBlockGrowEvent(level, nextPos, super.customBlock.defaultState().customBlockState().literalObject(), UpdateFlags.UPDATE_ALL);
-                    } else {
-                        success = CraftEventFactoryProxy.INSTANCE.handleBlockGrowEvent(level, nextPos, super.customBlock.defaultState().customBlockState().literalObject());
-                    }
+                    boolean success = VersionHelper.isOrAbove1_21_5
+                            ? CraftEventFactoryProxy.INSTANCE.handleBlockGrowEvent(level, nextPos, super.blockDefinition.defaultState().customBlockState().minecraftState(), UpdateFlags.UPDATE_ALL)
+                            : CraftEventFactoryProxy.INSTANCE.handleBlockGrowEvent(level, nextPos, super.blockDefinition.defaultState().customBlockState().minecraftState());
                     if (success) {
-                        LevelWriterProxy.INSTANCE.setBlock(level, blockPos, currentState.with(this.ageProperty, this.ageProperty.min).customBlockState().literalObject(), UpdateFlags.UPDATE_NONE);
+                        LevelWriterProxy.INSTANCE.setBlock(level, blockPos, currentState.with(this.ageProperty, this.ageProperty.min).customBlockState().minecraftState(), UpdateFlags.UPDATE_NONE);
                     }
-                } else if (RandomUtils.generateRandomFloat(0, 1) < this.growSpeed) {
-                    LevelWriterProxy.INSTANCE.setBlock(level, blockPos, currentState.with(this.ageProperty, age + 1).customBlockState().literalObject(), UpdateFlags.UPDATE_NONE);
+                } else {
+                    LevelWriterProxy.INSTANCE.setBlock(level, blockPos, currentState.with(this.ageProperty, age).customBlockState().minecraftState(), UpdateFlags.UPDATE_NONE);
                 }
             }
         }
     }
 
     private static class Factory implements BlockBehaviorFactory<VerticalCropBlockBehavior> {
-        private static final String[] MAX_HEIGHT = new String[] {"max_height", "max-height"};
-        private static final String[] GROW_SPEED = new String[] {"grow_speed", "grow-speed"};
+        private static final String[] MAX_HEIGHT = ConfigKeys.of("max_height");
+        private static final String[] GROW_SPEED = ConfigKeys.of("grow_speed");
 
         @Override
-        public VerticalCropBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public VerticalCropBlockBehavior create(BlockDefinition block, ConfigSection section) {
             return new VerticalCropBlockBehavior(
                     block,
                     (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "age", Integer.class),

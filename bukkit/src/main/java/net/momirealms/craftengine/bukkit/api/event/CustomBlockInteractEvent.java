@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.bukkit.api.event;
 
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
-import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -19,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public final class CustomBlockInteractEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private boolean cancelled;
-    private final CustomBlock customBlock;
+    private final BlockDefinition blockDefinition;
     private final Block bukkitBlock;
     private final ImmutableBlockState state;
     private final Location location;
@@ -28,7 +27,6 @@ public final class CustomBlockInteractEvent extends PlayerEvent implements Cance
     private final Action action;
     private final BlockFace clickedFace;
     private final ItemStack item;
-    private final ContextHolder.Builder contextBuilder;
 
     @ApiStatus.Internal
     public CustomBlockInteractEvent(@NotNull Player player,
@@ -39,10 +37,9 @@ public final class CustomBlockInteractEvent extends PlayerEvent implements Cance
                                     @NotNull BlockFace clickedFace,
                                     @NotNull InteractionHand hand,
                                     @NotNull Action action,
-                                    @Nullable ItemStack item,
-                                    @NotNull ContextHolder.Builder contextBuilder) {
+                                    @Nullable ItemStack item) {
         super(player);
-        this.customBlock = state.owner().value();
+        this.blockDefinition = state.owner().value();
         this.bukkitBlock = bukkitBlock;
         this.state = state;
         this.location = location;
@@ -51,12 +48,6 @@ public final class CustomBlockInteractEvent extends PlayerEvent implements Cance
         this.action = action;
         this.clickedFace = clickedFace;
         this.item = item;
-        this.contextBuilder = contextBuilder;
-    }
-
-    @NotNull
-    public ContextHolder.Builder contextBuilder() {
-        return this.contextBuilder;
     }
 
     @NotNull
@@ -85,8 +76,8 @@ public final class CustomBlockInteractEvent extends PlayerEvent implements Cance
     }
 
     @NotNull
-    public CustomBlock customBlock() {
-        return this.customBlock;
+    public BlockDefinition customBlock() {
+        return this.blockDefinition;
     }
 
     @NotNull

@@ -6,17 +6,21 @@ import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.bukkit.util.ParticleUtils;
+import net.momirealms.craftengine.bukkit.util.RegistryUtils;
 import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.properties.IntegerProperty;
+import net.momirealms.craftengine.core.block.behavior.BonemealableBlock;
+import net.momirealms.craftengine.core.block.behavior.RandomTickBlock;
+import net.momirealms.craftengine.core.block.property.IntegerProperty;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.ItemUtils;
 import net.momirealms.craftengine.core.util.Key;
@@ -24,54 +28,69 @@ import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
+import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.MinecraftServerProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerChunkCacheProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.level.LevelReaderProxy;
-import net.momirealms.craftengine.proxy.minecraft.world.level.LevelWriterProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.*;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.BonemealableBlockProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.chunk.ChunkGeneratorProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.levelgen.feature.ConfiguredFeatureProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.levelgen.structure.BoundingBoxProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.levelgen.structure.StructureProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.levelgen.structure.StructureStartProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStateProxy;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 @SuppressWarnings("DuplicatedCode")
-public final class SaplingBlockBehavior extends BukkitBlockBehavior {
+public final class SaplingBlockBehavior extends BukkitBlockBehavior implements BonemealableBlock, RandomTickBlock {
     public static final BlockBehaviorFactory<SaplingBlockBehavior> FACTORY = new Factory();
-    public final Key feature;
+    public final @Nullable Key feature;
+    public final @Nullable Key structure;
     public final IntegerProperty stageProperty;
     public final double boneMealSuccessChance;
     public final float growSpeed;
+    public final int lightRequirement;
+    public final int maxLightRequirement;
 
-    private SaplingBlockBehavior(CustomBlock block,
-                                 Key feature,
+    private SaplingBlockBehavior(BlockDefinition block,
+                                 @Nullable Key feature,
+                                 @Nullable Key structure,
                                  IntegerProperty stageProperty,
                                  double boneMealSuccessChance,
-                                 float growSpeed) {
+                                 float growSpeed,
+                                 int lightRequirement,
+                                 int maxLightRequirement) {
         super(block);
         this.feature = feature;
+        this.structure = structure;
         this.stageProperty = stageProperty;
         this.boneMealSuccessChance = boneMealSuccessChance;
         this.growSpeed = growSpeed;
-    }
-
-    public Key treeFeature() {
-        return feature;
+        this.lightRequirement = lightRequirement;
+        this.maxLightRequirement = maxLightRequirement;
     }
 
     @Override
-    public void randomTick(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public boolean canRandomlyTick(ImmutableBlockState state) {
+        return true;
+    }
+
+    @Override
+    public void randomTick(Object thisBlock, Object[] args) {
         Object world = args[1];
         Object blockPos = args[2];
         Object blockState = args[0];
         Object aboveBlockPos = LocationUtils.above(blockPos);
-        if (LevelReaderProxy.INSTANCE.getMaxLocalRawBrightness(world, aboveBlockPos) >= 9 && RandomUtils.generateRandomFloat(0, 1) < this.growSpeed) {
+        int brightness = LevelReaderProxy.INSTANCE.getMaxLocalRawBrightness(world, aboveBlockPos);
+        if (brightness >= this.lightRequirement && brightness <= this.maxLightRequirement && RandomUtils.generateRandomFloat(0, 1) < this.growSpeed) {
             increaseStage(world, blockPos, blockState, args[3]);
         }
     }
@@ -93,29 +112,113 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
         }
     }
 
-    private void generateTree(Object world, Object blockPos, Object blockState, Object randomSource) {
-        Object holder = BukkitWorldManager.instance().configuredFeatureById(treeFeature());
-        if (holder == null) {
-            CraftEngine.instance().logger().warn("Configured feature not found: " + treeFeature());
-            return;
-        }
-        Object chunkGenerator = ServerChunkCacheProxy.INSTANCE.getGenerator(ServerLevelProxy.INSTANCE.getChunkSource(world));
-        Object configuredFeature = HolderProxy.INSTANCE.value(holder);
-        Object fluidState = BlockGetterProxy.INSTANCE.getFluidState(world, blockPos);
-        Object legacyState = FluidStateProxy.INSTANCE.createLegacyBlock(fluidState);
-        LevelWriterProxy.INSTANCE.setBlock(world, blockPos, legacyState, UpdateFlags.UPDATE_NONE);
-        if (ConfiguredFeatureProxy.INSTANCE.place(configuredFeature, world, chunkGenerator, randomSource, blockPos)) {
-            if (BlockGetterProxy.INSTANCE.getBlockState(world, blockPos) == legacyState) {
-                ServerLevelProxy.INSTANCE.sendBlockUpdated(world, blockPos, blockState, legacyState, UpdateFlags.UPDATE_CLIENTS);
+    private void generateTree(Object level, Object blockPos, Object blockState, Object randomSource) {
+        if (this.feature != null) {
+            Object holder = BukkitWorldManager.instance().configuredFeatureHolderById(this.feature);
+            if (holder == null) {
+                CraftEngine.instance().logger().warn("Configured feature not found: " + this.feature);
+                return;
             }
-        } else {
-            // failed to place, rollback changes
-            LevelWriterProxy.INSTANCE.setBlock(world, blockPos, blockState, UpdateFlags.UPDATE_NONE);
+            Object chunkGenerator = ServerChunkCacheProxy.INSTANCE.getGenerator(ServerLevelProxy.INSTANCE.getChunkSource(level));
+            Object configuredFeature = HolderProxy.INSTANCE.value(holder);
+            Object fluidState = BlockGetterProxy.INSTANCE.getFluidState(level, blockPos);
+            Object legacyState = FluidStateProxy.INSTANCE.createLegacyBlock(fluidState);
+            LevelWriterProxy.INSTANCE.setBlock(level, blockPos, legacyState, UpdateFlags.UPDATE_NONE);
+            if (ConfiguredFeatureProxy.INSTANCE.place(configuredFeature, level, chunkGenerator, randomSource, blockPos)) {
+                if (BlockGetterProxy.INSTANCE.getBlockState(level, blockPos) == legacyState) {
+                    ServerLevelProxy.INSTANCE.sendBlockUpdated(level, blockPos, blockState, legacyState, UpdateFlags.UPDATE_CLIENTS);
+                }
+            } else {
+                // failed to place, rollback changes
+                LevelWriterProxy.INSTANCE.setBlock(level, blockPos, blockState, UpdateFlags.UPDATE_NONE);
+            }
+        } else if (this.structure != null) {
+            Object structureHolder = BukkitWorldManager.instance().structureHolderById(this.structure);
+            if (structureHolder == null) {
+                CraftEngine.instance().logger().warn("Structure not found: " + this.structure);
+                return;
+            }
+            Object structure = HolderProxy.INSTANCE.value(structureHolder);
+            Object dimension = LevelProxy.INSTANCE.getDimension(level);
+            Object registryAccess = RegistryUtils.getRegistryAccess();
+            Object chunkSource = ServerLevelProxy.INSTANCE.getChunkSource(level);
+            Object chunkGenerator = ServerChunkCacheProxy.INSTANCE.getGenerator(chunkSource);
+            Object biomeSource = ChunkGeneratorProxy.INSTANCE.getBiomeSource(chunkGenerator);
+            Object randomState = ServerChunkCacheProxy.INSTANCE.randomState(chunkSource);
+            Object manager = MinecraftServerProxy.INSTANCE.getStructureTemplateManager(MinecraftServerProxy.INSTANCE.getServer());
+            long seed = ServerLevelProxy.INSTANCE.getSeed(level);
+            int x = BlockPosProxy.INSTANCE.getX(blockPos);
+            int z = BlockPosProxy.INSTANCE.getZ(blockPos);
+            Object chunkPos = ChunkPosProxy.INSTANCE.newInstance(x >> 4, z >> 4);
+            Object start;
+            if (VersionHelper.isOrAbove1_21_4) {
+                start = StructureProxy.INSTANCE.generate$1(structure,
+                        structureHolder,
+                        dimension,
+                        registryAccess,
+                        chunkGenerator,
+                        biomeSource,
+                        randomState,
+                        manager,
+                        seed,
+                        chunkPos,
+                        0,
+                        level,
+                        b -> true
+                );
+            } else {
+                start = StructureProxy.INSTANCE.generate$0(structure,
+                        registryAccess,
+                        chunkGenerator,
+                        biomeSource,
+                        randomState,
+                        manager,
+                        seed,
+                        chunkPos,
+                        0,
+                        level,
+                        b -> true
+                );
+            }
+            if (!StructureStartProxy.INSTANCE.isValid(start)) {
+                LevelWriterProxy.INSTANCE.setBlock(level, blockPos, blockState, UpdateFlags.UPDATE_NONE);
+                return;
+            }
+            Object boundingBox = StructureStartProxy.INSTANCE.getBoundingBox(start);
+            int minX = BoundingBoxProxy.INSTANCE.getMinX(boundingBox);
+            int minZ = BoundingBoxProxy.INSTANCE.getMinZ(boundingBox);
+            int maxX = BoundingBoxProxy.INSTANCE.getMaxX(boundingBox);
+            int maxZ = BoundingBoxProxy.INSTANCE.getMaxZ(boundingBox);
+            Object chunkMin = ChunkPosProxy.INSTANCE.newInstance(minX >> 4, minZ >> 4);
+            Object chunkMax = ChunkPosProxy.INSTANCE.newInstance(maxX >> 4, maxZ >> 4);
+            if (ChunkPosProxy.INSTANCE.rangeClosed(chunkMin, chunkMax).anyMatch(c -> !LevelProxy.INSTANCE.isLoaded(level, ChunkPosProxy.INSTANCE.getWorldPosition(c)))) {
+                LevelWriterProxy.INSTANCE.setBlock(level, blockPos, blockState, UpdateFlags.UPDATE_NONE);
+                return;
+            }
+            LevelWriterProxy.INSTANCE.setBlock(level, blockPos, BlocksProxy.AIR$defaultState, UpdateFlags.UPDATE_NONE);
+            ChunkPosProxy.INSTANCE.rangeClosed(chunkMin, chunkMax)
+                    .forEach(
+                            c -> StructureStartProxy.INSTANCE.placeInChunk(start,
+                                    level,
+                                    ServerLevelProxy.INSTANCE.getStructureManager(level),
+                                    chunkGenerator,
+                                    LevelProxy.INSTANCE.getRandom(level),
+                                    BoundingBoxProxy.INSTANCE.newInstance(
+                                            ChunkPosProxy.INSTANCE.getMinBlockX(c),
+                                            LevelProxy.INSTANCE.getMinY(level),
+                                            ChunkPosProxy.INSTANCE.getMinBlockZ(c),
+                                            ChunkPosProxy.INSTANCE.getMaxBlockX(c),
+                                            LevelProxy.INSTANCE.getMaxY(level) + (VersionHelper.isOrAbove1_21_2 ? 1 : 0),
+                                            ChunkPosProxy.INSTANCE.getMaxBlockZ(c)
+                                    ),
+                                    c
+                            )
+                    );
         }
     }
 
     @Override
-    public boolean isBoneMealSuccess(Object thisBlock, Object[] args) {
+    public boolean isBonemealSuccess(Object thisBlock, Object[] args) {
         boolean success = RandomUtils.generateRandomDouble(0d, 1d) < this.boneMealSuccessChance;
         Object level = args[0];
         Object blockPos = args[2];
@@ -126,11 +229,11 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
         }
         ImmutableBlockState customState = optionalCustomState.get();
         boolean sendParticles = false;
-        Object visualState = customState.visualBlockState().literalObject();
+        Object visualState = customState.visualBlockState().minecraftState();
         Object visualStateBlock = BlockStateUtils.getBlockOwner(visualState);
         if (BonemealableBlockProxy.CLASS.isInstance(visualStateBlock)) {
             boolean is;
-            if (VersionHelper.isOrAbove1_20_2()) {
+            if (VersionHelper.isOrAbove1_20_2) {
                 is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, level, blockPos, visualState);
             } else {
                 is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, level, blockPos, visualState, true);
@@ -152,12 +255,12 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public boolean isValidBoneMealTarget(Object thisBlock, Object[] args) {
+    public boolean isValidBonemealTarget(Object thisBlock, Object[] args) {
         return true;
     }
 
     @Override
-    public void performBoneMeal(Object thisBlock, Object[] args) {
+    public void performBonemeal(Object thisBlock, Object[] args) {
         this.increaseStage(args[0], args[2], args[3], args[1]);
     }
 
@@ -175,14 +278,14 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
             return InteractionResult.SUCCESS_AND_CANCEL;
         }
         boolean sendSwing = false;
-        Object visualState = state.visualBlockState().literalObject();
+        Object visualState = state.visualBlockState().minecraftState();
         Object visualStateBlock = BlockStateUtils.getBlockOwner(visualState);
         if (BonemealableBlockProxy.CLASS.isInstance(visualStateBlock)) {
             boolean is;
-            if (VersionHelper.isOrAbove1_20_2()) {
-                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.serverWorld(), LocationUtils.toBlockPos(pos), visualState);
+            if (VersionHelper.isOrAbove1_20_2) {
+                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.minecraftWorld(), LocationUtils.toBlockPos(pos), visualState);
             } else {
-                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.serverWorld(), LocationUtils.toBlockPos(pos), visualState, true);
+                is = BonemealableBlockProxy.INSTANCE.isValidBonemealTarget(visualStateBlock, world.minecraftWorld(), LocationUtils.toBlockPos(pos), visualState, true);
             }
             if (!is) {
                 sendSwing = true;
@@ -197,18 +300,25 @@ public final class SaplingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<SaplingBlockBehavior> {
-        private static final String[] FEATURE = new String[]{"feature", "configured_feature", "configured-feature"};
-        private static final String[] SUCCESS_CHANCE = new String[]{"bone_meal_success_chance", "bone-meal-success-chance"};
-        private static final String[] GROW_SPEED = new String[]{"grow_speed", "grow-speed"};
+        private static final String[] FEATURE = ConfigKeys.of("feature|configured_feature");
+        private static final String[] SUCCESS_CHANCE = ConfigKeys.of("bone_meal_success_chance");
+        private static final String[] GROW_SPEED = ConfigKeys.of("grow_speed");
+        private static final String[] LIGHT_REQUIREMENT = ConfigKeys.of("light_requirement");
+        private static final String[] MAX_LIGHT_REQUIREMENT = ConfigKeys.of("max_light_requirement");
 
         @Override
-        public SaplingBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public SaplingBlockBehavior create(BlockDefinition block, ConfigSection section) {
+            Key structure = section.getIdentifier("structure");
+            Key feature = structure == null ? section.getNonNullIdentifier(FEATURE) : null;
             return new SaplingBlockBehavior(
                     block,
-                    section.getNonNullIdentifier(FEATURE),
+                    feature,
+                    structure,
                     (IntegerProperty) BlockBehaviorFactory.getProperty(section.path(), block, "stage", Integer.class),
                     section.getDouble(SUCCESS_CHANCE, 0.45d),
-                    section.getFloat(GROW_SPEED, 1.0f / 7.0f)
+                    section.getFloat(GROW_SPEED, 1.0f / 7.0f),
+                    section.getInt(LIGHT_REQUIREMENT, 9),
+                    section.getInt(MAX_LIGHT_REQUIREMENT, 15)
             );
         }
     }

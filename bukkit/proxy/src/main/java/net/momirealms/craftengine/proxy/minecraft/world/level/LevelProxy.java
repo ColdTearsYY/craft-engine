@@ -22,13 +22,16 @@ public interface LevelProxy extends LevelAccessorProxy {
     @FieldGetter(name = "dimensionTypeRegistration")
     Object getDimensionTypeRegistration(Object target);
 
+    @MethodInvoker(name = "dimensionType")
+    Object dimensionType(Object target);
+
     @FieldGetter(name = "dimension")
     Object getDimension(Object target);
 
     @FieldGetter(name = "random")
     Object getRandom(Object target);
 
-    @MethodInvoker(name = "checkEntityCollision")
+    @MethodInvoker(name = "checkEntityCollision", activeIf = "has_patch=paper")
     boolean checkEntityCollision(
             Object target,
             @Type(clazz = BlockStateProxy.class) Object state,
@@ -50,11 +53,14 @@ public interface LevelProxy extends LevelAccessorProxy {
     @MethodInvoker(name = "setBlocksDirty")
     void setBlocksDirty(Object target, @Type(clazz = BlockPosProxy.class) Object pos, @Type(clazz = BlockStateProxy.class) Object oldState, @Type(clazz = BlockStateProxy.class) Object newState);
 
-    @MethodInvoker(name = "moonrise$getEntityLookup", activeIf = "min_version=1.21")
+    @MethodInvoker(name = "moonrise$getEntityLookup", activeIf = "min_version=1.21 && has_patch=paper")
     Object moonrise$getEntityLookup(Object target);
 
     @MethodInvoker(name = "removeBlock")
     boolean removeBlock(Object target, @Type(clazz = BlockPosProxy.class) Object pos, boolean movedByPiston);
+
+    @MethodInvoker(name = "removeBlockEntity")
+    void removeBlockEntity(Object target, @Type(clazz = BlockPosProxy.class) Object pos);
 
     @MethodInvoker(name = "getWorld")
     World getWorld(Object target);

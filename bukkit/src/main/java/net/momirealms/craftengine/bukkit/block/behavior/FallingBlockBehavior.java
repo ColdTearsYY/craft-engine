@@ -4,13 +4,13 @@ import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
 import net.momirealms.craftengine.bukkit.entity.BukkitEntity;
 import net.momirealms.craftengine.bukkit.entity.data.BaseEntityData;
-import net.momirealms.craftengine.bukkit.nms.FastNMS;
+import net.momirealms.craftengine.bukkit.plugin.injector.FallingBlockEntityGenerator;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
-import net.momirealms.craftengine.bukkit.util.LevelUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.world.Vec3d;
@@ -19,22 +19,22 @@ import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.entity.item.FallingBlockEntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.LevelAccessorProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelReaderProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.FallingBlockProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.dimension.DimensionTypeProxy;
 
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
-public final class FallingBlockBehavior extends BukkitBlockBehavior {
+public final class FallingBlockBehavior extends BukkitBlockBehavior implements BukkitFallableBlock {
     public static final BlockBehaviorFactory<FallingBlockBehavior> FACTORY = new Factory();
     public final float hurtAmount;
     public final int maxHurt;
     public final SoundData landSound;
     public final SoundData destroySound;
 
-    public FallingBlockBehavior(CustomBlock block,
+    public FallingBlockBehavior(BlockDefinition block,
                                 float hurtAmount,
                                 int maxHurt,
                                 SoundData landSound,
@@ -47,22 +47,22 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public void onPlace(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void onPlace(Object thisBlock, Object[] args) {
         Object world = args[1];
         Object blockPos = args[2];
-        LevelUtils.scheduleBlockTick(world, blockPos, thisBlock, 2);
+        LevelAccessorProxy.INSTANCE.scheduleTick$0(world, blockPos, thisBlock, 2);
     }
 
     @Override
-    public Object updateShape(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public Object updateShape(Object thisBlock, Object[] args) {
         Object world = args[updateShape$level];
         Object blockPos = args[updateShape$blockPos];
-        LevelUtils.scheduleBlockTick(world, blockPos, thisBlock, 2);
+        LevelAccessorProxy.INSTANCE.scheduleTick$0(world, blockPos, thisBlock, 2);
         return args[0];
     }
 
     @Override
-    public void tick(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public void tick(Object thisBlock, Object[] args) {
         Object blockPos = args[2];
         int y = Vec3iProxy.INSTANCE.getY(blockPos);
         Object world = args[1];
@@ -81,7 +81,7 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
             return;
         }
         Object blockState = args[0];
-        Object fallingBlockEntity = FastNMS.INSTANCE.createInjectedFallingBlockEntity(world, blockPos, blockState);
+        Object fallingBlockEntity = FallingBlockEntityGenerator.fall(world, blockPos, blockState);
         if (this.hurtAmount > 0 && this.maxHurt > 0) {
             FallingBlockEntityProxy.INSTANCE.setHurtsEntities(fallingBlockEntity, this.hurtAmount, this.maxHurt);
         }
@@ -110,12 +110,11 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
         Object fallingBlock = args[4];
         Object level = args[0];
         Object pos = args[1];
-        BukkitEntity entity = BukkitAdaptor.adapt(EntityProxy.INSTANCE.getBukkitEntity(fallingBlock));
         Object blockState = args[2];
         int stateId = BlockStateUtils.blockStateToId(blockState);
         ImmutableBlockState immutableBlockState = BukkitBlockManager.instance().getImmutableBlockState(stateId);
         if (immutableBlockState == null || immutableBlockState.isEmpty()) return;
-        if (!entity.getEntityData(BaseEntityData.Silent)) {
+        if (!EntityProxy.INSTANCE.isSilent(fallingBlock)) {
             net.momirealms.craftengine.core.world.World world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
             if (this.landSound != null) {
                 world.playBlockSound(Vec3d.atCenterOf(LocationUtils.fromBlockPos(pos)), this.landSound);
@@ -124,11 +123,11 @@ public final class FallingBlockBehavior extends BukkitBlockBehavior {
     }
 
     private static class Factory implements BlockBehaviorFactory<FallingBlockBehavior> {
-        private static final String[] HURT_AMOUNT = new String[] {"hurt_amount", "hurt-amount"};
-        private static final String[] MAX_HURT = new String[] {"max_hurt", "max-hurt"};
+        private static final String[] HURT_AMOUNT = ConfigKeys.of("hurt_amount");
+        private static final String[] MAX_HURT = ConfigKeys.of("max_hurt");
 
         @Override
-        public FallingBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public FallingBlockBehavior create(BlockDefinition block, ConfigSection section) {
             ConfigSection soundSection = section.getSection("sounds");
             SoundData landSound = null;
             SoundData destroySound = null;

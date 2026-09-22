@@ -4,10 +4,12 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.datafixers.util.Either;
+import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperties;
 import net.momirealms.craftengine.core.pack.model.definition.select.SelectProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
@@ -16,6 +18,7 @@ import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,46 +31,63 @@ public final class SelectItemModel implements ItemModel {
     private final SelectProperty property;
     private final Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap;
     private final ItemModel fallBack;
+    private final Transformation transformation;
+
+    public SelectItemModel(@NotNull SelectProperty property,
+                           @NotNull Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap,
+                           @Nullable ItemModel fallBack,
+                           @Nullable Transformation transformation) {
+        this.property = property;
+        this.whenMap = whenMap;
+        this.fallBack = fallBack;
+        this.transformation = transformation;
+    }
 
     public SelectItemModel(@NotNull SelectProperty property,
                            @NotNull Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap,
                            @Nullable ItemModel fallBack) {
-        this.property = property;
-        this.whenMap = whenMap;
-        this.fallBack = fallBack;
+        this(property, whenMap, fallBack, null);
     }
 
+    @Nullable
+    public Transformation transformation() {
+        return this.transformation;
+    }
+
+    @NotNull
     public SelectProperty property() {
         return this.property;
     }
 
+    @NotNull
     public Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap() {
         return this.whenMap;
     }
 
+    @Nullable
     public ItemModel fallBack() {
         return this.fallBack;
     }
 
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "select");
-        this.property.accept(json);
+        this.property.writeProperty(json);
         JsonArray array = new JsonArray();
         json.add("cases", array);
         for (Map.Entry<Either<JsonElement, List<JsonElement>>, ItemModel> entry : this.whenMap.entrySet()) {
             JsonObject item = new JsonObject();
             Either<JsonElement, List<JsonElement>> either = entry.getKey();
             either.ifLeft(left -> {
-                JsonElement remap = this.property.remap(left, version);
+                JsonElement remap = this.property.remap(left, min);
                 if (remap != null) {
                     item.add("when", remap);
                 }
             }).ifRight(right -> {
                 JsonArray whens = new JsonArray();
                 for (JsonElement e : right) {
-                    JsonElement remap = this.property.remap(e, version);
+                    JsonElement remap = this.property.remap(e, min);
                     if (remap != null) {
                         whens.add(remap);
                     }
@@ -78,31 +98,37 @@ public final class SelectItemModel implements ItemModel {
             });
             if (item.has("when")) {
                 ItemModel itemModel = entry.getValue();
-                item.add("model", itemModel.apply(version));
+                item.add("model", itemModel.toJson(min, max));
                 array.add(item);
             }
         }
         if (this.fallBack != null) {
-            json.add("fallback", this.fallBack.apply(version));
+            json.add("fallback", this.fallBack.toJson(min, max));
+        }
+        if (this.transformation != null && max.isAtOrAbove(MinecraftVersion.V26_1)) {
+            json.add("transformation", this.transformation.toJson());
         }
         return json;
     }
 
     @Override
-    public void collectRevision(Consumer<Revision> consumer) {
+    public void gatherRevisions(Consumer<Revision> consumer) {
         if (this.fallBack != null) {
-            this.fallBack.collectRevision(consumer);
+            this.fallBack.gatherRevisions(consumer);
+        }
+        if (this.transformation != null) {
+            consumer.accept(Revisions.SINCE_26_1);
         }
         for (Map.Entry<Either<JsonElement, List<JsonElement>>, ItemModel> entry : this.whenMap.entrySet()) {
             Either<JsonElement, List<JsonElement>> when = entry.getKey();
             when.ifLeft(left -> {
-                this.property.collectRevision(left, consumer);
+                this.property.gatherRevisions(left, consumer);
             }).ifRight(right -> {
                 for (JsonElement e : right) {
-                    this.property.collectRevision(e, consumer);
+                    this.property.gatherRevisions(e, consumer);
                 }
             });
-            entry.getValue().collectRevision(consumer);
+            entry.getValue().gatherRevisions(consumer);
         }
     }
 
@@ -119,9 +145,9 @@ public final class SelectItemModel implements ItemModel {
     private static class Factory implements ItemModelFactory<SelectItemModel> {
 
         @Override
-        public SelectItemModel create(ConfigSection section) {
+        public SelectItemModel create(Pack pack, Path path, ConfigSection section) {
             SelectProperty property = SelectProperties.fromConfig(section);
-            ItemModel fallbackModel = section.getValue("fallback", ItemModels::fromConfig);
+            ItemModel fallbackModel = section.getValue("fallback", v -> ItemModels.fromConfig(pack, path, v));
             Map<Either<JsonElement, List<JsonElement>>, ItemModel> whenMap = new HashMap<>();
             ConfigValue cases = section.getNonNullValue("cases", ConfigConstants.ARGUMENT_LIST);
             cases.forEach(value -> {
@@ -133,13 +159,14 @@ public final class SelectItemModel implements ItemModel {
                 } else {
                     either = Either.right(when);
                 }
-                ItemModel model = entry.getNonNullValue("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, ItemModels::fromConfig);
+                ItemModel model = entry.getNonNullValue("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION, v -> ItemModels.fromConfig(pack, path, v));
                 whenMap.put(either, model);
             });
             return new SelectItemModel(
                     property,
                     whenMap,
-                    fallbackModel
+                    fallbackModel,
+                    section.getValue("transformation", Transformation::fromConfig)
             );
         }
     }
@@ -177,7 +204,12 @@ public final class SelectItemModel implements ItemModel {
                 }
                 whenMap.put(either, model);
             }
-            return new SelectItemModel(SelectProperties.fromJson(json), whenMap, json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null);
+            return new SelectItemModel(
+                    SelectProperties.fromJson(json),
+                    whenMap,
+                    json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null,
+                    json.has("transformation") ? Transformation.fromJson(json.get("transformation")) : null
+            );
         }
     }
 }

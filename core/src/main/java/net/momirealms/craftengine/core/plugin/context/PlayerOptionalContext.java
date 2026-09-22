@@ -5,28 +5,14 @@ import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextPar
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Map;
-
 public class PlayerOptionalContext extends AbstractChainParameterContext implements PlayerContext {
-    /**
-     * Use {@link #empty()} instead
-     */
-    @Deprecated(forRemoval = true)
-    public static final PlayerOptionalContext EMPTY = new PlayerOptionalContext(null, ContextHolder.empty());
-
+    @Deprecated(forRemoval = true, since = "26.9")
+    public static final PlayerOptionalContext EMPTY = new PlayerOptionalContext(null, ContextHolder.emptyImmutable());
     protected final Player player;
 
     public PlayerOptionalContext(@Nullable Player player,
                                  @NotNull ContextHolder contexts) {
         super(contexts);
-        this.player = player;
-    }
-
-    public PlayerOptionalContext(@Nullable Player player,
-                                 @NotNull ContextHolder contexts,
-                                 List<AdditionalParameterProvider> additionalParameterProviders) {
-        super(contexts, additionalParameterProviders);
         this.player = player;
     }
 
@@ -36,15 +22,17 @@ public class PlayerOptionalContext extends AbstractChainParameterContext impleme
     }
 
     @NotNull
-    public static PlayerOptionalContext of(@Nullable Player player, @NotNull ContextHolder.Builder contexts) {
-        if (player != null) contexts.withParameter(DirectContextParameters.PLAYER, player);
-        return new PlayerOptionalContext(player, contexts.build());
+    public static PlayerOptionalContext of(@Nullable Player player, @NotNull ContextHolder.Builder builder) {
+        if (player != null) {
+            builder.withParameter(DirectContextParameters.PLAYER, player);
+        }
+        return new PlayerOptionalContext(player, builder.build());
     }
 
     @NotNull
     public static PlayerOptionalContext of(@Nullable Player player) {
         if (player == null) return empty();
-        return new PlayerOptionalContext(player, new ContextHolder(Map.of(DirectContextParameters.PLAYER, () -> player)));
+        return new PlayerOptionalContext(player, ContextHolder.builder(DirectContextParameters.PLAYER, player).build());
     }
 
     @NotNull

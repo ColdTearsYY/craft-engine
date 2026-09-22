@@ -1,6 +1,8 @@
 package net.momirealms.craftengine.core.plugin.network;
 
+import com.google.gson.JsonElement;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelPipeline;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.Manageable;
 import net.momirealms.craftengine.core.plugin.text.component.ComponentProvider;
@@ -12,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public interface NetworkManager extends Manageable {
 
@@ -23,7 +26,8 @@ public interface NetworkManager extends Manageable {
 
     Channel getChannel(Player player);
 
-    @Nullable NetWorkUser getOnlineUser(UUID uuid);
+    @Nullable
+    Player getOnlineUser(UUID uuid);
 
     int remapBlockState(int stateId, boolean enableMod);
 
@@ -49,15 +53,21 @@ public interface NetworkManager extends Manageable {
 
     void sendPackets(@NotNull NetWorkUser player, List<Object> packet, boolean immediately, Runnable sendListener);
 
+    void simulatePacket(@NotNull NetWorkUser player, Object packet);
+
+    boolean hasNetworkTag(String text);
+
     Map<String, ComponentProvider> matchNetworkTags(String text);
 
-    default Map<String, ComponentProvider> matchNetworkTags(Tag nbt) {
-        return matchNetworkTags(new StringValueOnlyTagVisitor().visit(nbt));
-    }
+    Map<String, ComponentProvider> matchNetworkTags(JsonElement json);
+
+    Map<String, ComponentProvider> matchNetworkTags(Tag nbt);
 
     default IllegalCharacterProcessResult processIllegalCharacters(String raw) {
         return processIllegalCharacters(raw, '*');
     }
 
     IllegalCharacterProcessResult processIllegalCharacters(String raw, char replacement);
+
+    void setServerPortHost(Consumer<ChannelPipeline> pipeline);
 }

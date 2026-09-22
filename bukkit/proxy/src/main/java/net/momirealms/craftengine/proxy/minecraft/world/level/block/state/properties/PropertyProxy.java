@@ -5,7 +5,8 @@ import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
 import net.momirealms.sparrow.reflection.proxy.annotation.MethodInvoker;
 import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.Optional;
 
 @ReflectionProxy(name = "net.minecraft.world.level.block.state.properties.Property")
 public interface PropertyProxy {
@@ -19,5 +20,8 @@ public interface PropertyProxy {
     Class<?> getValueClass(Object target);
 
     @MethodInvoker(name = "getPossibleValues")
-    List<Object> getPossibleValues(Object target);
+    Collection<Object> getPossibleValues(Object target);
+
+    @MethodInvoker(name = "getValue")
+    Optional<Object> getValue(Object target, String name);
 }

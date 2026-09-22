@@ -6,15 +6,15 @@ import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
+import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.bukkit.util.PlayerUtils;
-import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.item.ItemDefinition;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.FlagKeys;
 import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -55,36 +55,27 @@ public final class GiveItemCommand extends BukkitCommandFeature<CommandSender> {
                     Collection<Player> players = selector.values();
                     int amount = context.getOrDefault("amount", 1);
                     NamespacedKey namespacedKey = context.get("id");
-                    Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    CustomItem customItem = CraftEngineItems.byId(itemId);
-                    if (customItem == null) {
-                        customItem = BukkitItemManager.instance().getCustomItemByPathOnly(itemId.value()).orElse(null);
-                        if (customItem == null) {
+                    Key itemId = KeyUtils.namespacedKeyToKey(namespacedKey);
+                    ItemDefinition itemDefinition = CraftEngineItems.byId(itemId);
+                    if (itemDefinition == null) {
+                        itemDefinition = BukkitItemManager.instance().getItemDefinitionByPath(itemId.value()).orElse(null);
+                        if (itemDefinition == null) {
                             handleFeedback(context, MessageConstants.COMMAND_ITEM_GIVE_FAILURE_NOT_EXIST, Component.text(itemId.toString()));
                             return;
                         } else {
-                            itemId = customItem.id();
+                            itemId = itemDefinition.id();
                         }
                     }
-                    CustomItem finalCustomItem = customItem;
+                    ItemDefinition finalItemDefinition = itemDefinition;
                     for (Player player : players) {
-                        if (VersionHelper.isFolia()) {
-                            player.getScheduler().run(plugin().javaPlugin(), t -> {
-                                BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-                                if (serverPlayer != null) {
-                                    Item builtItem = finalCustomItem.buildItem(serverPlayer);
-                                    if (builtItem != null) {
-                                        PlayerUtils.giveItem(serverPlayer, amount, builtItem);
-                                    }
-                                }
-                            }, null);
-                        } else {
+                        this.plugin().scheduler().platform().run(() -> {
                             BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-                            Item builtItem = finalCustomItem.buildItem(serverPlayer);
+                            if (serverPlayer == null) return;
+                            Item builtItem = finalItemDefinition.buildItem(serverPlayer);
                             if (builtItem != null) {
-                                PlayerUtils.giveItem(serverPlayer, amount, builtItem);
+                                PlayerUtils.giveItem(serverPlayer, amount, builtItem, true);
                             }
-                        }
+                        }, null, player);
                     }
                     if (players.size() == 1) {
                         handleFeedback(context, MessageConstants.COMMAND_ITEM_GIVE_SUCCESS_SINGLE, Component.text(amount), Component.text(itemId.toString()), Component.text(players.iterator().next().getName()));

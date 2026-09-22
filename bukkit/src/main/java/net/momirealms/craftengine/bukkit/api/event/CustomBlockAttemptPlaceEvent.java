@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.bukkit.api.event;
 
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
-import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -17,13 +16,12 @@ import org.jetbrains.annotations.NotNull;
 public final class CustomBlockAttemptPlaceEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private boolean cancelled;
-    private final CustomBlock customBlock;
+    private final BlockDefinition blockDefinition;
     private final ImmutableBlockState state;
     private final Location location;
     private final BlockFace clickedFace;
     private final Block clickedBlock;
     private final InteractionHand hand;
-    private final ContextHolder.Builder contextBuilder;
 
     @ApiStatus.Internal
     public CustomBlockAttemptPlaceEvent(@NotNull Player player,
@@ -31,21 +29,14 @@ public final class CustomBlockAttemptPlaceEvent extends PlayerEvent implements C
                                         @NotNull ImmutableBlockState state,
                                         @NotNull BlockFace clickedFace,
                                         @NotNull Block clickedBlock,
-                                        @NotNull InteractionHand hand,
-                                        @NotNull ContextHolder.Builder contextBuilder) {
+                                        @NotNull InteractionHand hand) {
         super(player);
-        this.customBlock = state.owner().value();
+        this.blockDefinition = state.owner().value();
         this.state = state;
         this.location = location;
         this.clickedFace = clickedFace;
         this.clickedBlock = clickedBlock;
         this.hand = hand;
-        this.contextBuilder = contextBuilder;
-    }
-
-    @NotNull
-    public ContextHolder.Builder contextBuilder() {
-        return this.contextBuilder;
     }
 
     @NotNull
@@ -69,8 +60,8 @@ public final class CustomBlockAttemptPlaceEvent extends PlayerEvent implements C
     }
 
     @NotNull
-    public CustomBlock customBlock() {
-        return this.customBlock;
+    public BlockDefinition customBlock() {
+        return this.blockDefinition;
     }
 
     @NotNull

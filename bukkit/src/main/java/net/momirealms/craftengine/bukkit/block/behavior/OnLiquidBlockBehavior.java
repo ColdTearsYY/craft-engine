@@ -2,9 +2,10 @@ package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.Vec3iProxy;
@@ -23,7 +24,7 @@ public final class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior
     public final boolean onLava;
     public final boolean stackable;
 
-    private OnLiquidBlockBehavior(CustomBlock block, int delay, boolean stackable, boolean onWater, boolean onLava) {
+    private OnLiquidBlockBehavior(BlockDefinition block, int delay, boolean stackable, boolean onWater, boolean onLava) {
         super(block, delay);
         this.onWater = onWater;
         this.onLava = onLava;
@@ -31,10 +32,10 @@ public final class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior
     }
 
     private static class Factory implements BlockBehaviorFactory<OnLiquidBlockBehavior> {
-        private static final String[] LIQUID_TYPE = new String[] {"liquid_type", "liquid-type"};
+        private static final String[] LIQUID_TYPE = ConfigKeys.of("liquid_type");
 
         @Override
-        public OnLiquidBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public OnLiquidBlockBehavior create(BlockDefinition block, ConfigSection section) {
             List<String> liquidTypes = section.getStringList(LIQUID_TYPE, List.of("water"));
             return new OnLiquidBlockBehavior(
                     block,
@@ -48,19 +49,19 @@ public final class OnLiquidBlockBehavior extends AbstractCanSurviveBlockBehavior
 
     @SuppressWarnings("DuplicatedCode")
     @Override
-    protected boolean canSurvive(Object thisBlock, Object state, Object world, Object blockPos) {
+    protected boolean canSurvive(Object thisBlock, Object state, Object level, Object blockPos) {
         int x = Vec3iProxy.INSTANCE.getX(blockPos);
         int y = Vec3iProxy.INSTANCE.getY(blockPos);
         int z = Vec3iProxy.INSTANCE.getZ(blockPos);
         Object belowPos = BlockPosProxy.INSTANCE.newInstance(x, y - 1, z);
-        Object belowState = BlockGetterProxy.INSTANCE.getBlockState(world, belowPos);
-        return mayPlaceOn(belowState, world, belowPos);
+        Object belowState = BlockGetterProxy.INSTANCE.getBlockState(level, belowPos);
+        return mayPlaceOn(belowState, level, belowPos);
     }
 
     private boolean mayPlaceOn(Object belowState, Object world, Object belowPos) {
         if (this.stackable) {
             Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(belowState);
-            if (optionalCustomState.isPresent() && optionalCustomState.get().owner().value() == super.customBlock) {
+            if (optionalCustomState.isPresent() && optionalCustomState.get().owner().value() == super.blockDefinition) {
                 return true;
             }
         }

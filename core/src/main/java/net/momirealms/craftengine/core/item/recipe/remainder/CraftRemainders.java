@@ -28,7 +28,7 @@ public final class CraftRemainders {
     }
 
     public static CraftRemainder fromConfig(ConfigSection section) {
-        String type = section.getNonNullString("type");
+        String type = section.getNonEmptyString("type");
         Key key = Key.ce(type);
         CraftRemainderType<?> craftRemainderType = BuiltInRegistries.CRAFT_REMAINDER_TYPE.getValue(key);
         if (craftRemainderType == null) {
@@ -38,6 +38,7 @@ public final class CraftRemainders {
     }
 
     public static CraftRemainder fromConfig(ConfigValue value) {
+        if (value == null) return EmptyCraftRemainder.INSTANCE;
         if (value.is(Map.class)) {
             return CraftRemainders.fromConfig(value.getAsSection());
         } else if (value.is(List.class)) {

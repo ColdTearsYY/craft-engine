@@ -52,7 +52,11 @@ public final class VisualBlockStateAllocator {
         return CompletableFutures.allOf(this.combinedFutures);
     }
 
-    public synchronized void addCombinedFuture(@Nullable CompletableFuture<?> future) {
+    public List<CompletableFuture<?>> combinedFutures() {
+        return this.combinedFutures;
+    }
+
+    public synchronized void addCombinedFuture(@Nullable CompletableFuture<Void> future) {
         this.combinedFutures.add(future);
     }
 
@@ -166,6 +170,19 @@ public final class VisualBlockStateAllocator {
         public AutoStateGroup group() {
             return this.group;
         }
+
+        @Override
+        public String getMessage() {
+            return toString();
+        }
+
+        @Override
+        public String toString() {
+            return "StateExhaustedException{" +
+                    "group=" + group +
+                    ", appearance='" + appearance + '\'' +
+                    '}';
+        }
     }
 
     /**
@@ -183,7 +200,7 @@ public final class VisualBlockStateAllocator {
         if (lastTime != this.lastModified) {
             this.lastModified = lastTime;
             this.cachedBlockStates.clear();
-            JsonElement element = GsonHelper.readJsonFile(this.cacheFilePath);
+            JsonElement element = GsonHelper.readJsonFromFile(this.cacheFilePath);
             if (element instanceof JsonObject jsonObject) {
                 for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
                     if (entry.getValue() instanceof JsonPrimitive primitive) {

@@ -1,12 +1,14 @@
 package net.momirealms.craftengine.core.plugin.config.template;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.config.template.argument.TemplateArgument;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.util.StringUtils;
 import net.momirealms.craftengine.core.util.TagParser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public interface ArgumentString {
@@ -57,45 +59,74 @@ public interface ArgumentString {
         private final String rawText;
         private final Object defaultValue;
         private final boolean hasDefaultValue;
+        private final boolean capitalize;
+        private final boolean toUpperCase;
 
-        public Placeholder(String placeholderContent) {
+        public Placeholder(String node, String placeholderContent) {
             this.rawText = "${" + placeholderContent + "}";
             int separatorIndex = placeholderContent.indexOf(":-");
+            String placeholderPart;
             if (separatorIndex == -1) {
-                this.placeholder = placeholderContent;
+                placeholderPart = placeholderContent;
                 this.defaultValue = null;
                 this.hasDefaultValue = false;
             } else {
-                this.placeholder = placeholderContent.substring(0, separatorIndex);
+                placeholderPart = placeholderContent.substring(0, separatorIndex);
                 String defaultValueString = placeholderContent.substring(separatorIndex + 2);
-                Object parsed = TagParser.parseObjectFully(defaultValueString); // just let it throw
                 try {
-                    this.defaultValue = ((TemplateManagerImpl) TemplateManager.INSTANCE).preprocessUnknownValue(parsed);
-                } catch (LocalizedResourceConfigException e) {
-                    e.appendTailArgument(this.placeholder);
-                    throw e;
+                    Object parsed = TagParser.parseObjectFully(defaultValueString);
+                    if (parsed == null) {
+                        this.defaultValue = null;
+                    } else {
+                        this.defaultValue = ((TemplateManagerImpl) TemplateManager.INSTANCE).preprocessUnknownValue(ConfigValue.of(node, parsed));
+                    }
+                    this.hasDefaultValue = true;
+                } catch (Throwable e) {
+                    throw new KnownResourceException("resource.argument.parser.snbt", node, defaultValueString, e.getMessage());
                 }
-                this.hasDefaultValue = true;
+            }
+            if (placeholderPart.endsWith("^")) {
+                if (placeholderPart.endsWith("^^")) {
+                    this.capitalize = false;
+                    this.toUpperCase = true;
+                    this.placeholder = placeholderPart.substring(0, placeholderPart.length() - 2);
+                } else {
+                    this.capitalize = true;
+                    this.toUpperCase = false;
+                    this.placeholder = placeholderPart.substring(0, placeholderPart.length() - 1);
+                }
+            } else {
+                this.capitalize = false;
+                this.toUpperCase = false;
+                this.placeholder = placeholderPart;
             }
         }
 
-        public static Placeholder placeholder(String placeholder) {
-            return new Placeholder(placeholder);
+        public static Placeholder placeholder(String node, String placeholder) {
+            return new Placeholder(node, placeholder);
         }
 
         @Override
         public Object get(String node, Map<String, TemplateArgument> arguments) {
+            Object value;
             TemplateArgument replacement = arguments.get(this.placeholder);
             if (replacement != null) {
-                return replacement.get(node, arguments);
-            }
-            if (this.hasDefaultValue) {
+                value = replacement.get(node, arguments);
+            } else if (this.hasDefaultValue) {
                 if (this.defaultValue == null) {
                     return null;
                 }
-                return ((TemplateManagerImpl) TemplateManager.INSTANCE).processUnknownValue(node, this.defaultValue, arguments);
+                value = ((TemplateManagerImpl) TemplateManager.INSTANCE).processUnknownValue(node, this.defaultValue, arguments);
+            } else {
+                throw new KnownResourceException("resource.template.missing_argument", node, this.rawText);
             }
-            throw new KnownResourceException("resource.template.missing_argument", node, this.rawText);
+            if (this.capitalize && value != null) {
+                return StringUtils.capitalize(String.valueOf(value), Locale.getDefault());
+            }
+            if (this.toUpperCase && value != null) {
+                return String.valueOf(value).toUpperCase(Locale.getDefault());
+            }
+            return value;
         }
 
         @Override
@@ -262,7 +293,7 @@ public interface ArgumentString {
         }
     }
 
-    static ArgumentString preParse(String input) {
+    static ArgumentString preParse(String node, String input) {
         if (input == null || input.isEmpty()) {
             return Literal.literal("");
         }
@@ -275,16 +306,16 @@ public interface ArgumentString {
         while (i < n) {
             char c = input.charAt(i);
 
-            // --- 1. 优先检测占位符触发器 ---
+            // 优先检测占位符触发器
             if (c == '$' && i + 1 < n && input.charAt(i + 1) == '{') {
 
-                // a. 提交之前的普通文本
+                // 提交之前的普通文本
                 if (!currentLiteral.isEmpty()) {
                     arguments.add(Literal.literal(currentLiteral.toString()));
                     currentLiteral.setLength(0);
                 }
 
-                // b. 解析占位符内部，此处的逻辑拥有自己的转义规则
+                // 解析占位符内部，此处的逻辑拥有自己的转义规则
                 int contentStartIndex = i + 2;
                 StringBuilder keyBuilder = new StringBuilder();
                 int depth = 1;
@@ -294,7 +325,7 @@ public interface ArgumentString {
                 while (j < n) {
                     char innerChar = input.charAt(j);
 
-                    // --- 占位符内部的转义逻辑 ---
+                    // 占位符内部的转义逻辑
                     if (innerChar == '\\') {
                         if (j + 1 < n && (input.charAt(j + 1) == '{' || input.charAt(j + 1) == '}')) {
                             keyBuilder.append(input.charAt(j + 1));
@@ -311,7 +342,7 @@ public interface ArgumentString {
                     } else if (innerChar == '}') {
                         depth--;
                         if (depth == 0) { // 找到匹配的闭合括号
-                            arguments.add(Placeholder.placeholder(keyBuilder.toString()));
+                            arguments.add(Placeholder.placeholder(node, keyBuilder.toString()));
                             i = j + 1;
                             foundMatch = true;
                             break;
@@ -332,12 +363,12 @@ public interface ArgumentString {
                     i++;
                 }
             }
-            // --- 2. 其次，只处理对触发器'$'的转义 ---
+            // 只处理对触发器'$'的转义
             else if (c == '\\' && i + 1 < n && input.charAt(i + 1) == '$') {
                 currentLiteral.append('$'); // 直接添加 '$'
                 i += 2; // 跳过 '\' 和 '$'
             }
-            // --- 3. 处理所有其他字符（包括独立的'\'和'{'）为普通文本 ---
+            // 处理所有其他字符（包括独立的'\'和'{'）为普通文本
             else {
                 currentLiteral.append(c);
                 i++;

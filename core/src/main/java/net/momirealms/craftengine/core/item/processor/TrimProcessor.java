@@ -1,10 +1,9 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
-import net.momirealms.craftengine.core.item.data.Trim;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.item.component.value.Trim;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
@@ -22,6 +21,11 @@ public final class TrimProcessor implements SimpleNetworkItemProcessor {
         this.pattern = pattern;
     }
 
+    @Override
+    public boolean isConstant() {
+        return true;
+    }
+
     public Key material() {
         return this.material;
     }
@@ -31,8 +35,8 @@ public final class TrimProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        return item.trim(new Trim(this.pattern, this.material));
+    public void apply(ItemBuildContext context) {
+        context.item().trim(new Trim(this.pattern, this.material));
     }
 
     @Override

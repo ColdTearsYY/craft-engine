@@ -2,10 +2,9 @@ package net.momirealms.craftengine.core.item.processor;
 
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.CustomBlockStateWrapper;
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
@@ -26,8 +25,13 @@ public final class BlockStateProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        return item.blockState(this.wrapper.get());
+    public void apply(ItemBuildContext context) {
+        context.item().blockState(this.wrapper.get());
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     @Override
@@ -54,10 +58,10 @@ public final class BlockStateProcessor implements SimpleNetworkItemProcessor {
                 for (Map.Entry<String, Object> entry : value.getAsMap().entrySet()) {
                     properties.put(entry.getKey(), entry.getValue().toString());
                 }
-                return new BlockStateProcessor(LazyReference.lazyReference(() -> properties));
+                return new BlockStateProcessor(LazyReference.untilNotNull(() -> properties));
             } else {
                 String blockStateTag = value.getAsString();
-                return new BlockStateProcessor(LazyReference.lazyReference(() -> {
+                return new BlockStateProcessor(LazyReference.untilNotNull(() -> {
                     BlockStateWrapper blockState = CraftEngine.instance().blockManager().createBlockState(blockStateTag);
                     if (blockState instanceof CustomBlockStateWrapper customBlockStateWrapper) {
                         blockState = customBlockStateWrapper.visualBlockState();
@@ -65,7 +69,8 @@ public final class BlockStateProcessor implements SimpleNetworkItemProcessor {
                     if (blockState != null) {
                         Map<String, String> properties = new HashMap<>(4);
                         for (String property : blockState.getPropertyNames()) {
-                            properties.put(property, String.valueOf(blockState.getProperty(property)).toLowerCase(Locale.ROOT)); // 可能是 Enum
+                            Object propertyValue = blockState.getProperty(property);
+                            properties.put(property, String.valueOf(propertyValue).toLowerCase(Locale.ROOT)); // 可能是 Enum
                         }
                         return properties;
                     }

@@ -1,10 +1,10 @@
 package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
-import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.sender.Sender;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.Chunk;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -22,9 +22,15 @@ public final class DebugIsChunkPersistentLoadedCommand extends BukkitCommandFeat
                 .senderType(Player.class)
                 .handler(context -> {
                     Player player = context.sender();
-                    Chunk chunk = player.getChunk();
+                    Chunk chunk = player.getLocation().getChunk();
                     Sender sender = plugin().senderFactory().wrap(player);
-                    sender.sendMessage(Component.text(chunk.isForceLoaded()));
+                    if (VersionHelper.hasFoliaPatch) {
+                        sender.sendMessage(DebugCommandOutput.error("Persistent chunk state is unavailable on Folia"));
+                        return;
+                    }
+                    sender.sendMessage(DebugCommandOutput.title("Persistent Chunk"));
+                    sender.sendMessage(DebugCommandOutput.value("Chunk", chunk.getX() + ", " + chunk.getZ()));
+                    sender.sendMessage(DebugCommandOutput.status("Force loaded", chunk.isForceLoaded()));
                 });
     }
 

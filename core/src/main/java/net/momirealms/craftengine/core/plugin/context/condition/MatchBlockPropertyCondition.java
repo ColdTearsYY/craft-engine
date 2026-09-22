@@ -1,9 +1,9 @@
 package net.momirealms.craftengine.core.plugin.context.condition;
 
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.StatePropertyAccessor;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.property.Property;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -11,7 +11,10 @@ import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextPar
 import net.momirealms.craftengine.core.util.Pair;
 import net.momirealms.craftengine.core.world.ExistingBlock;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 public final class MatchBlockPropertyCondition<CTX extends Context> implements Condition<CTX> {
     private final List<Pair<String, String>> properties;
@@ -22,7 +25,7 @@ public final class MatchBlockPropertyCondition<CTX extends Context> implements C
 
     @Override
     public boolean test(CTX ctx) {
-        ImmutableBlockState customBlockState = null;
+        ImmutableBlockState customBlockState;
         StatePropertyAccessor vanillaStatePropertyAccessor = null;
         // 优先使用自定义状态，其主要应用于自定义方块掉落物
         Optional<ImmutableBlockState> optionalCustomState = ctx.getOptionalParameter(DirectContextParameters.CUSTOM_BLOCK_STATE);
@@ -43,7 +46,7 @@ public final class MatchBlockPropertyCondition<CTX extends Context> implements C
             }
         }
         if (customBlockState != null) {
-            CustomBlock block = customBlockState.owner().value();
+            BlockDefinition block = customBlockState.owner().value();
             for (Pair<String, String> property : this.properties) {
                 Property<?> propertyIns = block.getProperty(property.left());
                 if (propertyIns == null) {
@@ -77,8 +80,8 @@ public final class MatchBlockPropertyCondition<CTX extends Context> implements C
         public MatchBlockPropertyCondition<CTX> create(ConfigSection section) {
             ConfigSection properties = section.getNonNullSection("properties");
             List<Pair<String, String>> propertyList = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : properties.values().entrySet()) {
-                propertyList.add(Pair.of(entry.getKey(), entry.getValue().toString()));
+            for (String key : properties.keySet()) {
+                propertyList.add(Pair.of(key, properties.getNonEmptyString(key)));
             }
             return new MatchBlockPropertyCondition<>(propertyList);
         }

@@ -1,19 +1,20 @@
 package net.momirealms.craftengine.core.util;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.gson.JsonElement;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentIteratorType;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.*;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import net.kyori.adventure.text.serializer.json.JSONOptions;
 import net.kyori.adventure.text.serializer.json.legacyimpl.NBTLegacyHoverEventSerializer;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.text.component.ComponentProvider;
+import net.momirealms.craftengine.core.plugin.text.minimessage.CraftEngineTags;
+import net.momirealms.sparrow.message.MiniMessage;
+import net.momirealms.sparrow.message.tag.resolver.TagResolver;
 import net.momirealms.sparrow.nbt.Tag;
 import net.momirealms.sparrow.nbt.adventure.NBTComponentSerializer;
 import net.momirealms.sparrow.nbt.adventure.NBTSerializerOptions;
@@ -21,7 +22,9 @@ import net.momirealms.sparrow.reflection.clazz.SparrowClass;
 import net.momirealms.sparrow.reflection.field.matcher.FieldMatcher;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -30,42 +33,30 @@ import java.util.stream.Collectors;
  */
 public final class AdventureHelper {
     public static final String EMPTY_COMPONENT = componentToJson(Component.empty());
-    private final MiniMessage miniMessage;
-    private final MiniMessage miniMessageStrict;
-    private final MiniMessage miniMessageCustom;
+    private static final Cache<String, Pattern> PATTERN_CACHE = Caffeine.newBuilder()
+            .expireAfterAccess(10, TimeUnit.MINUTES)
+            .build();
+    private final MiniMessage miniMessageForSerialize;
+    private volatile MiniMessage miniMessage;
+    private volatile MiniMessage customMiniMessage;
     private final GsonComponentSerializer gsonComponentSerializer;
     private final NBTComponentSerializer nbtComponentSerializer;
     private final LegacyComponentSerializer legacyComponentSerializer;
     private static final TextReplacementConfig REPLACE_LF = TextReplacementConfig.builder().matchLiteral("\n").replacement(Component.newline()).build();
-    /**
-     * This iterator slices a component into individual parts that
-     * <ul>
-     *     <li>Can be used individually without style loss</li>
-     *     <li>Can be concatenated to form the original component, given that children are dropped</li>
-     * </ul>
-     * Any {@link net.kyori.adventure.text.ComponentIteratorFlag}s are ignored.
-     */
-    private static final ComponentIteratorType SLICER = (component, deque, flags) -> {
-        final List<Component> children = component.children();
-        for (int i = children.size() - 1; i >= 0; i--) {
-            deque.addFirst(children.get(i).applyFallbackStyle(component.style()));
-        }
-    };
 
     static {
         SparrowClass.of(SparrowClass.findNoRemap("net.kyori.adventure.text.TextComponentImpl")).getDeclaredSparrowField(FieldMatcher.named("WARN_WHEN_LEGACY_FORMATTING_DETECTED")).mh().set(null, false);
     }
 
     private AdventureHelper() {
-        this.miniMessage = MiniMessage.builder().build();
-        this.miniMessageStrict = MiniMessage.builder().strict(true).build();
-        this.miniMessageCustom = MiniMessage.builder().tags(TagResolver.empty()).build();
+        this.miniMessageForSerialize = MiniMessage.builder().strict(true).build();
+        rebuildMiniMessages();
         GsonComponentSerializer.Builder gsonBuilder = GsonComponentSerializer.builder();
-        if (!VersionHelper.isOrAbove1_20_5()) {
+        if (!VersionHelper.isOrAbove1_20_5) {
             gsonBuilder.legacyHoverEventSerializer(NBTLegacyHoverEventSerializer.get());
             gsonBuilder.editOptions((b) -> b.value(JSONOptions.EMIT_HOVER_SHOW_ENTITY_ID_AS_INT_ARRAY, false));
         }
-        if (!VersionHelper.isOrAbove1_21_5()) {
+        if (!VersionHelper.isOrAbove1_21_5) {
             gsonBuilder.editOptions((b) -> {
                 b.value(JSONOptions.EMIT_CLICK_EVENT_TYPE, JSONOptions.ClickEventValueMode.CAMEL_CASE);
                 b.value(JSONOptions.EMIT_HOVER_EVENT_TYPE, JSONOptions.HoverEventValueMode.CAMEL_CASE);
@@ -76,14 +67,16 @@ public final class AdventureHelper {
         this.gsonComponentSerializer = gsonBuilder.build();
         this.nbtComponentSerializer = NBTComponentSerializer.builder()
                 .editOptions((b) -> {
-                    if (!VersionHelper.isOrAbove1_21_5()) {
-                        b.value(NBTSerializerOptions.EMIT_CLICK_EVENT_TYPE, false);
-                        b.value(NBTSerializerOptions.EMIT_HOVER_EVENT_TYPE, false);
+                    if (!VersionHelper.isOrAbove1_21_5) {
+                        b.value(NBTSerializerOptions.MODERN_EVENT_TYPE, false);
                     }
-                    if (!VersionHelper.isOrAbove1_20_5()) {
+                    if (!VersionHelper.isOrAbove1_20_5) {
                         b.value(NBTSerializerOptions.DATA_COMPONENT_RELEASE, false);
                     }
-                    b.value(NBTSerializerOptions.SERIALIZE_COMPONENT_TYPES, false);
+                    if (!VersionHelper.isOrAbove1_20_3) {
+                        b.value(NBTSerializerOptions.INT_ARRAY_UUID, false);
+                    }
+                    b.value(NBTSerializerOptions.SERIALIZE_COMPONENT_TYPE, false);
                 }).build();
     }
 
@@ -100,15 +93,49 @@ public final class AdventureHelper {
     }
 
     public static MiniMessage customMiniMessage() {
-        return getInstance().miniMessageCustom;
+        return getInstance().customMiniMessage;
+    }
+
+    public static Component deserialize(String input, Context context) {
+        return miniMessage().deserialize(input, context);
+    }
+
+    public static Component deserialize(String input, Context context, TagResolver... additional) {
+        return miniMessage().deserialize(input, context, additional);
+    }
+
+    public static void refreshExternalTagResolvers() {
+        getInstance().rebuildMiniMessages();
+    }
+
+    private void rebuildMiniMessages() {
+        final TagResolver[] externals = externalTagResolvers();
+        // standard tags + CraftEngine tags + external plugin tags
+        this.miniMessage = MiniMessage.builder().tags(TagResolver.resolver(ArrayUtils.merge(ArrayUtils.merge(CraftEngineTags.INTERNAL, CraftEngineTags.STANDARD), externals))).build();
+        // CraftEngine + external tags only, no standard formatting tags
+        this.customMiniMessage = MiniMessage.builder().tags(TagResolver.resolver(ArrayUtils.merge(ArrayUtils.merge(CraftEngineTags.INTERNAL, externals), CraftEngineTags.SPECIAL_STANDARD))).build();
+    }
+
+    private static TagResolver[] externalTagResolvers() {
+        try {
+            CraftEngine engine = CraftEngine.instance();
+            if (engine == null || engine.compatibilityManager() == null) {
+                return new TagResolver[0];
+            }
+            TagResolver[] resolvers = engine.compatibilityManager().createExternalTagResolvers();
+            return resolvers == null ? new TagResolver[0] : resolvers;
+        } catch (Throwable ignored) {
+            // too early in bootstrap — external tags will be compiled on the first registration
+            return new TagResolver[0];
+        }
     }
 
     public static LegacyComponentSerializer getLegacy() {
         return getInstance().legacyComponentSerializer;
     }
 
-    public static MiniMessage strictMiniMessage() {
-        return getInstance().miniMessageStrict;
+    public static String serializeMiniMessage(Component component) {
+        return getInstance().miniMessageForSerialize.serialize(component);
     }
 
     public static GsonComponentSerializer getGson() {
@@ -126,11 +153,11 @@ public final class AdventureHelper {
      * @return the MiniMessage string representation
      */
     public static String jsonToMiniMessage(String json) {
-        return getInstance().miniMessageStrict.serialize(getInstance().gsonComponentSerializer.deserialize(json));
+        return getInstance().miniMessageForSerialize.serialize(getInstance().gsonComponentSerializer.deserialize(json));
     }
 
     public static String componentToMiniMessage(Component component) {
-        return getInstance().miniMessageStrict.serialize(component);
+        return getInstance().miniMessageForSerialize.serialize(component);
     }
 
     /**
@@ -183,6 +210,18 @@ public final class AdventureHelper {
             Object showItem = hoverEvent.value();
             component = component.hoverEvent(HoverEvent.showItem(replacer.apply((HoverEvent.ShowItem) showItem)));
         }
+        if (component instanceof TranslatableComponent translatableComponent) {
+            List<TranslationArgument> newArgs = new ArrayList<>();
+            for (TranslationArgument argument : translatableComponent.arguments()) {
+                if (argument.value() instanceof Component argComponent) {
+                    Component replaced = replaceShowItem(argComponent, replacer);
+                    newArgs.add(TranslationArgument.component(replaced));
+                } else {
+                    newArgs.add(argument);
+                }
+            }
+            component = translatableComponent.arguments(newArgs);
+        }
         List<Component> newChildren = new ArrayList<>();
         for (Component child : component.children()) {
             newChildren.add(replaceShowItem(child, replacer));
@@ -191,15 +230,24 @@ public final class AdventureHelper {
     }
 
     public static List<Component> splitLines(Component component) {
-        List<Component> result = new ArrayList<>(1);
+        List<Component> result = new ArrayList<>(4);
         Component line = Component.empty();
-        for (Iterator<Component> it = component.replaceText(REPLACE_LF).iterator(SLICER); it.hasNext(); ) {
-            Component child = it.next().children(Collections.emptyList());
-            if (child instanceof TextComponent text && text.content().equals(Component.newline().content())) {
+        Deque<Component> deque = new ArrayDeque<>();
+        deque.addLast(component.replaceText(REPLACE_LF));
+        while (!deque.isEmpty()) {
+            Component current = deque.pollFirst();
+            List<Component> children = current.children();
+            for (int i = children.size() - 1; i >= 0; i--) {
+                Component child = children.get(i).applyFallbackStyle(current.style());
+                deque.addFirst(child);
+            }
+            current = current.children(Collections.emptyList());
+            if (current instanceof TextComponent text
+                    && text.content().equals(Component.newline().content())) {
                 result.add(line.compact());
                 line = Component.empty();
             } else {
-                line = line.append(child);
+                line = line.append(current);
             }
         }
         if (Component.IS_NOT_EMPTY.test(line)) {
@@ -349,15 +397,23 @@ public final class AdventureHelper {
     }
 
     public static Component replaceText(Component text, Map<String, ComponentProvider> replacements, Context context) {
-        if (replacements.isEmpty()) return text;
-        String patternString = replacements.keySet().stream()
-                .map(Pattern::quote)
-                .collect(Collectors.joining("|"));
-        return text.replaceText(builder ->
-                builder.match(Pattern.compile(patternString))
-                        .replacement((result, b) ->
-                                Optional.ofNullable(replacements.get(result.group())).orElseThrow(() -> new IllegalStateException("Could not find tag '" + result.group() + "'")).apply(context)
-                        )
+        int size = replacements.size();
+        if (size == 0) return text;
+        final Pattern pattern;
+        if (size == 1) {
+            pattern = Pattern.compile(Pattern.quote(replacements.keySet().iterator().next()));
+        } else {
+            String patternString = replacements.keySet().stream()
+                    .map(Pattern::quote)
+                    .collect(Collectors.joining("|"));
+            pattern = Objects.requireNonNull(PATTERN_CACHE.get(patternString, Pattern::compile));
+        }
+        return replaceText(text, pattern, result ->
+                Optional.ofNullable(replacements.get(result.group())).orElseThrow(() -> new IllegalStateException("Could not find tag '" + result.group() + "'")).apply(context)
         );
+    }
+
+    private static Component replaceText(Component text, Pattern pattern, Function<MatchResult, Component> replacement) {
+        return FixedTextReplacementRenderer.INSTANCE.render(text, new FixedTextReplacementRenderer.State(pattern, replacement));
     }
 }

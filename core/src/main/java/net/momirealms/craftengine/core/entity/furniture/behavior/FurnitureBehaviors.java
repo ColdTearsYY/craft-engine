@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.core.entity.furniture.behavior;
 
-import net.momirealms.craftengine.core.entity.furniture.CustomFurniture;
+import net.momirealms.craftengine.core.entity.furniture.FurnitureDefinition;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
@@ -14,8 +14,8 @@ import org.jetbrains.annotations.ApiStatus;
 public abstract class FurnitureBehaviors {
     protected FurnitureBehaviors() {}
 
-    public static FurnitureBehavior fromConfig(CustomFurniture furniture, ConfigSection section) {
-        String type = section.getNonNullString("type");
+    public static FurnitureBehaviorTemplate fromConfig(FurnitureDefinition furniture, ConfigSection section) {
+        String type = section.getNonEmptyString("type");
         Key key = Key.ce(type);
         FurnitureBehaviorType<?> furnitureBehaviorType = BuiltInRegistries.FURNITURE_BEHAVIOR_TYPE.getValue(key);
         if (furnitureBehaviorType == null) {
@@ -24,9 +24,9 @@ public abstract class FurnitureBehaviors {
         return furnitureBehaviorType.factory().create(furniture, section);
     }
 
-    public static <T extends FurnitureBehavior> FurnitureBehaviorType<T> register(Key id, FurnitureBehaviorFactory<T> factory) {
+    public static <T extends FurnitureBehaviorTemplate> FurnitureBehaviorType<T> register(Key id, FurnitureBehaviorFactory<T> factory) {
         FurnitureBehaviorType<T> type = new FurnitureBehaviorType<>(id, factory);
-        ((WritableRegistry<FurnitureBehaviorType<? extends FurnitureBehavior>>) BuiltInRegistries.FURNITURE_BEHAVIOR_TYPE)
+        ((WritableRegistry<FurnitureBehaviorType<? extends FurnitureBehaviorTemplate>>) BuiltInRegistries.FURNITURE_BEHAVIOR_TYPE)
                 .register(ResourceKey.create(Registries.FURNITURE_BEHAVIOR_TYPE.location(), id), type);
         return type;
     }

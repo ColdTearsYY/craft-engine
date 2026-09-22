@@ -2,6 +2,7 @@ package net.momirealms.craftengine.proxy.bukkit.craftbukkit.event;
 
 import net.momirealms.craftengine.proxy.minecraft.core.BlockPosProxy;
 import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelAccessorProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
@@ -45,7 +46,14 @@ public interface CraftEventFactoryProxy {
             int flags
     );
 
-    @MethodInvoker(name = "callRedstoneChange", isStatic = true, activeIf = "min_version=1.21.9")
+    @MethodInvoker(name = "callEntityChangeBlockEvent", isStatic = true)
+    boolean callEntityChangeBlockEvent(
+            @Type(clazz = EntityProxy.class) Object entity,
+            @Type(clazz = BlockPosProxy.class) Object pos,
+            @Type(clazz = BlockStateProxy.class) Object state
+    );
+
+    @MethodInvoker(name = "callRedstoneChange", isStatic = true, activeIf = "min_version=1.21.9 && has_patch=paper")
     BlockRedstoneEvent callRedstoneChange$0(
             @Type(clazz = LevelAccessorProxy.class) Object level,
             @Type(clazz = BlockPosProxy.class) Object pos,
@@ -53,7 +61,7 @@ public interface CraftEventFactoryProxy {
             int newCurrent
     );
 
-    @MethodInvoker(name = "callRedstoneChange", isStatic = true, activeIf = "max_version=1.21.8")
+    @MethodInvoker(name = "callRedstoneChange", isStatic = true, activeIf = "max_version=1.21.8 || !has_patch=paper")
     BlockRedstoneEvent callRedstoneChange$1(
             @Type(clazz = LevelProxy.class) Object level,
             @Type(clazz = BlockPosProxy.class) Object pos,

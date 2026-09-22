@@ -3,6 +3,8 @@ package net.momirealms.craftengine.core.pack.model.definition.special;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class HeadSpecialModel implements SpecialModel {
     public static final SpecialModelFactory<HeadSpecialModel> FACTORY = new Factory();
@@ -11,16 +13,18 @@ public final class HeadSpecialModel implements SpecialModel {
     private final String texture;
     private final float animation;
 
-    public HeadSpecialModel(String kind, String texture, float animation) {
+    public HeadSpecialModel(@NotNull String kind, @Nullable String texture, float animation) {
         this.kind = kind;
         this.texture = texture;
         this.animation = animation;
     }
 
+    @NotNull
     public String kind() {
         return this.kind;
     }
 
+    @Nullable
     public String texture() {
         return this.texture;
     }
@@ -30,15 +34,19 @@ public final class HeadSpecialModel implements SpecialModel {
     }
 
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
-        json.addProperty("type", "head");
-        json.addProperty("kind", this.kind);
-        if (this.texture != null) {
-            json.addProperty("texture", this.texture);
-        }
-        if (this.animation != 0) {
-            json.addProperty("animation", this.animation);
+        if (min.isAtOrAbove(MinecraftVersion.V1_21_6) && this.kind.equals("player") && this.texture == null) {
+            json.addProperty("type", "player_head");
+        } else {
+            json.addProperty("type", "head");
+            json.addProperty("kind", this.kind);
+            if (this.texture != null) {
+                json.addProperty("texture", this.texture);
+            }
+            if (this.animation != 0) {
+                json.addProperty("animation", this.animation);
+            }
         }
         return json;
     }
@@ -48,7 +56,7 @@ public final class HeadSpecialModel implements SpecialModel {
         public HeadSpecialModel create(ConfigSection section) {
             return new HeadSpecialModel(
                     section.getNonNullString("kind"),
-                    section.getValue("texture", v -> v.getAsIdentifier().asMinimalString()),
+                    section.getValue("texture", v -> v.getAsAssetPath().asMinimalString()),
                     section.getFloat("animation")
             );
         }

@@ -1,7 +1,9 @@
 package net.momirealms.craftengine.core.plugin;
 
 import net.momirealms.craftengine.core.advancement.AdvancementManager;
+import net.momirealms.craftengine.core.attribute.AttributeManager;
 import net.momirealms.craftengine.core.block.BlockManager;
+import net.momirealms.craftengine.core.entity.EntityManager;
 import net.momirealms.craftengine.core.entity.culling.EntityCullingManager;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureManager;
 import net.momirealms.craftengine.core.entity.projectile.ProjectileManager;
@@ -11,6 +13,7 @@ import net.momirealms.craftengine.core.item.ItemManager;
 import net.momirealms.craftengine.core.item.recipe.RecipeManager;
 import net.momirealms.craftengine.core.loot.LootManager;
 import net.momirealms.craftengine.core.pack.PackManager;
+import net.momirealms.craftengine.core.painting.PaintingManager;
 import net.momirealms.craftengine.core.plugin.classpath.ClassPathAppender;
 import net.momirealms.craftengine.core.plugin.command.sender.SenderFactory;
 import net.momirealms.craftengine.core.plugin.compatibility.CompatibilityManager;
@@ -23,7 +26,10 @@ import net.momirealms.craftengine.core.plugin.gui.category.ItemBrowserManager;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.plugin.logger.PluginLogger;
 import net.momirealms.craftengine.core.plugin.network.NetworkManager;
+import net.momirealms.craftengine.core.plugin.proxy.ProxyMessageManager;
 import net.momirealms.craftengine.core.plugin.scheduler.SchedulerAdapter;
+import net.momirealms.craftengine.core.plugin.script.ScriptManager;
+import net.momirealms.craftengine.core.plugin.storage.StorageManager;
 import net.momirealms.craftengine.core.sound.SoundManager;
 import net.momirealms.craftengine.core.world.WorldManager;
 import net.momirealms.craftengine.core.world.score.TeamManager;
@@ -48,11 +54,17 @@ public interface Plugin {
 
     boolean isReloading();
 
-    boolean isInitializing();
+    boolean isEnabling();
+
+    boolean isFullyLoaded();
+
+    boolean isStopping();
+
+    boolean isDisabled();
 
     DependencyManager dependencyManager();
 
-    <W> SchedulerAdapter<W> scheduler();
+    SchedulerAdapter scheduler();
 
     void saveResource(String filePath);
 
@@ -60,7 +72,9 @@ public interface Plugin {
 
     String serverVersion();
 
-    <T> ItemManager itemManager();
+    StorageManager storageManager();
+
+    ItemManager itemManager();
 
     BlockManager blockManager();
 
@@ -72,6 +86,10 @@ public interface Plugin {
 
     Config config();
 
+    AttributeManager attributeManager();
+
+    EntityManager entityManager();
+
     TranslationManager translationManager();
 
     TemplateManager templateManager();
@@ -80,7 +98,7 @@ public interface Plugin {
 
     PackManager packManager();
 
-    <T> RecipeManager recipeManager();
+    RecipeManager recipeManager();
 
     <P extends Plugin, C> SenderFactory<P, C> senderFactory();
 
@@ -92,8 +110,8 @@ public interface Plugin {
 
     SoundManager soundManager();
 
-    LootManager vanillaLootManager();
-
+    LootManager lootManager();
+    
     CompatibilityManager compatibilityManager();
 
     GlobalVariableManager globalVariableManager();
@@ -104,7 +122,13 @@ public interface Plugin {
 
     TeamManager teamManager();
 
+    PaintingManager paintingManager();
+
     SeatManager seatManager();
+
+    ProxyMessageManager proxyMessageManager();
+
+    ScriptManager scriptManager();
 
     Platform platform();
 }

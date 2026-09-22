@@ -3,17 +3,23 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.pack.Pack;
+import net.momirealms.craftengine.core.pack.model.bbmodel.BBModelConverter;
 import net.momirealms.craftengine.core.pack.model.definition.tint.Tint;
 import net.momirealms.craftengine.core.pack.model.definition.tint.Tints;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.pack.revision.Revisions;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,13 +31,31 @@ public final class BaseItemModel implements ItemModel {
     private final Key path;
     private final List<Tint> tints;
     private final ModelGeneration modelGeneration;
+    private final Transformation transformation;
+
+    public BaseItemModel(@NotNull Key path,
+                         @Nullable List<Tint> tints,
+                         @Nullable ModelGeneration modelGeneration,
+                         @Nullable Transformation transformation) {
+        this.path = path;
+        this.tints = tints;
+        this.modelGeneration = modelGeneration;
+        this.transformation = transformation;
+    }
+
+    public BaseItemModel(@NotNull Key path) {
+        this(path, List.of(), null, null);
+    }
+
+    public BaseItemModel(@NotNull Key path,
+                         @NotNull List<Tint> tints) {
+        this(path, tints, null, null);
+    }
 
     public BaseItemModel(@NotNull Key path,
                          @NotNull List<Tint> tints,
                          @Nullable ModelGeneration modelGeneration) {
-        this.path = path;
-        this.tints = tints;
-        this.modelGeneration = modelGeneration;
+        this(path, tints, modelGeneration, null);
     }
 
     @Nullable
@@ -39,26 +63,43 @@ public final class BaseItemModel implements ItemModel {
         return this.modelGeneration;
     }
 
-    @NotNull
+    @Nullable
     public List<Tint> tints() {
         return this.tints;
     }
 
+    @NotNull
     public Key path() {
         return this.path;
     }
 
+    @Nullable
+    public Transformation transformation() {
+        return this.transformation;
+    }
+
+    public static BaseItemModel ofBBModel(BBModelConverter.Converted converted) {
+        return new BaseItemModel(converted.model(), List.of(), ModelGeneration.raw(converted.json(), converted.textures()), null);
+    }
+
+    public static BaseItemModel ofBBModel(BBModelConverter.Converted converted, @Nullable List<Tint> tints, @Nullable Transformation transformation) {
+        return new BaseItemModel(converted.model(), tints, ModelGeneration.raw(converted.json(), converted.textures()), transformation);
+    }
+
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "model");
         json.addProperty("model", this.path.asMinimalString());
-        if (!this.tints.isEmpty()) {
+        if (this.tints != null && !this.tints.isEmpty()) {
             JsonArray array = new JsonArray();
             for (Tint tint : this.tints) {
                 array.add(tint.get());
             }
             json.add("tints", array);
+        }
+        if (this.transformation != null && max.isAtOrAbove(MinecraftVersion.V26_1)) {
+            json.add("transformation", this.transformation.toJson());
         }
         return json;
     }
@@ -71,15 +112,24 @@ public final class BaseItemModel implements ItemModel {
     }
 
     @Override
-    public void collectRevision(Consumer<Revision> consumer) {
+    public void gatherRevisions(Consumer<Revision> consumer) {
+        if (this.transformation != null) {
+            consumer.accept(Revisions.SINCE_26_1);
+        }
     }
 
     private static class Factory implements ItemModelFactory<BaseItemModel> {
-        private static final String[] PATH = new String[] {"path", "model"};
+        private static final String[] PATH = ConfigKeys.of("path|model");
 
         @Override
-        public BaseItemModel create(ConfigSection section) {
-            Key modelPath = section.getNonNullIdentifier(PATH);
+        public BaseItemModel create(Pack pack, Path path, ConfigSection section) {
+            List<Tint> tints = section.getList("tints", Tints::fromConfig);
+            Transformation transformation = section.getValue("transformation", Transformation::fromConfig);
+            ConfigValue blueprintValue = section.getValue("blueprint");
+            if (blueprintValue != null) {
+                return BaseItemModel.ofBBModel(BBModelConverter.convert(pack, path, "item", section.getValue(PATH), blueprintValue), tints, transformation);
+            }
+            Key modelPath = section.getNonNullAssetPath(PATH);
             ConfigSection generation = section.getSection("generation");
             ModelGeneration modelGeneration = null;
             if (generation != null) {
@@ -87,8 +137,9 @@ public final class BaseItemModel implements ItemModel {
             }
             return new BaseItemModel(
                     modelPath,
-                    section.getList("tints", Tints::fromConfig),
-                    modelGeneration
+                    tints,
+                    modelGeneration,
+                    transformation
             );
         }
     }
@@ -112,7 +163,12 @@ public final class BaseItemModel implements ItemModel {
             } else {
                 tints = Collections.emptyList();
             }
-            return new BaseItemModel(Key.of(model), tints, null);
+            return new BaseItemModel(
+                    Key.of(model),
+                    tints,
+                    null,
+                    json.has("transformation") ? Transformation.fromJson(json.get("transformation")) : null
+            );
         }
     }
 }

@@ -6,9 +6,10 @@ import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
+import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.bukkit.util.PlayerUtils;
-import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.item.ItemDefinition;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.FlagKeys;
@@ -48,23 +49,24 @@ public final class GetItemCommand extends BukkitCommandFeature<CommandSender> {
                 .optional("amount", IntegerParser.integerParser(1, 9999))
                 .handler(context -> {
                     Player player = context.sender();
+                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
+                    if (serverPlayer == null) return;
                     int amount = context.getOrDefault("amount", 1);
                     NamespacedKey namespacedKey = context.get("id");
-                    Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    CustomItem customItem = CraftEngineItems.byId(itemId);
-                    if (customItem == null) {
-                        customItem = BukkitItemManager.instance().getCustomItemByPathOnly(itemId.value()).orElse(null);
-                        if (customItem == null) {
+                    Key itemId = KeyUtils.namespacedKeyToKey(namespacedKey);
+                    ItemDefinition itemDefinition = CraftEngineItems.byId(itemId);
+                    if (itemDefinition == null) {
+                        itemDefinition = BukkitItemManager.instance().getItemDefinitionByPath(itemId.value()).orElse(null);
+                        if (itemDefinition == null) {
                             handleFeedback(context, MessageConstants.COMMAND_ITEM_GET_FAILURE_NOT_EXIST, Component.text(itemId.toString()));
                             return;
                         } else {
-                            itemId = customItem.id();
+                            itemId = itemDefinition.id();
                         }
                     }
-                    BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
-                    Item builtItem = customItem.buildItem(serverPlayer);
+                    Item builtItem = itemDefinition.buildItem(serverPlayer);
                     if (builtItem != null) {
-                        PlayerUtils.giveItem(serverPlayer, amount, builtItem);
+                        PlayerUtils.giveItem(serverPlayer, amount, builtItem, true);
                     }
                     handleFeedback(context, MessageConstants.COMMAND_ITEM_GET_SUCCESS, Component.text(amount), Component.text(itemId.toString()));
                 });

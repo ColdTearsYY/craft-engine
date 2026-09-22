@@ -11,6 +11,9 @@ public interface ContextKey<T> {
 
     static <T> ContextKey<T> chain(@NotNull String node) {
         String[] parts = node.split("\\.");
+        if (parts.length == 1) {
+            return new Direct<>(parts[0]);
+        }
         ContextKey<T> current = null;
         for (String part : parts) {
             current = new Chain<>(part, current);
@@ -33,6 +36,7 @@ public interface ContextKey<T> {
 
         @Override
         public boolean equals(Object object) {
+            if (this == object) return true;
             if (!(object instanceof ContextKey<?> another)) return false;
             return this.node.equals(another.node());
         }
@@ -65,6 +69,7 @@ public interface ContextKey<T> {
 
         @Override
         public boolean equals(Object object) {
+            if (this == object) return true;
             if (!(object instanceof ContextKey<?> another)) return false;
             return this.node.equals(another.node());
         }

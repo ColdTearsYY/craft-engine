@@ -1,19 +1,28 @@
 package net.momirealms.craftengine.core.item;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.core.attribute.AttributeModifier;
+import net.momirealms.craftengine.core.attribute.vanilla.VanillaAttributeModifier;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
-import net.momirealms.craftengine.core.item.data.Enchantment;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
-import net.momirealms.craftengine.core.item.data.JukeboxPlayable;
-import net.momirealms.craftengine.core.item.data.Trim;
+import net.momirealms.craftengine.core.item.component.value.Enchantment;
+import net.momirealms.craftengine.core.item.component.value.FireworkExplosion;
+import net.momirealms.craftengine.core.item.component.value.JukeboxPlayable;
+import net.momirealms.craftengine.core.item.component.value.Trim;
+import net.momirealms.craftengine.core.item.customdata.CustomDataSerializers;
+import net.momirealms.craftengine.core.item.network.ItemPacketSource;
 import net.momirealms.craftengine.core.item.processor.ItemProcessor;
-import net.momirealms.craftengine.core.item.setting.EquipmentData;
+import net.momirealms.craftengine.core.item.setting.value.EquipmentData;
+import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.context.ChainParameterSource;
+import net.momirealms.craftengine.core.plugin.context.ContextKey;
+import net.momirealms.craftengine.core.plugin.context.parameter.ItemParameterProvider;
 import net.momirealms.craftengine.core.util.Color;
+import net.momirealms.craftengine.core.util.CustomDataSerializer;
 import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,21 +36,83 @@ import java.util.Optional;
  * This interface provides methods for managing item properties such as custom model data,
  * damage, display name, lore, enchantments, and tags.
  */
-public interface Item {
+public interface Item extends ChainParameterSource {
 
-    Object getMinecraftItem();
+    @Override
+    default <T> Optional<T> getParameter(ContextKey<T> key) {
+        return ItemParameterProvider.INSTANCE.getOptionalParameter(key, this);
+    }
+
+    static Item byId(final Key id) {
+        return CraftEngine.instance().itemManager().getBuildableItem(id)
+                .map(item -> item.buildItem((Player) null))
+                .orElse(null);
+    }
+
+    static Item byId(final Key id, ItemBuildContext context) {
+        return CraftEngine.instance().itemManager().getBuildableItem(id)
+                .map(item -> item.buildItem(context))
+                .orElse(null);
+    }
+
+    static Item byId(final Key id, Player player) {
+        return CraftEngine.instance().itemManager().getBuildableItem(id)
+                .map(item -> item.buildItem(player))
+                .orElse(null);
+    }
+
+    static Item empty() {
+        return CraftEngine.instance().itemManager().emptyItem();
+    }
+
+    static Item fromNBT(final CompoundTag tag) {
+        return CraftEngine.instance().itemManager().fromNBT(tag);
+    }
+
+    static Item fromBytes(final byte[] bytes) {
+        return CraftEngine.instance().itemManager().fromBytes(bytes);
+    }
+
+    static Item fromBytes(final byte[] bytes, final boolean useCache) {
+        return CraftEngine.instance().itemManager().fromBytes(bytes, useCache);
+    }
+
+    default Item toClientSide(Player player) {
+        Optional<Item> item = CraftEngine.instance().itemManager().s2c(this, player);
+        return item.orElse(this);
+    }
+
+    default Item toClientSide(Player player, ItemPacketSource source) {
+        Optional<Item> item = CraftEngine.instance().itemManager().s2c(this, player, source);
+        return item.orElse(this);
+    }
+
+    default Item toServerSide() {
+        Optional<Item> item = CraftEngine.instance().itemManager().c2s(this);
+        return item.orElse(this);
+    }
+
+    Object minecraftItem();
+
+    default Object platformItem() {
+        return minecraftItem();
+    }
 
     ItemType type();
 
     boolean isEmpty();
 
-    Optional<CustomItem> getCustomItem();
+    Optional<ItemDefinition> getDefinition();
 
-    Optional<List<ItemBehavior>> getItemBehavior();
+    Optional<ItemBehavior> getBehavior();
 
     boolean isCustomItem();
 
     boolean isBlockItem();
+
+    boolean hasPluginTag(Key tag);
+
+    boolean hasVanillaTag(Key tag);
 
     @NotNull
     Key id();
@@ -81,7 +152,6 @@ public interface Item {
 
     Optional<Map<String, String>> blockState();
 
-    // todo 考虑部分版本的show in tooltip保留
     Item dyedColor(Color data);
 
     Optional<Color> dyedColor();
@@ -90,15 +160,15 @@ public interface Item {
 
     Optional<FireworkExplosion> fireworkExplosion();
 
-    Item customNameJson(String displayName);
+    Item customNameJson(JsonElement displayName);
 
     Item customNameComponent(Component displayName);
 
-    Optional<String> customNameJson();
+    Optional<JsonElement> customNameJson();
 
     Optional<Component> customNameComponent();
 
-    default Optional<String> hoverNameJson() {
+    default Optional<JsonElement> hoverNameJson() {
         return customNameJson().or(this::itemNameJson);
     }
 
@@ -106,11 +176,11 @@ public interface Item {
         return customNameComponent().or(this::itemNameComponent);
     }
 
-    Item itemNameJson(String itemName);
+    Item itemNameJson(JsonElement itemName);
 
     Item itemNameComponent(Component itemName);
 
-    Optional<String> itemNameJson();
+    Optional<JsonElement> itemNameJson();
 
     Optional<Component> itemNameComponent();
 
@@ -118,19 +188,23 @@ public interface Item {
 
     Optional<String> itemModel();
 
+    Item useRemainder(Item item, int count);
+
+    Optional<Item> useRemainder();
+
     Item tooltipStyle(String tooltipStyle);
 
     Optional<String> tooltipStyle();
 
-    Item loreJson(List<String> lore);
+    Item loreJson(JsonArray lore);
 
     Item loreComponent(List<Component> lore);
 
-    Optional<List<String>> loreJson();
+    Optional<JsonArray> loreJson();
 
     Optional<List<Component>> loreComponent();
 
-    Item attributeModifiers(List<AttributeModifier> modifiers);
+    Item attributeModifiers(List<VanillaAttributeModifier> modifiers);
 
     Optional<JukeboxPlayable> jukeboxSong();
 
@@ -156,15 +230,52 @@ public interface Item {
 
     Item setStoredEnchantments(List<Enchantment> enchantments);
 
+    Optional<Boolean> glint();
+
+    Item glint(boolean value);
+
     Item itemFlags(List<String> flags);
 
-    Object getJavaTag(Object... path);
+    Tag getSparrowTag(Object... path);
 
-    Tag getTag(Object... path);
+    Object getMinecraftTag(Object... path);
 
-    Object getExactTag(Object... path);
+    JsonElement getTagAsJson(Object... path);
+
+    Object getTagAsJava(Object... path);
 
     Item setTag(Object value, Object... path);
+
+    Item setSparrowTag(Tag value, Object... path);
+
+    Item setJavaTag(Object value, Object... path);
+
+    Item setMinecraftTag(Object value, Object... path);
+
+    Item setJsonTag(JsonElement value, Object... path);
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    default void setCustomData(Object value, Object... path) {
+        CustomDataSerializer serializer = CustomDataSerializers.getSerializer(value.getClass());
+        if (serializer == null) {
+            throw new IllegalArgumentException("Custom data serializer not supported: " + value.getClass());
+        }
+        Tag tag = serializer.serialize(value);
+        setSparrowTag(tag, path);
+    }
+
+    @Nullable
+    default <T> T getCustomData(Class<T> clazz, Object... path) {
+        CustomDataSerializer<T> serializer = CustomDataSerializers.getSerializer(clazz);
+        if (serializer == null) {
+            throw new IllegalArgumentException("Custom data serializer not supported: " + clazz);
+        }
+        Tag sparrowTag = getSparrowTag(path);
+        if (sparrowTag == null) {
+            return null;
+        }
+        return serializer.deserialize(sparrowTag);
+    }
 
     boolean hasTag(Object... path);
 
@@ -176,25 +287,27 @@ public interface Item {
 
     void removeComponent(Object type);
 
-    void setExactComponent(Object type, Object value);
-
     Object getExactComponent(Object type);
 
-    Object getJavaComponent(Object type);
+    Object getComponentAsJava(Object type);
 
-    JsonElement getJsonComponent(Object type);
+    JsonElement getComponentAsJson(Object type);
 
-    Tag getSparrowNBTComponent(Object type);
+    Tag getComponentAsSparrowTag(Object type);
 
-    Object getNBTComponent(Object type);
+    Object getComponentAsMinecraftTag(Object type);
 
     void setComponent(Object type, Object value);
+
+    void setExactComponent(Object type, Object value);
 
     void setJavaComponent(Object type, Object value);
 
     void setJsonComponent(Object type, JsonElement value);
 
-    void setNBTComponent(Object type, Tag value);
+    void setSparrowTagComponent(Object type, Tag value);
+
+    void setMinecraftTagComponent(Object type, Object value);
 
     void resetComponent(Object type);
 
@@ -202,9 +315,9 @@ public interface Item {
 
     Item maxStackSize(int amount);
 
-    Item copyWithCount(int count);
+    Item copy();
 
-    boolean hasItemTag(Key itemTag);
+    Item copyWithCount(int count);
 
     Item mergeCopy(Item another);
 
@@ -225,10 +338,15 @@ public interface Item {
     void merge(Item another);
 
     default Item apply(ItemProcessor modifier, ItemBuildContext context) {
-        return modifier.apply(this, context);
+        modifier.apply(context);
+        return context.item();
     }
 
-    byte[] toByteArray();
+    byte[] toBytes();
+
+    CompoundTag toNBT();
+
+    boolean isSimilar(Item another);
 
     default Item applyDyedColors(List<Color> colors) {
         int totalRed = 0;

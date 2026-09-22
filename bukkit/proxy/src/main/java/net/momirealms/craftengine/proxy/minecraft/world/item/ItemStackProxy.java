@@ -5,6 +5,7 @@ import net.momirealms.craftengine.proxy.minecraft.core.RegistryProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.component.DataComponentHolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.component.DataComponentPatchProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.component.DataComponentTypeProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.component.PatchedDataComponentMapProxy;
 import net.momirealms.craftengine.proxy.minecraft.nbt.CompoundTagProxy;
 import net.momirealms.craftengine.proxy.minecraft.network.codec.StreamCodecProxy;
 import net.momirealms.craftengine.proxy.minecraft.tags.TagKeyProxy;
@@ -21,7 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.function.Consumer;
 
 @ReflectionProxy(name = "net.minecraft.world.item.ItemStack")
-public interface ItemStackProxy extends DataComponentHolderProxy {
+public interface ItemStackProxy extends DataComponentHolderProxy, ItemInstanceProxy {
     ItemStackProxy INSTANCE = ASMProxyFactory.create(ItemStackProxy.class);
     Class<?> CLASS = SparrowClass.find("net.minecraft.world.item.ItemStack");
     Object EMPTY = INSTANCE.getEmpty();
@@ -38,6 +39,9 @@ public interface ItemStackProxy extends DataComponentHolderProxy {
     @FieldGetter(name = "OPTIONAL_STREAM_CODEC", isStatic = true, activeIf = "min_version=1.20.5")
     Object getOptionalStreamCodec();
 
+    @FieldGetter(name = "OPTIONAL_UNTRUSTED_STREAM_CODEC", isStatic = true, activeIf = "min_version=1.21.5")
+    Object getOptionalUntrustedStreamCodec();
+
     @MethodInvoker(name = "hurtAndBreak", activeIf = "min_version=1.20.5")
     void hurtAndBreak(Object target, int amount, @Type(clazz = LivingEntityProxy.class) Object entity, @Type(clazz = EquipmentSlotProxy.class) Object slot);
 
@@ -53,7 +57,7 @@ public interface ItemStackProxy extends DataComponentHolderProxy {
     @MethodInvoker(name = "setCount")
     void setCount(Object target, int count);
 
-    @MethodInvoker(name = "getBukkitStack")
+    @MethodInvoker(name = "getBukkitStack", activeIf = "has_patch=paper")
     ItemStack getBukkitStack(Object target);
 
     @MethodInvoker(name = "copyWithCount")
@@ -68,8 +72,8 @@ public interface ItemStackProxy extends DataComponentHolderProxy {
     @MethodInvoker(name = "shrink")
     void shrink(Object target, int count);
 
-    @MethodInvoker(name = "is")
-    boolean is(Object target, @Type(clazz = TagKeyProxy.class) Object tag);
+    @MethodInvoker(name = "is", activeIf = "max_version=1.21.11")
+    boolean is$0(Object target, @Type(clazz = TagKeyProxy.class) Object tag);
 
     @MethodInvoker(name = "getTag", activeIf = "max_version=1.20.4")
     Object getTag(Object target);
@@ -101,6 +105,9 @@ public interface ItemStackProxy extends DataComponentHolderProxy {
     @MethodInvoker(name = "getComponentsPatch", activeIf = "min_version=1.20.5")
     Object getComponentsPatch(Object target);
 
+    @FieldSetter(name = "components", activeIf = "min_version=1.20.5")
+    void setComponents(Object target, @Type(clazz = PatchedDataComponentMapProxy.class) Object components);
+
     @MethodInvoker(name = "transmuteCopy", activeIf = "min_version=1.20.5")
     Object transmuteCopy(Object target, @Type(clazz = ItemLikeProxy.class) Object item, int count);
 
@@ -124,4 +131,16 @@ public interface ItemStackProxy extends DataComponentHolderProxy {
 
     @MethodInvoker(name = "validatedStreamCodec", isStatic = true, activeIf = "min_version=1.20.5")
     Object validatedStreamCodec(@Type(clazz = StreamCodecProxy.class) Object basePacketCodec);
+
+    @MethodInvoker(name = "isSameItemSameTags", isStatic = true, activeIf = "max_version=1.20.4")
+    boolean isSameItemSameTags(@Type(clazz = ItemStackProxy.class) Object stack, @Type(clazz = ItemStackProxy.class) Object otherStack);
+
+    @MethodInvoker(name = {"isSameItemSameComponents", "isSameItemSameTags"}, isStatic = true)
+    boolean isSameItemSameComponents(@Type(clazz = ItemStackProxy.class) Object stack, @Type(clazz = ItemStackProxy.class) Object otherStack);
+
+    @MethodInvoker(name = "isValidRepairItem", activeIf = "min_version=1.21.2")
+    boolean isValidRepairItem(Object target, @Type(clazz = ItemStackProxy.class) Object repairItem);
+
+    @MethodInvoker(name = "hashItemAndComponents", activeIf = "min_version=1.20.5", isStatic = true)
+    int hashItemAndComponents(@Type(clazz = ItemStackProxy.class) Object target);
 }

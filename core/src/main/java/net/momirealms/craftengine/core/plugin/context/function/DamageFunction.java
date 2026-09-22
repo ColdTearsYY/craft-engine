@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
@@ -32,7 +33,8 @@ public final class DamageFunction<CTX extends Context> extends AbstractCondition
         if (this.selector != null) {
             this.selector.get(ctx).forEach(p -> p.damage(this.amount.getDouble(ctx), this.damageType, null));
         } else {
-            ctx.getOptionalParameter(DirectContextParameters.PLAYER).ifPresent(it -> it.damage(this.amount.getDouble(ctx), this.damageType, null));
+            DirectContextParameters.getOptionalLivingEntity(ctx)
+                    .ifPresent(entity -> entity.damage(this.amount.getDouble(ctx), this.damageType, null));
         }
     }
 
@@ -41,8 +43,8 @@ public final class DamageFunction<CTX extends Context> extends AbstractCondition
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, DamageFunction<CTX>> {
-        private static final String[] DAMAGE_TYPE = new String[] {"damage_type", "damage-type"};
-        private static final String[] AMOUNT = new String[] {"amount", "damage"};
+        private static final String[] DAMAGE_TYPE = ConfigKeys.of("damage_type");
+        private static final String[] AMOUNT = ConfigKeys.of("amount|damage");
 
         public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);

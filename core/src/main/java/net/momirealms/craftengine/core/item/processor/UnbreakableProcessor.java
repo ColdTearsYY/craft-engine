@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
@@ -21,9 +20,13 @@ public final class UnbreakableProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        item.unbreakable(this.argument);
-        return item;
+    public boolean isConstant() {
+        return true;
+    }
+
+    @Override
+    public void apply(ItemBuildContext context) {
+        context.item().unbreakable(this.argument);
     }
 
     @Override

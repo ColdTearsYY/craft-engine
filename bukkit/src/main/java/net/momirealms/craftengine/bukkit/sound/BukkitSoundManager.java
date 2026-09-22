@@ -47,7 +47,7 @@ public final class BukkitSoundManager extends AbstractSoundManager {
         if (songs == null || songs.isEmpty()) return;
         Path persistSongPath = this.plugin.dataFolderPath()
                 .resolve("cache")
-                .resolve("jukebox-songs.json");
+                .resolve("jukebox_songs.json");
         try {
             Files.createDirectories(persistSongPath.getParent());
             JsonObject cache = new JsonObject();
@@ -70,11 +70,11 @@ public final class BukkitSoundManager extends AbstractSoundManager {
     private Map<Key, JukeboxSong> loadLastRegisteredSongs() {
         Path persistSongPath = this.plugin.dataFolderPath()
                 .resolve("cache")
-                .resolve("jukebox-songs.json");
+                .resolve("jukebox_songs.json");
         if (Files.exists(persistSongPath) && Files.isRegularFile(persistSongPath)) {
             try {
                 Map<Key, JukeboxSong> songs = new HashMap<>();
-                JsonObject cache = GsonHelper.readJsonFile(persistSongPath).getAsJsonObject();
+                JsonObject cache = GsonHelper.readJsonFromFile(persistSongPath).getAsJsonObject();
                 for (Map.Entry<String, JsonElement> songEntry : cache.entrySet()) {
                     Key id = Key.of(songEntry.getKey());
                     if (songEntry.getValue() instanceof JsonObject jo) {
@@ -138,16 +138,21 @@ public final class BukkitSoundManager extends AbstractSoundManager {
                 Object soundId = KeyUtils.toIdentifier(jukeboxSong.sound());
                 // 检查之前有没有注册过了
                 Object song = RegistryUtils.getRegistryValue(registry, identifier);
+
+                Object soundEvent = SoundEventProxy.INSTANCE.create(soundId, Optional.of(jukeboxSong.range()));
+                Object soundHolder = HolderProxy.INSTANCE.direct(soundEvent);
+
                 // 只有没注册才注册，否则会报错
                 if (song == null) {
-                    Object soundEvent = SoundEventProxy.INSTANCE.create(soundId, Optional.of(jukeboxSong.range()));
-                    Object soundHolder = HolderProxy.INSTANCE.direct(soundEvent);
                     song = JukeboxSongProxy.INSTANCE.newInstance(soundHolder, ComponentUtils.adventureToMinecraft(jukeboxSong.description()), jukeboxSong.lengthInSeconds(), jukeboxSong.comparatorOutput());
                     Object holder = RegistryProxy.INSTANCE.registerForHolder$1(registry, identifier, song);
                     HolderProxy.ReferenceProxy.INSTANCE.bindValue(holder, song);
                     HolderProxy.ReferenceProxy.INSTANCE.setTags(holder, Set.of());
                 } else {
-                    // todo 怼 record 类
+                    JukeboxSongProxy.INSTANCE.setLengthInSeconds(song, jukeboxSong.lengthInSeconds());
+                    JukeboxSongProxy.INSTANCE.setDescription(song, ComponentUtils.adventureToMinecraft(jukeboxSong.description()));
+                    JukeboxSongProxy.INSTANCE.setSoundEvent(song, soundHolder);
+                    JukeboxSongProxy.INSTANCE.setComparatorOutput(song, jukeboxSong.comparatorOutput());
                 }
             }
         } catch (Throwable e) {

@@ -2,10 +2,7 @@ package net.momirealms.craftengine.core.plugin.config.lifecycle;
 
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,6 +23,12 @@ public final class LoadingPyramid {
     }
 
     public void addTask(LoadingStage stage, List<LoadingStage> dependencies, Runnable action) {
+        if (!stage.core()) {
+            if (!dependencies.contains(LoadingStages.CONFIG_FACTORY)) {
+                dependencies = new ArrayList<>(dependencies);
+                dependencies.add(LoadingStages.CONFIG_FACTORY);
+            }
+        }
         this.tasks.put(stage, new ConfigTask(stage, dependencies, action));
     }
 
@@ -44,7 +47,7 @@ public final class LoadingPyramid {
 
         ConfigTask task = this.tasks.get(stage);
         if (task == null) {
-            throw new IllegalStateException("Undefined stage: " + stage);
+            return CompletableFuture.completedFuture(null);
         }
 
         CompletableFuture<Void> future;

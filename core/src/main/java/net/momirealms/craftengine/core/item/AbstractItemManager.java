@@ -4,10 +4,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
 import com.mojang.datafixers.util.Either;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
-import net.momirealms.craftengine.core.item.behavior.ItemBehaviors;
+import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.item.behavior.*;
+import net.momirealms.craftengine.core.item.customdata.*;
 import net.momirealms.craftengine.core.item.equipment.*;
+import net.momirealms.craftengine.core.item.network.ItemPacketSource;
 import net.momirealms.craftengine.core.item.processor.*;
+import net.momirealms.craftengine.core.item.setting.ItemSettings;
 import net.momirealms.craftengine.core.item.updater.ItemUpdateConfig;
 import net.momirealms.craftengine.core.item.updater.ItemUpdateResult;
 import net.momirealms.craftengine.core.item.updater.ItemUpdater;
@@ -23,44 +26,48 @@ import net.momirealms.craftengine.core.pack.model.generation.AbstractModelGenera
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyItemModel;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyModelPredicate;
 import net.momirealms.craftengine.core.pack.model.legacy.LegacyOverridesModel;
-import net.momirealms.craftengine.core.pack.model.simplified.SimplifiedModelReader;
+import net.momirealms.craftengine.core.pack.model.simplified.item.SimplifiedItemModelReader;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.*;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
 import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
-import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
-import net.momirealms.craftengine.core.plugin.context.Context;
-import net.momirealms.craftengine.core.plugin.context.EventTrigger;
+import net.momirealms.craftengine.core.plugin.context.*;
 import net.momirealms.craftengine.core.plugin.context.number.ConstantNumberProvider;
 import net.momirealms.craftengine.core.util.*;
 import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 public abstract class AbstractItemManager extends AbstractModelGenerator implements ItemManager {
-    protected static final Map<Key, List<ItemBehavior>> VANILLA_ITEM_EXTRA_BEHAVIORS = new HashMap<>();
-    protected static final Set<Key> VANILLA_ITEMS = new HashSet<>(1024);
-    protected static final Map<Key, List<UniqueKey>> VANILLA_ITEM_TAGS = new HashMap<>();
+    private static final EventTriggerResolver EVENT_TRIGGER_RESOLVER = EventTriggerResolver.withAlias("break", EventTrigger.ITEM_BREAK);
+    protected static final Map<Key, ItemBehavior> VANILLA_ITEM_EXTRA_BEHAVIORS = new HashMap<>();
+    protected static final List<Key> VANILLA_ITEMS = new ObjectArrayList<>(1024);
+    protected static final Map<Key, Set<Key>> VANILLA_ITEM_TO_TAGS = new HashMap<>(1024);
+    protected static final Map<Key, List<UniqueKey>> VANILLA_TAG_TO_ITEMS = new HashMap<>();
     // 解析器
     private final ItemParser itemParser;
     private final EquipmentParser equipmentParser;
     // 缓存
-    protected final Map<Key, CustomItem> customItemsById = new ConcurrentHashMap<>();
-    protected final Map<String, CustomItem> customItemsByPath = new ConcurrentHashMap<>();
+    protected final Map<Key, ItemDefinition> itemDefinitionById = new ConcurrentHashMap<>();
+    protected final Map<String, ItemDefinition> itemDefinitionByPath = new ConcurrentHashMap<>();
     protected final Map<Key, List<UniqueKey>> customItemTags = new HashMap<>();
     protected final Map<Key, ModernItemModel> modernItemModels1_21_4 = new ConcurrentHashMap<>();
     protected final Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2 = new ConcurrentHashMap<>();
     protected final Map<Key, TreeSet<LegacyOverridesModel>> legacyOverrides = new ConcurrentHashMap<>();
     protected final Map<Key, TreeMap<Integer, ModernItemModel>> modernOverrides = new ConcurrentHashMap<>();
     protected final Map<Key, Equipment> equipments = new ConcurrentHashMap<>();
+    protected final Map<Key, ItemDefinition> dyeableItems = new ConcurrentHashMap<>();
+    protected final Map<Key, List<ItemProcessor>> vanillaItemDataOverrides = new ConcurrentHashMap<>();
     // 指令补全
     protected final List<Suggestion> cachedCustomItemSuggestions = new ObjectArrayList<>();
     protected final List<Suggestion> cachedTotemSuggestions = new ObjectArrayList<>();
@@ -68,19 +75,29 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     protected final Map<Key, List<UniqueKey>> ingredientSubstitutes = new HashMap<>();
     // 有序物品id
     protected final List<Key> orderedItemIds = new ObjectArrayList<>();
+    // 原版物品 + 自定义物品
+    protected final List<Key> allItemIds = new ObjectArrayList<>();
     // 其他设置
     protected boolean featureFlag$keepOnDeathChance = false;
     protected boolean featureFlag$destroyOnDeathChance = false;
+    protected boolean featureFlag$preventBreak = false;
+    // 用语弩和弓的弹药判定
+    protected final ProjectilePredicate ARROW_ONLY = new ProjectilePredicate(k -> k.hasVanillaTag(ItemTags.ARROWS));
+    protected final ProjectilePredicate ARROW_OR_FIREWORK = new ProjectilePredicate(k -> k.hasVanillaTag(ItemTags.ARROWS) || k.id().equals(ItemKeys.FIREWORK_ROCKET));
 
     protected AbstractItemManager(CraftEngine plugin) {
         super(plugin);
         this.itemParser = new ItemParser();
         this.equipmentParser = new EquipmentParser();
+        CustomDataSerializers.registerSerializer(FurnitureDebugStickData.class, FurnitureDebugStickDataSerializer.INSTANCE);
+        CustomDataSerializers.registerSerializer(BlockDebugStickData.class, BlockDebugStickDataSerializer.INSTANCE);
+        CustomDataSerializers.registerSerializer(ItemAttributeModifiersData.class, ItemAttributeModifiersDataSerializer.INSTANCE);
+        CustomDataSerializers.registerSerializer(NamedRandoms.class, NamedRandomsSerializer.INSTANCE);
     }
 
     protected static void registerVanillaItemExtraBehavior(ItemBehavior behavior, Key... items) {
         for (Key key : items) {
-            VANILLA_ITEM_EXTRA_BEHAVIORS.computeIfAbsent(key, k -> new ArrayList<>()).add(behavior);
+            VANILLA_ITEM_EXTRA_BEHAVIORS.put(key, behavior);
         }
     }
 
@@ -93,8 +110,8 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     public void unload() {
         super.clearModelsToGenerate();
         this.clearFeatureFlags();
-        this.customItemsById.clear();
-        this.customItemsByPath.clear();
+        this.itemDefinitionById.clear();
+        this.itemDefinitionByPath.clear();
         this.cachedCustomItemSuggestions.clear();
         this.cachedTotemSuggestions.clear();
         this.legacyOverrides.clear();
@@ -105,11 +122,23 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         this.modernItemModels1_21_2.clear();
         this.ingredientSubstitutes.clear();
         this.orderedItemIds.clear();
+        this.allItemIds.clear();
+        this.dyeableItems.clear();
+        this.vanillaItemDataOverrides.clear();
     }
 
     private void clearFeatureFlags() {
         this.featureFlag$keepOnDeathChance = false;
         this.featureFlag$destroyOnDeathChance = false;
+        this.featureFlag$preventBreak = false;
+    }
+
+    public boolean isCrossbowAmmo(Item item) {
+        return ARROW_OR_FIREWORK.testVanillaOnly(item);
+    }
+
+    public boolean isBowAmmo(Item item) {
+        return ARROW_ONLY.testVanillaOnly(item);
     }
 
     @Override
@@ -123,18 +152,18 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     }
 
     @Override
-    public Optional<CustomItem> getCustomItem(Key key) {
-        return Optional.ofNullable(this.customItemsById.get(key));
+    public Optional<ItemDefinition> getItemDefinition(Key key) {
+        return Optional.ofNullable(this.itemDefinitionById.get(key));
     }
 
     @Override
-    public Optional<CustomItem> getCustomItemByPathOnly(String path) {
-        return Optional.ofNullable(this.customItemsByPath.get(path));
+    public Optional<ItemDefinition> getItemDefinitionByPath(String path) {
+        return Optional.ofNullable(this.itemDefinitionByPath.get(path));
     }
 
     @Override
     public List<UniqueKey> getIngredientSubstitutes(Key item) {
-        if (VANILLA_ITEMS.contains(item)) {
+        if (isVanillaItem(item)) {
             return Optional.ofNullable(this.ingredientSubstitutes.get(item)).orElse(Collections.emptyList());
         } else {
             return Collections.emptyList();
@@ -143,10 +172,10 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
     @Override
     public ItemUpdateResult updateItem(Item item, Supplier<ItemBuildContext> contextSupplier) {
-        Optional<CustomItem> optionalCustomItem = item.getCustomItem();
+        Optional<ItemDefinition> optionalCustomItem = item.getDefinition();
         if (optionalCustomItem.isPresent()) {
-            CustomItem customItem = optionalCustomItem.get();
-            Optional<ItemUpdateConfig> updater = customItem.updater();
+            ItemDefinition itemDefinition = optionalCustomItem.get();
+            Optional<ItemUpdateConfig> updater = itemDefinition.updater();
             if (updater.isPresent()) {
                 return updater.get().update(item, contextSupplier);
             }
@@ -156,19 +185,12 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
     @Override
     public List<UniqueKey> vanillaItemIdsByTag(Key tag) {
-        return Collections.unmodifiableList(VANILLA_ITEM_TAGS.getOrDefault(tag, List.of()));
+        return Collections.unmodifiableList(VANILLA_TAG_TO_ITEMS.getOrDefault(tag, List.of()));
     }
 
     @Override
     public List<UniqueKey> customItemIdsByTag(Key tag) {
         return Collections.unmodifiableList(this.customItemTags.getOrDefault(tag, List.of()));
-    }
-
-    @Override
-    public Collection<Key> itemTags() {
-        Set<Key> tags = new HashSet<>(VANILLA_ITEM_TAGS.keySet());
-        tags.addAll(this.customItemTags.keySet());
-        return tags;
     }
 
     @Override
@@ -182,34 +204,23 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     }
 
     @Override
-    public Optional<List<ItemBehavior>> getItemBehavior(Key key) {
-        Optional<CustomItem> customItemOptional = getCustomItem(key);
-        if (customItemOptional.isPresent()) {
-            CustomItem customItem = customItemOptional.get();
-            Key vanillaMaterial = customItem.material();
-            List<ItemBehavior> behavior = VANILLA_ITEM_EXTRA_BEHAVIORS.get(vanillaMaterial);
-            if (behavior != null) {
-                return Optional.of(Stream.concat(customItem.behaviors().stream(), behavior.stream()).toList());
-            } else {
-                return Optional.of(List.copyOf(customItem.behaviors()));
-            }
-        } else {
-            List<ItemBehavior> behavior = VANILLA_ITEM_EXTRA_BEHAVIORS.get(key);
-            if (behavior != null) {
-                return Optional.of(List.copyOf(behavior));
-            } else {
-                return Optional.empty();
-            }
-        }
+    public Optional<ItemBehavior> getItemBehavior(Key key) {
+        Optional<ItemDefinition> definitionOptional = getItemDefinition(key);
+        return definitionOptional.map(ItemDefinition::behavior).or(() -> Optional.ofNullable(VANILLA_ITEM_EXTRA_BEHAVIORS.get(key)));
     }
 
     @Override
-    public Map<Key, CustomItem> loadedItems() {
-        return Collections.unmodifiableMap(this.customItemsById);
+    public Map<Key, ItemDefinition> loadedItems() {
+        return Collections.unmodifiableMap(this.itemDefinitionById);
     }
 
     public List<Key> orderedItemIds() {
         return this.orderedItemIds;
+    }
+
+    @Override
+    public List<Key> allItemIds() {
+        return Collections.unmodifiableList(this.allItemIds);
     }
 
     @Override
@@ -223,8 +234,13 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     }
 
     @Override
-    public Collection<Key> vanillaItems() {
-        return Collections.unmodifiableCollection(VANILLA_ITEMS);
+    public List<Key> vanillaItems() {
+        return Collections.unmodifiableList(VANILLA_ITEMS);
+    }
+
+    @Override
+    public Set<Key> getVanillaItemTags(Key item) {
+        return VANILLA_ITEM_TO_TAGS.getOrDefault(item, Collections.emptySet());
     }
 
     @Override
@@ -239,7 +255,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
     @Override
     public boolean isVanillaItem(Key item) {
-        return VANILLA_ITEMS.contains(item);
+        return VANILLA_ITEM_TO_TAGS.containsKey(item);
     }
 
     public boolean featureFlag$keepOnDeathChance() {
@@ -250,12 +266,28 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         return featureFlag$destroyOnDeathChance;
     }
 
-    protected abstract CustomItem.Builder createPlatformItemBuilder(UniqueKey id, Key material, Key clientBoundMaterial);
+    public boolean featureFlag$preventBreak() {
+        return featureFlag$preventBreak;
+    }
+
+    protected abstract ItemDefinition.Builder createPlatformItemBuilder(String path, UniqueKey id, Key material, Key clientBoundMaterial);
+
+    public abstract void resetItemProviders();
 
     protected abstract void registerArmorTrimPattern(Collection<Key> equipments);
 
+    // 26.1 +
+    public Map<Key, ItemDefinition> dyeableItems() {
+        return this.dyeableItems;
+    }
+
     private final class EquipmentParser extends IdSectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"equipments", "equipment"};
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("equipment(s)");
+
+        @Override
+        public Key type() {
+            return Key.ce("equipment");
+        }
 
         @Override
         public String[] sectionId() {
@@ -279,17 +311,12 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
         @Override
         public boolean async() {
-            return true;
+            return Config.multiThreadedConfigLoad();
         }
 
         @Override
         public LoadingStage loadingStage() {
             return LoadingStages.EQUIPMENT;
-        }
-
-        @Override
-        public List<LoadingStage> dependencies() {
-            return List.of(LoadingStages.TEMPLATE);
         }
 
         @Override
@@ -310,13 +337,19 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
     }
 
     private final class ItemParser extends IdSectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"items", "item"};
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("item(s)");
         private final Map<Key, IdAllocator> idAllocators = new HashMap<>();
         private final List<CompletableFuture<?>> futures = Collections.synchronizedList(new ArrayList<>());
+        private final Map<Key, List<Key>> tempCategories = new ConcurrentHashMap<>();
+
+        @Override
+        public Key type() {
+            return Key.ce("item");
+        }
 
         @Override
         public int count() {
-            return AbstractItemManager.this.customItemsById.size();
+            return AbstractItemManager.this.itemDefinitionById.size();
         }
 
         private boolean isModernFormatRequired() {
@@ -332,12 +365,12 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         }
 
         private boolean needsItemModelCompatibility() {
-            return Config.packMaxVersion().isAtOrAbove(MinecraftVersion.V1_21_2) && VersionHelper.isOrAbove1_21_2(); //todo 能否通过客户端包解决问题
+            return Config.packMaxVersion().isAtOrAbove(MinecraftVersion.V1_21_2) && VersionHelper.isOrAbove1_21_2;
         }
 
         @Override
         public boolean async() {
-            return true;
+            return Config.multiThreadedConfigLoad();
         }
 
         @Override
@@ -363,6 +396,10 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             if (!this.futures.isEmpty()) {
                 this.futures.clear();
             }
+            if (!this.tempCategories.isEmpty()) {
+                this.tempCategories.clear();
+            }
+            AbstractItemManager.this.vanillaItemDataOverrides.clear();
         }
 
         @Override
@@ -376,57 +413,85 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                     AbstractItemManager.this.plugin.logger().warn("Error while saving custom model data allocation for material " + entry.getKey().asString(), e);
                 }
             }
-
-            CompletableFutures.allOf(this.futures).join();
+            for (CompletableFuture<?> future : this.futures) {
+                try {
+                    future.join();
+                } catch (CompletionException e) {
+                    if (e.getCause() instanceof IdAllocator.IdExhaustedException || e.getCause() instanceof IdAllocator.IdConflictException) {
+                        continue;
+                    }
+                    AbstractItemManager.this.plugin.logger().warn("Error while assigning custom model data", e);
+                }
+            }
             this.futures.clear();
+
+            AbstractItemManager.this.allItemIds.clear();
+            AbstractItemManager.this.allItemIds.addAll(VANILLA_ITEMS);
 
             // 获取有序的物品id
             int size = this.pendingConfigSections.size();
             Object[] pendingElements = this.pendingConfigSections.elements();
+            Set<Key> customProjectiles = new HashSet<>();
             for (int i = 0; i < size; i++) {
                 PendingConfigSection pending = (PendingConfigSection) pendingElements[i];
-                CustomItem customItem = AbstractItemManager.this.customItemsById.get(pending.id);
-                if (customItem != null) {
-                    Key id = customItem.id();
+                ItemDefinition itemDefinition = AbstractItemManager.this.itemDefinitionById.get(pending.id);
+                if (itemDefinition != null) {
+                    Key id = itemDefinition.id();
                     AbstractItemManager.this.orderedItemIds.add(id);
-                    if (customItem.isVanillaItem()) continue;
+                    if (itemDefinition.settings().preventBreak()) {
+                        AbstractItemManager.this.featureFlag$preventBreak = true;
+                    }
+                    List<Key> categories = this.tempCategories.get(id);
+                    if (categories != null) {
+                        AbstractItemManager.this.plugin.itemBrowserManager().addExternalCategoryMember(id, categories);
+                    }
+                    if (itemDefinition.isVanillaItem()) continue;
+                    AbstractItemManager.this.allItemIds.add(id);
                     // cache command suggestions
-                    AbstractItemManager.this.cachedCustomItemSuggestions.add(Suggestion.suggestion(id.asString()));
+                    Suggestion suggestion = Suggestion.suggestion(id.asString());
+                    AbstractItemManager.this.cachedCustomItemSuggestions.add(suggestion);
                     // totem animations
-                    if (VersionHelper.isOrAbove1_21_2()) {
+                    if (VersionHelper.isOrAbove1_21_2) {
                         AbstractItemManager.this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
-                    } else if (customItem.material().equals(ItemKeys.TOTEM_OF_UNDYING)) {
+                    } else if (itemDefinition.material().equals(ItemKeys.TOTEM_OF_UNDYING)) {
                         AbstractItemManager.this.cachedTotemSuggestions.add(Suggestion.suggestion(id.asString()));
                     }
                     // tags
-                    ItemSettings settings = customItem.settings();
+                    ItemSettings settings = itemDefinition.settings();
                     Set<Key> tags = settings.tags();
                     for (Key tag : tags) {
-                        AbstractItemManager.this.customItemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(customItem.uniqueId());
+                        AbstractItemManager.this.customItemTags.computeIfAbsent(tag, k -> new ArrayList<>()).add(itemDefinition.uniqueId());
                     }
                     // ingredient substitutes
                     List<Key> substitutes = settings.ingredientSubstitutes();
                     if (!substitutes.isEmpty()) {
                         for (Key key : substitutes) {
-                            if (VANILLA_ITEMS.contains(key)) {
-                                AbstractItemManager.this.ingredientSubstitutes.computeIfAbsent(key, k -> new ArrayList<>()).add(customItem.uniqueId());
+                            if (isVanillaItem(key)) {
+                                AbstractItemManager.this.ingredientSubstitutes.computeIfAbsent(key, k -> new ArrayList<>()).add(itemDefinition.uniqueId());
                             }
                         }
                     }
-                    if (settings.keepOnDeathChance != 0) {
+                    // custom projectiles
+                    Set<Key> projectiles = settings.allowedProjectiles();
+                    if (!projectiles.isEmpty()) {
+                        customProjectiles.addAll(projectiles);
+                    }
+                    if (settings.keepOnDeathChance() != 0) {
                         AbstractItemManager.this.featureFlag$keepOnDeathChance = true;
                     }
-                    if (settings.destroyOnDeathChance != 0) {
+                    if (settings.destroyOnDeathChance() != 0) {
                         AbstractItemManager.this.featureFlag$destroyOnDeathChance = true;
                     }
                 }
             }
+            ARROW_ONLY.setDynamic(customProjectiles);
+            ARROW_OR_FIREWORK.setDynamic(customProjectiles);
         }
 
         // 创建或获取已有的自动分配器
         private synchronized IdAllocator getOrCreateIdAllocator(Key key) {
             return this.idAllocators.computeIfAbsent(key, k -> {
-                IdAllocator newAllocator = new IdAllocator(AbstractItemManager.this.plugin.dataFolderPath().resolve("cache").resolve("custom-model-data").resolve(k.value() + ".json"));
+                IdAllocator newAllocator = new IdAllocator(AbstractItemManager.this.plugin.dataFolderPath().resolve("cache").resolve("custom_model_data").resolve(k.value() + ".json"));
                 newAllocator.reset(Config.customModelDataStartingValue(k), 16_777_216);
                 try {
                     newAllocator.loadFromCache();
@@ -437,20 +502,22 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             });
         }
 
-        private static final String[] MODEL_KEYS = new String[] {"model", "models", "texture", "textures", "legacy-model", "legacy_model"};
-        private static final String[] CLIENT_BOUND_MATERIAL = new String[] {"client_bound_material", "client-bound-material"};
-        private static final String[] CUSTOM_MODEL_DATA = new String[] {"custom_model_data", "custom-model-data"};
-        private static final String[] ITEM_MODEL = new String[] {"item_model", "item-model"};
-        private static final String[] CLIENT_BOUND_MODEL = new String[] {"client_bound_model", "client-bound-model"};
-        private static final String[] CLIENT_BOUND_DATA = new String[] {"client_bound_data", "client-bound-data"};
-        private static final String[] MODEL = new String[] {"model", "models"};
-        private static final String[] TEXTURES = new String[] {"texture", "textures"};
-        private static final String[] EVENTS = new String[] {"events", "event"};
-        private static final String[] BEHAVIORS = new String[] {"behaviors", "behavior"};
-        private static final String[] LEGACY_MODEL = new String[] {"legacy_model", "legacy-model"};
-        private static final String[] OVERSIZED_IN_GUI = new String[] {"oversized_in_gui", "oversized-in-gui"};
-        private static final String[] HAND_ANIMATION_ON_SWAP = new String[] {"hand_animation_on_swap", "hand-animation-on-swap"};
-        private static final String[] SWAP_ANIMATION_SCALE = new String[] {"swap_animation_scale", "swap-animation-scale"};
+        private static final String[] MODEL_KEYS = ConfigKeys.of("model(s)|texture(s)|blueprint|legacy_model");
+        private static final String[] CLIENT_BOUND_MATERIAL = ConfigKeys.of("client_bound_material");
+        private static final String[] CUSTOM_MODEL_DATA = ConfigKeys.of("custom_model_data");
+        private static final String[] ITEM_MODEL = ConfigKeys.of("item_model");
+        private static final String[] CLIENT_BOUND_MODEL = ConfigKeys.of("client_bound_model");
+        private static final String[] CLIENT_BOUND_DATA = ConfigKeys.of("client_bound_data");
+        private static final String[] MODEL = ConfigKeys.of("model(s)");
+        private static final String[] TEXTURES = ConfigKeys.of("texture(s)");
+        private static final String[] EVENTS = ConfigKeys.of("event(s)");
+        private static final String[] BEHAVIORS = ConfigKeys.of("behavior(s)");
+        private static final String[] LEGACY_MODEL = ConfigKeys.of("legacy_model");
+        private static final String[] OVERSIZED_IN_GUI = ConfigKeys.of("oversized_in_gui");
+        private static final String[] HAND_ANIMATION_ON_SWAP = ConfigKeys.of("hand_animation_on_swap");
+        private static final String[] SWAP_ANIMATION_SCALE = ConfigKeys.of("swap_animation_scale");
+        private static final String[] CATEGORIES = ConfigKeys.of("category|categor(y|ies)");
+        private static final String[] OVERRIDE_DATA = ConfigKeys.of("override_data");
 
         @Override
         public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
@@ -458,9 +525,18 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             UniqueKey uniqueId = UniqueKey.create(id);
             // 判断是不是原版物品
             boolean isVanillaItem = isVanillaItem(id);
-
+            if (isVanillaItem && VersionHelper.COMPONENT_RELEASE) {
+                ConfigSection overrideData = section.getSection(OVERRIDE_DATA);
+                if (overrideData != null) {
+                    List<ItemProcessor> processors = new ArrayList<>();
+                    ItemProcessors.collectProcessors(overrideData, processors::add);
+                    if (!processors.isEmpty()) {
+                        AbstractItemManager.this.vanillaItemDataOverrides.put(id, List.copyOf(processors));
+                    }
+                }
+            }
             // 读取服务端侧材质
-            Key material = section.getIdentifier("material", Config.defaultMaterial());
+            Key material = isVanillaItem ? id : section.getValue("material", ConfigValue::getAsIdentifier, Config.defaultMaterial());
             // 读取客户端侧材质
             ConfigValue clientBoundMaterialValue = section.getValue(CLIENT_BOUND_MATERIAL);
             Key clientBoundMaterial = VersionHelper.PREMIUM && clientBoundMaterialValue != null ? clientBoundMaterialValue.getAsIdentifier() : material;
@@ -512,20 +588,26 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
             this.futures.add(customModelDataFuture.whenCompleteAsync((cmd, throwable) -> ResourceConfigUtils.runCatching(path, section.path(), () -> {
                 int customModelData;
                 if (throwable != null) {
-                    // 检测custom model data 冲突
-                    if (throwable instanceof IdAllocator.IdConflictException exception) {
-                        if (section.containsKey(MODEL_KEYS)) {
-                            throw new KnownResourceException("resource.item.custom_model_data_conflict", section.path(), String.valueOf(exception.id()), exception.previousOwner());
+                    if (throwable instanceof CompletionException e) {
+                        // 检测custom model data 冲突
+                        if (e.getCause() instanceof IdAllocator.IdConflictException exception) {
+                            if (section.containsKey(MODEL_KEYS)) {
+                                error(new KnownResourceException(path, "resource.item.custom_model_data_conflict", section.path(), String.valueOf(exception.id()), exception.previousOwner()));
+                                return;
+                            }
+                            customModelData = exception.id();
                         }
-                        customModelData = exception.id();
-                    }
-                    // custom model data 已被用尽，不太可能
-                    else if (throwable instanceof IdAllocator.IdExhaustedException) {
-                        throw new KnownResourceException("resource.item.custom_model_data_exhausted", section.path(), clientBoundMaterial.asString());
-                    } else {
+                        // custom model data 已被用尽，不太可能
+                        else if (e.getCause() instanceof IdAllocator.IdExhaustedException) {
+                            error(new KnownResourceException(path, "resource.item.custom_model_data_exhausted", section.path(), clientBoundMaterial.asString()));
+                            return;
+                        }
                         // 未知错误
-                        ThrowableUtils.sneakyThrow(throwable);
-                        customModelData = cmd;
+                        else {
+                            return;
+                        }
+                    } else {
+                        return;
                     }
                 } else {
                     customModelData = cmd;
@@ -553,26 +635,29 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 // 是否使用客户端侧模型
                 boolean clientBoundModel = VersionHelper.PREMIUM && section.getBoolean(CLIENT_BOUND_MODEL, Config.globalClientboundModel());
 
-                CustomItem.Builder itemBuilder = createPlatformItemBuilder(uniqueId, material, clientBoundMaterial);
+                ItemDefinition.Builder itemBuilder = createPlatformItemBuilder(section.path(), uniqueId, material, clientBoundMaterial);
 
                 // 模型配置区域，如果这里被配置了，那么用户可以配置custom-model-data或item-model
                 ConfigValue modelValue = section.getValue(MODEL);
                 ConfigValue textureValue = section.getValue(TEXTURES);
+                ConfigValue blueprintValue = section.getValue("blueprint");
                 ConfigSection legacyModelSection = section.getSection(LEGACY_MODEL);
-                boolean hasModelSection = modelValue != null || textureValue != null || legacyModelSection != null;
+                boolean hasModelSection = modelValue != null || textureValue != null || blueprintValue != null || legacyModelSection != null;
 
                 if (customModelData > 0 && (hasModelSection || forceCustomModelData)) {
-                    if (clientBoundModel) itemBuilder.clientBoundDataModifier(new OverwritableCustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
-                    else itemBuilder.dataModifier(new CustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
+                    if (clientBoundModel) itemBuilder.clientBoundProcessor(new OverwritableCustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
+                    else itemBuilder.dataProcessor(new CustomModelDataProcessor(ConstantNumberProvider.constant(customModelData)));
                 }
                 if (itemModel != null && (hasModelSection || forceItemModel)) {
-                    if (clientBoundModel) itemBuilder.clientBoundDataModifier(new OverwritableItemModelProcessor(itemModel));
-                    else itemBuilder.dataModifier(new ItemModelProcessor(itemModel));
+                    if (clientBoundModel) {
+                        itemBuilder.clientBoundProcessor(new OverwritableItemModelProcessor(itemModel));
+                    }
+                    else itemBuilder.dataProcessor(new ItemModelProcessor(itemModel));
                 }
 
                 // 应用物品数据
                 try {
-                    ItemProcessors.collectProcessors(section.getSection("data"), itemBuilder::dataModifier);
+                    ItemProcessors.collectProcessors(section.getSection("data"), itemBuilder::dataProcessor);
                 } catch (KnownResourceException e) {
                     error(e, path);
                 }
@@ -580,7 +665,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 // 应用客户端侧数据
                 try {
                     if (VersionHelper.PREMIUM) {
-                        ItemProcessors.collectProcessors(section.getSection(CLIENT_BOUND_DATA), itemBuilder::clientBoundDataModifier);
+                        ItemProcessors.collectProcessors(section.getSection(CLIENT_BOUND_DATA), itemBuilder::clientBoundProcessor);
                     }
                 } catch (KnownResourceException e) {
                     error(e, path);
@@ -588,32 +673,42 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
 
                 // 如果不是原版物品，那么加入ce的标识符
                 if (!isVanillaItem)
-                    itemBuilder.dataModifier(new IdProcessor(id));
+                    itemBuilder.dataProcessor(new IdProcessor(id));
 
                 // 事件
-                Map<EventTrigger, List<net.momirealms.craftengine.core.plugin.context.function.Function<Context>>> events = new EnumMap<>(EventTrigger.class);
+                Map<EventTrigger, List<net.momirealms.craftengine.core.plugin.context.function.Function<Context>>> events = new HashMap<>();
                 try {
-                    CommonFunctions.parseEvents(section.getValue(EVENTS), (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>(4)).add(f));
+                    CommonFunctions.parseEvents(
+                            section.getValue(EVENTS),
+                            EVENT_TRIGGER_RESOLVER,
+                            (t, f) -> events.computeIfAbsent(t, k -> new ArrayList<>(4)).add(f));
                 } catch (KnownResourceException e) {
                     error(e, path);
                 }
 
                 // 设置
-                ItemSettings settings = ItemSettings.of().disableVanillaBehavior(!isVanillaItem).triggerAdvancement(isVanillaItem);
+                ItemSettings settings = ItemSettings.forItem(isVanillaItem);
                 try {
                     ItemSettings.applyModifiers(settings, section.getSection("settings"));
                 } catch (KnownResourceException e) {
                     error(e, path);
                 }
+                settings.lateInit();
 
                 // 行为
-                // todo 重构
-                List<ItemBehavior> behaviors;
+                ItemBehavior behavior;
                 try {
-                    behaviors = section.getList(BEHAVIORS, v -> ItemBehaviors.fromConfig(pack, path, id, v.getAsSection()));
+                    List<ItemBehavior> behaviors = new ArrayList<>(section.getList(BEHAVIORS, v -> ItemBehaviors.fromConfig(pack, path, id, v.getAsSection())));
+                    Optional.ofNullable(VANILLA_ITEM_EXTRA_BEHAVIORS.get(material)).ifPresent(behaviors::add);
+                    switch (behaviors.size()) {
+                        case 0 -> behavior = EmptyItemBehavior.INSTANCE;
+                        case 1 -> behavior = behaviors.getFirst();
+                        case 2 -> behavior = new DualItemBehavior(behaviors.get(0), behaviors.get(1));
+                        default -> behavior = new CompositeItemBehavior(behaviors);
+                    }
                 } catch (KnownResourceException e) {
                     error(e, path);
-                    behaviors = Collections.emptyList();
+                    behavior = VANILLA_ITEM_EXTRA_BEHAVIORS.getOrDefault(material, EmptyItemBehavior.INSTANCE);
                 }
 
                 // 如果有物品更新器
@@ -634,24 +729,26 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                     }
                     ItemUpdateConfig config = new ItemUpdateConfig(versions);
                     itemBuilder.updater(config);
-                    itemBuilder.dataModifier(new ItemVersionProcessor(config.maxVersion()));
+                    itemBuilder.dataProcessor(new ItemVersionProcessor(config.maxVersion()));
                 }
 
                 // 构建自定义物品
-                CustomItem customItem = itemBuilder
+                ItemDefinition itemDefinition = itemBuilder
                         .isVanillaItem(isVanillaItem)
-                        .behaviors(behaviors)
+                        .behavior(behavior)
                         .settings(settings)
                         .events(events)
                         .build();
 
-
-                AbstractItemManager.this.customItemsById.put(id, customItem);
-                AbstractItemManager.this.customItemsByPath.put(id.value(), customItem);
+                AbstractItemManager.this.itemDefinitionById.put(id, itemDefinition);
+                AbstractItemManager.this.itemDefinitionByPath.put(id.value(), itemDefinition);
+                if (VersionHelper.isOrAbove26_1 && settings.dyeable() == Tristate.TRUE) {
+                    AbstractItemManager.this.dyeableItems.put(id, itemDefinition);
+                }
 
                 // 如果有类别，则添加
                 if (section.containsKey("category")) {
-                    AbstractItemManager.this.plugin.itemBrowserManager().addExternalCategoryMember(id, MiscUtils.getAsStringList(section.get("category")).stream().map(Key::of).toList());
+                    this.tempCategories.put(id, section.getList(CATEGORIES, ConfigValue::getAsIdentifier));
                 }
 
                 if (!hasModelSection) {
@@ -677,17 +774,27 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 TreeSet<LegacyOverridesModel> legacyOverridesModels;
                 // 如果需要支持新版item model 或者用户需要旧版本兼容，但是没配置legacy-model
                 if (isModernFormatRequired() || (needsLegacyCompatibility() && legacyModelSection == null)) {
-                    if (textureValue != null) {
+                    if (blueprintValue != null) {
                         Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
-                        SimplifiedModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
-                        modernModel = simplifiedModelReader.read(textureValue, Optional.ofNullable(modelValue), id);
+                        SimplifiedItemModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
+                        modernModel = simplifiedModelReader.readBlueprints(blueprintValue, modelValue, pack, path);
+                    } else if (textureValue != null) {
+                        Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
+                        SimplifiedItemModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
+                        modernModel = simplifiedModelReader.read(textureValue, Optional.ofNullable(modelValue).map(it -> {
+                            if (it.is(Map.class)) {
+                                ConfigSection modelSection = it.getAsSection();
+                                return modelSection.getValue(ConfigKeys.of("path|model"));
+                            }
+                            return it;
+                        }), id);
                     } else if (modelValue != null) {
                         if (modelValue.is(List.class)) {
                             Key templateModel = itemModel != null && AbstractPackManager.PRESET_MODERN_MODELS_ITEM.containsKey(itemModel) ? itemModel : clientBoundMaterial;
-                            SimplifiedModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
+                            SimplifiedItemModelReader simplifiedModelReader = AbstractPackManager.SIMPLIFIED_MODEL_READERS.get(templateModel);
                             modernModel = simplifiedModelReader.read(modelValue);
                         } else {
-                            modernModel = ItemModels.fromConfig(modelValue);
+                            modernModel = ItemModels.fromConfig(pack, path, modelValue);
                         }
                     } else {
                         throw KnownResourceException.missingArgument("model", ConfigConstants.ARGUMENT_ITEM_MODEL_DEFINITION);
@@ -699,7 +806,7 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                 // 如果需要旧版本兼容
                 if (needsLegacyCompatibility()) {
                     if (legacyModelSection != null) {
-                        LegacyItemModel legacyItemModel = LegacyItemModel.fromConfig(legacyModelSection, customModelData);
+                        LegacyItemModel legacyItemModel = LegacyItemModel.fromConfig(pack, path, legacyModelSection, customModelData);
                         legacyItemModel.prepareModelGeneration(AbstractItemManager.this::prepareModelGeneration);
                         legacyOverridesModels = new TreeSet<>(legacyItemModel.overrides());
                     } else {
@@ -733,8 +840,8 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                                 }
                                 map.put(customModelData, new ModernItemModel(
                                         modernModel,
-                                        section.getBoolean(OVERSIZED_IN_GUI, true),
                                         section.getBoolean(HAND_ANIMATION_ON_SWAP, true),
+                                        section.getBoolean(OVERSIZED_IN_GUI, true),
                                         section.getFloat(SWAP_ANIMATION_SCALE, 1f)
                                 ));
                                 return map;
@@ -760,8 +867,8 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                         if (isModernFormatRequired() && hasModernModel) {
                             AbstractItemManager.this.modernItemModels1_21_4.put(itemModel, new ModernItemModel(
                                     modernModel,
-                                    section.getBoolean(OVERSIZED_IN_GUI, true),
                                     section.getBoolean(HAND_ANIMATION_ON_SWAP, true),
+                                    section.getBoolean(OVERSIZED_IN_GUI, true),
                                     section.getFloat(SWAP_ANIMATION_SCALE, 1f)
                             ));
                         }
@@ -781,8 +888,8 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
                     if (isModernFormatRequired()) {
                         AbstractItemManager.this.modernItemModels1_21_4.put(id, new ModernItemModel(
                                 modernModel,
-                                section.getBoolean(OVERSIZED_IN_GUI, true),
                                 section.getBoolean(HAND_ANIMATION_ON_SWAP, true),
+                                section.getBoolean(OVERSIZED_IN_GUI, true),
                                 section.getFloat(SWAP_ANIMATION_SCALE, 1f)
                         ));
                     }
@@ -996,5 +1103,36 @@ public abstract class AbstractItemManager extends AbstractModelGenerator impleme
         if (newKey == null) return merged;
         merged.put(newKey, newValue);
         return merged;
+    }
+
+    public class ProjectilePredicate implements Predicate<Object> {
+        private final Predicate<Item> constant;
+        private Set<Key> dynamic;
+
+        public ProjectilePredicate(Predicate<Item> constant) {
+            this.constant = constant;
+            this.dynamic = Set.of();
+        }
+
+        public void setDynamic(Set<Key> dynamic) {
+            this.dynamic = dynamic;
+        }
+
+        public boolean testVanillaOnly(Item item) {
+            return this.constant.test(item);
+        }
+
+        @Override
+        public boolean test(Object o) {
+            Item wrap = wrap(o);
+            if (this.constant.test(wrap)) {
+                return true;
+            }
+            Key id = wrap.id();
+            if (this.dynamic.contains(id)) {
+                return true;
+            }
+            return false;
+        }
     }
 }

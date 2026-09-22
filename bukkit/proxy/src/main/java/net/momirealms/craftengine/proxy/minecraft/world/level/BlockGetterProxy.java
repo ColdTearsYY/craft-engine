@@ -27,7 +27,10 @@ public interface BlockGetterProxy extends LevelHeightAccessorProxy {
     @MethodInvoker(name = "getBlockState")
     Object getBlockState(Object target, @Type(clazz = BlockPosProxy.class) Object blockPos);
 
-    @MethodInvoker(name = "getBlockStateIfLoaded")
+    @MethodInvoker(name = "clip")
+    Object clip(Object target, @Type(clazz = ClipContextProxy.class) Object context);
+
+    @MethodInvoker(name = "getBlockStateIfLoaded", activeIf = "has_patch=paper")
     Object getBlockStateIfLoaded(Object target, @Type(clazz = BlockPosProxy.class) Object blockPos);
 
     @MethodInvoker(name = "getBlockEntity")

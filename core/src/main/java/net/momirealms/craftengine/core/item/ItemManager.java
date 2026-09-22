@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.item;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
 import net.momirealms.craftengine.core.item.equipment.Equipment;
+import net.momirealms.craftengine.core.item.network.ItemPacketSource;
 import net.momirealms.craftengine.core.item.recipe.DatapackRecipeResult;
 import net.momirealms.craftengine.core.item.updater.ItemUpdateResult;
 import net.momirealms.craftengine.core.pack.model.definition.ModernItemModel;
@@ -12,7 +13,9 @@ import net.momirealms.craftengine.core.plugin.Manageable;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.UniqueKey;
+import net.momirealms.sparrow.nbt.CompoundTag;
 import org.incendo.cloud.suggestion.Suggestion;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,59 +24,56 @@ import java.util.function.Supplier;
 
 public interface ItemManager extends Manageable, ModelGenerator {
 
-    Map<Key, Equipment> equipments();
-
     ConfigParser[] parsers();
 
-    Map<Key, TreeSet<LegacyOverridesModel>> legacyItemOverrides();
+    Map<Key, Equipment> equipments();
 
-    Map<Key, TreeMap<Integer, ModernItemModel>> modernItemOverrides();
+    List<Key> vanillaItems();
 
-    Map<Key, ModernItemModel> modernItemModels1_21_4();
-
-    Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2();
-
-    Collection<Key> vanillaItems();
-
+    @Deprecated
     @Nullable
     Item createCustomWrappedItem(Key id, @Nullable Player player);
 
+    @Deprecated
     @Nullable
     Item createWrappedItem(Key id, @Nullable Player player);
 
     @NotNull
     Item wrap(Object itemStack);
 
-    Item fromByteArray(byte[] bytes);
-
-    Map<Key, CustomItem> loadedItems();
-
-    @Deprecated(forRemoval = true)
-    default Collection<Key> items() {
-        return loadedItems().keySet();
+    default Item fromBytes(byte[] bytes) {
+        return fromBytes(bytes, true);
     }
+
+    Item fromBytes(byte[] bytes, boolean useCache);
+
+    Item fromNBT(CompoundTag tag);
+
+    Map<Key, ItemDefinition> loadedItems();
+
+    List<Key> orderedItemIds();
+
+    List<Key> allItemIds();
 
     Optional<Equipment> getEquipment(Key key);
 
-    Optional<CustomItem> getCustomItem(Key key);
+    Optional<ItemDefinition> getItemDefinition(Key key);
 
-    Optional<List<ItemBehavior>> getItemBehavior(Key key);
+    Optional<ItemBehavior> getItemBehavior(Key key);
 
     Optional<? extends BuildableItem> getVanillaItem(Key key);
 
     UniqueKey getIngredientKey(Item item);
 
-    NetworkItemHandler networkItemHandler();
-
     default Optional<? extends BuildableItem> getBuildableItem(Key key) {
-        Optional<CustomItem> item = getCustomItem(key);
+        Optional<ItemDefinition> item = getItemDefinition(key);
         if (item.isPresent()) {
             return item;
         }
         return getVanillaItem(key);
     }
 
-    Optional<CustomItem> getCustomItemByPathOnly(String path);
+    Optional<ItemDefinition> getItemDefinitionByPath(String path);
 
     default List<UniqueKey> itemIdsByTag(Key tag) {
         List<UniqueKey> items = new ArrayList<>();
@@ -86,19 +86,13 @@ public interface ItemManager extends Manageable, ModelGenerator {
 
     List<UniqueKey> customItemIdsByTag(Key tag);
 
-    int getFuelTime(Key id);
-
-    Collection<Key> itemTags();
-
-    Collection<Suggestion> cachedCustomItemSuggestions();
-
-    Collection<Suggestion> cachedTotemSuggestions();
-
     boolean isVanillaItem(Key item);
 
     Optional<Item> c2s(Item item);
 
     Optional<Item> s2c(Item item, @Nullable Player player);
+
+    Optional<Item> s2c(Item item, @Nullable Player player, ItemPacketSource source);
 
     Item applyTrim(Item base, Item addition, Item template, Key pattern);
 
@@ -107,4 +101,26 @@ public interface ItemManager extends Manageable, ModelGenerator {
     List<UniqueKey> getIngredientSubstitutes(Key item);
 
     ItemUpdateResult updateItem(Item item, Supplier<ItemBuildContext> contextSupplier);
+
+    Item emptyItem();
+
+    @ApiStatus.Internal
+    Collection<Suggestion> cachedCustomItemSuggestions();
+
+    @ApiStatus.Internal
+    Collection<Suggestion> cachedTotemSuggestions();
+
+    Set<Key> getVanillaItemTags(Key item);
+
+    @ApiStatus.Internal
+    Map<Key, TreeSet<LegacyOverridesModel>> legacyItemOverrides();
+
+    @ApiStatus.Internal
+    Map<Key, TreeMap<Integer, ModernItemModel>> modernItemOverrides();
+
+    @ApiStatus.Internal
+    Map<Key, ModernItemModel> modernItemModels1_21_4();
+
+    @ApiStatus.Internal
+    Map<Key, TreeSet<LegacyOverridesModel>> modernItemModels1_21_2();
 }

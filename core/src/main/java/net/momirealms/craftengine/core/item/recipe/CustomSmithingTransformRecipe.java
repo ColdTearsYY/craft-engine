@@ -3,25 +3,20 @@ package net.momirealms.craftengine.core.item.recipe;
 import com.google.gson.JsonObject;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.data.Enchantment;
 import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
 import net.momirealms.craftengine.core.item.recipe.result.CustomRecipeResult;
+import net.momirealms.craftengine.core.item.recipe.transform.ItemTransformDataProcessor;
+import net.momirealms.craftengine.core.item.recipe.transform.ItemTransformDataProcessors;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
-import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
 import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
-import net.momirealms.craftengine.core.registry.BuiltInRegistries;
-import net.momirealms.craftengine.core.registry.Registries;
-import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceKey;
-import net.momirealms.craftengine.core.util.TriConsumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,8 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public final class CustomSmithingTransformRecipe extends AbstractFixedResultRecipe
         implements ConditionalRecipe, VisualResultRecipe, FunctionalRecipe {
@@ -39,8 +32,7 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
     private final Ingredient template;
     private final Ingredient addition;
     private final boolean mergeComponents;
-    private final boolean mergeEnchantments;
-    private final List<ItemDataProcessor> processors;
+    private final List<ItemTransformDataProcessor> processors;
     private final Predicate<Context> condition;
     private final Function<Context>[] smithingFunctions;
     private final CustomRecipeResult visualResult;
@@ -53,9 +45,8 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
                                          @Nullable Ingredient addition,
                                          CustomRecipeResult result,
                                          @Nullable CustomRecipeResult visualResult,
-                                         List<ItemDataProcessor> processors,
+                                         List<ItemTransformDataProcessor> processors,
                                          boolean mergeComponents,
-                                         boolean mergeEnchantments,
                                          Function<Context>[] smithingFunctions,
                                          Predicate<Context> condition,
                                          boolean ingredientCountSupport
@@ -66,7 +57,6 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
         this.addition = addition;
         this.processors = processors;
         this.mergeComponents = mergeComponents;
-        this.mergeEnchantments = mergeEnchantments;
         this.condition = condition;
         this.smithingFunctions = smithingFunctions;
         this.visualResult = visualResult;
@@ -79,10 +69,6 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
 
     public boolean mergeComponents() {
         return this.mergeComponents;
-    }
-
-    public boolean mergeEnchantments() {
-        return this.mergeEnchantments;
     }
 
     @Override
@@ -106,7 +92,6 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
         return this.condition != null;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void takeInput(@NotNull RecipeInput input, int ignore) {
         SmithingInput smithingInput = (SmithingInput) input;
@@ -115,7 +100,6 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
         if (this.addition != null) super.takeIngredient(this.addition, smithingInput.addition().item(), ignore);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public boolean matches(RecipeInput input) {
         SmithingInput smithingInput = (SmithingInput) input;
@@ -175,12 +159,14 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
     }
 
     private Item createSmithingResult(Item base, Item result) {
-        Item finalResult = result;
+        Item finalResult;
         if (this.mergeComponents) {
             finalResult = base.mergeCopy(result);
+        } else {
+            finalResult = result.copy();
         }
         if (this.processors != null) {
-            for (ItemDataProcessor processor : this.processors) {
+            for (ItemTransformDataProcessor processor : this.processors) {
                 processor.accept(base, result, finalResult);
             }
         }
@@ -204,9 +190,9 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
 
     @SuppressWarnings({"DuplicatedCode"})
     public static class Serializer extends AbstractRecipeSerializer<CustomSmithingTransformRecipe> {
-        private static final String[] TEMPLATE_TYPE = new String[]{"template_type", "template-type"};
-        private static final String[] MERGE_COMPONENTS = new String[]{"merge-components", "merge_components"};
-        private static final String[] MERGE_ENCHANTMENTS = new String[]{"merge-enchantments", "merge_enchantments"};
+        private static final String[] TEMPLATE_TYPE = ConfigKeys.of("template_type");
+        private static final String[] MERGE_COMPONENTS = ConfigKeys.of("merge_components");
+        private static final String[] MERGE_ENCHANTMENTS = ConfigKeys.of("merge_enchantments");
 
         @SuppressWarnings("unchecked")
         @Override
@@ -229,11 +215,10 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
                     templateIngredient,
                     baseIngredient,
                     additionIngredient,
-                    super.parseResult(section.getNonNullSection("result")),
-                    section.getValue(VISUAL_RESULT, v -> super.parseResult(v.getAsSection())),
-                    section.getList(POST_PROCESSOR, ItemDataProcessors::fromConfig),
+                    super.parseResult(section.getNonNullValue("result", ConfigConstants.ARGUMENT_SECTION)),
+                    section.getValue(VISUAL_RESULT, super::parseResult),
+                    section.getList(TRANSFORM_PROCESSOR, ItemTransformDataProcessors::fromConfig),
                     section.getBoolean(MERGE_COMPONENTS, true),
-                    section.getBoolean(MERGE_ENCHANTMENTS, false),
                     section.getList(FUNCTIONS, CommonFunctions::fromConfig).toArray(new Function[0]),
                     MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig)),
                     countSupport
@@ -245,171 +230,17 @@ public final class CustomSmithingTransformRecipe extends AbstractFixedResultReci
             return new CustomSmithingTransformRecipe(
                     id,
                     true,
-                    toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("template"))),
-                    Objects.requireNonNull(toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("base")))),
-                    toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("addition"))),
+                    parseVanillaIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("template"))),
+                    Objects.requireNonNull(parseVanillaIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("base")))),
+                    parseVanillaIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("addition"))),
                     parseResult(VANILLA_RECIPE_HELPER.smithingResult(json.getAsJsonObject("result"))),
                     null,
                     null,
                     true,
-                    false,
                     null,
                     null,
                     false
             );
-        }
-    }
-
-    public static final class ItemDataProcessors {
-        public static final ItemDataProcessor.Type<KeepComponents> KEEP_COMPONENTS = register(Key.ce("keep_components"), KeepComponents.FACTORY);
-        public static final ItemDataProcessor.Type<KeepTags> KEEP_TAGS = register(Key.ce("keep_tags"), KeepTags.FACTORY);
-        public static final ItemDataProcessor.Type<KeepCustomData> KEEP_CUSTOM_DATA = register(Key.ce("keep_custom_data"), KeepCustomData.FACTORY);
-        public static final ItemDataProcessor.Type<MergeEnchantments> MERGE_ENCHANTMENTS = register(Key.ce("merge_enchantments"), MergeEnchantments.FACTORY);
-
-        private ItemDataProcessors() {}
-
-        public static ItemDataProcessor fromConfig(ConfigValue value) {
-            return fromConfig(value.getAsSection());
-        }
-
-        public static ItemDataProcessor fromConfig(ConfigSection section) {
-            String type = section.getNonNullString("type");
-            Key key = Key.withDefaultNamespace(type, Key.CRAFTENGINE_NAMESPACE);
-            ItemDataProcessor.Type<? extends CustomSmithingTransformRecipe.ItemDataProcessor> processorType = BuiltInRegistries.SMITHING_RESULT_PROCESSOR_TYPE.getValue(key);
-            if (processorType == null) {
-                throw new KnownResourceException("resource.recipe.smithing_transform.post_processor.unknown_type", section.assemblePath("type"), key.asString());
-            }
-            return processorType.factory.create(section);
-        }
-
-        public static <T extends ItemDataProcessor> ItemDataProcessor.Type<T> register(Key key, ItemDataProcessor.Factory<T> factory) {
-            ItemDataProcessor.Type<T> type = new ItemDataProcessor.Type<>(key, factory);
-            ((WritableRegistry<ItemDataProcessor.Type<? extends CustomSmithingTransformRecipe.ItemDataProcessor>>) BuiltInRegistries.SMITHING_RESULT_PROCESSOR_TYPE)
-                    .register(ResourceKey.create(Registries.SMITHING_RESULT_PROCESSOR_TYPE.location(), key), type);
-            return type;
-        }
-    }
-
-    public interface ItemDataProcessor extends TriConsumer<Item, Item, Item> {
-
-        interface Factory<T extends ItemDataProcessor> {
-            T create(ConfigSection section);
-        }
-
-        record Type<T extends ItemDataProcessor>(Key id, Factory<T> factory) {}
-    }
-
-    public static class MergeEnchantments implements ItemDataProcessor {
-        public static final MergeEnchantments INSTANCE = new MergeEnchantments();
-        public static final ItemDataProcessor.Factory<MergeEnchantments> FACTORY = new Factory();
-
-        @Override
-        public void accept(Item item1, Item item2, Item item3) {
-            item1.enchantments().ifPresent(e1 -> {
-                item3.enchantments().ifPresent(e2 -> {
-                    item3.setEnchantments(Stream.concat(e1.stream(), e2.stream())
-                            .collect(Collectors.toMap(
-                                    Enchantment::id,
-                                    enchantment -> enchantment,
-                                    (existing, replacement) ->
-                                            existing.level() > replacement.level() ? existing : replacement
-                            ))
-                            .values()
-                            .stream()
-                            .toList());
-                });
-            });
-        }
-
-        private static class Factory implements ItemDataProcessor.Factory<MergeEnchantments> {
-
-            @Override
-            public MergeEnchantments create(ConfigSection section) {
-                return INSTANCE;
-            }
-        }
-    }
-
-    public static class KeepCustomData implements ItemDataProcessor {
-        public static final ItemDataProcessor.Factory<KeepCustomData> FACTORY = new Factory();
-        private final List<String[]> paths;
-
-        public KeepCustomData(List<String[]> data) {
-            this.paths = data;
-        }
-
-        @Override
-        public void accept(Item item1, Item item2, Item item3) {
-            for (String[] path : this.paths) {
-                Object dataObj = item1.getJavaTag((Object[]) path);
-                if (dataObj != null) {
-                    item3.setTag(dataObj, (Object[]) path);
-                }
-            }
-        }
-
-        private static class Factory implements ItemDataProcessor.Factory<KeepCustomData> {
-            private static final String[] TAGS = new String[]{"tags", "paths"};
-
-            @Override
-            public KeepCustomData create(ConfigSection section) {
-                return new KeepCustomData(section.getNonEmptyList(TAGS, v -> v.getAsString().split("\\.")));
-            }
-        }
-    }
-
-    public static class KeepComponents implements ItemDataProcessor {
-        public static final ItemDataProcessor.Factory<KeepComponents> FACTORY = new Factory();
-        private final List<Key> components;
-
-        public KeepComponents(List<Key> components) {
-            this.components = components;
-        }
-
-        @Override
-        public void accept(Item item1, Item item2, Item item3) {
-            for (Key component : this.components) {
-                Object componentObj = item1.getExactComponent(component);
-                if (componentObj != null) {
-                    item3.setExactComponent(component, componentObj);
-                }
-            }
-        }
-
-        private static class Factory implements ItemDataProcessor.Factory<KeepComponents> {
-            private static final Key CUSTOM_DATA = Key.of("minecraft", "custom_data");
-
-            @Override
-            public KeepComponents create(ConfigSection section) {
-                return new KeepComponents(section.getNonEmptyList("components", ConfigValue::getAsIdentifier).stream().filter(it -> !CUSTOM_DATA.equals(it)).toList());
-            }
-        }
-    }
-
-    public static class KeepTags implements ItemDataProcessor {
-        public static final ItemDataProcessor.Factory<KeepTags> FACTORY = new Factory();
-        private final List<String[]> tags;
-
-        public KeepTags(List<String[]> tags) {
-            this.tags = tags;
-        }
-
-        @Override
-        public void accept(Item item1, Item item2, Item item3) {
-            for (String[] tag : this.tags) {
-                Object tagObj = item1.getJavaTag((Object[]) tag);
-                if (tagObj != null) {
-                    item3.setTag(tagObj, (Object[]) tag);
-                }
-            }
-        }
-
-        private static class Factory implements ItemDataProcessor.Factory<KeepTags> {
-
-            @Override
-            public KeepTags create(ConfigSection section) {
-                return new KeepTags(section.getNonEmptyList("tags", v -> v.getAsString().split("\\.")));
-            }
         }
     }
 }

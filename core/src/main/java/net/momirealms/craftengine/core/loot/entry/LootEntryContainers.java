@@ -15,7 +15,9 @@ public final class LootEntryContainers {
     public static final LootEntryContainerType<SingleItemLootEntryContainer> ITEM = register(Key.ce("item"), SingleItemLootEntryContainer.FACTORY);
     public static final LootEntryContainerType<ExpLootEntryContainer> EXP = register(Key.ce("exp"), ExpLootEntryContainer.FACTORY);
     public static final LootEntryContainerType<FurnitureItemLootEntryContainer> FURNITURE_ITEM = register(Key.ce("furniture_item"), FurnitureItemLootEntryContainer.FACTORY);
-    public static final LootEntryContainerType<EmptyLoopEntryContainer> EMPTY = register(Key.ce("empty"), EmptyLoopEntryContainer.FACTORY);
+    public static final LootEntryContainerType<EmptyLootEntryContainer> EMPTY = register(Key.ce("empty"), EmptyLootEntryContainer.FACTORY);
+    public static final LootEntryContainerType<FunctionLootEntryContainer> FUNCTION = register(Key.ce("function"), FunctionLootEntryContainer.FACTORY);
+    public static final LootEntryContainerType<LootTableLootEntryContainer> LOOT_TABLE = register(Key.ce("loot_table"), LootTableLootEntryContainer.FACTORY);
 
     private LootEntryContainers() {}
 
@@ -31,7 +33,7 @@ public final class LootEntryContainers {
     }
 
     public static LootEntryContainer fromConfig(ConfigSection section) {
-        String type = section.getNonNullString("type");
+        String type = section.getNonEmptyString("type");
         Key key = Key.ce(type);
         LootEntryContainerType<? extends LootEntryContainer> containerType = BuiltInRegistries.LOOT_ENTRY_CONTAINER_TYPE.getValue(key);
         if (containerType == null) {

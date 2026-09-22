@@ -72,7 +72,7 @@ public final class PngOptimizer {
     private ImageColorInfo createColorInfo(final BufferedImage src) {
         final int width = src.getWidth();
         final int height = src.getHeight();
-        boolean isGrayscale = isGrayscale(src);
+        final boolean sourceIsGrayscale = src.getType() == BufferedImage.TYPE_BYTE_GRAY || src.getType() == BufferedImage.TYPE_USHORT_GRAY;
 
         Map<Integer, Integer> ope = new HashMap<>();
         Map<Integer, Integer> tra = new HashMap<>();
@@ -84,12 +84,12 @@ public final class PngOptimizer {
                 if (alpha == 255) {
                     ope.put(argb, ope.getOrDefault(argb, 0) + 1);
                 } else {
-                    tra.put(argb, ope.getOrDefault(argb, 0) + 1);
+                    tra.put(argb, tra.getOrDefault(argb, 0) + 1);
                 }
             }
         }
 
-        return new ImageColorInfo(ope, tra, isGrayscale);
+        return new ImageColorInfo(ope, tra, sourceIsGrayscale);
     }
 
     private BufferedImage convertTo8BitRGB(BufferedImage src) {

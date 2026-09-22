@@ -2,12 +2,11 @@ package net.momirealms.craftengine.core.loot.function;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.loot.LootContext;
-import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 
 import java.util.List;
@@ -29,13 +28,13 @@ public final class DropExpFunction extends AbstractLootConditionalFunction {
     }
 
     private static class Factory implements LootFunctionFactory<DropExpFunction> {
-        private static final String[] COUNT = new String[] {"count", "amount"};
+        private static final String[] COUNT = ConfigKeys.of("count|amount");
 
         @Override
         public DropExpFunction create(ConfigSection section) {
             return new DropExpFunction(
-                    section.getList("conditions", CommonConditions::fromConfig),
-                    NumberProviders.fromConfig(section.getNonNullValue(COUNT, ConfigConstants.ARGUMENT_NUMBER))
+                    section.getList(ConfigKeys.of("condition(s)"), CommonConditions::fromConfig),
+                    section.getNonNullNumber(COUNT)
             );
         }
     }

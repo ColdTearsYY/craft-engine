@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
@@ -16,13 +15,18 @@ public final class ItemModelProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        return item.itemModel(this.data.asString());
+    public void apply(ItemBuildContext context) {
+        context.item().itemModel(this.data.asString());
     }
 
     @Override
     public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ITEM_MODEL;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     private static class Factory implements ItemProcessorFactory<ItemModelProcessor> {

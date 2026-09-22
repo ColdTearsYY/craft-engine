@@ -1,17 +1,14 @@
 package net.momirealms.craftengine.bukkit.plugin.command.debug;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
-import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.item.ItemDefinition;
+import net.momirealms.craftengine.core.item.network.ItemPacketSource;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.util.Key;
@@ -57,33 +54,42 @@ public final class DebugItemModelCommand extends BukkitCommandFeature<CommandSen
     private void handleCommand(CommandContext<CommandSender> context) {
         NamespacedKey namespacedKey = context.getOrDefault("id", null);
         @Nullable BukkitServerPlayer player = context.sender() instanceof Player p ? BukkitAdaptor.adapt(p) : null;
+        var sender = plugin().senderFactory().wrap(context.sender());
 
         if (namespacedKey != null) {
             Key itemId = KeyUtils.namespacedKeyToKey(namespacedKey);
-            CustomItem customItem = CraftEngineItems.byId(itemId);
-            if (customItem == null) return;
-            Item item = customItem.buildItem(player);
+            ItemDefinition itemDefinition = CraftEngineItems.byId(itemId);
+            if (itemDefinition == null) {
+                sender.sendMessage(DebugCommandOutput.error("Unknown custom item '" + itemId + "'"));
+                return;
+            }
+            Item item = itemDefinition.buildItem(player);
             sendMessage(context, item, player);
             return;
         }
 
         if (player != null) {
             Item item = player.getItemInHand(InteractionHand.MAIN_HAND).copyWithCount(1);
+            if (item.isEmpty()) {
+                sender.sendMessage(DebugCommandOutput.error("The main hand is empty"));
+                return;
+            }
             sendMessage(context, item, player);
+        } else {
+            sender.sendMessage(DebugCommandOutput.error("An item ID is required from the console"));
         }
     }
 
     private void sendMessage(CommandContext<CommandSender> context, Item itemStack, BukkitServerPlayer player) {
-        Item clientBoundItem = plugin().itemManager().s2c(itemStack, player).orElse(itemStack);
+        Item clientBoundItem = plugin().itemManager().s2c(itemStack, player, ItemPacketSource.GENERIC).orElse(itemStack);
         String itemModel = clientBoundItem.itemModel().orElse("null");
-        TextComponent finalMessage = Component.text(itemModel)
-                .hoverEvent(Component.text("Copy", NamedTextColor.YELLOW))
-                .clickEvent(ClickEvent.suggestCommand(itemModel));
-        plugin().senderFactory().wrap(context.sender()).sendMessage(finalMessage);
+        var sender = plugin().senderFactory().wrap(context.sender());
+        sender.sendMessage(DebugCommandOutput.title("Item Model"));
+        sender.sendMessage(DebugCommandOutput.value("Model", itemModel));
     }
 
     @Override
     public boolean isAvailable() {
-        return VersionHelper.isOrAbove1_21_2();
+        return VersionHelper.isOrAbove1_21_2;
     }
 }

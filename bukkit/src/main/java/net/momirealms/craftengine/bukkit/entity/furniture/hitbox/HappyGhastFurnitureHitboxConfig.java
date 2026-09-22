@@ -1,12 +1,14 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.hitbox;
 
-import net.momirealms.craftengine.bukkit.entity.data.HappyGhastData;
+import net.momirealms.craftengine.bukkit.entity.data.animal.happyghast.HappyGhastData;
+import net.momirealms.craftengine.core.entity.furniture.ColliderProperties;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.AbstractFurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfig;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfigFactory;
 import net.momirealms.craftengine.core.entity.seat.SeatConfig;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitBoxConfig<HappyGhastFurnitureHitbox> {
+    public final ColliderProperties colliderProperties;
     public static final FurnitureHitBoxConfigFactory<HappyGhastFurnitureHitbox> FACTORY = new Factory();
     public final double scale;
     public final boolean hardCollision;
@@ -31,6 +34,7 @@ public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitB
                                            double scale,
                                            boolean hardCollision) {
         super(seats, position, canUseItemOn, blocksBuilding, canBeHitByProjectile);
+        this.colliderProperties = ColliderProperties.of(hardCollision, blocksBuilding, canBeHitByProjectile);
         this.scale = scale;
         this.hardCollision = hardCollision;
         HappyGhastData.StaysStill.addEntityDataIfNotDefaultValue(hardCollision, this.cachedValues);
@@ -56,6 +60,11 @@ public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitB
     }
 
     @Override
+    public ColliderProperties colliderProperties() {
+        return this.colliderProperties;
+    }
+
+    @Override
     public void prepareBoundingBox(WorldPosition targetPos, Consumer<AABB> aabbConsumer, boolean ignoreBlocksBuilding) {
         if (this.blocksBuilding || ignoreBlocksBuilding) {
             Vec3d relativePosition = Furniture.getRelativePosition(targetPos, this.position);
@@ -64,10 +73,10 @@ public final class HappyGhastFurnitureHitboxConfig extends AbstractFurnitureHitB
     }
 
     private static class Factory implements FurnitureHitBoxConfigFactory<HappyGhastFurnitureHitbox> {
-        private static final String[] CAN_USE_ITEM_ON = new String[] {"can_use_item_on", "can-use-item-on"};
-        private static final String[] BLOCKS_BUILDING = new String[] {"blocks_building", "blocks-building"};
-        private static final String[] CAN_BE_HIT_BY_PROJECTILE = new String[] {"can_be_hit_by_projectile", "can-be-hit-by-projectile"};
-        private static final String[] HARD_COLLISION = new String[] {"hard_collision", "hard-collision"};
+        private static final String[] CAN_USE_ITEM_ON = ConfigKeys.of("can_use_item_on");
+        private static final String[] BLOCKS_BUILDING = ConfigKeys.of("blocks_building");
+        private static final String[] CAN_BE_HIT_BY_PROJECTILE = ConfigKeys.of("can_be_hit_by_projectile");
+        private static final String[] HARD_COLLISION = ConfigKeys.of("hard_collision");
 
         @Override
         public FurnitureHitBoxConfig<HappyGhastFurnitureHitbox> create(ConfigSection section) {

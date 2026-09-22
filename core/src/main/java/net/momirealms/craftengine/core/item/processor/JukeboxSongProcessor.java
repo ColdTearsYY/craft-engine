@@ -1,9 +1,7 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
-import net.momirealms.craftengine.core.item.data.JukeboxPlayable;
+import net.momirealms.craftengine.core.item.component.value.JukeboxPlayable;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 
 public final class JukeboxSongProcessor implements ItemProcessor {
@@ -19,9 +17,13 @@ public final class JukeboxSongProcessor implements ItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        item.jukeboxSong(this.song);
-        return item;
+    public void apply(ItemBuildContext context) {
+        context.item().jukeboxSong(this.song);
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     private static class Factory implements ItemProcessorFactory<JukeboxSongProcessor> {

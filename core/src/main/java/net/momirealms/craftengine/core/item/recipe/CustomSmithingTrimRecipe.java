@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.item.recipe.input.RecipeInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.CommonFunctions;
@@ -51,7 +52,7 @@ public final class CustomSmithingTrimRecipe extends AbstractRecipe
         this.pattern = pattern;
         this.condition = condition;
         this.smithingFunctions = smithingFunctions;
-        if (pattern == null && VersionHelper.isOrAbove1_21_5()) {
+        if (pattern == null && VersionHelper.isOrAbove1_21_5) {
             throw new IllegalStateException("SmithingTrimRecipe cannot have a null pattern on 1.21.5 and above.");
         }
     }
@@ -138,13 +139,13 @@ public final class CustomSmithingTrimRecipe extends AbstractRecipe
     }
 
     @Override
-    public boolean canBeSearchedByIngredients() {
+    public boolean canBeSearched() {
         return false;
     }
 
     @SuppressWarnings({"DuplicatedCode"})
     public static class Serializer extends AbstractRecipeSerializer<CustomSmithingTrimRecipe> {
-        private static final String[] TEMPLATE_TYPE = new String[]{"template_type", "template-type"};
+        private static final String[] TEMPLATE_TYPE = ConfigKeys.of("template_type");
 
         @SuppressWarnings("unchecked")
         @Override
@@ -154,7 +155,7 @@ public final class CustomSmithingTrimRecipe extends AbstractRecipe
                     section.getNonNullValue(TEMPLATE_TYPE, ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
                     section.getNonNullValue("base", ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
                     section.getNonNullValue("addition", ConfigConstants.ARGUMENT_LIST, super::parseIngredient),
-                    VersionHelper.isOrAbove1_21_5() ? section.getNonNullIdentifier("pattern") : null,
+                    VersionHelper.isOrAbove1_21_5 ? section.getNonNullIdentifier("pattern") : null,
                     section.getList(FUNCTIONS, CommonFunctions::fromConfig).toArray(new Function[0]),
                     MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig))
             );
@@ -164,10 +165,10 @@ public final class CustomSmithingTrimRecipe extends AbstractRecipe
         public CustomSmithingTrimRecipe readJson(Key id, JsonObject json) {
             return new CustomSmithingTrimRecipe(id,
                     VANILLA_RECIPE_HELPER.showNotification(json),
-                    Objects.requireNonNull(toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("template")))),
-                    Objects.requireNonNull(toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("base")))),
-                    Objects.requireNonNull(toIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("addition")))),
-                    VersionHelper.isOrAbove1_21_5() ? Key.of(json.get("pattern").getAsString()) : null,
+                    Objects.requireNonNull(parseVanillaIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("template")))),
+                    Objects.requireNonNull(parseVanillaIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("base")))),
+                    Objects.requireNonNull(parseVanillaIngredient(VANILLA_RECIPE_HELPER.singleIngredient(json.get("addition")))),
+                    VersionHelper.isOrAbove1_21_5 ? Key.of(json.get("pattern").getAsString()) : null,
                     null,
                     null
             );

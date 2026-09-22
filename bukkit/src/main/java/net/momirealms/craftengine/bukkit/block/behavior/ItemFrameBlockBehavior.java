@@ -2,40 +2,39 @@ package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
-import net.momirealms.craftengine.bukkit.block.entity.BukkitBlockEntityTypes;
-import net.momirealms.craftengine.bukkit.block.entity.ItemFrameBlockEntity;
+import net.momirealms.craftengine.bukkit.block.entity.ItemFrameBlockEntityController;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
-import net.momirealms.craftengine.bukkit.util.DirectionUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
 import net.momirealms.craftengine.bukkit.world.BukkitWorld;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.behavior.EntityBlockBehavior;
+import net.momirealms.craftengine.core.block.behavior.EntityBlock;
 import net.momirealms.craftengine.core.block.entity.BlockEntity;
-import net.momirealms.craftengine.core.block.entity.BlockEntityType;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.entity.BlockEntityController;
+import net.momirealms.craftengine.core.block.property.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.ItemUtils;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.World;
+import net.momirealms.craftengine.core.world.WorldPosition;
 import net.momirealms.craftengine.core.world.context.UseOnContext;
 import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
 import org.bukkit.Location;
 import org.joml.Vector3f;
 
-import java.util.concurrent.Callable;
-
-public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlockBehavior {
+public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements EntityBlock {
     public static final BlockBehaviorFactory<ItemFrameBlockBehavior> FACTORY = new Factory();
     public final Vector3f position;
     public final boolean glow;
@@ -45,8 +44,10 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
     public final SoundData takeSound;
     public final SoundData rotateSound;
     public final Property<Direction> directionProperty;
+    private int controllerId;
+    public final String customDataKey;
 
-    private ItemFrameBlockBehavior(CustomBlock customBlock,
+    private ItemFrameBlockBehavior(BlockDefinition blockDefinition,
                                    Vector3f position,
                                    boolean glow,
                                    boolean invisible,
@@ -54,8 +55,10 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
                                    SoundData putSound,
                                    SoundData takeSound,
                                    SoundData rotateSound,
-                                   Property<Direction> directionProperty) {
-        super(customBlock);
+                                   Property<Direction> directionProperty,
+                                   String customDataKey
+    ) {
+        super(blockDefinition);
         this.position = position;
         this.glow = glow;
         this.invisible = invisible;
@@ -64,57 +67,58 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
         this.takeSound = takeSound;
         this.rotateSound = rotateSound;
         this.directionProperty = directionProperty;
+        this.customDataKey = customDataKey;
     }
 
     @Override
-    public <T extends BlockEntity> BlockEntityType<T> blockEntityType(ImmutableBlockState state) {
-        return EntityBlockBehavior.blockEntityTypeHelper(BukkitBlockEntityTypes.ITEM_FRAME);
+    public BlockEntityController createBlockEntityController(BlockEntity blockEntity) {
+        return new ItemFrameBlockEntityController(blockEntity, this);
     }
 
     @Override
-    public BlockEntity createBlockEntity(BlockPos pos, ImmutableBlockState state) {
-        return new ItemFrameBlockEntity(pos, state);
+    public void initControllerId(int id) {
+        this.controllerId = id;
     }
 
     @Override
-    public int getSignal(Object thisBlock, Object[] args, Callable<Object> superMethod) {
-        return getSignal(args[0], args[1], args[2], args[3]);
+    public boolean hasAnalogOutputSignal(Object thisBlock, Object[] args) {
+        return true;
     }
 
     @Override
-    public int getDirectSignal(Object thisBlock, Object[] args, Callable<Object> superMethod) {
-        return getSignal(args[0], args[1], args[2], args[3]);
-    }
-
-    private static int getSignal(Object blockState, Object blockAccess, Object pos, Object side) {
-        if (!LevelProxy.CLASS.isInstance(blockAccess)) {
+    public int getAnalogOutputSignal(Object thisBlock, Object[] args) {
+        Object level = args[1];
+        if (!LevelProxy.CLASS.isInstance(level)) {
             return 0;
         }
-        ImmutableBlockState state = BlockStateUtils.getOptionalCustomBlockState(blockState).orElse(null);
+        ImmutableBlockState state = BlockStateUtils.getOptionalCustomBlockState(args[0]).orElse(null);
         if (state == null) {
             return 0;
         }
-        ItemFrameBlockBehavior blockBehavior = state.behavior().getAs(ItemFrameBlockBehavior.class).orElse(null);
-        if (blockBehavior == null) {
+        BukkitWorld world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(level));
+        BlockEntity blockEntity = world.storageWorld().getBlockEntityAtIfLoaded(LocationUtils.fromBlockPos(args[2]));
+        if (blockEntity == null) {
             return 0;
         }
-        if (state.get(blockBehavior.directionProperty) != DirectionUtils.fromNMSDirection(side)) {
-            return 0;
-        }
-        BukkitWorld world = BukkitAdaptor.adapt(LevelProxy.INSTANCE.getWorld(blockAccess));
-        BlockEntity blockEntity = world.storageWorld().getBlockEntityAtIfLoaded(LocationUtils.fromBlockPos(pos));
-        if (!(blockEntity instanceof ItemFrameBlockEntity itemFrame && itemFrame.isValid())) {
-            return 0;
-        }
-        if (ItemUtils.isEmpty(itemFrame.item())) {
-            return 0;
-        }
-        return itemFrame.rotation() + 1;
+        return blockEntity.controller.let(ItemFrameBlockEntityController.class, this.controllerId, c -> {
+            if (ItemUtils.isEmpty(c.item())) {
+                return 0;
+            }
+            return c.rotation() + 1;
+        });
     }
 
     @Override
-    public boolean isSignalSource(Object thisBlock, Object[] args, Callable<Object> superMethod) {
-        return true;
+    public void affectNeighborsAfterRemoval(Object thisBlock, Object[] args) {
+        LevelProxy.INSTANCE.updateNeighbourForOutputSignal(args[1], args[2], BlockStateUtils.getBlockOwner(args[0]));
+    }
+
+    @Override
+    public Item itemToPickup(World world, BlockPos pos, ImmutableBlockState state, Player player) {
+        BlockEntity blockEntity = world.storageWorld().getBlockEntityAtIfLoaded(pos);
+        if (blockEntity == null) return null;
+        Item item = blockEntity.controller.let(ItemFrameBlockEntityController.class, this.controllerId, ItemFrameBlockEntityController::item);
+        return ItemUtils.isEmpty(item) ? null : item.copy();
     }
 
     @Override
@@ -124,47 +128,62 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
         World world = context.getLevel();
         BlockPos pos = context.getClickedPos();
         BlockEntity blockEntity = world.storageWorld().getBlockEntityAtIfLoaded(pos);
-        if (!(blockEntity instanceof ItemFrameBlockEntity itemFrame && itemFrame.isValid())) {
+        if (blockEntity == null) {
             return InteractionResult.PASS;
         }
         Location location = new Location((org.bukkit.World) world.platformWorld(), pos.x, pos.y, pos.z);
         if (!BukkitCraftEngine.instance().antiGriefProvider().test((org.bukkit.entity.Player) player.platformPlayer(), Flag.OPEN_CONTAINER, location)) {
             return InteractionResult.SUCCESS_AND_CANCEL;
         }
-        // 方块实体内部有物品的时候在shift时旋转
-        if (player.isSecondaryUseActive() && !ItemUtils.isEmpty(itemFrame.item())) {
-            itemFrame.rotation(itemFrame.rotation() + 1);
-            playSound(world, pos, this.rotateSound);
-            player.swingHand(context.getHand());
-            return InteractionResult.SUCCESS_AND_CANCEL;
-        }
-        // 当主手为空的时候右键取下
-        if (context.getHand() == InteractionHand.MAIN_HAND && ItemUtils.isEmpty(context.getItem())) {
-            Item item = itemFrame.item();
-            if (ItemUtils.isEmpty(item)) { // 空的不管
+        return blockEntity.controller.let(ItemFrameBlockEntityController.class, this.controllerId, itemFrame -> {
+            // 方块实体内部有物品的时候在shift时旋转
+            if (player.isSecondaryUseActive() && !ItemUtils.isEmpty(itemFrame.item())) {
+                itemFrame.rotation(itemFrame.rotation() + 1);
+                playSound(world, pos, this.rotateSound);
+                player.swingHand(context.getHand());
                 return InteractionResult.SUCCESS_AND_CANCEL;
             }
-            itemFrame.updateItem(null); // 先取出来
-            if (!player.canInstabuild()) {
+            // 当主手为空的时候右键取下
+            if (context.getHand() == InteractionHand.MAIN_HAND && ItemUtils.isEmpty(context.getItem())) {
+                Item item = itemFrame.item();
+                if (ItemUtils.isEmpty(item)) { // 空的不管
+                    return InteractionResult.SUCCESS_AND_CANCEL;
+                }
+                itemFrame.updateItem(null); // 先取出来
+                BukkitCraftEngine.instance().compatibilityManager().logItemFrameTransaction(
+                        player,
+                        new WorldPosition(world, pos),
+                        state.get(this.directionProperty),
+                        item,
+                        null
+                );
                 player.setItemInHand(InteractionHand.MAIN_HAND, item); // 然后给玩家
+                playSound(world, pos, this.takeSound);
+                player.swingHand(context.getHand());
+                return InteractionResult.SUCCESS_AND_CANCEL;
             }
-            playSound(world, pos, this.takeSound);
-            player.swingHand(context.getHand());
-            return InteractionResult.SUCCESS_AND_CANCEL;
-        }
-        // 当方块实体内部没有物品切换手上物品不为空则放入
-        if (ItemUtils.isEmpty(itemFrame.item()) && !ItemUtils.isEmpty(context.getItem())) {
-            Item item = context.getItem();
-            Item copied = item.copyWithCount(1);
-            if (!player.canInstabuild()) {
-                item.shrink(1); // 先扣物品
+            // 当方块实体内部没有物品切换手上物品不为空则放入
+            if (ItemUtils.isEmpty(itemFrame.item()) && !ItemUtils.isEmpty(context.getItem())) {
+                Item item = context.getItem();
+                Item copied = item.copyWithCount(1);
+                if (!player.canInstabuild()) {
+                    item.shrink(1); // 先扣物品
+                }
+                itemFrame.updateItem(copied); // 然后放进去
+                BukkitCraftEngine.instance().compatibilityManager().logItemFrameTransaction(
+                        player,
+                        new WorldPosition(world, pos),
+                        state.get(this.directionProperty),
+                        null,
+                        copied
+                );
+                playSound(world, pos, this.putSound);
+                player.swingHand(context.getHand());
+                return InteractionResult.SUCCESS_AND_CANCEL;
             }
-            itemFrame.updateItem(copied); // 然后放进去
-            playSound(world, pos, this.putSound);
-            player.swingHand(context.getHand());
+
             return InteractionResult.SUCCESS_AND_CANCEL;
-        }
-        return InteractionResult.SUCCESS_AND_CANCEL;
+        });
     }
 
     private static void playSound(World world, BlockPos pos, SoundData soundData) {
@@ -174,10 +193,11 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
     }
 
     private static class Factory implements BlockBehaviorFactory<ItemFrameBlockBehavior> {
-        private static final String[] RENDER_MAP_ITEM = new String[]{"render_map_item", "render-map-item"};
+        private static final String[] RENDER_MAP_ITEM = ConfigKeys.of("render_map_item");
+        private static final String[] DATA_KEY = ConfigKeys.of("data_key");
 
         @Override
-        public ItemFrameBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public ItemFrameBlockBehavior create(BlockDefinition block, ConfigSection section) {
             ConfigSection soundSection = section.getSection("sounds");
             SoundData putSound = null;
             SoundData takeSound = null;
@@ -196,7 +216,8 @@ public final class ItemFrameBlockBehavior extends BukkitBlockBehavior implements
                     putSound,
                     takeSound,
                     rotateSound,
-                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", Direction.class)
+                    BlockBehaviorFactory.getProperty(section.path(), block, "facing", Direction.class),
+                    section.getValue(DATA_KEY, ConfigValue::getAsNonEmptyString, "craftengine:item_frame")
             );
         }
     }

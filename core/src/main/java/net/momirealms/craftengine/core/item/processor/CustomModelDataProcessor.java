@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
@@ -18,9 +17,13 @@ public final class CustomModelDataProcessor implements SimpleNetworkItemProcesso
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
-        item.customModelData(this.argument.getInt(context));
-        return item;
+    public boolean isConstant() {
+        return this.argument.isConstant();
+    }
+
+    @Override
+    public void apply(ItemBuildContext context) {
+        context.item().customModelData(this.argument.getInt(context));
     }
 
     @Override

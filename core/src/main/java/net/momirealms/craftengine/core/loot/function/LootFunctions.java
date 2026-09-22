@@ -36,6 +36,7 @@ public final class LootFunctions {
     }
 
     public static BiFunction<Item, LootContext, Item> compose(List<? extends BiFunction<Item, LootContext, Item>> terms) {
+        if (terms == null || terms.isEmpty()) return identity();
         List<BiFunction<Item, LootContext, Item>> list = List.copyOf(terms);
         return switch (list.size()) {
             case 0 -> identity();
@@ -59,7 +60,7 @@ public final class LootFunctions {
     }
 
     public static LootFunction fromConfig(ConfigSection section) {
-        String type = section.getNonNullString("type");
+        String type = section.getNonEmptyString("type");
         Key key = Key.ce(type);
         LootFunctionType<? extends LootFunction> functionType = BuiltInRegistries.LOOT_FUNCTION_TYPE.getValue(key);
         if (functionType == null) {

@@ -1,11 +1,13 @@
 package net.momirealms.craftengine.bukkit.block.behavior;
 
 import net.momirealms.craftengine.bukkit.block.BukkitBlockManager;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.UpdateFlags;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.behavior.RandomTickBlock;
+import net.momirealms.craftengine.core.block.property.Property;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.LazyReference;
 import net.momirealms.craftengine.core.util.VersionHelper;
@@ -25,23 +27,29 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.material.FluidStat
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
-import java.util.concurrent.Callable;
 
-public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
+public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior implements RandomTickBlock {
     public static final BlockBehaviorFactory<SurfaceSpreadingBlockBehavior> FACTORY = new Factory();
-    public final int requiredLight;
+    public final int lightRequirement;
+    public final int maxLightRequirement;
     public final LazyReference<Object> baseBlock;
     public final Property<Boolean> snowyProperty;
 
-    private SurfaceSpreadingBlockBehavior(CustomBlock customBlock, int requiredLight, String baseBlock, @Nullable Property<Boolean> snowyProperty) {
-        super(customBlock);
-        this.requiredLight = requiredLight;
+    private SurfaceSpreadingBlockBehavior(BlockDefinition blockDefinition, int lightRequirement, int maxLightRequirement, String baseBlock, @Nullable Property<Boolean> snowyProperty) {
+        super(blockDefinition);
+        this.lightRequirement = lightRequirement;
+        this.maxLightRequirement = maxLightRequirement;
         this.snowyProperty = snowyProperty;
-        this.baseBlock = LazyReference.lazyReference(() -> Objects.requireNonNull(BukkitBlockManager.instance().createBlockState(baseBlock)).literalObject());
+        this.baseBlock = LazyReference.untilNotNull(() -> Objects.requireNonNull(BukkitBlockManager.instance().createBlockState(baseBlock)).minecraftState());
     }
 
     @Override
-    public void randomTick(Object thisBlock, Object[] args, Callable<Object> superMethod) throws Exception {
+    public boolean canRandomlyTick(ImmutableBlockState state) {
+        return true;
+    }
+
+    @Override
+    public void randomTick(Object thisBlock, Object[] args) {
         Object state = args[0];
         Object level = args[1];
         Object pos = args[2];
@@ -49,7 +57,8 @@ public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
             LevelWriterProxy.INSTANCE.setBlock(level, pos, this.baseBlock.get(), 3);
             return;
         }
-        if (LevelReaderProxy.INSTANCE.getMaxLocalRawBrightness(level, BlockPosProxy.INSTANCE.relative(pos, DirectionProxy.UP)) < this.requiredLight) {
+        int brightness = LevelReaderProxy.INSTANCE.getMaxLocalRawBrightness(level, BlockPosProxy.INSTANCE.relative(pos, DirectionProxy.UP));
+        if (brightness < this.lightRequirement || brightness > this.maxLightRequirement) {
             return;
         }
         for (int i = 0; i < 4; i++) {
@@ -74,7 +83,7 @@ public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
                 );
                 newState = newState.with(this.snowyProperty, hasSnow);
             }
-            LevelWriterProxy.INSTANCE.setBlock(level, blockPos, newState.customBlockState().literalObject(), UpdateFlags.UPDATE_ALL);
+            LevelWriterProxy.INSTANCE.setBlock(level, blockPos, newState.customBlockState().minecraftState(), UpdateFlags.UPDATE_ALL);
         }
     }
 
@@ -86,13 +95,13 @@ public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
         } else if (FluidStateProxy.INSTANCE.getAmount(BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getFluidState(blockState)) == 8) {
             return false;
         } else {
-            if (VersionHelper.isOrAbove1_21_2()) {
-                return LightEngineProxy.INSTANCE.getLightBlockInto(
+            if (VersionHelper.isOrAbove1_21_2) {
+                return LightEngineProxy.INSTANCE.getLightDampeningInto(
                         state, blockState, DirectionProxy.UP,
-                        BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getLightBlock$1(blockState)
+                        BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getLightDampening$1(blockState)
                 ) < 15;
             } else {
-                return LightEngineProxy.INSTANCE.getLightBlockInto(
+                return LightEngineProxy.INSTANCE.getLightDampeningInto(
                         level, state, pos, blockState, blockPos, DirectionProxy.UP,
                         BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getLightBlock(blockState, level, pos)
                 ) < 15;
@@ -102,18 +111,20 @@ public final class SurfaceSpreadingBlockBehavior extends BukkitBlockBehavior {
 
     private static boolean canPropagate(Object state, Object level, Object pos) {
         Object blockPos = BlockPosProxy.INSTANCE.relative(pos, DirectionProxy.UP);
-        return canBeGrass(state, level, pos) && !FluidStateProxy.INSTANCE.is(BlockGetterProxy.INSTANCE.getFluidState(level, blockPos), FluidTagsProxy.WATER);
+        return canBeGrass(state, level, pos) && !FluidStateProxy.INSTANCE.is$0(BlockGetterProxy.INSTANCE.getFluidState(level, blockPos), FluidTagsProxy.WATER);
     }
 
     private static class Factory implements BlockBehaviorFactory<SurfaceSpreadingBlockBehavior> {
-        private static final String[] REQUIRED_LIGHT = new String[]{"required_light", "required-light"};
-        private static final String[] BASE_BLOCK = new String[]{"base_block", "base-block"};
+        private static final String[] LIGHT_REQUIREMENT = ConfigKeys.of("light_requirement|required_light");
+        private static final String[] MAX_LIGHT_REQUIREMENT = ConfigKeys.of("max_light_requirement");
+        private static final String[] BASE_BLOCK = ConfigKeys.of("base_block");
 
         @Override
-        public SurfaceSpreadingBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public SurfaceSpreadingBlockBehavior create(BlockDefinition block, ConfigSection section) {
             return new SurfaceSpreadingBlockBehavior(
                     block,
-                    section.getInt(REQUIRED_LIGHT, 0),
+                    section.getInt(LIGHT_REQUIREMENT, 0),
+                    section.getInt(MAX_LIGHT_REQUIREMENT, 15),
                     section.getString(BASE_BLOCK, "minecraft:dirt"),
                     BlockBehaviorFactory.getOptionalProperty(block, "snowy", Boolean.class)
             );

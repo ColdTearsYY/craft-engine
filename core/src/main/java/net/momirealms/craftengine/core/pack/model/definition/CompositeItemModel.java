@@ -3,12 +3,16 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -17,9 +21,20 @@ public final class CompositeItemModel implements ItemModel {
     public static final ItemModelFactory<CompositeItemModel> FACTORY = new Factory();
     public static final ItemModelReader<CompositeItemModel> READER = new Reader();
     private final List<ItemModel> models;
+    private final Transformation transformation;
 
-    public CompositeItemModel(List<ItemModel> models) {
+    public CompositeItemModel(@NotNull List<ItemModel> models, @Nullable Transformation transformation) {
         this.models = models;
+        this.transformation = transformation;
+    }
+
+    public CompositeItemModel(@NotNull List<ItemModel> models) {
+        this(models, null);
+    }
+
+    @Nullable
+    public Transformation transformation() {
+        return this.transformation;
     }
 
     @NotNull
@@ -28,21 +43,27 @@ public final class CompositeItemModel implements ItemModel {
     }
 
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "composite");
         JsonArray array = new JsonArray();
         for (ItemModel model : this.models) {
-            array.add(model.apply(version));
+            array.add(model.toJson(min, max));
         }
         json.add("models", array);
+        if (this.transformation != null && max.isAtOrAbove(MinecraftVersion.V26_1)) {
+            json.add("transformation", this.transformation.toJson());
+        }
         return json;
     }
 
     @Override
-    public void collectRevision(Consumer<Revision> consumer) {
+    public void gatherRevisions(Consumer<Revision> consumer) {
+        if (this.transformation != null) {
+            consumer.accept(Revisions.SINCE_26_1);
+        }
         for (ItemModel model : this.models) {
-            model.collectRevision(consumer);
+            model.gatherRevisions(consumer);
         }
     }
 
@@ -56,8 +77,11 @@ public final class CompositeItemModel implements ItemModel {
     private static class Factory implements ItemModelFactory<CompositeItemModel> {
 
         @Override
-        public CompositeItemModel create(ConfigSection section) {
-            return new CompositeItemModel(section.getList("models", ItemModels::fromConfig));
+        public CompositeItemModel create(Pack pack, Path path, ConfigSection section) {
+            return new CompositeItemModel(
+                    section.getList("models", v -> ItemModels.fromConfig(pack, path, v)),
+                    section.getValue("transformation", Transformation::fromConfig)
+            );
         }
     }
 
@@ -76,7 +100,10 @@ public final class CompositeItemModel implements ItemModel {
                 }
                 modelList.add(ItemModels.fromJson(jo));
             }
-            return new CompositeItemModel(modelList);
+            return new CompositeItemModel(
+                    modelList,
+                    json.has("transformation") ? Transformation.fromJson(json.get("transformation")) : null
+            );
         }
     }
 }

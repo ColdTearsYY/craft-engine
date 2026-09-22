@@ -4,18 +4,17 @@ plugins {
     `maven-publish`
 }
 
-val projectVersion = project.rootProject.property("project_version").toString()
-val isSnapshot = projectVersion.endsWith("-SNAPSHOT")
+val isSnapshot = project.version.toString().endsWith("-SNAPSHOT")
 
 publishing {
     repositories {
         maven {
             val repoName = if (isSnapshot) "snapshots" else "releases"
-            name = repoName
+            name = "XiaoMoMi"
             url = URI("https://repo.momirealms.net/$repoName")
-            credentials {
-                username = System.getenv("REPO_USERNAME")
-                password = System.getenv("REPO_PASSWORD")
+            credentials(PasswordCredentials::class)
+            authentication {
+                create<BasicAuthentication>("basic")
             }
         }
     }

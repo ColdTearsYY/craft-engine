@@ -12,6 +12,12 @@ public final class BetterModelProvider implements ModelProvider {
 
     @Override
     public ExternalModel createModel(String id) {
+        if (!BetterModelUtils.hasModel(id)) return null;
         return new BetterModelModel(id);
+    }
+
+    @Override
+    public int remapEntityId(int entityId) {
+        return entityId;
     }
 }

@@ -1,11 +1,13 @@
 package net.momirealms.craftengine.core.pack.model.definition;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.MinecraftVersion;
 
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 public final class BundleSelectedItemModel implements ItemModel {
@@ -20,11 +22,11 @@ public final class BundleSelectedItemModel implements ItemModel {
     }
 
     @Override
-    public void collectRevision(Consumer<Revision> consumer) {
+    public void gatherRevisions(Consumer<Revision> consumer) {
     }
 
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "bundle/selected_item");
         return json;
@@ -32,7 +34,7 @@ public final class BundleSelectedItemModel implements ItemModel {
 
     private static class Factory implements ItemModelFactory<BundleSelectedItemModel> {
         @Override
-        public BundleSelectedItemModel create(ConfigSection section) {
+        public BundleSelectedItemModel create(Pack pack, Path path, ConfigSection section) {
             return INSTANCE;
         }
     }

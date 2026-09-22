@@ -2,18 +2,23 @@ package net.momirealms.craftengine.core.sound;
 
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.random.RandomUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
     public static final SoundData EMPTY = new SoundData(Key.of("minecraft:intentionally_empty"), SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_1);
 
     public static SoundData of(Key id, SoundValue volume, SoundValue pitch) {
         return new SoundData(id, volume, pitch);
+    }
+
+    public static SoundData of(Key id) {
+        return new SoundData(id, SoundData.SoundValue.FIXED_1, SoundData.SoundValue.FIXED_1);
     }
 
     public static SoundData fromConfig(ConfigValue value, SoundData.SoundValue volume, SoundData.SoundValue pitch) {
@@ -29,8 +34,8 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
         return new SoundData(soundId, volume, pitch);
     }
 
-    public interface SoundValue extends Supplier<Float> {
-        Map<Float, SoundValue> FIXED = new HashMap<>();
+    public interface SoundValue {
+        Map<Float, SoundValue> FIXED = Collections.synchronizedMap(new HashMap<>());
         SoundValue FIXED_1 = new Fixed(1f);
         SoundValue FIXED_0_8 = new Fixed(0.8f);
         SoundValue FIXED_0_75 = new Fixed(0.75f);
@@ -41,7 +46,7 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
         static SoundValue fromConfig(ConfigValue config) {
             if (config.is(Number.class)) {
                 return fixed(config.getAsFloat());
-            } else {
+            } else if (config.is(String.class)) {
                 String stringFormat = config.getAsString();
                 if (stringFormat.contains("~")) {
                     ConfigValue[] split = config.splitValuesRestrict("~", 2);
@@ -49,6 +54,8 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
                 } else {
                     return fixed(config.getAsFloat());
                 }
+            } else {
+                return number(config.getAsNumber());
             }
         }
 
@@ -65,6 +72,12 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
             return new Ranged(min, max);
         }
 
+        static SoundValue number(NumberProvider number) {
+            return new Number(number);
+        }
+
+        float get();
+
         class Fixed implements SoundValue {
             private final float value;
 
@@ -73,7 +86,7 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
             }
 
             @Override
-            public Float get() {
+            public float get() {
                 return this.value;
             }
         }
@@ -88,8 +101,21 @@ public record SoundData(Key id, SoundValue volume, SoundValue pitch) {
             }
 
             @Override
-            public Float get() {
+            public float get() {
                 return RandomUtils.generateRandomFloat(this.min, this.max);
+            }
+        }
+
+        class Number implements SoundValue {
+            private final NumberProvider number;
+
+            public Number(NumberProvider number) {
+                this.number = number;
+            }
+
+            @Override
+            public float get() {
+                return this.number.getFloat();
             }
         }
     }

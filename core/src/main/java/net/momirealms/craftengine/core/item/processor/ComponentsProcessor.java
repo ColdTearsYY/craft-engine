@@ -1,12 +1,17 @@
 package net.momirealms.craftengine.core.item.processor;
 
 import com.google.gson.JsonElement;
-import net.momirealms.craftengine.core.item.*;
+import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.item.ItemBuildContext;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.item.network.NetworkItemBuildContext;
+import net.momirealms.craftengine.core.item.network.NetworkItemHandler;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
-import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
-import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.text.StringTemplate;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.TagParser;
@@ -16,6 +21,7 @@ import net.momirealms.sparrow.nbt.Tag;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public final class ComponentsProcessor implements ItemProcessor {
@@ -23,14 +29,17 @@ public final class ComponentsProcessor implements ItemProcessor {
     private final List<DynamicComponentProvider> arguments;
     private DynamicComponentProvider customData = null;
 
-    public ComponentsProcessor(Map<String, Object> map) {
-        List<DynamicComponentProvider> arguments = new ArrayList<>(map.size());
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            Key key = Key.of(entry.getKey());
-            if (key.equals(DataComponentKeys.CUSTOM_DATA)) {
-                this.customData = getProvider(key, entry.getValue());
+    public ComponentsProcessor(ConfigSection section) {
+        Set<String> keys = section.keySet();
+        List<DynamicComponentProvider> arguments = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            Key id = Key.of(key);
+            ConfigValue value = section.getValue(key);
+            if (value == null) continue;
+            if (DataComponentKeys.CUSTOM_DATA.equals(id)) {
+                this.customData = getProvider(id, value);
             } else {
-                arguments.add(getProvider(key, entry.getValue()));
+                arguments.add(getProvider(id, value));
             }
         }
         this.arguments = arguments;
@@ -42,12 +51,13 @@ public final class ComponentsProcessor implements ItemProcessor {
     }
 
     @Override
-    public Item apply(Item item, ItemBuildContext context) {
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
         for (DynamicComponentProvider argument : arguments) {
-            item.setNBTComponent(argument.type, argument.function.apply(context));
+            item.setSparrowTagComponent(argument.type, argument.function.apply(context));
         }
         if (this.customData != null) {
-            CompoundTag tag = (CompoundTag) item.getTag(DataComponentKeys.CUSTOM_DATA);
+            CompoundTag tag = (CompoundTag) item.getSparrowTag(DataComponentKeys.CUSTOM_DATA);
             if (tag != null) {
                 for (Map.Entry<String, Tag> entry : ((CompoundTag) this.customData.function.apply(context)).entrySet()) {
                     tag.put(entry.getKey(), entry.getValue());
@@ -57,53 +67,71 @@ public final class ComponentsProcessor implements ItemProcessor {
                 item.setComponent(DataComponentKeys.CUSTOM_DATA, this.customData.function.apply(context));
             }
         }
-        return item;
     }
 
     @Override
-    public Item prepareNetworkItem(Item item, ItemBuildContext context, CompoundTag networkData) {
+    public void prepareNetworkItem(NetworkItemBuildContext context, CompoundTag networkData) {
+        Item item = context.item();
         for (DynamicComponentProvider argument : this.arguments) {
             String componentType = argument.type.asString();
-            Tag previous = item.getSparrowNBTComponent(componentType);
+            Tag previous = item.getComponentAsSparrowTag(componentType);
             if (previous != null) {
                 networkData.put(componentType, NetworkItemHandler.pack(NetworkItemHandler.Operation.ADD, previous));
             } else {
                 networkData.put(componentType, NetworkItemHandler.pack(NetworkItemHandler.Operation.REMOVE));
             }
         }
-        return item;
     }
 
     public record DynamicComponentProvider(Key type, Function<ItemBuildContext, Tag> function) {
     }
 
-    // todo 未来需要支持普通yaml格式使用 <>，最好先重构textprovider与Item
-    static DynamicComponentProvider getProvider(Key key, Object value) {
-        if (value instanceof String stringValue) {
+    public static ComponentsProcessor createSingle(Key type, ConfigValue value) {
+        DynamicComponentProvider provider = getProvider(type, value);
+        if (DataComponentKeys.CUSTOM_DATA.equals(type)) {
+            return new ComponentsProcessor(provider, List.of());
+        }
+        return new ComponentsProcessor(null, List.of(provider));
+    }
+
+    private static DynamicComponentProvider getProvider(Key key, ConfigValue value) {
+        if (value.is(String.class)) {
+            String stringValue = value.getAsString();
             if (stringValue.startsWith("(json) ")) {
-                // todo 需要未来先 tokenized 后再判断，而不是使用 < > 作为依据
-                if (stringValue.contains("<") && stringValue.contains(">")) {
-                    TextProvider provider = TextProviders.fromString(stringValue.substring("(json) ".length()));
+                String json = stringValue.substring("(json) ".length());
+                StringTemplate template = StringTemplate.of(json);
+                if (template.hasTags()) {
                     return new DynamicComponentProvider(key, c -> {
-                        JsonElement element = GsonHelper.get().fromJson(provider.get(c), JsonElement.class);
+                        JsonElement element = GsonHelper.get().fromJson(template.render(c), JsonElement.class);
                         return CraftEngine.instance().platform().jsonToSparrowNBT(element);
                     });
                 } else {
-                    JsonElement element = GsonHelper.get().fromJson(stringValue.substring("(json) ".length()), JsonElement.class);
+                    JsonElement element = GsonHelper.get().fromJson(json, JsonElement.class);
                     Tag tag = CraftEngine.instance().platform().jsonToSparrowNBT(element);
                     return new DynamicComponentProvider(key, c -> tag);
                 }
             } else if (stringValue.startsWith("(snbt) ")) {
-                if (stringValue.contains("<") && stringValue.contains(">")) {
-                    TextProvider provider = TextProviders.fromString(stringValue.substring("(snbt) ".length()));
-                    return new DynamicComponentProvider(key, c -> TagParser.parseTagFully(provider.get(c)));
+                String snbt = stringValue.substring("(snbt) ".length());
+                StringTemplate template = StringTemplate.of(snbt);
+                if (template.hasTags()) {
+                    return new DynamicComponentProvider(key, c -> {
+                        try {
+                            return TagParser.parseTagFully(template.render(c));
+                        } catch (Exception e) {
+                            throw new KnownResourceException(ConfigConstants.PARSE_SNBT_FAILED, value.path(), snbt, e.getMessage());
+                        }
+                    });
                 } else {
-                    Tag tag = TagParser.parseTagFully(stringValue.substring("(snbt) ".length()));
-                    return new DynamicComponentProvider(key, c -> tag);
+                    try {
+                        Tag tag = TagParser.parseTagFully(snbt);
+                        return new DynamicComponentProvider(key, c -> tag);
+                    } catch (Exception e) {
+                        throw new KnownResourceException(ConfigConstants.PARSE_SNBT_FAILED, value.path(), snbt, e.getMessage());
+                    }
                 }
             }
         }
-        Tag tag = CraftEngine.instance().platform().javaToSparrowNBT(value);
+        Tag tag = CraftEngine.instance().platform().javaToSparrowNBT(value.value());
         return new DynamicComponentProvider(key, c -> tag);
     }
 
@@ -114,13 +142,14 @@ public final class ComponentsProcessor implements ItemProcessor {
             ConfigSection componentsSection = value.getAsSection();
             DynamicComponentProvider customData = null;
             List<DynamicComponentProvider> arguments = new ArrayList<>();
-            for (Map.Entry<String, Object> componentEntry : componentsSection.values().entrySet()) {
-                Key key = Key.of(componentEntry.getKey());
-                Object componentValue = componentEntry.getValue();
-                if (key.equals(DataComponentKeys.CUSTOM_DATA)) {
-                    customData = getProvider(key, componentValue);
+            for (String key : componentsSection.keySet()) {
+                Key id = Key.of(key);
+                ConfigValue componentValue = componentsSection.getValue(key);
+                if (componentValue == null) continue;
+                if (DataComponentKeys.CUSTOM_DATA.equals(id)) {
+                    customData = getProvider(id, componentValue);
                 } else {
-                    arguments.add(getProvider(key, componentValue));
+                    arguments.add(getProvider(id, componentValue));
                 }
             }
             return new ComponentsProcessor(customData, arguments);

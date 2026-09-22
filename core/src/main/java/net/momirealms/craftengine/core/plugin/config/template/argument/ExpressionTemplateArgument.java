@@ -1,22 +1,25 @@
 package net.momirealms.craftengine.core.plugin.config.template.argument;
 
-import com.ezylang.evalex.Expression;
-import com.ezylang.evalex.data.EvaluationValue;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.config.template.ArgumentString;
+import net.momirealms.craftengine.core.plugin.context.expression.Expressions;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.DoubleFunction;
 
 // TODO 存在设计缺陷
 public final class ExpressionTemplateArgument implements TemplateArgument {
     public static final TemplateArgumentFactory<ExpressionTemplateArgument> FACTORY = new Factory();
+    private final String node;
     private final ArgumentString expression;
     private final ValueType valueType;
 
-    private ExpressionTemplateArgument(String expression, ValueType valueType) {
-        this.expression = ArgumentString.preParse(expression);
+    private ExpressionTemplateArgument(String node, String expression, ValueType valueType) {
+        this.node = node;
+        this.expression = ArgumentString.preParse(node, expression);
         this.valueType = valueType;
     }
 
@@ -25,38 +28,41 @@ public final class ExpressionTemplateArgument implements TemplateArgument {
         String expression = Optional.ofNullable(this.expression.get(node, arguments)).map(String::valueOf).orElse(null);
         if (expression == null) return null;
         try {
-            return this.valueType.formatter().apply(new Expression(expression).evaluate());
+            return this.valueType.format(Expressions.evaluate(this.node, expression));
+        } catch (KnownResourceException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to process expression argument: " + this.expression, e);
         }
     }
 
-    protected enum ValueType {
-        INT(e -> e.getNumberValue().intValue()),
-        LONG(e -> e.getNumberValue().longValue()),
-        SHORT(e -> e.getNumberValue().shortValue()),
-        DOUBLE(e -> e.getNumberValue().doubleValue()),
-        FLOAT(e -> e.getNumberValue().floatValue()),
-        BYTE(e -> e.getNumberValue().byteValue()),
-        BOOLEAN(EvaluationValue::getBooleanValue),;
+    private enum ValueType {
+        INT(value -> (int) value),
+        LONG(value -> (long) value),
+        SHORT(value -> (short) value),
+        DOUBLE(value -> value),
+        FLOAT(value -> (float) value),
+        BYTE(value -> (byte) value),
+        BOOLEAN(value -> value != 0D),;
 
-        private final Function<EvaluationValue, Object> formatter;
+        private final DoubleFunction<Object> formatter;
 
-        ValueType(Function<EvaluationValue, Object> formatter) {
+        ValueType(DoubleFunction<Object> formatter) {
             this.formatter = formatter;
         }
 
-        public Function<EvaluationValue, Object> formatter() {
-            return this.formatter;
+        private Object format(double value) {
+            return this.formatter.apply(value);
         }
     }
 
     private static class Factory implements TemplateArgumentFactory<ExpressionTemplateArgument> {
-        private static final String[] VALUE_TYPE = new String[] {"value_type", "value-type"};
+        private static final String[] VALUE_TYPE = ConfigKeys.of("value_type");
 
         @Override
         public ExpressionTemplateArgument create(ConfigSection section) {
             return new ExpressionTemplateArgument(
+                    section.assemblePath("expression"),
                     section.getNonEmptyString("expression"),
                     section.getEnum(VALUE_TYPE, ValueType.class, ValueType.DOUBLE)
             );

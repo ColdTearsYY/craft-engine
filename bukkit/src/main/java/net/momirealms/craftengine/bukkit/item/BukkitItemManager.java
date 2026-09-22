@@ -1,32 +1,36 @@
 package net.momirealms.craftengine.bukkit.item;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
-import net.momirealms.craftengine.bukkit.item.behavior.AxeItemBehavior;
 import net.momirealms.craftengine.bukkit.item.behavior.FlintAndSteelItemBehavior;
 import net.momirealms.craftengine.bukkit.item.factory.BukkitItemFactory;
-import net.momirealms.craftengine.bukkit.item.listener.ArmorEventListener;
-import net.momirealms.craftengine.bukkit.item.listener.DebugStickListener;
-import net.momirealms.craftengine.bukkit.item.listener.ItemEventListener;
-import net.momirealms.craftengine.bukkit.item.listener.SlotChangeListener;
+import net.momirealms.craftengine.bukkit.item.listener.*;
 import net.momirealms.craftengine.bukkit.item.recipe.BukkitRecipeManager;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
-import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
-import net.momirealms.craftengine.bukkit.util.KeyUtils;
-import net.momirealms.craftengine.bukkit.util.RegistryOps;
-import net.momirealms.craftengine.bukkit.util.RegistryUtils;
+import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.*;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.item.network.ItemModelMappings;
+import net.momirealms.craftengine.core.item.network.ItemPacketSource;
+import net.momirealms.craftengine.core.item.network.NetworkItemHandler;
+import net.momirealms.craftengine.core.item.processor.ItemProcessor;
 import net.momirealms.craftengine.core.item.recipe.DatapackRecipeResult;
 import net.momirealms.craftengine.core.item.recipe.IngredientUnlockable;
 import net.momirealms.craftengine.core.pack.AbstractPackManager;
 import net.momirealms.craftengine.core.plugin.compatibility.ItemSource;
 import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.ContextHolder;
+import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
+import net.momirealms.craftengine.core.plugin.network.mod.protocol.ClientboundCreativeModeTabItemsPacket;
 import net.momirealms.craftengine.core.util.*;
 import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.MappedRegistryProxy;
@@ -36,9 +40,15 @@ import net.momirealms.craftengine.proxy.minecraft.core.registries.RegistriesProx
 import net.momirealms.craftengine.proxy.minecraft.network.chat.ComponentProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
 import net.momirealms.craftengine.proxy.minecraft.tags.TagKeyProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemsProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ProjectileWeaponItemProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeHolderProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeManagerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.RecipeProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.equipment.trim.*;
+import net.momirealms.sparrow.nbt.CompoundTag;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.HandlerList;
@@ -49,25 +59,31 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @SuppressWarnings("unchecked")
 public final class BukkitItemManager extends AbstractItemManager {
     static {
         registerVanillaItemExtraBehavior(FlintAndSteelItemBehavior.INSTANCE, ItemKeys.FLINT_AND_STEEL);
-        registerVanillaItemExtraBehavior(AxeItemBehavior.INSTANCE, ItemKeys.AXES);
     }
 
     private static BukkitItemManager instance;
     private final BukkitItemFactory<? extends BukkitItemWrapper> factory;
     private final BukkitCraftEngine plugin;
     private final ItemEventListener itemEventListener;
-    private final DebugStickListener debugStickListener;
     private final ArmorEventListener armorEventListener;
-    private final SlotChangeListener slotChangeListener;
+    private final PreventBreakListener preventBreakListener;
+    private final PaperSlotChangeListener slotChangeListener;
+    private final PaperItemEventListener paperItemEventListener;
     private final NetworkItemHandler networkItemHandler;
     private final Object bedrockItemHolder;
     private final BukkitItem emptyItem;
+    private final Cache<ByteArrayKey, BukkitItem> deserializedItemCache;
+    private final Map<Object, Object> originalVanillaItemComponents = new ConcurrentHashMap<>();
+    private final Set<Object> sharedVanillaItemPrototypes = Collections.newSetFromMap(new IdentityHashMap<>());
     private Set<Key> lastRegisteredPatterns = Set.of();
     private boolean hasExternalRecipeSource = false;
     private ItemSource[] recipeIngredientSources = null;
@@ -78,20 +94,44 @@ public final class BukkitItemManager extends AbstractItemManager {
         this.plugin = plugin;
         this.factory = BukkitItemFactory.create(plugin);
         this.itemEventListener = new ItemEventListener(plugin, this);
-        this.debugStickListener = new DebugStickListener(plugin);
         this.armorEventListener = new ArmorEventListener();
-        this.slotChangeListener = VersionHelper.isOrAbove1_20_3() ? new SlotChangeListener(this) : null;
-        this.networkItemHandler = VersionHelper.isOrAbove1_20_5() ? new ModernNetworkItemHandler() : new LegacyNetworkItemHandler();
+        this.preventBreakListener = new PreventBreakListener(this);
+        this.slotChangeListener = VersionHelper.isOrAbove1_20_3 && VersionHelper.hasPaperPatch ? new PaperSlotChangeListener(this) : null;
+        this.paperItemEventListener = VersionHelper.hasPaperPatch ? new PaperItemEventListener() : null;
+        this.networkItemHandler = VersionHelper.isOrAbove1_20_5 ? new ModernNetworkItemHandler(this) : new LegacyNetworkItemHandler();
         this.registerAllVanillaItems();
         this.bedrockItemHolder = Objects.requireNonNull(RegistryUtils.getHolder(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, KeyUtils.toIdentifier(Key.of("minecraft:bedrock")))));
         this.registerCustomTrimMaterial();
         this.loadLastRegisteredPatterns();
+        this.loadItemModelMappings();
         this.emptyItem = wrap(ItemStackProxy.EMPTY);
+        this.deserializedItemCache = Caffeine.newBuilder()
+                .maximumSize(8192)
+                .expireAfterAccess(Duration.of(15, ChronoUnit.MINUTES))
+                .scheduler(Scheduler.systemScheduler())
+                .executor(this.plugin.scheduler().async())
+                .build();
     }
 
     @Override
     public void delayedLoad() {
         super.delayedLoad();
+        this.resetItemProviders();
+        if (!this.plugin.isReloadingPack() || !Config.obfuscateItemModel()) {
+            for (Player player : this.plugin.networkManager().onlineUsers()) {
+                if (!player.hasClientMod()) continue;
+                player.sendCustomPackets(ClientboundCreativeModeTabItemsPacket.create(player));
+            }
+        }
+        for (ItemDefinition itemDefinition : this.itemDefinitionById.values()) {
+            if (itemDefinition instanceof BukkitItemDefinition bukkitItemDefinition) {
+                bukkitItemDefinition.initConstantItem();
+            }
+        }
+    }
+
+    @Override
+    public void resetItemProviders() {
         List<ItemSource> sources = new ArrayList<>();
         for (String externalSource : Config.recipeIngredientSources()) {
             String sourceId = externalSource.toLowerCase(Locale.ENGLISH);
@@ -128,12 +168,20 @@ public final class BukkitItemManager extends AbstractItemManager {
     @Override
     public void delayedInit() {
         Bukkit.getPluginManager().registerEvents(this.itemEventListener, this.plugin.javaPlugin());
-        Bukkit.getPluginManager().registerEvents(this.debugStickListener, this.plugin.javaPlugin());
         Bukkit.getPluginManager().registerEvents(this.armorEventListener, this.plugin.javaPlugin());
         if (this.slotChangeListener != null) Bukkit.getPluginManager().registerEvents(this.slotChangeListener, this.plugin.javaPlugin());
+        if (this.paperItemEventListener != null)  Bukkit.getPluginManager().registerEvents(this.paperItemEventListener, this.plugin.javaPlugin());
+        this.injectProjectilePredicate();
     }
 
-    @Override
+    private void injectProjectilePredicate() {
+        try {
+            ProjectileWeaponItemProxy.INSTANCE.setArrowOnly(ARROW_ONLY);
+            ProjectileWeaponItemProxy.INSTANCE.setArrowOrFirework(ARROW_OR_FIREWORK);
+        } catch (Throwable ignored) {
+        }
+    }
+
     public NetworkItemHandler networkItemHandler() {
         return this.networkItemHandler;
     }
@@ -145,7 +193,13 @@ public final class BukkitItemManager extends AbstractItemManager {
     @Override
     public Optional<Item> s2c(Item item, @Nullable Player player) {
         if (item.isEmpty()) return Optional.empty();
-        return this.networkItemHandler.s2c(item, player);
+        return this.networkItemHandler.s2c(item, player, ItemPacketSource.GENERIC);
+    }
+
+    @Override
+    public Optional<Item> s2c(Item item, @Nullable Player player, ItemPacketSource source) {
+        if (item.isEmpty()) return Optional.empty();
+        return this.networkItemHandler.s2c(item, player, source);
     }
 
     @Override
@@ -155,12 +209,17 @@ public final class BukkitItemManager extends AbstractItemManager {
     }
 
     public Optional<ItemStack> s2c(ItemStack item, Player player) {
-        if (item.isEmpty()) return Optional.empty();
-        return this.networkItemHandler.s2c(wrap(item), player).map(ItemStackUtils::getBukkitStack);
+        if (ItemStackUtils.isEmpty(item)) return Optional.empty();
+        return this.networkItemHandler.s2c(wrap(item), player, ItemPacketSource.GENERIC).map(ItemStackUtils::getBukkitStack);
+    }
+
+    public Optional<ItemStack> s2c(ItemStack item, Player player, ItemPacketSource source) {
+        if (ItemStackUtils.isEmpty(item)) return Optional.empty();
+        return this.networkItemHandler.s2c(wrap(item), player, source).map(ItemStackUtils::getBukkitStack);
     }
 
     public Optional<ItemStack> c2s(ItemStack item) {
-        if (item.isEmpty()) return Optional.empty();
+        if (ItemStackUtils.isEmpty(item)) return Optional.empty();
         return this.networkItemHandler.c2s(wrap(item)).map(ItemStackUtils::getBukkitStack);
     }
 
@@ -176,7 +235,7 @@ public final class BukkitItemManager extends AbstractItemManager {
             jsonObject.addProperty("count", result.count());
             jsonObject.add("components", result.components());
             Object nmsStack = ItemStackProxy.INSTANCE.getCodec().parse(RegistryOps.JSON, jsonObject)
-                    .resultOrPartial((error) -> plugin.logger().severe("Tried to load invalid item: '" + error + "'")).orElse(null);
+                    .resultOrPartial((error) -> plugin.logger().error("Tried to load invalid item: '" + error + "'")).orElse(null);
             if (nmsStack == null) {
                 return this.emptyItem;
             }
@@ -190,22 +249,111 @@ public final class BukkitItemManager extends AbstractItemManager {
         if (vanilla == null) {
             return Optional.empty();
         }
-        return Optional.of(CloneableConstantItem.of(this.wrap(vanilla)));
+        return Optional.of(CloneableItem.of(this.wrap(vanilla)));
     }
 
     @Override
-    public int getFuelTime(Key id) {
-        return getCustomItem(id).map(it -> it.settings().fuelTime()).orElse(0);
+    public void runDelayedSyncTasks() {
+        this.reloadVanillaItemDataOverrides();
+        if (this.featureFlag$preventBreak()) {
+            this.preventBreakListener.register(this.plugin.javaPlugin());
+        } else {
+            this.preventBreakListener.unregister();
+        }
     }
 
     @Override
     public void disable() {
+        this.restoreVanillaItemComponents();
         this.unload();
         HandlerList.unregisterAll(this.itemEventListener);
-        HandlerList.unregisterAll(this.debugStickListener);
         HandlerList.unregisterAll(this.armorEventListener);
+        this.preventBreakListener.unregister();
         if (this.slotChangeListener != null) HandlerList.unregisterAll(this.slotChangeListener);
-        this.persistLastRegisteredPatterns();
+        if (this.paperItemEventListener != null) HandlerList.unregisterAll(this.paperItemEventListener);
+    }
+
+    public void reloadVanillaItemDataOverrides() {
+        if (!VersionHelper.isOrAbove1_20_5) return;
+        Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Object item : (Iterable<?>) BuiltInRegistriesProxy.ITEM) {
+            Object prototype = ItemProxy.INSTANCE.components(item);
+            if (!seen.add(prototype)) this.sharedVanillaItemPrototypes.add(prototype);
+        }
+        this.restoreVanillaItemComponents();
+        this.applyVanillaItemDataOverrides();
+    }
+
+    private void applyVanillaItemDataOverrides() {
+        for (Map.Entry<Key, List<ItemProcessor>> entry : this.vanillaItemDataOverrides.entrySet()) {
+            Key id = entry.getKey();
+            Object item = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ITEM, KeyUtils.toIdentifier(id));
+            if (item == null || item == ItemsProxy.AIR) continue;
+            try {
+                Object originalComponents = ItemComponentUtils.copy(ItemProxy.INSTANCE.components(item));
+                Object itemStack = ItemStackProxy.INSTANCE.newInstance(item, 1);
+                BukkitItem wrapped = this.wrap(itemStack);
+                ItemBuildContext context = ItemBuildContext.of(null, wrapped, ContextHolder.builder()
+                        .withParameter(DirectContextParameters.ITEM, wrapped)
+                        .build());
+                for (ItemProcessor processor : entry.getValue()) {
+                    processor.apply(context);
+                }
+                Object overriddenComponents = ItemStackProxy.INSTANCE.getComponents(context.item().minecraftItem());
+                this.originalVanillaItemComponents.putIfAbsent(item, originalComponents);
+                this.setVanillaItemComponents(item, overriddenComponents);
+            } catch (Throwable throwable) {
+                this.plugin.logger().warn("Failed to apply override_data to vanilla item '" + id.asString() + "'", throwable);
+            }
+        }
+    }
+
+    private void restoreVanillaItemComponents() {
+        if (!VersionHelper.isOrAbove1_20_5) return;
+        Iterator<Map.Entry<Object, Object>> iterator = this.originalVanillaItemComponents.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Object, Object> entry = iterator.next();
+            try {
+                this.setVanillaItemComponents(entry.getKey(), entry.getValue());
+                iterator.remove();
+            } catch (Throwable throwable) {
+                this.plugin.logger().warn("Failed to restore the default components of a vanilla item", throwable);
+            }
+        }
+    }
+
+    private void setVanillaItemComponents(Object item, Object components) {
+        Object prototype = ItemProxy.INSTANCE.components(item);
+        boolean detached = this.sharedVanillaItemPrototypes.contains(prototype);
+        if (detached) {
+            // Keep historical aliases too: old stacks may still hold the shared
+            // prototype after the other item types have been detached from it.
+            prototype = ItemComponentUtils.copy(prototype);
+            if (VersionHelper.isOrAbove26_1) {
+                Object holder = ItemProxy.INSTANCE.getBuiltInRegistryHolder(item);
+                HolderProxy.ReferenceProxy.INSTANCE.bindComponents(holder, prototype);
+            } else {
+                ItemProxy.INSTANCE.setComponents(item, prototype);
+            }
+        }
+        ItemComponentUtils.replaceContents(prototype, components);
+        if (detached && !VersionHelper.isOrAbove1_21_2) {
+            // These versions intern prototypes. Rebind cached recipe results to the
+            // item's private prototype, preserving explicitly configured components.
+            Object registries = RegistryUtils.getRegistryAccess();
+            Object recipeManager = BukkitRecipeManager.minecraftRecipeManager();
+            for (Object holder : RecipeManagerProxy.INSTANCE.getByName(recipeManager).values()) {
+                Object recipe = RecipeHolderProxy.INSTANCE.getValue(holder);
+                Object result = RecipeProxy.INSTANCE.getResultItem(recipe, registries);
+                if (ItemStackProxy.INSTANCE.getItem(result) != item) continue;
+                ItemComponentUtils.rebasePrototype(result, prototype);
+            }
+        }
+    }
+
+    @Nullable
+    Object originalVanillaItemComponents(Object item) {
+        return this.originalVanillaItemComponents.get(item);
     }
 
     @Override
@@ -229,6 +377,7 @@ public final class BukkitItemManager extends AbstractItemManager {
             }
         }
         MappedRegistryProxy.INSTANCE.setFrozen(registry, true);
+        this.persistLastRegisteredPatterns();
     }
 
     private void persistLastRegisteredPatterns() {
@@ -255,6 +404,43 @@ public final class BukkitItemManager extends AbstractItemManager {
         }
     }
 
+    public void persistItemModelMappings() {
+        Path itemModelObfPath = this.plugin.dataFolderPath()
+                .resolve("cache")
+                .resolve("item_model_obfuscation.json");
+        try {
+            Files.createDirectories(itemModelObfPath.getParent());
+            JsonObject json = new JsonObject();
+            for (Map.Entry<Key, Key> entry : ItemModelMappings.getMappings().entrySet()) {
+                json.addProperty(entry.getKey().toString(), entry.getValue().toString());
+            }
+            GsonHelper.writeJsonFile(json, itemModelObfPath);
+        } catch (IOException e) {
+            this.plugin.logger().warn("Failed to persist item model obfuscation mappings.", e);
+        }
+    }
+
+    private void loadItemModelMappings() {
+        Path itemModelObfPath = this.plugin.dataFolderPath()
+                .resolve("cache")
+                .resolve("item_model_obfuscation.json");
+        if (Files.exists(itemModelObfPath) && Files.isRegularFile(itemModelObfPath)) {
+            try {
+                JsonObject cache = GsonHelper.readJsonObjectFromFile(itemModelObfPath);
+                if (cache == null) return;
+                Map<Key, Key> mappings = new HashMap<>();
+                for (Map.Entry<String, JsonElement> entry : cache.entrySet()) {
+                    if (entry.getValue() instanceof JsonPrimitive primitive) {
+                        mappings.put(Key.of(entry.getKey()), Key.of(primitive.getAsString()));
+                    }
+                }
+                ItemModelMappings.setMappings(mappings);
+            } catch (IOException e) {
+                this.plugin.logger().warn("Failed to load item model obfuscation mappings.", e);
+            }
+        }
+    }
+
     // 需要持久化存储上一次注册的新trim类型，如果注册晚了，加载世界可能导致一些物品损坏
     private void loadLastRegisteredPatterns() {
         Path persistTrimPatternPath = this.plugin.dataFolderPath()
@@ -262,7 +448,8 @@ public final class BukkitItemManager extends AbstractItemManager {
                 .resolve("trim_patterns.json");
         if (Files.exists(persistTrimPatternPath) && Files.isRegularFile(persistTrimPatternPath)) {
             try {
-                JsonObject cache = GsonHelper.readJsonFile(persistTrimPatternPath).getAsJsonObject();
+                JsonObject cache = GsonHelper.readJsonObjectFromFile(persistTrimPatternPath);
+                if (cache == null) return;
                 JsonArray patterns = cache.getAsJsonArray("patterns");
                 Set<Key> trims = new HashSet<>();
                 for (JsonElement element : patterns) {
@@ -293,9 +480,9 @@ public final class BukkitItemManager extends AbstractItemManager {
     }
 
     private Object createTrimPattern(Key key) {
-        if (VersionHelper.isOrAbove1_21_5()) {
+        if (VersionHelper.isOrAbove1_21_5) {
             return TrimPatternProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(key), ComponentProxy.INSTANCE.empty(), false);
-        } else if (VersionHelper.isOrAbove1_20_2()) {
+        } else if (VersionHelper.isOrAbove1_20_2) {
             return TrimPatternProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(key), this.bedrockItemHolder, ComponentProxy.INSTANCE.empty(), false);
         } else {
             return TrimPatternProxy.INSTANCE.newInstance(KeyUtils.toIdentifier(key), this.bedrockItemHolder, ComponentProxy.INSTANCE.empty());
@@ -303,44 +490,64 @@ public final class BukkitItemManager extends AbstractItemManager {
     }
 
     private Object createTrimMaterial() {
-        if (VersionHelper.isOrAbove1_21_5()) {
+        if (VersionHelper.isOrAbove1_21_5) {
             Object assetGroup = MaterialAssetGroupProxy.INSTANCE.create("custom");
             return TrimMaterialProxy.INSTANCE.newInstance(assetGroup, ComponentProxy.INSTANCE.empty());
-        } else if (VersionHelper.isOrAbove1_21_4()) {
+        } else if (VersionHelper.isOrAbove1_21_4) {
             return TrimMaterialProxy.INSTANCE.newInstance("custom", this.bedrockItemHolder, Map.of(), ComponentProxy.INSTANCE.empty());
         } else {
             return TrimMaterialProxy.INSTANCE.newInstance("custom", this.bedrockItemHolder, 0f, Map.of(), ComponentProxy.INSTANCE.empty());
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public BukkitItem fromByteArray(byte[] bytes) {
-        return wrap(Bukkit.getUnsafe().deserializeItem(bytes));
+    public BukkitItem fromBytes(byte[] bytes) {
+        return fromBytes(bytes, true);
     }
 
+    @Override
+    public BukkitItem fromBytes(byte[] bytes, boolean useCache) {
+        if (!useCache) {
+            return wrap(ItemStackUtils.fromBytes(bytes));
+        }
+        // 反序列化（解压 + DataFixer + codec 解析）很贵，而家具等场景会反复加载相同字节
+        BukkitItem template = this.deserializedItemCache.get(new ByteArrayKey(bytes), key -> wrap(ItemStackUtils.fromBytes(key.bytes())));
+        return (BukkitItem) template.copy();
+    }
+
+    private record ByteArrayKey(byte[] bytes) {
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof ByteArrayKey other && Arrays.equals(this.bytes, other.bytes());
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(this.bytes);
+        }
+    }
+
+    @Override
+    public Item fromNBT(CompoundTag tag) {
+        return wrap(ItemStackUtils.parseCachedMinecraftItem(tag, VersionHelper.WORLD_VERSION));
+    }
+
+    @Deprecated
     @Override
     public BukkitItem createCustomWrappedItem(Key id, Player player) {
-        return Optional.ofNullable(customItemsById.get(id)).map(it -> (BukkitItem) it.buildItem(player)).orElse(null);
+        return Optional.ofNullable(itemDefinitionById.get(id)).map(it -> (BukkitItem) it.buildItem(player)).orElse(null);
     }
 
+    @Deprecated
     @Override
     public BukkitItem createWrappedItem(Key id, @Nullable Player player) {
-        CustomItem customItem = this.customItemsById.get(id);
-        if (customItem != null) {
-            return (BukkitItem) customItem.buildItem(player);
+        ItemDefinition itemDefinition = this.itemDefinitionById.get(id);
+        if (itemDefinition != null) {
+            return (BukkitItem) itemDefinition.buildItem(player);
         }
         ItemStack itemStack = this.createVanillaItemStack(id);
         if (itemStack != null) {
             return wrap(itemStack);
-        }
-        return null;
-    }
-
-    public ItemStack buildItemStack(Key id, Player player) {
-        BukkitItem wrappedItem = createWrappedItem(id, player);
-        if (wrappedItem != null) {
-            return wrappedItem.getBukkitItem();
         }
         return null;
     }
@@ -360,34 +567,55 @@ public final class BukkitItemManager extends AbstractItemManager {
         return new BukkitItem((ItemFactory<BukkitItemWrapper>) this.factory, this.factory.wrap(itemStack));
     }
 
+    public boolean isBrokenItem(@Nullable ItemStack itemStack) {
+        if (ItemStackUtils.isEmpty(itemStack)) return false;
+        return isBrokenItem(wrap(itemStack));
+    }
+
+    public boolean isBrokenItem(Item item) {
+        Optional<ItemDefinition> optionalCustomItem = item.getDefinition();
+        if (optionalCustomItem.isEmpty()) return false;
+        if (!optionalCustomItem.get().settings().preventBreak()) return false;
+        int maxDamage = item.maxDamage();
+        if (maxDamage <= 0) return false;
+        return item.damage().orElse(0) >= maxDamage - 1;
+    }
+
     @Override
-    protected CustomItem.Builder createPlatformItemBuilder(UniqueKey id, Key materialId, Key clientBoundMaterialId) {
+    protected ItemDefinition.Builder createPlatformItemBuilder(String path, UniqueKey id, Key materialId, Key clientBoundMaterialId) {
         Object item = RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ITEM, KeyUtils.toIdentifier(materialId));
         Object clientBoundItem = materialId == clientBoundMaterialId ? item : RegistryUtils.getRegistryValue(BuiltInRegistriesProxy.ITEM, KeyUtils.toIdentifier(clientBoundMaterialId));
         if (item == ItemsProxy.AIR) {
-            throw new LocalizedResourceConfigException("warning.config.item.invalid_material", materialId.toString());
+            throw new KnownResourceException("resource.item.invalid_material", path, materialId.toString());
         }
         if (clientBoundItem == ItemsProxy.AIR) {
-            throw new LocalizedResourceConfigException("warning.config.item.invalid_material", clientBoundMaterialId.toString());
+            throw new KnownResourceException("resource.item.invalid_material", path, clientBoundMaterialId.toString());
         }
-        return BukkitCustomItem.builder(item, clientBoundItem)
+        return BukkitItemDefinition.builder(item, clientBoundItem)
                 .id(id)
                 .material(materialId)
                 .clientBoundMaterial(clientBoundMaterialId);
     }
 
     private void registerAllVanillaItems() {
+        VANILLA_ITEMS.clear();
+        VANILLA_ITEM_TO_TAGS.clear();
+        VANILLA_TAG_TO_ITEMS.clear();
         for (Object item : (Iterable<?>) BuiltInRegistriesProxy.ITEM) {
             Object identifier = RegistryProxy.INSTANCE.getKey(BuiltInRegistriesProxy.ITEM, item);
             Key itemKey = KeyUtils.identifierToKey(identifier);
             VANILLA_ITEMS.add(itemKey);
+
             UniqueKey uniqueKey = UniqueKey.create(itemKey);
             Object mcHolder = Objects.requireNonNull(RegistryUtils.getHolder(BuiltInRegistriesProxy.ITEM, ResourceKeyProxy.INSTANCE.create(RegistriesProxy.ITEM, identifier)));
             Set<Object> tags = HolderProxy.ReferenceProxy.INSTANCE.getTags(mcHolder);
+            Set<Key> tagKeys = new HashSet<>();
             for (Object tag : tags) {
                 Key tagId = KeyUtils.identifierToKey(TagKeyProxy.INSTANCE.getLocation(tag));
-                VANILLA_ITEM_TAGS.computeIfAbsent(tagId, (key) -> new ArrayList<>()).add(uniqueKey);
+                tagKeys.add(tagId);
+                VANILLA_TAG_TO_ITEMS.computeIfAbsent(tagId, (key) -> new ArrayList<>()).add(uniqueKey);
             }
+            VANILLA_ITEM_TO_TAGS.put(itemKey, tagKeys);
         }
     }
 
@@ -397,39 +625,41 @@ public final class BukkitItemManager extends AbstractItemManager {
     public Item applyTrim(Item base, Item addition, Item template, Key pattern) {
         Object registryAccess = RegistryUtils.getRegistryAccess();
         Optional<?> optionalMaterial;
-        if (VersionHelper.isOrAbove1_20_5()) {
-            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$0(registryAccess, addition.getMinecraftItem());
+        if (VersionHelper.isOrAbove26_1) {
+            optionalMaterial = Optional.ofNullable(addition.getExactComponent(DataComponentKeys.PROVIDES_TRIM_MATERIAL));
+        } else if (VersionHelper.isOrAbove1_20_5) {
+            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$0(registryAccess, addition.minecraftItem());
         } else {
-            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$1(registryAccess, addition.getMinecraftItem());
+            optionalMaterial = TrimMaterialsProxy.INSTANCE.getFromIngredient$1(registryAccess, addition.minecraftItem());
         }
         Optional<?> optionalPattern;
-        if (VersionHelper.isOrAbove1_21_5()) {
+        if (VersionHelper.isOrAbove1_21_5) {
             optionalPattern = RegistryProxy.INSTANCE.get$0(RegistryUtils.lookupOrThrow(RegistriesProxy.TRIM_PATTERN), KeyUtils.toIdentifier(pattern));
-        } else if (VersionHelper.isOrAbove1_20_5()) {
-            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$1(registryAccess, template.getMinecraftItem());
+        } else if (VersionHelper.isOrAbove1_20_5) {
+            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$1(registryAccess, template.minecraftItem());
         } else {
-            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$0(registryAccess, template.getMinecraftItem());
+            optionalPattern = TrimPatternsProxy.INSTANCE.getFromTemplate$0(registryAccess, template.minecraftItem());
         }
         if (optionalMaterial.isPresent() && optionalPattern.isPresent()) {
             Object armorTrim = ArmorTrimProxy.INSTANCE.newInstance(optionalMaterial.get(), optionalPattern.get());
             Object previousTrim;
-            if (VersionHelper.isOrAbove1_20_5()) {
+            if (VersionHelper.isOrAbove1_20_5) {
                 previousTrim = base.getExactComponent(DataComponentKeys.TRIM);
             } else {
-                if (VersionHelper.isOrAbove1_20_2()) {
-                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.getMinecraftItem(), true);
+                if (VersionHelper.isOrAbove1_20_2) {
+                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.minecraftItem(), true);
                 } else {
-                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.getMinecraftItem());
+                    previousTrim = ArmorTrimProxy.INSTANCE.getTrim(registryAccess, base.minecraftItem());
                 }
             }
             if (armorTrim.equals(previousTrim)) {
                 return this.emptyItem;
             }
             Item newItem = base.copyWithCount(1);
-            if (VersionHelper.isOrAbove1_20_5()) {
+            if (VersionHelper.isOrAbove1_20_5) {
                 newItem.setExactComponent(DataComponentKeys.TRIM, armorTrim);
             } else {
-                ArmorTrimProxy.INSTANCE.setTrim(registryAccess, newItem.getMinecraftItem(), armorTrim);
+                ArmorTrimProxy.INSTANCE.setTrim(registryAccess, newItem.minecraftItem(), armorTrim);
             }
             return newItem;
         }
@@ -455,5 +685,10 @@ public final class BukkitItemManager extends AbstractItemManager {
         if (!recipesToUnlock.isEmpty()) {
             player.discoverRecipes(recipesToUnlock);
         }
+    }
+
+    @Override
+    public Item emptyItem() {
+        return this.emptyItem;
     }
 }

@@ -2,7 +2,10 @@ package net.momirealms.craftengine.proxy.minecraft.world.entity;
 
 import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
 import net.momirealms.sparrow.reflection.proxy.ASMProxyFactory;
-import net.momirealms.sparrow.reflection.proxy.annotation.*;
+import net.momirealms.sparrow.reflection.proxy.annotation.ConstructorInvoker;
+import net.momirealms.sparrow.reflection.proxy.annotation.FieldGetter;
+import net.momirealms.sparrow.reflection.proxy.annotation.ReflectionProxy;
+import net.momirealms.sparrow.reflection.proxy.annotation.Type;
 
 @ReflectionProxy(name = "net.minecraft.world.entity.PositionMoveRotation", activeIf = "min_version=1.21.2")
 public interface PositionMoveRotationProxy {
@@ -17,9 +20,9 @@ public interface PositionMoveRotationProxy {
     @FieldGetter(name = "xRot")
     float getXRot(Object target);
 
-    @FieldSetter(name = "yRot")
-    void setYRot(Object target, float yRot);
+    @FieldGetter(name = "position")
+    Object getPosition(Object target);
 
-    @FieldSetter(name = "xRot")
-    void setXRot(Object target, float xRot);
+    @FieldGetter(name = "deltaMovement")
+    Object getDeltaMovement(Object target);
 }

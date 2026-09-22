@@ -7,6 +7,7 @@ import net.momirealms.craftengine.core.loot.entry.LootEntryContainers;
 import net.momirealms.craftengine.core.loot.function.LootFunction;
 import net.momirealms.craftengine.core.loot.function.LootFunctions;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
@@ -22,7 +23,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-public final class LootTable {
+public final class LootTable implements Loot {
     private final List<LootPool> pools;
     private final List<LootFunction> functions;
     private final BiFunction<Item, LootContext, Item> compositeFunction;
@@ -33,7 +34,7 @@ public final class LootTable {
         this.compositeFunction = LootFunctions.compose(functions);
     }
 
-    private static final String[] BONUS_ROLLS = new String[]{"bonus_rolls", "bonus-rolls"};
+    private static final String[] BONUS_ROLLS = ConfigKeys.of("bonus_rolls");
 
     @NotNull
     public static LootTable fromConfig(@NotNull ConfigSection section) {
@@ -41,7 +42,7 @@ public final class LootTable {
             ConfigSection innerSection = v.getAsSection();
             NumberProvider rolls = innerSection.getValue("rolls", NumberProviders::fromConfig, ConfigConstants.CONSTANT_ONE);
             NumberProvider bonus_rolls = innerSection.getValue(BONUS_ROLLS, NumberProviders::fromConfig, ConfigConstants.CONSTANT_ZERO);
-            List<Condition<LootContext>> conditions = innerSection.getList("conditions", CommonConditions::fromConfig);
+            List<Condition<LootContext>> conditions = innerSection.getList(ConfigKeys.of("condition(s)"), CommonConditions::fromConfig);
             List<LootEntryContainer> containers = innerSection.getList("entries", LootEntryContainers::fromConfig);
             List<LootFunction> functions = innerSection.getList("functions", LootFunctions::fromConfig);
             return new LootPool(containers, conditions, functions, rolls, bonus_rolls);
@@ -49,20 +50,24 @@ public final class LootTable {
         return new LootTable(lootPools, section.getList("functions", LootFunctions::fromConfig));
     }
 
+    @Override
     public List<Item> getRandomItems(ContextHolder parameters, World world) {
         return this.getRandomItems(parameters, world, null);
     }
 
+    @Override
     public List<Item> getRandomItems(ContextHolder parameters, World world, @Nullable Player player) {
         return this.getRandomItems(new LootContext(world, player, player == null ? 1f : (float) player.luck(), parameters));
     }
 
-    private List<Item> getRandomItems(LootContext context) {
+    @Override
+    public List<Item> getRandomItems(LootContext context) {
         ArrayList<Item> list = new ArrayList<>();
         this.getRandomItems(context, list::add);
         return list;
     }
 
+    @Override
     public void getRandomItems(LootContext context, Consumer<Item> lootConsumer) {
         this.getRandomItemsRaw(context, createFunctionApplier(createStackSplitter(lootConsumer), context));
     }

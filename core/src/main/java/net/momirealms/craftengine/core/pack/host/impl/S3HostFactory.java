@@ -10,8 +10,10 @@ import java.util.List;
 public final class S3HostFactory implements ResourcePackHostFactory<S3Host> {
     public static final ResourcePackHostFactory<S3Host> INSTANCE = new S3HostFactory();
 
+    private S3HostFactory() {}
+
     @Override
-    public S3Host create(ConfigSection section) {
+    public S3Host create(String id, ConfigSection section) {
         CraftEngine.instance().dependencyManager().loadDependencies(
                 List.of(
                         Dependencies.NETTY_HTTP2,
@@ -47,6 +49,6 @@ public final class S3HostFactory implements ResourcePackHostFactory<S3Host> {
                         Dependencies.AMAZON_AWSSDK_THIRD_PARTY_JACKSON_CORE
                 )
         );
-        return S3Host.FACTORY.create(section);
+        return S3Host.FACTORY.create(id, section);
     }
 }

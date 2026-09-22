@@ -1,7 +1,10 @@
 package net.momirealms.craftengine.bukkit.util;
 
 import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.proxy.adventure.key.AdventureKeyProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
 import net.momirealms.craftengine.proxy.minecraft.resources.IdentifierProxy;
+import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
 import org.bukkit.NamespacedKey;
 
 public final class KeyUtils {
@@ -24,6 +27,10 @@ public final class KeyUtils {
         return net.kyori.adventure.key.Key.key(key.namespace(), key.value());
     }
 
+    public static Object toPaperAdventureKey(Key key) {
+        return AdventureKeyProxy.INSTANCE.key(key.namespace(), key.value());
+    }
+
     public static Object toIdentifier(String namespace, String path) {
         return IdentifierProxy.INSTANCE.newInstance(namespace, path);
     }
@@ -38,5 +45,9 @@ public final class KeyUtils {
 
     public static NamespacedKey toNamespacedKey(Key key) {
         return new NamespacedKey(key.namespace(), key.value());
+    }
+
+    public static Key unwrapHolder(Object holder) {
+        return identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(HolderProxy.ReferenceProxy.INSTANCE.getKey(holder)));
     }
 }

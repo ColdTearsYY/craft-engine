@@ -3,10 +3,12 @@ package net.momirealms.craftengine.core.pack.model.definition;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperties;
 import net.momirealms.craftengine.core.pack.model.definition.rangedisptach.RangeDispatchProperty;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerationHolder;
 import net.momirealms.craftengine.core.pack.revision.Revision;
+import net.momirealms.craftengine.core.pack.revision.Revisions;
 import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.ConfigValue;
@@ -14,6 +16,7 @@ import net.momirealms.craftengine.core.util.MinecraftVersion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -25,17 +28,33 @@ public final class RangeDispatchItemModel implements ItemModel {
     private final float scale;
     private final ItemModel fallBack;
     private final Map<Float, ItemModel> entries;
+    private final Transformation transformation;
+
+    public RangeDispatchItemModel(@NotNull RangeDispatchProperty property,
+                                  float scale,
+                                  @NotNull Map<Float, ItemModel> entries,
+                                  @Nullable ItemModel fallBack,
+                                  @Nullable Transformation transformation) {
+        this.property = property;
+        this.scale = scale;
+        this.fallBack = fallBack;
+        this.entries = entries;
+        this.transformation = transformation;
+    }
 
     public RangeDispatchItemModel(@NotNull RangeDispatchProperty property,
                                   float scale,
                                   @NotNull Map<Float, ItemModel> entries,
                                   @Nullable ItemModel fallBack) {
-        this.property = property;
-        this.scale = scale;
-        this.fallBack = fallBack;
-        this.entries = entries;
+        this(property, scale, entries, fallBack, null);
     }
 
+    @Nullable
+    public Transformation transformation() {
+        return this.transformation;
+    }
+
+    @NotNull
     public RangeDispatchProperty property() {
         return this.property;
     }
@@ -49,22 +68,23 @@ public final class RangeDispatchItemModel implements ItemModel {
         return this.fallBack;
     }
 
+    @NotNull
     public Map<Float, ItemModel> entries() {
         return this.entries;
     }
 
     @Override
-    public JsonObject apply(MinecraftVersion version) {
+    public JsonObject toJson(MinecraftVersion min, MinecraftVersion max) {
         JsonObject json = new JsonObject();
         json.addProperty("type", "range_dispatch");
-        this.property.accept(json);
+        this.property.writeProperty(json);
         JsonArray array = new JsonArray();
         for (Map.Entry<Float, ItemModel> entry : this.entries.entrySet()) {
             float threshold = entry.getKey();
             ItemModel model = entry.getValue();
             JsonObject jo = new JsonObject();
             jo.addProperty("threshold", threshold);
-            jo.add("model", model.apply(version));
+            jo.add("model", model.toJson(min, max));
             array.add(jo);
         }
         json.add("entries", array);
@@ -72,18 +92,24 @@ public final class RangeDispatchItemModel implements ItemModel {
             json.addProperty("scale", this.scale);
         }
         if (this.fallBack != null) {
-            json.add("fallback", this.fallBack.apply(version));
+            json.add("fallback", this.fallBack.toJson(min, max));
+        }
+        if (this.transformation != null && max.isAtOrAbove(MinecraftVersion.V26_1)) {
+            json.add("transformation", this.transformation.toJson());
         }
         return json;
     }
 
     @Override
-    public void collectRevision(Consumer<Revision> consumer) {
+    public void gatherRevisions(Consumer<Revision> consumer) {
         if (this.fallBack != null) {
-            this.fallBack.collectRevision(consumer);
+            this.fallBack.gatherRevisions(consumer);
+        }
+        if (this.transformation != null) {
+            consumer.accept(Revisions.SINCE_26_1);
         }
         for (ItemModel model : this.entries.values()) {
-            model.collectRevision(consumer);
+            model.gatherRevisions(consumer);
         }
     }
 
@@ -100,22 +126,24 @@ public final class RangeDispatchItemModel implements ItemModel {
     private static class Factory implements ItemModelFactory<RangeDispatchItemModel> {
 
         @Override
-        public RangeDispatchItemModel create(ConfigSection section) {
+        public RangeDispatchItemModel create(Pack pack, Path path, ConfigSection section) {
             RangeDispatchProperty property = RangeDispatchProperties.fromConfig(section);
             float scale = section.getFloat("scale", 1.0f);
-            ItemModel fallbackModel = section.getValue("fallback", ItemModels::fromConfig);
+            ItemModel fallbackModel = section.getValue("fallback", v -> ItemModels.fromConfig(pack, path, v));
             Map<Float, ItemModel> entryMap = new TreeMap<>();
             ConfigValue entries = section.getNonNullValue("entries", ConfigConstants.ARGUMENT_LIST);
             entries.forEach(value -> {
                 ConfigSection entry = value.getAsSection();
                 float threshold = entry.getNonNullFloat("threshold");
-                ItemModel model = entry.getValue("model", ItemModels::fromConfig, fallbackModel);
+                ItemModel model = entry.getValue("model", v -> ItemModels.fromConfig(pack, path, v), fallbackModel);
                 entryMap.put(threshold, model);
             });
             return new RangeDispatchItemModel(
                     property,
                     scale,
-                    entryMap, fallbackModel
+                    entryMap,
+                    fallbackModel,
+                    section.getValue("transformation", Transformation::fromConfig)
             );
         }
     }
@@ -138,7 +166,9 @@ public final class RangeDispatchItemModel implements ItemModel {
             }
             return new RangeDispatchItemModel(RangeDispatchProperties.fromJson(json),
                     json.has("scale") ? json.get("scale").getAsFloat() : 1f,
-                    entries, json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null
+                    entries,
+                    json.has("fallback") ? ItemModels.fromJson(json.getAsJsonObject("fallback")) : null,
+                    json.has("transformation") ? Transformation.fromJson(json.get("transformation")) : null
             );
         }
     }

@@ -5,7 +5,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import net.momirealms.craftengine.core.util.CompletableFutures;
 import net.momirealms.craftengine.core.util.FileUtils;
 import net.momirealms.craftengine.core.util.GsonHelper;
 import net.momirealms.craftengine.core.util.Pair;
@@ -16,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 
@@ -58,8 +58,8 @@ public final class IdAllocator {
         this.combinedFutures.clear();
     }
 
-    public CompletableFuture<Void> combinedFuture() {
-        return CompletableFutures.allOf(this.combinedFutures);
+    public List<CompletableFuture<?>> combinedFutures() {
+        return combinedFutures;
     }
 
     public synchronized void addCombinedFuture(@NotNull CompletableFuture<?> future) {
@@ -138,7 +138,7 @@ public final class IdAllocator {
             // 检查ID是否被其他名称占用
             String existingOwner = this.forcedIdMap.inverse().get(id);
             if (existingOwner != null && !existingOwner.equals(name)) {
-                return CompletableFuture.failedFuture(new IdConflictException(existingOwner, id));
+                return CompletableFuture.failedFuture(new CompletionException(new IdConflictException(existingOwner, id)));
             }
 
             this.forcedIdMap.put(name, id);
@@ -182,6 +182,10 @@ public final class IdAllocator {
      * @return 分配结果的Future
      */
     public synchronized CompletableFuture<Integer> requestAutoId(String name) {
+        CompletableFuture<Integer> previousFuture = this.pendingAllocations.get(name);
+        if (previousFuture != null) {
+            return previousFuture;
+        }
         CompletableFuture<Integer> future = new CompletableFuture<>();
         this.pendingAllocations.put(name, future);
         return future;
@@ -240,7 +244,7 @@ public final class IdAllocator {
         if (lastTime != this.lastModified) {
             this.lastModified = lastTime;
             this.cachedIdMap.clear();
-            JsonElement element = GsonHelper.readJsonFile(this.cacheFilePath);
+            JsonElement element = GsonHelper.readJsonFromFile(this.cacheFilePath);
             if (element instanceof JsonObject jsonObject) {
                 for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
                     if (entry.getValue() instanceof JsonPrimitive primitive) {

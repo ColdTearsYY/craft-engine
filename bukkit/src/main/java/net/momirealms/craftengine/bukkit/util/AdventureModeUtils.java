@@ -5,7 +5,6 @@ import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
-import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.core.registries.BuiltInRegistriesProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
 import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.pattern.BlockInWorldProxy;
@@ -26,21 +25,21 @@ public final class AdventureModeUtils {
         if (state != null) {
             BlockInWorldProxy.INSTANCE.setState(blockInWorld, state);
         }
-        if (VersionHelper.isOrAbove1_20_5()) {
-            return ItemStackProxy.INSTANCE.canBreakBlockInAdventureMode(CraftItemStackProxy.INSTANCE.unwrap(itemStack), blockInWorld);
+        if (VersionHelper.isOrAbove1_20_5) {
+            return ItemStackProxy.INSTANCE.canBreakBlockInAdventureMode(ItemStackUtils.unwrap(itemStack), blockInWorld);
         } else {
-            return ItemStackProxy.INSTANCE.hasAdventureModeBreakTagForBlock(CraftItemStackProxy.INSTANCE.unwrap(itemStack), BuiltInRegistriesProxy.BLOCK, blockInWorld);
+            return ItemStackProxy.INSTANCE.hasAdventureModeBreakTagForBlock(ItemStackUtils.unwrap(itemStack), BuiltInRegistriesProxy.BLOCK, blockInWorld);
         }
     }
 
     public static boolean canPlace(Item itemStack, World world, BlockPos pos, Object state) {
         Object blockPos = LocationUtils.toBlockPos(pos);
-        Object item = itemStack == null ? ItemStackProxy.EMPTY : itemStack.getMinecraftItem();
+        Object item = itemStack == null ? ItemStackProxy.EMPTY : itemStack.minecraftItem();
         Object blockInWorld = BlockInWorldProxy.INSTANCE.newInstance(CraftWorldProxy.INSTANCE.getWorld((org.bukkit.World) world.platformWorld()), blockPos, false);
         if (state != null) {
             BlockInWorldProxy.INSTANCE.setState(blockInWorld, state);
         }
-        if (VersionHelper.isOrAbove1_20_5()) {
+        if (VersionHelper.isOrAbove1_20_5) {
             return ItemStackProxy.INSTANCE.canPlaceOnBlockInAdventureMode(item, blockInWorld);
         } else {
             return ItemStackProxy.INSTANCE.hasAdventureModePlaceTagForBlock(item, BuiltInRegistriesProxy.BLOCK, blockInWorld);
@@ -53,10 +52,10 @@ public final class AdventureModeUtils {
         if (state != null) {
             BlockInWorldProxy.INSTANCE.setState(blockInWorld, state);
         }
-        if (VersionHelper.isOrAbove1_20_5()) {
-            return ItemStackProxy.INSTANCE.canPlaceOnBlockInAdventureMode(CraftItemStackProxy.INSTANCE.unwrap(itemStack), blockInWorld);
+        if (VersionHelper.isOrAbove1_20_5) {
+            return ItemStackProxy.INSTANCE.canPlaceOnBlockInAdventureMode(ItemStackUtils.unwrap(itemStack), blockInWorld);
         } else {
-            return ItemStackProxy.INSTANCE.hasAdventureModePlaceTagForBlock(CraftItemStackProxy.INSTANCE.unwrap(itemStack), BuiltInRegistriesProxy.BLOCK, blockInWorld);
+            return ItemStackProxy.INSTANCE.hasAdventureModePlaceTagForBlock(ItemStackUtils.unwrap(itemStack), BuiltInRegistriesProxy.BLOCK, blockInWorld);
         }
     }
 }

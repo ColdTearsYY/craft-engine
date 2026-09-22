@@ -4,12 +4,13 @@ import net.momirealms.antigrieflib.Flag;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.BlockStateUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import net.momirealms.craftengine.core.block.behavior.BlockBehaviorFactory;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.property.Property;
 import net.momirealms.craftengine.core.entity.player.InteractionResult;
 import net.momirealms.craftengine.core.entity.player.Player;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.World;
@@ -21,7 +22,6 @@ import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockB
 import org.bukkit.Location;
 
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     public static final BlockBehaviorFactory<ToggleableLampBlockBehavior> FACTORY = new Factory();
@@ -29,7 +29,7 @@ public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     public final Property<Boolean> poweredProperty;
     public final boolean canOpenWithHand;
 
-    private ToggleableLampBlockBehavior(CustomBlock block,
+    private ToggleableLampBlockBehavior(BlockDefinition block,
                                         Property<Boolean> litProperty,
                                         Property<Boolean> poweredProperty,
                                         boolean canOpenWithHand) {
@@ -53,12 +53,12 @@ public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
                 return InteractionResult.SUCCESS_AND_CANCEL;
             }
         }
-        ToggleableLampBlockBehavior behavior = state.behavior().getAs(ToggleableLampBlockBehavior.class).orElse(null);
+        ToggleableLampBlockBehavior behavior = state.behavior().getFirst(ToggleableLampBlockBehavior.class);
         if (behavior == null) return InteractionResult.PASS;
         LevelWriterProxy.INSTANCE.setBlock(
-                world.serverWorld(),
+                world.minecraftWorld(),
                 LocationUtils.toBlockPos(pos),
-                state.cycle(behavior.litProperty).customBlockState().literalObject(),
+                state.cycle(behavior.litProperty).customBlockState().minecraftState(),
                 2
         );
         Optional.ofNullable(player).ifPresent(p -> p.swingHand(context.getHand()));
@@ -66,7 +66,7 @@ public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public void onPlace(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void onPlace(Object thisBlock, Object[] args) {
         if (this.poweredProperty == null) return;
         Object state = args[0];
         Object level = args[1];
@@ -80,7 +80,7 @@ public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
     }
 
     @Override
-    public void neighborChanged(Object thisBlock, Object[] args, Callable<Object> superMethod) {
+    public void neighborChanged(Object thisBlock, Object[] args) {
         if (this.poweredProperty == null) return;
         Object blockState = args[0];
         Object world = args[1];
@@ -100,15 +100,15 @@ public final class ToggleableLampBlockBehavior extends BukkitBlockBehavior {
             if (!isPowered) {
                 blockState = blockState.cycle(this.litProperty);
             }
-            LevelWriterProxy.INSTANCE.setBlock(level, pos, blockState.with(this.poweredProperty, hasNeighborSignal).customBlockState().literalObject(), 3);
+            LevelWriterProxy.INSTANCE.setBlock(level, pos, blockState.with(this.poweredProperty, hasNeighborSignal).customBlockState().minecraftState(), 3);
         }
     }
 
     private static class Factory implements BlockBehaviorFactory<ToggleableLampBlockBehavior> {
-        private static final String[] CAN_OPEN_WITH_HAND = new String[] {"can_open_with_hand", "can_toggle_with_hand", "can-open-with-hand", "can-toggle-with-hand"};
+        private static final String[] CAN_OPEN_WITH_HAND = ConfigKeys.of("can_open_with_hand|can_toggle_with_hand");
 
         @Override
-        public ToggleableLampBlockBehavior create(CustomBlock block, ConfigSection section) {
+        public ToggleableLampBlockBehavior create(BlockDefinition block, ConfigSection section) {
             boolean canOpenWithHand = section.getBoolean(CAN_OPEN_WITH_HAND);
             return new ToggleableLampBlockBehavior(
                     block,

@@ -1,5 +1,6 @@
 package net.momirealms.craftengine.bukkit.entity.seat;
 
+import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.util.EntityUtils;
 import net.momirealms.craftengine.bukkit.util.LegacyAttributeUtils;
 import net.momirealms.craftengine.bukkit.util.LocationUtils;
@@ -9,6 +10,10 @@ import net.momirealms.craftengine.core.entity.seat.SeatOwner;
 import net.momirealms.craftengine.core.util.QuaternionUtils;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.craftengine.core.world.WorldPosition;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.entity.CraftEntityProxy;
+import net.momirealms.craftengine.proxy.minecraft.commands.arguments.EntityAnchorArgumentProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.NBT;
 import org.bukkit.Location;
@@ -100,7 +105,7 @@ public final class BukkitSeat<O extends SeatOwner> implements Seat<O> {
         Location location = this.calculateSeatLocation(sourceLocation);
 
         CompoundTag extraData = new CompoundTag();
-        this.owner.saveEntityData(extraData);
+        this.owner.saveSeatEntityData(extraData);
         byte[] data;
         try {
             data = NBT.toBytes(extraData);
@@ -110,9 +115,9 @@ public final class BukkitSeat<O extends SeatOwner> implements Seat<O> {
 
         // 生成座椅实体
         Entity seatEntity = this.limitPlayerRotation() ?
-                EntityUtils.spawnEntity(player.getWorld(), VersionHelper.isOrAbove1_20_2() ? location.subtract(0,0.9875,0) : location.subtract(0,0.990625,0), EntityType.ARMOR_STAND, entity -> {
+                EntityUtils.spawnEntity(player.getWorld(), VersionHelper.isOrAbove1_20_2 ? location.subtract(0,0.9875,0) : location.subtract(0,0.990625,0), EntityType.ARMOR_STAND, entity -> {
                     ArmorStand armorStand = (ArmorStand) entity;
-                    if (VersionHelper.isOrAbove1_21_3()) {
+                    if (VersionHelper.isOrAbove1_21_3) {
                         Objects.requireNonNull(armorStand.getAttribute(Attribute.MAX_HEALTH)).setBaseValue(0.01);
                     } else {
                         LegacyAttributeUtils.setMaxHealth(armorStand);
@@ -122,14 +127,14 @@ public final class BukkitSeat<O extends SeatOwner> implements Seat<O> {
                     armorStand.setSilent(true);
                     armorStand.setInvulnerable(true);
                     armorStand.setArms(false);
-                    armorStand.setCanTick(false);
+                    if (VersionHelper.hasPaperPatch) armorStand.setCanTick(false);
                     armorStand.setAI(false);
                     armorStand.setGravity(false);
                     armorStand.setPersistent(false);
                     armorStand.getPersistentDataContainer().set(BukkitSeatManager.SEAT_KEY, PersistentDataType.BOOLEAN, true);
                     armorStand.getPersistentDataContainer().set(BukkitSeatManager.SEAT_EXTRA_DATA_KEY, PersistentDataType.BYTE_ARRAY, data);
                 }) :
-                EntityUtils.spawnEntity(player.getWorld(), VersionHelper.isOrAbove1_20_2() ? location : location.subtract(0,0.25,0), EntityType.ITEM_DISPLAY, entity -> {
+                EntityUtils.spawnEntity(player.getWorld(), VersionHelper.isOrAbove1_20_2 ? location : location.subtract(0,0.25,0), EntityType.ITEM_DISPLAY, entity -> {
                     ItemDisplay itemDisplay = (ItemDisplay) entity;
                     itemDisplay.setPersistent(false);
                     itemDisplay.getPersistentDataContainer().set(BukkitSeatManager.SEAT_KEY, PersistentDataType.BOOLEAN, true);
@@ -140,6 +145,20 @@ public final class BukkitSeat<O extends SeatOwner> implements Seat<O> {
             return false;
         } else {
             this.entity = new WeakReference<>(seatEntity);
+            float forcedYaw = this.seatConfig.forcePlayerRotation();
+            if (!Float.isNaN(forcedYaw)) {
+                float targetYaw = Location.normalizeYaw(sourceLocation.getYaw() + forcedYaw);
+                // 等待骑乘位置更新；只在玩家仍坐在本座椅时调整一次视角。
+                BukkitCraftEngine.instance().scheduler().platform().runDelayed(() -> {
+                    if (!seatEntity.equals(player.getVehicle())) return;
+                    Location eyeLocation = player.getEyeLocation();
+                    eyeLocation.setYaw(targetYaw);
+                    Location target = eyeLocation.clone().add(eyeLocation.getDirection().multiply(64));
+                    ServerPlayerProxy.INSTANCE.lookAt(CraftEntityProxy.INSTANCE.getEntity(player),
+                            EntityAnchorArgumentProxy.AnchorProxy.EYES,
+                            Vec3Proxy.INSTANCE.newInstance(target.getX(), target.getY(), target.getZ()));
+                }, null, player);
+            }
             return true;
         }
     }

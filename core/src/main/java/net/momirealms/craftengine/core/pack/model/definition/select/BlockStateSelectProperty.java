@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.pack.model.definition.select;
 
 import com.google.gson.JsonObject;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class BlockStateSelectProperty implements SelectProperty {
@@ -17,13 +18,13 @@ public final class BlockStateSelectProperty implements SelectProperty {
     }
 
     @Override
-    public void accept(JsonObject jsonObject) {
-        jsonObject.addProperty("property", "block_state");
-        jsonObject.addProperty("block_state_property", this.blockStateProperty);
+    public void writeProperty(JsonObject model) {
+        model.addProperty("property", "block_state");
+        model.addProperty("block_state_property", this.blockStateProperty);
     }
 
     private static class Factory implements SelectPropertyFactory<BlockStateSelectProperty> {
-        private static final String[] BLOCK_STATE_PROPERTY = new String[] {"block_state_property", "block-state-property"};
+        private static final String[] BLOCK_STATE_PROPERTY = ConfigKeys.of("block_state_property");
 
         @Override
         public BlockStateSelectProperty create(ConfigSection section) {
