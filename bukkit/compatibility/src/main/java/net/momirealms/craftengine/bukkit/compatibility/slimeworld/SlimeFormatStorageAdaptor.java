@@ -3,37 +3,35 @@ package net.momirealms.craftengine.bukkit.compatibility.slimeworld;
 import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
 import com.infernalsuite.asp.api.events.LoadSlimeWorldEvent;
 import com.infernalsuite.asp.api.world.SlimeWorld;
+import net.momirealms.craftengine.bukkit.world.BukkitStorageAdaptor;
+import net.momirealms.craftengine.bukkit.world.BukkitWorld;
+import net.momirealms.craftengine.bukkit.world.BukkitWorldManager;
 import net.momirealms.craftengine.core.plugin.config.Config;
-import net.momirealms.craftengine.core.util.ReflectionUtils;
-import net.momirealms.craftengine.core.world.CEWorld;
+import net.momirealms.craftengine.core.plugin.logger.Debugger;
 import net.momirealms.craftengine.core.world.World;
-import net.momirealms.craftengine.core.world.WorldManager;
 import net.momirealms.craftengine.core.world.chunk.storage.CachedStorage;
-import net.momirealms.craftengine.core.world.chunk.storage.DefaultStorageAdaptor;
 import net.momirealms.craftengine.core.world.chunk.storage.WorldDataStorage;
+import net.momirealms.craftengine.proxy.adventure.nbt.ByteArrayBinaryTagProxy;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Method;
-
-public class SlimeFormatStorageAdaptor extends DefaultStorageAdaptor implements Listener {
-    private final WorldManager worldManager;
-    private final Class<?> byteArrayTagClass = ReflectionUtils.getClazz("net{}kyori{}adventure{}nbt{}ByteArrayBinaryTag".replace("{}", "."));
-    private final Method method$ByteArrayBinaryTag$byteArrayBinaryTag = ReflectionUtils.getStaticMethod(byteArrayTagClass, byteArrayTagClass, byte.class.arrayType());
-    private final Method method$ByteArrayBinaryTag$value = ReflectionUtils.getMethod(byteArrayTagClass, byte.class.arrayType());
+public final class SlimeFormatStorageAdaptor extends BukkitStorageAdaptor implements Listener {
+    private final BukkitWorldManager worldManager;
 
     @EventHandler
     public void onWorldLoad(LoadSlimeWorldEvent event) {
         org.bukkit.World world = Bukkit.getWorld(event.getSlimeWorld().getName());
         if (world == null) return;
-        CEWorld ceWorld = this.worldManager.createWorld(this.worldManager.wrap(world),
-                Config.enableChunkCache() ? new CachedStorage<>(new SlimeWorldDataStorage(event.getSlimeWorld(), this)) : new SlimeWorldDataStorage(event.getSlimeWorld(), this));
-        this.worldManager.loadWorld(ceWorld, true);
+        Debugger.CHUNK.debug(() -> "LoadSlimeWorldEvent -> " + world.getName());
+        BukkitWorld bukkitWorld = this.worldManager.injectCraftWorld(world);
+        WorldDataStorage storage = Config.enableChunkCache() ? new CachedStorage<>(new SlimeWorldDataStorage(event.getSlimeWorld(), this)) : new SlimeWorldDataStorage(event.getSlimeWorld(), this);
+        this.worldManager.installStorageWorld(bukkitWorld, this.worldManager.createStorageWorld(bukkitWorld, storage));
+        this.worldManager.handleWorldLoad(bukkitWorld);
     }
 
-    public SlimeFormatStorageAdaptor(WorldManager worldManager) {
+    public SlimeFormatStorageAdaptor(BukkitWorldManager worldManager) {
         this.worldManager = worldManager;
     }
 
@@ -52,18 +50,10 @@ public class SlimeFormatStorageAdaptor extends DefaultStorageAdaptor implements 
     }
 
     public byte[] byteArrayTagToBytes(Object byteArrayTag) {
-        try {
-            return (byte[]) method$ByteArrayBinaryTag$value.invoke(byteArrayTag);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to convert byte array tag to byte[]", e);
-        }
+        return ByteArrayBinaryTagProxy.INSTANCE.value(byteArrayTag);
     }
 
     public Object bytesToByteArrayTag(byte[] bytes) {
-        try {
-            return method$ByteArrayBinaryTag$byteArrayBinaryTag.invoke(null, (Object) bytes);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Failed to convert byte array tag to byte[]", e);
-        }
+        return ByteArrayBinaryTagProxy.INSTANCE.byteArrayBinaryTag(bytes);
     }
 }

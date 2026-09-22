@@ -1,6 +1,9 @@
 package net.momirealms.craftengine.bukkit.compatibility.skript.effect;
 
-import ch.njol.skript.Skript;
+import ch.njol.skript.doc.Description;
+import ch.njol.skript.doc.Example;
+import ch.njol.skript.doc.Name;
+import ch.njol.skript.doc.Since;
 import ch.njol.skript.lang.Effect;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.SkriptParser;
@@ -11,22 +14,34 @@ import net.momirealms.craftengine.core.block.ImmutableBlockState;
 import org.bukkit.Location;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.Nullable;
+import org.skriptlang.skript.addon.SkriptAddon;
+import org.skriptlang.skript.registration.SyntaxInfo;
+import org.skriptlang.skript.registration.SyntaxRegistry;
 
-public class EffPlaceCustomBlock extends Effect {
-
-    public static void register() {
-        Skript.registerEffect(EffPlaceCustomBlock.class, "place (custom|ce|craft-engine) block %customblockstates% [at] [%directions% %locations%]");
-    }
-
+@Name("Place Custom Block")
+@Description({"Places custom blocks at the given locations."})
+@Example("""
+        set {_s} to "mynamespace:my_block[state=value]" parsed as custom block state
+        place custom block {_s} at target block
+        """)
+@Since("1.0")
+public final class EffPlaceCustomBlock extends Effect {
     private Expression<ImmutableBlockState> blocks;
     private Expression<Location> locations;
 
+    public static void register(SkriptAddon addon) {
+        SyntaxInfo<EffPlaceCustomBlock> syntaxInfo = SyntaxInfo.builder(EffPlaceCustomBlock.class)
+                .addPattern("place (custom|ce|craft-engine) block %customblockstates% [at] [%directions% %locations%]")
+                .build();
+        addon.registry(SyntaxRegistry.class).register(SyntaxRegistry.EFFECT, syntaxInfo);
+    }
+
     @Override
     protected void execute(Event e) {
-        ImmutableBlockState[] os = blocks.getArray(e);
-        for (Location l : locations.getArray(e)) {
-            for (ImmutableBlockState o : os) {
-                CraftEngineBlocks.place(l, o, false);
+        ImmutableBlockState[] states = blocks.getArray(e);
+        for (Location location : locations.getArray(e)) {
+            for (ImmutableBlockState state : states) {
+                CraftEngineBlocks.place(location, state, false);
             }
         }
     }

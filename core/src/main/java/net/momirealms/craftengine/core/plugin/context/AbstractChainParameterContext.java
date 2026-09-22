@@ -1,56 +1,51 @@
 package net.momirealms.craftengine.core.plugin.context;
 
-import net.momirealms.craftengine.core.plugin.context.parameter.*;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public abstract class AbstractChainParameterContext extends AbstractCommonContext {
-    private static final Map<ContextKey<?>, ChainParameterProvider<?>> CHAIN_PARAMETERS = new HashMap<>();
-    static {
-        CHAIN_PARAMETERS.put(DirectContextParameters.PLAYER, new PlayerParameterProvider());
-        CHAIN_PARAMETERS.put(DirectContextParameters.WORLD, new WorldParameterProvider());
-        CHAIN_PARAMETERS.put(DirectContextParameters.BLOCK, new BlockParameterProvider());
-        CHAIN_PARAMETERS.put(DirectContextParameters.POSITION, new PositionParameterProvider());
-        CHAIN_PARAMETERS.put(DirectContextParameters.FURNITURE, new FurnitureParameterProvider());
-        CHAIN_PARAMETERS.put(DirectContextParameters.ENTITY, new EntityParameterProvider());
-        ItemParameterProvider itemProvider = new ItemParameterProvider();
-        CHAIN_PARAMETERS.put(DirectContextParameters.MAIN_HAND_ITEM, itemProvider);
-        CHAIN_PARAMETERS.put(DirectContextParameters.OFF_HAND_ITEM, itemProvider);
-        CHAIN_PARAMETERS.put(DirectContextParameters.FURNITURE_ITEM, itemProvider);
-        CHAIN_PARAMETERS.put(DirectContextParameters.ITEM_IN_HAND, itemProvider);
-        CHAIN_PARAMETERS.put(DirectContextParameters.ITEM, itemProvider);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> ChainParameterProvider<T> getParameterProvider(final ContextKey<?> key) {
-        return (ChainParameterProvider<T>) CHAIN_PARAMETERS.get(key);
-    }
+public abstract class AbstractChainParameterContext implements Context {
+    protected final ContextHolder contexts;
+    protected final Object2ObjectArrayMap<String, Object> vars = new Object2ObjectArrayMap<>();
 
     public AbstractChainParameterContext(ContextHolder contexts) {
-        super(contexts);
-    }
-
-    public AbstractChainParameterContext(ContextHolder contexts,
-                                         List<AdditionalParameterProvider> additionalParameterProviders) {
-        super(contexts, additionalParameterProviders);
+        this.contexts = contexts;
     }
 
     @Override
     public <T> Optional<T> getOptionalParameter(ContextKey<T> parameter) {
         ContextKey<Object> parentKey = parameter.parent();
         if (parentKey == null) {
-            return super.getOptionalParameter(parameter);
-        }
-        if (!CHAIN_PARAMETERS.containsKey(parentKey)) {
-            return Optional.empty();
+            return this.contexts.getOptional(parameter);
         }
         Optional<Object> parentValue = getOptionalParameter(parentKey);
         if (parentValue.isEmpty()) {
             return Optional.empty();
         }
-        return getParameterProvider(parentKey).getOptionalParameter(parameter, parentValue.get());
+        if (parentValue.get() instanceof ChainParameterSource source) {
+            return source.getParameter(parameter);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public ContextHolder contexts() {
+        return this.contexts;
+    }
+
+    @Override
+    public void setVariable(String key, Object value) {
+        this.vars.put(key, value);
+    }
+
+    @Override
+    public Object getVariable(String key) {
+        return this.vars.get(key);
+    }
+
+    @Override
+    public Map<String, Object> variables() {
+        return this.vars;
     }
 }

@@ -1,14 +1,19 @@
 package net.momirealms.craftengine.core.sound;
 
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.core.pack.LoadingSequence;
 import net.momirealms.craftengine.core.pack.Pack;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.config.IdSectionConfigParser;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStage;
+import net.momirealms.craftengine.core.plugin.config.lifecycle.LoadingStages;
+import net.momirealms.craftengine.core.util.AdventureHelper;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import org.incendo.cloud.suggestion.Suggestion;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -19,15 +24,15 @@ public abstract class AbstractSoundManager implements SoundManager {
     protected final Map<Key, SoundEvent> byId = new HashMap<>();
     protected final Map<String, List<SoundEvent>> byNamespace = new HashMap<>();
     protected final Map<Key, JukeboxSong> songs = new HashMap<>();
-    protected final SoundParser soundParser;
-    protected final SongParser songParser;
-    protected final Map<Integer, Key> customSoundsInRegistry = new HashMap<>();
+    protected final ConfigParser soundParser;
+    protected final ConfigParser songParser;
+//    protected final Map<Integer, Key> customSoundsInRegistry = new HashMap<>();
     protected final List<Suggestion> soundSuggestions = new ArrayList<>();
 
     public AbstractSoundManager(CraftEngine plugin) {
         this.plugin = plugin;
         this.soundParser = new SoundParser();
-        this.songParser = new SongParser();
+        this.songParser = new JukeboxSongParser();
     }
 
     @Override
@@ -65,9 +70,8 @@ public abstract class AbstractSoundManager implements SoundManager {
 
     @Override
     public void runDelayedSyncTasks() {
-        if (!VersionHelper.isOrAbove1_21()) return;
-        // 问题是会踢客户端
-        // this.registerSounds(this.byId.keySet());
+        if (!VersionHelper.isOrAbove1_21) return;
+//        this.registerSounds(this.byId.keySet());
         this.registerSongs(this.songs);
     }
 
@@ -84,12 +88,12 @@ public abstract class AbstractSoundManager implements SoundManager {
 
     protected abstract void registerSounds(Collection<Key> sounds);
 
-    public class SongParser extends IdSectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"jukebox-songs", "jukebox-song", "jukebox_songs", "jukebox_song"};
+    private final class JukeboxSongParser extends IdSectionConfigParser {
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("jukebox_song(s)");
 
         @Override
-        public int loadingSequence() {
-            return LoadingSequence.JUKEBOX_SONG;
+        public Key type() {
+            return Key.ce("jukebox_song");
         }
 
         @Override
@@ -103,25 +107,35 @@ public abstract class AbstractSoundManager implements SoundManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
-            if (AbstractSoundManager.this.songs.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.jukebox_song.duplicate");
-            }
-            String sound = ResourceConfigUtils.requireNonEmptyStringOrThrow(section.get("sound"), "warning.config.jukebox_song.missing_sound");
-            Component description = AdventureHelper.miniMessage().deserialize(section.getOrDefault("description", "").toString());
-            float length = ResourceConfigUtils.getAsFloat(section.get("length"), "length");
-            int comparatorOutput = ResourceConfigUtils.getAsInt(section.getOrDefault("comparator-output", 15), "comparator-output");
-            JukeboxSong song = new JukeboxSong(Key.of(sound), description, length, comparatorOutput, ResourceConfigUtils.getAsFloat(section.getOrDefault("range", 32f), "range"));
+        public LoadingStage loadingStage() {
+            return LoadingStages.JUKEBOX_SONG;
+        }
+
+        @Override
+        public List<LoadingStage> dependencies() {
+            return List.of(LoadingStages.SOUND);
+        }
+
+        private static final String[] COMPARATOR = ConfigKeys.of("comparator_output");
+
+        @Override
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
+            Key sound = section.getNonNullIdentifier("sound");
+            Component description = AdventureHelper.miniMessage().deserialize(section.getString("description", ""));
+            float length = section.getNonNullFloat("length");
+            float range = section.getFloat("range", 32f);
+            int comparatorOutput = section.getInt(COMPARATOR, 15);
+            JukeboxSong song = new JukeboxSong(sound, description, length, comparatorOutput, range);
             AbstractSoundManager.this.songs.put(id, song);
         }
     }
 
-    public class SoundParser extends IdSectionConfigParser {
-        public static final String[] CONFIG_SECTION_NAME = new String[] {"sounds", "sound"};
+    private final class SoundParser extends IdSectionConfigParser {
+        public static final String[] CONFIG_SECTION_NAME = ConfigKeys.of("sound(s)");
 
         @Override
-        public int loadingSequence() {
-            return LoadingSequence.SOUND;
+        public Key type() {
+            return Key.ce("sound");
         }
 
         @Override
@@ -135,21 +149,23 @@ public abstract class AbstractSoundManager implements SoundManager {
         }
 
         @Override
-        public void parseSection(Pack pack, Path path, String node, Key id, Map<String, Object> section) {
-            if (AbstractSoundManager.this.byId.containsKey(id)) {
-                throw new LocalizedResourceConfigException("warning.config.sound.duplicate");
-            }
-            boolean replace = ResourceConfigUtils.getAsBoolean(section.getOrDefault("replace", false), "replace");
-            String subtitle = (String) section.get("subtitle");
-            List<?> soundList = (List<?>) ResourceConfigUtils.requireNonNullOrThrow(section.get("sounds"), "warning.config.sound.missing_sounds");
-            List<Sound> sounds = new ArrayList<>();
-            for (Object sound : soundList) {
-                if (sound instanceof String soundPath) {
-                    sounds.add(Sound.path(soundPath));
-                } else if (sound instanceof Map<?,?> map) {
-                    sounds.add(Sound.SoundFile.fromMap(MiscUtils.castToMap(map, false)));
+        public LoadingStage loadingStage() {
+            return LoadingStages.SOUND;
+        }
+
+        private static final String[] SOUNDS = ConfigKeys.of("sound(s)");
+
+        @Override
+        public void parseSection(@NotNull Pack pack, @NotNull Path path, @NotNull Key id, @NotNull ConfigSection section) {
+            boolean replace = section.getBoolean("replace");
+            String subtitle = section.getString("subtitle");
+            List<Sound> sounds = section.getList(SOUNDS, v -> {
+                if (v.is(Map.class)) {
+                    return Sound.SoundFile.fromConfig(v.getAsSection());
+                } else {
+                    return Sound.path(v.getAsString());
                 }
-            }
+            });
             SoundEvent event = new SoundEvent(id, replace, subtitle, sounds);
             AbstractSoundManager.this.byId.put(id, event);
             AbstractSoundManager.this.byNamespace.computeIfAbsent(id.namespace(), k -> new ArrayList<>()).add(event);

@@ -10,12 +10,32 @@ public final class RandomUtils {
         return min + (max - min) * ThreadLocalRandom.current().nextDouble();
     }
 
+    public static double generateRandomDouble(double min, double max, RandomSource random) {
+        return min + (max - min) * random.nextDouble();
+    }
+
+    public static double generateRandomDouble() {
+        return ThreadLocalRandom.current().nextDouble();
+    }
+
     public static float generateRandomFloat(float min, float max) {
         return min + (max - min) * ThreadLocalRandom.current().nextFloat();
     }
 
+    public static float generateRandomFloat(float min, float max, RandomSource random) {
+        return min + (max - min) * random.nextFloat();
+    }
+
+    public static float generateRandomFloat() {
+        return ThreadLocalRandom.current().nextFloat();
+    }
+
     public static int generateRandomInt(int minInclusive, int maxExclusive) {
         return minInclusive >= maxExclusive ? minInclusive : ThreadLocalRandom.current().nextInt(maxExclusive - minInclusive) + minInclusive;
+    }
+
+    public static int generateRandomInt(int minInclusive, int maxExclusive, RandomSource random) {
+        return minInclusive >= maxExclusive ? minInclusive : random.nextInt(maxExclusive - minInclusive) + minInclusive;
     }
 
     public static boolean generateRandomBoolean() {

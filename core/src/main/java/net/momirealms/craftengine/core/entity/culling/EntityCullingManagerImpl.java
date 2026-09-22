@@ -8,12 +8,16 @@ import java.util.List;
 public final class EntityCullingManagerImpl implements EntityCullingManager {
     private final List<EntityCullingThread> threads = new ArrayList<>();
 
-    public EntityCullingManagerImpl() {}
+    EntityCullingManagerImpl() {}
+
+    public static EntityCullingManager instance() {
+        return INSTANCE;
+    }
 
     @Override
     public void load() {
         if (Config.enableEntityCulling()) {
-            int threads = Math.min(64, Math.max(Config.entityCullingThreads(), 1));
+            int threads = Math.clamp(Config.entityCullingThreads(), 1, 64);
             for (int i = 0; i < threads; i++) {
                 EntityCullingThread thread = new EntityCullingThread(i, threads);
                 this.threads.add(thread);

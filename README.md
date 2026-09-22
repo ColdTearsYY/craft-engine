@@ -62,8 +62,9 @@ The code you contribute will be open-sourced under the GPLv3 license. If you pre
 ### 💖 Support the Developer
 Help sustain CraftEngine's development by going Premium!
 
-- **Polymart**: [Support via Polymart](https://polymart.org/product/7624/craftengine)
+- **VoxelShop**: [Support via Voxelshop](https://voxel.shop/product/7624/craftengine)
 - **BuiltByBit**: [Support via BuiltByBit](https://builtbybit.com/resources/craftengine.82674/)
+- **NMCrate**: [Support via NMCrate](https://nmcrate.com/products/craftengine-1)
 - **Afdian**: [Support via Afdian](https://afdian.com/@xiaomomi/)
 
 ## CraftEngine API
@@ -75,8 +76,15 @@ repositories {
 ```
 ```kotlin
 dependencies {
-    compileOnly("net.momirealms:craft-engine-core:0.0.67")
-    compileOnly("net.momirealms:craft-engine-bukkit:0.0.67")
-    compileOnly("net.momirealms:craft-engine-adventure:0.0.67") // import this if you want to use the adventure library shaded by CraftEngine
+    compileOnly("net.momirealms:craft-engine-core:26.9")
+    compileOnly("net.momirealms:craft-engine-bukkit:26.9")
+}
+```
+
+Some optional dependencies
+```kotlin
+dependencies {
+    // This dependency is used to access certain NMS code, which is not a stable API.
+    compileOnly("net.momirealms:craft-engine-bukkit-proxy:26.9")
 }
 ```

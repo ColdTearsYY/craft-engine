@@ -1,6 +1,6 @@
 package net.momirealms.craftengine.core.util;
 
-public class ObjectHolder<T> {
+public final class ObjectHolder<T> {
     private T value;
 
     public ObjectHolder(T value) {
@@ -11,7 +11,7 @@ public class ObjectHolder<T> {
     }
 
     public T value() {
-        return value;
+        return this.value;
     }
 
     public void bindValue(T value) {

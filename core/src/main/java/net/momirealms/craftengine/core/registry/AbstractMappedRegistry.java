@@ -1,23 +1,26 @@
 package net.momirealms.craftengine.core.registry;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.ResourceKey;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractMappedRegistry<T> implements WritableRegistry<T> {
     protected final ResourceKey<? extends Registry<T>> key;
-    protected final Map<Key, Holder.Reference<T>> byResourceLocation;
+    protected final Map<Key, Holder.Reference<T>> byIdentifier;
     protected final Map<ResourceKey<T>, Holder.Reference<T>> byResourceKey;
     protected final List<Holder.Reference<T>> byId;
 
-    protected AbstractMappedRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize) {
+    protected AbstractMappedRegistry(ResourceKey<? extends Registry<T>> key, int expectedSize, boolean threadSafe) {
         this.key = key;
-        this.byResourceLocation = new HashMap<>(expectedSize);
-        this.byResourceKey = new HashMap<>(expectedSize);
-        this.byId = new ArrayList<>(expectedSize);
+        this.byIdentifier = threadSafe ? new ConcurrentHashMap<>(expectedSize) : new HashMap<>(expectedSize);
+        this.byResourceKey = threadSafe ? new ConcurrentHashMap<>(expectedSize) : new HashMap<>(expectedSize);
+        this.byId = threadSafe ? Collections.synchronizedList(new ArrayList<>(expectedSize)) : new ArrayList<>(expectedSize);
     }
 
     @Override
@@ -33,7 +36,7 @@ public abstract class AbstractMappedRegistry<T> implements WritableRegistry<T> {
 
     @Override
     public Optional<Holder.Reference<T>> get(Key id) {
-        return Optional.ofNullable(this.byResourceLocation.get(id));
+        return Optional.ofNullable(this.byIdentifier.get(id));
     }
 
     @Override
@@ -44,7 +47,7 @@ public abstract class AbstractMappedRegistry<T> implements WritableRegistry<T> {
     @Nullable
     @Override
     public T getValue(@Nullable Key id) {
-        Holder.Reference<T> reference = this.byResourceLocation.get(id);
+        Holder.Reference<T> reference = this.byIdentifier.get(id);
         return getValueFromNullable(reference);
     }
 
@@ -61,7 +64,7 @@ public abstract class AbstractMappedRegistry<T> implements WritableRegistry<T> {
 
     @Override
     public Set<Key> keySet() {
-        return Collections.unmodifiableSet(this.byResourceLocation.keySet());
+        return Collections.unmodifiableSet(this.byIdentifier.keySet());
     }
 
     @Override
@@ -71,7 +74,7 @@ public abstract class AbstractMappedRegistry<T> implements WritableRegistry<T> {
 
     @Override
     public boolean containsKey(Key id) {
-        return this.byResourceLocation.containsKey(id);
+        return this.byIdentifier.containsKey(id);
     }
 
     @Override
@@ -87,5 +90,10 @@ public abstract class AbstractMappedRegistry<T> implements WritableRegistry<T> {
     @Override
     public boolean isEmpty() {
         return this.byResourceKey.isEmpty();
+    }
+
+    @Override
+    public @NotNull Iterator<T> iterator() {
+        return Iterators.transform(this.byId.iterator(), Holder::value);
     }
 }

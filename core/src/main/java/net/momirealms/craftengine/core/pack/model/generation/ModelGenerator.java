@@ -1,10 +1,14 @@
 package net.momirealms.craftengine.core.pack.model.generation;
 
-import java.util.Collection;
+import net.momirealms.craftengine.core.util.Key;
+
+import java.util.Map;
 
 public interface ModelGenerator {
 
-    Collection<ModelGeneration> modelsToGenerate();
+    Map<Key, ModelGeneration> modelsToGenerate();
+
+    Map<Key, byte[]> texturesToGenerate();
 
     void clearModelsToGenerate();
 }

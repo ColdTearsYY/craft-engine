@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
-import net.momirealms.craftengine.core.item.data.JukeboxPlayable;
+import net.momirealms.craftengine.core.item.component.value.JukeboxPlayable;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 
 public final class JukeboxSongProcessor implements ItemProcessor {
     public static final ItemProcessorFactory<JukeboxSongProcessor> FACTORY = new Factory();
@@ -14,21 +13,24 @@ public final class JukeboxSongProcessor implements ItemProcessor {
     }
 
     public JukeboxPlayable song() {
-        return song;
+        return this.song;
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        item.jukeboxSong(this.song);
-        return item;
+    public void apply(ItemBuildContext context) {
+        context.item().jukeboxSong(this.song);
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     private static class Factory implements ItemProcessorFactory<JukeboxSongProcessor> {
 
         @Override
-        public JukeboxSongProcessor create(Object arg) {
-            String song = arg.toString();
-            return new JukeboxSongProcessor(new JukeboxPlayable(song, true));
+        public JukeboxSongProcessor create(ConfigValue value) {
+            return new JukeboxSongProcessor(new JukeboxPlayable(value.getAsString(), true));
         }
     }
 }

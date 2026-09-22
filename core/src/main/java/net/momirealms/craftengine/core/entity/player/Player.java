@@ -3,259 +3,345 @@ package net.momirealms.craftengine.core.entity.player;
 import com.google.common.cache.Cache;
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.core.advancement.AdvancementType;
+import net.momirealms.craftengine.core.attribute.damage.DamageVisibility;
 import net.momirealms.craftengine.core.block.entity.render.ConstantBlockEntityRenderer;
-import net.momirealms.craftengine.core.entity.AbstractEntity;
+import net.momirealms.craftengine.core.block.entity.render.DynamicBlockEntityRenderer;
+import net.momirealms.craftengine.core.entity.LivingEntity;
 import net.momirealms.craftengine.core.entity.culling.Cullable;
+import net.momirealms.craftengine.core.entity.culling.CullableHolder;
+import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureLightData;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.context.ContextKey;
 import net.momirealms.craftengine.core.plugin.context.CooldownData;
+import net.momirealms.craftengine.core.plugin.context.PlayerContext;
+import net.momirealms.craftengine.core.plugin.context.parameter.PlayerParameterProvider;
 import net.momirealms.craftengine.core.plugin.network.NetWorkUser;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.sound.SoundSource;
 import net.momirealms.craftengine.core.util.GameEdition;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.world.*;
-import net.momirealms.craftengine.core.entity.culling.CullableHolder;
+import net.momirealms.craftengine.core.util.Tristate;
+import net.momirealms.craftengine.core.world.BlockPos;
+import net.momirealms.craftengine.core.world.Position;
+import net.momirealms.craftengine.core.world.Vec3d;
+import net.momirealms.craftengine.core.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
-public abstract class Player extends AbstractEntity implements NetWorkUser {
-    private static final Key TYPE = Key.of("minecraft:player");
+public interface Player extends NetWorkUser, LivingEntity {
+    Key TYPE = Key.of("minecraft:player");
 
-    public abstract boolean isSecondaryUseActive();
-
-    @NotNull
-    public abstract Item<?> getItemInHand(InteractionHand hand);
-
-    @NotNull
-    public abstract Item<?> getItemBySlot(int slot);
-
-    public abstract void setItemInHand(InteractionHand hand, Item<?> item);
+    PlayerContext constantContext();
 
     @Override
-    public abstract Object platformPlayer();
+    default <T> Optional<T> getParameter(ContextKey<T> key) {
+        return PlayerParameterProvider.INSTANCE.getOptionalParameter(key, this);
+    }
 
-    @Override
-    public abstract Object serverPlayer();
+    boolean isSecondaryUseActive();
 
-    public abstract void setClientSideWorld(World world);
+    @NotNull
+    Item getItemBySlot(int slot);
 
-    public abstract void entityCullingTick();
+    Object platformPlayer();
 
-    public abstract float getDestroyProgress(Object blockState, BlockPos pos);
+    Object minecraftPlayer();
 
-    public abstract void setClientSideCanBreakBlock(boolean canBreak);
+    default Object serverPlayer() {
+        return minecraftPlayer();
+    }
 
-    public abstract void finishMiningBlock();
+    void setClientSideWorld(World world);
 
-    public abstract void preventMiningBlock();
+    void entityCullingTick();
 
-    public abstract void stopMiningBlock();
+    void asyncTick();
 
-    public abstract void abortMiningBlock();
+    float getDestroyProgress(Object blockState, BlockPos pos);
 
-    public abstract void breakBlock(int x, int y, int z);
+    void setClientSideCanBreakBlock(boolean canBreak);
 
-    public abstract double getCachedInteractionRange();
+    void finishMiningBlock();
 
-    public abstract void onSwingHand();
+    void preventMiningBlock();
 
-    public abstract boolean isMiningBlock();
+    void stopMiningBlock();
 
-    public abstract boolean shouldSyncAttribute();
+    void abortMiningBlock();
 
-    public abstract boolean isSneaking();
+    boolean clientSideCanBreak();
 
-    public abstract boolean isSwimming();
+    void breakBlock(int x, int y, int z);
 
-    public abstract boolean isClimbing();
+    double getCachedInteractionRange();
 
-    public abstract boolean isGliding();
+    void onSwingHand();
 
-    public abstract boolean isFlying();
+    boolean isMiningBlock();
 
-    public abstract GameMode gameMode();
+    boolean shouldSyncAttribute();
 
-    public abstract void setGameMode(GameMode gameMode);
+    boolean isFlying();
 
-    public abstract boolean canBreak(BlockPos pos, Object state);
+    GameMode gameMode();
 
-    public abstract boolean canPlace(BlockPos pos, Object state);
+    void setGameMode(GameMode gameMode);
 
-    public abstract void sendToast(Component text, Item<?> icon, AdvancementType type);
+    boolean canBreak(BlockPos pos, Object state);
 
-    public abstract void sendActionBar(Component text);
+    boolean canPlace(BlockPos pos, Object state);
 
-    public abstract void sendMessage(Component text, boolean overlay);
+    void sendToast(Component text, Item icon, AdvancementType type);
 
-    public abstract void sendTitle(Component title, Component subtitle, int fadeIn, int stay, int fadeOut);
+    void sendActionBar(Component text);
 
-    public abstract boolean updateLastSuccessfulInteractionTick(int tick);
+    void sendMessage(Component text, boolean overlay);
 
-    public abstract int lastSuccessfulInteractionTick();
+    void sendTitle(Component title, Component subtitle, int fadeIn, int stay, int fadeOut);
 
-    public abstract void updateLastInteractEntityTick(@NotNull InteractionHand hand);
+    void setIsSimulatingInteraction(boolean isSimulating);
 
-    public abstract boolean lastInteractEntityCheck(@NotNull InteractionHand hand);
+    boolean isSimulatingInteraction();
 
-    public abstract int gameTicks();
+    boolean updateLastSuccessfulInteractionTick(int tick);
 
-    public abstract void swingHand(InteractionHand hand);
+    int lastSuccessfulInteractionTick();
 
-    public abstract boolean hasPermission(String permission);
+    void updateLastInteractEntityTick(@NotNull InteractionHand hand);
 
-    public abstract boolean canInstabuild();
+    boolean lastInteractEntityCheck(@NotNull InteractionHand hand);
 
-    public abstract String name();
+    int gameTicks();
 
-    public void playSound(Key sound) {
+    boolean hasInteractionInThisTick();
+
+    void swingHand(InteractionHand hand);
+
+    boolean hasPermission(String permission);
+
+    boolean discoverRecipe(Key recipe);
+
+    boolean hasDiscoveredRecipe(Key recipe);
+
+    boolean canInstabuild();
+
+    default void playSound(Key sound) {
         playSound(sound, 1f, 1f);
     }
 
-    public void playSound(Key sound, float volume, float pitch) {
+    default void playSound(Key sound, float volume, float pitch) {
         playSound(sound, SoundSource.MASTER, volume, pitch);
     }
 
-    public abstract void playSound(Key sound, SoundSource source, float volume, float pitch);
+    void playSound(Key sound, SoundSource source, float volume, float pitch);
 
-    public abstract void playSound(Position pos, Key sound, SoundSource source, float volume, float pitch);
+    void playSound(Position pos, Key sound, SoundSource source, float volume, float pitch);
 
-    public void playSound(BlockPos pos, Key sound, SoundSource source, float volume, float pitch) {
+    default void playSound(BlockPos pos, Key sound, SoundSource source, float volume, float pitch) {
         this.playSound(Vec3d.atCenterOf(pos), sound, source, volume, pitch);
     }
 
-    public void playSound(BlockPos pos, SoundData data, SoundSource source) {
+    default void playSound(BlockPos pos, SoundData data, SoundSource source) {
         this.playSound(pos, data.id(), source, data.volume().get(), data.pitch().get());
     }
 
-    public void playSound(Position pos, SoundData data, SoundSource source) {
+    default void playSound(Position pos, SoundData data, SoundSource source) {
         this.playSound(pos, data.id(), source, data.volume().get(), data.pitch().get());
     }
 
-    public abstract void giveItem(Item<?> item);
+    void giveItem(Item item, boolean spawnFakeEntity);
 
-    public abstract void closeInventory();
+    default void giveItem(Item item) {
+        giveItem(item, true);
+    }
 
-    public abstract void clearView();
+    void closeInventory();
 
-    public abstract void unloadCurrentResourcePack();
+    void clearEntityView();
 
-    public abstract void performCommand(String command, boolean asOp);
+    void unloadCurrentResourcePack();
 
-    public abstract void performCommandAsEvent(String command);
+    /**
+     * 更新并保存单个资源包的偏好。TRUE 为启用，FALSE 为禁用，UNDEFINED 为恢复配置默认值。
+     * 本服实际选择发生变化时重新发送资源包；未托管的包仅保存偏好。
+     *
+     * @return 偏好保存和必要的发送操作完成后返回是否修改了偏好，不等待客户端加载完成
+     */
+    default CompletableFuture<Boolean> setPackPreference(@NotNull String pack, @NotNull Tristate enabled) {
+        return plugin().packManager().setPackPreference(uuid(), pack, enabled);
+    }
 
-    public abstract double luck();
+    /**
+     * 批量更新资源包偏好，未提供的包保持原偏好。UNDEFINED 表示恢复该包的配置默认值。
+     * 整批保存后至多重新发送一次资源包，不会逐包触发重载。
+     *
+     * @return 偏好保存和必要的发送操作完成后返回是否修改了偏好，不等待客户端加载完成
+     */
+    default CompletableFuture<Boolean> setPackPreference(@NotNull Map<String, @NotNull Tristate> preferences) {
+        return plugin().packManager().setPackPreferences(uuid(), preferences);
+    }
+
+    void performCommand(String command, boolean asOp);
+
+    void performCommandAsEvent(String command);
+
+    void transfer(String server);
+
+    void transfer(String host, int port);
 
     @Override
-    public Key type() {
+    default Key type() {
         return TYPE;
     }
 
-    public boolean isCreativeMode() {
+    default boolean isCreativeMode() {
         return gameMode() == GameMode.CREATIVE;
     }
 
-    public boolean isSpectatorMode() {
+    default boolean isSpectatorMode() {
         return gameMode() == GameMode.SPECTATOR;
     }
 
-    public boolean isSurvivalMode() {
+    default boolean isSurvivalMode() {
         return gameMode() == GameMode.SURVIVAL;
     }
 
-    public boolean isAdventureMode() {
+    default boolean isAdventureMode() {
         return gameMode() == GameMode.ADVENTURE;
     }
 
-    public abstract int foodLevel();
+    int foodLevel();
 
-    public abstract void setFoodLevel(int foodLevel);
+    void setFoodLevel(int foodLevel);
 
-    public abstract float saturation();
+    float saturation();
 
-    public abstract void setSaturation(float saturation);
+    void setSaturation(float saturation);
 
-    public abstract void addPotionEffect(Key potionEffectType, int duration, int amplifier, boolean ambient, boolean particles);
+    CooldownData cooldown();
 
-    public abstract void removePotionEffect(Key potionEffectType);
+    Locale locale();
 
-    public abstract void clearPotionEffects();
+    void setClientLocale(Locale clientLocale);
 
-    public abstract CooldownData cooldown();
+    Locale selectedLocale();
 
-    public abstract void teleport(WorldPosition worldPosition);
+    void setSelectedLocale(@Nullable Locale locale);
 
-    public abstract void damage(double amount, Key damageType, @Nullable Object causeEntity);
+    void setEntityCullingDistanceScale(double value);
 
-    public abstract Locale locale();
+    double entityCullingDistanceScale();
 
-    public abstract void setClientLocale(Locale clientLocale);
+    void setDisplayEntityViewDistanceScale(double value);
 
-    public abstract Locale selectedLocale();
+    double displayEntityViewDistance();
 
-    public abstract void setSelectedLocale(@Nullable Locale locale);
+    void setEnableEntityCulling(boolean enable);
 
-    public abstract void setEntityCullingDistanceScale(double value);
+    boolean enableEntityCulling();
 
-    public abstract void setDisplayEntityViewDistanceScale(double value);
+    boolean enableFurnitureDebug();
 
-    public abstract double displayEntityViewDistance();
+    void setDamageVisibility(DamageVisibility visibility);
 
-    public abstract void setEnableEntityCulling(boolean enable);
+    DamageVisibility damageVisibility();
 
-    public abstract boolean enableEntityCulling();
+    void setEnableFurnitureDebug(boolean enableFurnitureDebug);
 
-    public abstract boolean enableFurnitureDebug();
+    void giveExperiencePoints(int xpPoints);
 
-    public abstract void setEnableFurnitureDebug(boolean enableFurnitureDebug);
+    void giveExperienceLevels(int levels);
 
-    public abstract void giveExperiencePoints(int xpPoints);
+    int getXpNeededForNextLevel();
 
-    public abstract void giveExperienceLevels(int levels);
+    void setExperiencePoints(int experiencePoints);
 
-    public abstract int getXpNeededForNextLevel();
+    void setExperienceLevels(int level);
 
-    public abstract void setExperiencePoints(int experiencePoints);
+    void sendTotemAnimation(Item totem, @Nullable SoundData sound, boolean silent);
 
-    public abstract void setExperienceLevels(int level);
+    void addTrackedBlockEntities(Map<BlockPos, ConstantBlockEntityRenderer> renders);
 
-    public abstract void sendTotemAnimation(Item<?> totem, @Nullable SoundData sound, boolean silent);
+    void addTrackedBlockEntity(BlockPos blockPos, ConstantBlockEntityRenderer renderer);
 
-    public abstract void addTrackedBlockEntities(Map<BlockPos, ConstantBlockEntityRenderer> renders);
+    CullableHolder getTrackedBlockEntity(BlockPos blockPos);
 
-    public abstract void addTrackedBlockEntity(BlockPos blockPos, ConstantBlockEntityRenderer renderer);
+    void removeTrackedBlockEntities(Collection<BlockPos> renders);
 
-    public abstract CullableHolder getTrackedBlockEntity(BlockPos blockPos);
+    CullableHolder getTrackedEntity(int entityId);
 
-    public abstract void removeTrackedBlockEntities(Collection<BlockPos> renders);
+    void addTrackedEntity(int entityId, Cullable cullable);
 
-    public abstract void addTrackedEntity(int entityId, Cullable cullable);
+    void removeTrackedBlockEntities(BlockPos pos);
 
-    public abstract void clearTrackedBlockEntities();
+    void clearTrackedBlockEntities();
 
-    public abstract int clearOrCountMatchingInventoryItems(Key itemId, int count);
+    void addTrackedDynamicBlockEntities(Map<BlockPos, DynamicBlockEntityRenderer> renderers);
 
-    public abstract GameEdition gameEdition();
+    void addTrackedDynamicBlockEntity(BlockPos blockPos, DynamicBlockEntityRenderer renderer);
 
-    @Override
-    public void remove() {
+    CullableHolder getTrackedDynamicBlockEntity(BlockPos blockPos);
+
+    default boolean setDynamicBlockEntityForceVisible(BlockPos pos, boolean forceVisible) {
+        CullableHolder holder = this.getTrackedDynamicBlockEntity(pos);
+        if (holder == null) {
+            return false;
+        }
+        holder.setForceVisible(this, forceVisible);
+        return true;
     }
 
-    public abstract void playParticle(Key particleId, double x, double y, double z);
+    void removeTrackedDynamicBlockEntities(Collection<BlockPos> renders);
 
-    public abstract void removeTrackedEntity(int entityId);
+    void removeTrackedDynamicBlockEntity(BlockPos pos);
 
-    public abstract void clearTrackedEntities();
+    default boolean isDynamicBlockEntityVisible(BlockPos pos) {
+        if (!Config.enableEntityCulling()) {
+            return true;
+        }
+        CullableHolder holder = this.getTrackedDynamicBlockEntity(pos);
+        return holder != null && holder.isShown;
+    }
 
-    public abstract WorldPosition eyePosition();
+    int clearOrCountMatchingInventoryItems(Predicate<Item> predicate, int count);
 
-    public abstract Cache<Object, Boolean> receivedMapData();
+    default int clearOrCountMatchingInventoryItems(Key itemId, int count) {
+        return this.clearOrCountMatchingInventoryItems(item -> itemId.equals(item.id()), count);
+    }
+
+    GameEdition gameEdition();
 
     @Override
-    public boolean isValid() {
+    default void remove() {
+    }
+
+    FurnitureLightData furnitureLightData();
+
+    void playParticle(Key particleId, double x, double y, double z);
+
+    /** 仅移除实体的剔除追踪记录；客户端隐藏由调用方负责。 */
+    void removeTrackedEntity(int entityId);
+
+    void clearTrackedEntities();
+
+    Cache<Object, Boolean> receivedMapData();
+
+    boolean canInteractPoint(Vec3d vec3d, double range);
+
+    @Override
+    default boolean isValid() {
         return this.isOnline();
     }
+
+    void setItemCooldown(Key id, int ticks);
+
+    int getItemCooldown(Key id);
 }

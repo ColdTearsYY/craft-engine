@@ -9,14 +9,16 @@ public final class ConditionalFeature {
     public final Object feature;
     private final Predicate<Key> biomes;
     private final Predicate<String> worlds;
-    private final Predicate<Key> environments;
+    private final Predicate<Key> dimensions;
+    private final Predicate<Key> dimensionTypes;
 
-    public ConditionalFeature(int id, Object feature, Predicate<Key> biomes, Predicate<String> worlds, Predicate<Key> environments) {
+    public ConditionalFeature(int id, Object feature, Predicate<Key> biomes, Predicate<String> worlds, Predicate<Key> dimensions, Predicate<Key> dimensionTypes) {
         this.id = id;
         this.feature = feature;
         this.biomes = biomes;
         this.worlds = worlds;
-        this.environments = environments;
+        this.dimensions = dimensions;
+        this.dimensionTypes = dimensionTypes;
     }
 
     public boolean isAllowedBiome(final Key biome) {
@@ -27,7 +29,11 @@ public final class ConditionalFeature {
         return this.worlds.test(world);
     }
 
-    public boolean isAllowedEnvironment(final Key environment) {
-        return this.environments.test(environment);
+    public boolean isAllowedDimension(final Key environment) {
+        return this.dimensions.test(environment);
+    }
+
+    public boolean isAllowedDimensionType(final Key dimensionType) {
+        return this.dimensionTypes.test(dimensionType);
     }
 }

@@ -1,112 +1,173 @@
 package net.momirealms.craftengine.bukkit.plugin.user;
 
-import ca.spottedleaf.concurrentutil.map.ConcurrentLong2ReferenceChainedHashTable;
+import ca.spottedleaf.concurrentutil.map.concurrent.ints.ConcurrentChainedInt2ObjectHashTable;
+import ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
+import com.mojang.authlib.properties.PropertyMap;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.api.CraftEngineFurniture;
-import net.momirealms.craftengine.bukkit.block.entity.BlockEntityHolder;
+import net.momirealms.craftengine.bukkit.block.entity.renderer.display.BukkitDestroyStageDisplayRecorder;
+import net.momirealms.craftengine.bukkit.entity.BukkitLivingEntity;
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
+import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.nms.FastNMS;
+import net.momirealms.craftengine.bukkit.nms.DelegatingContainer;
+import net.momirealms.craftengine.bukkit.pack.ResourcePackConfigurationTask;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
 import net.momirealms.craftengine.bukkit.plugin.gui.CraftEngineGUIHolder;
-import net.momirealms.craftengine.bukkit.plugin.network.payload.DiscardedPayload;
-import net.momirealms.craftengine.bukkit.plugin.network.payload.UnknownPayload;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.CoreReflections;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.MAttributeHolders;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.MMobEffects;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.NetworkReflections;
+import net.momirealms.craftengine.bukkit.plugin.network.BukkitNetworkManager;
+import net.momirealms.craftengine.bukkit.plugin.network.EquipmentLodTracker;
+import net.momirealms.craftengine.bukkit.plugin.network.handler.SelfPlayerPacketHandler;
 import net.momirealms.craftengine.bukkit.util.*;
+import net.momirealms.craftengine.bukkit.world.BukkitContainer;
+import net.momirealms.craftengine.bukkit.world.WorldlyContainerHolder;
 import net.momirealms.craftengine.core.advancement.AdvancementType;
+import net.momirealms.craftengine.core.attribute.damage.DamageVisibility;
 import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
-import net.momirealms.craftengine.core.block.entity.BlockEntity;
 import net.momirealms.craftengine.core.block.entity.render.ConstantBlockEntityRenderer;
+import net.momirealms.craftengine.core.block.entity.render.DynamicBlockEntityRenderer;
+import net.momirealms.craftengine.core.block.entity.render.display.DestroyStageDisplayEntity;
+import net.momirealms.craftengine.core.block.entity.render.display.DestroyStageDisplayEntitySetting;
+import net.momirealms.craftengine.core.block.entity.render.display.DestroyStageDisplayRecorder;
 import net.momirealms.craftengine.core.entity.culling.Cullable;
-import net.momirealms.craftengine.core.entity.data.EntityData;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureHitData;
+import net.momirealms.craftengine.core.entity.culling.CullableHolder;
+import net.momirealms.craftengine.core.entity.culling.CullingData;
+import net.momirealms.craftengine.core.entity.culling.EntityCulling;
 import net.momirealms.craftengine.core.entity.furniture.FurnitureVariant;
+import net.momirealms.craftengine.core.entity.furniture.behavior.FurnitureLightData;
 import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBoxConfig;
+import net.momirealms.craftengine.core.entity.furniture.setting.FurnitureHitData;
 import net.momirealms.craftengine.core.entity.player.GameMode;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.pack.host.ResourcePackDownloadData;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.context.CooldownData;
-import net.momirealms.craftengine.core.entity.culling.CullingData;
-import net.momirealms.craftengine.core.entity.culling.EntityCulling;
+import net.momirealms.craftengine.core.plugin.context.PlayerContext;
+import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
 import net.momirealms.craftengine.core.plugin.locale.TranslationManager;
 import net.momirealms.craftengine.core.plugin.network.ConnectionState;
 import net.momirealms.craftengine.core.plugin.network.EntityPacketHandler;
+import net.momirealms.craftengine.core.plugin.network.PacketPosition;
 import net.momirealms.craftengine.core.plugin.network.ProtocolVersion;
+import net.momirealms.craftengine.core.plugin.network.codec.NetworkCodec;
+import net.momirealms.craftengine.core.plugin.network.mod.ClientCustomPacket;
+import net.momirealms.craftengine.core.plugin.network.mod.ClientCustomPacketType;
+import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.sound.SoundData;
 import net.momirealms.craftengine.core.sound.SoundSource;
 import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.util.random.RandomUtils;
 import net.momirealms.craftengine.core.world.*;
-import net.momirealms.craftengine.core.world.World;
 import net.momirealms.craftengine.core.world.chunk.client.ClientChunk;
-import net.momirealms.craftengine.core.entity.culling.CullableHolder;
 import net.momirealms.craftengine.core.world.collision.AABB;
-import org.bukkit.*;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.block.Block;
-import org.bukkit.damage.DamageSource;
-import org.bukkit.damage.DamageType;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.entity.CraftEntityProxy;
+import net.momirealms.craftengine.proxy.minecraft.core.HolderProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.ConnectionProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.common.ClientboundResourcePackPopPacketProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.*;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.login.ClientboundLoginDisconnectPacketProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.MinecraftServerProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.level.ServerLevelProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerGameModeProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.level.ServerPlayerProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.network.ServerCommonPacketListenerImplProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.network.ServerConfigurationPacketListenerImplProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.network.ServerGamePacketListenerImplProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.network.config.JoinWorldTaskProxy;
+import net.momirealms.craftengine.proxy.minecraft.server.network.config.ServerResourcePackConfigurationTaskProxy;
+import net.momirealms.craftengine.proxy.minecraft.sounds.SoundSourceProxy;
+import net.momirealms.craftengine.proxy.minecraft.util.thread.BlockableEventLoopProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.InteractionHandProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.effect.MobEffectsProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityTypesProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.LivingEntityProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.ai.attributes.AttributeInstanceProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.ai.attributes.AttributesProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.AbilitiesProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.InventoryProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.InventoryMenuProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.SlotProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemCooldownsProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.BlockAndLightGetterProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.ClipContextProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.SoundTypeProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.state.BlockBehaviourProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.chunk.ChunkSourceProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.phys.BlockHitResultProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
+import net.momirealms.craftengine.proxy.paper.chunk.system.entity.RegionizedPlayerChunkLoaderProxy;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Registry;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-public class BukkitServerPlayer extends Player {
+public class BukkitServerPlayer extends BukkitLivingEntity implements Player {
     public static final Key SELECTED_LOCALE_KEY = Key.ce("locale");
     public static final Key ENTITY_CULLING_DISTANCE_SCALE = Key.ce("entity_culling_distance_scale");
     public static final Key DISPLAY_ENTITY_VIEW_DISTANCE_SCALE = Key.ce("display_entity_view_distance_scale");
     public static final Key ENABLE_ENTITY_CULLING = Key.ce("enable_entity_culling");
     public static final Key ENABLE_FURNITURE_DEBUG = Key.ce("enable_furniture_debug");
+    public static final Key DAMAGE_VISIBILITY = Key.ce("damage_visibility");
     private final BukkitCraftEngine plugin;
 
     // connection state
     private final Channel channel;
+    private final Set<UUID> resourcePackUUID = Collections.synchronizedSet(new HashSet<>(4));
+    private final EntityCulling culling;
     private ChannelHandler connection;
+    private InetAddress address;
     private String name;
     private UUID uuid;
+    private int entityId;
+    private PropertyMap propertyMap;
     private boolean isNameVerified;
     private boolean isUUIDVerified;
-    private ConnectionState decoderState; // inbound(decode|c2s)
-    private ConnectionState encoderState; // outbound(encode|s2c)
+    private ConnectionState decoderState = ConnectionState.HANDSHAKING; // inbound(decode|c2s)
+    private ConnectionState encoderState = ConnectionState.HANDSHAKING; // outbound(encode|s2c)
     private boolean shouldProcessFinishConfiguration = true;
-    private final Set<UUID> resourcePackUUID = Collections.synchronizedSet(new HashSet<>());
     // some references
-    private Reference<org.bukkit.entity.Player> playerRef;
-    private Reference<Object> serverPlayerRef;
+    private Reference<org.bukkit.entity.Player> bukkitPlayerRef;
+    private Reference<Object> nmsPlayerRef;
     // client side dimension info
-    private World clientSideWorld;
-    // check main hand/offhand interaction
+    private World clientSideWorld;    // check main hand/offhand interaction
     private int lastSuccessfulInteraction;
     // to prevent duplicated events
     private int lastInteractEntityWithMainHand;
@@ -120,6 +181,9 @@ public class BukkitServerPlayer extends Player {
     private Object destroyedState;
     private boolean isDestroyingBlock;
     private boolean isDestroyingCustomBlock;
+    // client-side ItemDisplay used to visualize custom-block destroy progress when the
+    // block has a destroy_stages setting; null when no such display is active
+    private DestroyStageDisplayRecorder.Entry destroyStageEntry;
     private boolean swingHandAck;
     private int lastSwingHandTick;
     private float miningProgress;
@@ -127,40 +191,52 @@ public class BukkitServerPlayer extends Player {
     private int resentSoundTick;
     private int resentSwingTick;
     // has fabric client mod or not
-    private boolean hasClientMod = false;
+    private boolean enableClientCustomBlock = false;
+    private int clientModProtocol = -1;
     private IntIdentityList blockList = new IntIdentityList(BlockStateUtils.vanillaBlockStateCount());
+    private IntIdentityList biomeList;
+    private boolean needsBlockStateBitWidthConversion = MiscUtils.ceilLog2(this.blockList.size()) != MiscUtils.ceilLog2(RegistryUtils.currentBlockRegistrySize());
     // cache if player can break blocks
     private boolean clientSideCanBreak = true;
+    // 血量缩放：最近一次 UpdateAttributes 包内算出的客户端可见血量上限，-1 表示未知
+    private double clientSideMaxHealth = 20;
     // a cooldown for better breaking experience
     private int lastSuccessfulBreak;
     // player's game tick
     private int gameTicks;
+    // Captured before NMS resets attackStrengthTicker. One primary attack may
+    // synchronously produce several player_attack damage events through sweeping
+    private int capturedAttackStrengthTick = Integer.MIN_VALUE;
+    private float capturedAttackStrength;
     // cache interaction range here
     private int lastUpdateInteractionRangeTick;
     private double cachedInteractionRange;
     // cooldown data
     private CooldownData cooldownData;
     // tracked chunks
-    private ConcurrentLong2ReferenceChainedHashTable<ClientChunk> trackedChunks;
+    private ConcurrentChainedLong2ReferenceHashTable<ClientChunk> trackedChunks;
     // entity view
-    private Map<Integer, EntityPacketHandler> entityTypeView;
+    private ConcurrentChainedInt2ObjectHashTable<EntityPacketHandler> entityTypeView;
+    private EquipmentLodTracker equipmentLod;
     // 通过指令或api设定的语言
     @Nullable
     private Locale selectedLocale;
     // 客户端选择的语言
     private Locale clientLocale;
     // 跟踪到的方块实体渲染器
-    private final Map<BlockPos, CullableHolder> trackedBlockEntityRenderers = new ConcurrentHashMap<>();
-    private final Map<Integer, CullableHolder> trackedEntities = new ConcurrentHashMap<>();
-    private final EntityCulling culling;
+    private Map<BlockPos, CullableHolder> trackedBlockEntityRenderers;
+    private Map<BlockPos, CullableHolder> trackedDynamicBlockEntityRenderers;
+    private Map<Integer, CullableHolder> trackedEntities;
     private Vec3d firstPersonCameraVec3;
     private Vec3d thirdPersonCameraVec3;
     // 是否启用实体剔除
     private boolean enableEntityCulling;
     // 玩家眼睛所在位置
-    private Location eyeLocation;
+    private Vec3d eyeLocation;
     // 是否启用家具调试
     private boolean enableFurnitureDebug;
+    // 伤害数字悬浮字可见性
+    private DamageVisibility damageVisibility = Config.damageIndicatorDefaultVisibility();
     // 上一次对准的家具
     private BukkitFurniture lastHitFurniture;
     // 缓存的tick
@@ -179,53 +255,86 @@ public class BukkitServerPlayer extends Player {
     private int preventBreakTick;
     // 用于辨别是否在范围挖掘
     private boolean isRangeMining;
-    // 家具击打记录
-    private final FurnitureHitData furnitureHitData = new FurnitureHitData();
     // 缓存的已接收的地图数据，为了防止动态物品展示框渲染器在渲染地图物品的时候重复发送地图数据导致服务器带宽消耗过大
-    private final Cache<Object, Boolean> receivedMapData = CacheBuilder.newBuilder()
-            .weakKeys()
-            .expireAfterAccess(30, TimeUnit.MINUTES)
-            .concurrencyLevel(4)
-            .build();
+    private Cache<Object, Boolean> receivedMapData;
+    private Set<UniqueKey> obtainedItems;
+    // 家具击打记录
+    private FurnitureHitData furnitureHitData;
+    // 缓存可见的家具光源数据
+    private FurnitureLightData furnitureLightData;
+    // 是否正在模拟客户端可能缺失的交互逻辑
+    // 比如客户端觉得音符盒可以交互，但实际上不可，导致副手的交互包并未发出，最终导致副手的物品逻辑不执行
+    private boolean isSimulatingInteraction;
+    // 常驻context
+    private final PlayerOptionalContext constantContext;
 
     public BukkitServerPlayer(BukkitCraftEngine plugin, @Nullable Channel channel) {
+        super((WeakReference<Object>) null);
         this.channel = channel;
         this.plugin = plugin;
         if (channel != null) {
             for (String name : channel.pipeline().names()) {
                 ChannelHandler handler = channel.pipeline().get(name);
-                if (NetworkReflections.clazz$Connection.isInstance(handler)) {
+                if (ConnectionProxy.CLASS.isInstance(handler)) {
                     this.connection = handler;
                     break;
                 }
             }
         }
         this.culling = new EntityCulling(this);
+        this.constantContext = PlayerOptionalContext.of(this);
     }
 
     public void setPlayer(org.bukkit.entity.Player player) {
-        this.playerRef = new WeakReference<>(player);
-        this.serverPlayerRef = new WeakReference<>(FastNMS.INSTANCE.method$CraftPlayer$getHandle(player));
+        this.bukkitPlayerRef = new WeakReference<>(player);
+        this.nmsPlayerRef = new WeakReference<>(CraftEntityProxy.INSTANCE.getEntity(player));
         this.uuid = player.getUniqueId();
         this.isUUIDVerified = true;
         this.name = player.getName();
+        this.entityId = player.getEntityId();
         this.isNameVerified = true;
+        this.initPlayStageFields();
+        this.equipmentLod = VersionHelper.isOrAbove1_21_2 && Config.enableEquipmentLod() ? new EquipmentLodTracker(this) : null;
         byte[] bytes = player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(CooldownData.COOLDOWN_KEY), PersistentDataType.BYTE_ARRAY);
         String locale = player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(SELECTED_LOCALE_KEY), PersistentDataType.STRING);
         Double scale = player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(ENTITY_CULLING_DISTANCE_SCALE), PersistentDataType.DOUBLE);
         this.displayEntityViewDistance = Optional.ofNullable(player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(DISPLAY_ENTITY_VIEW_DISTANCE_SCALE), PersistentDataType.DOUBLE)).orElse(1d);
         this.enableEntityCulling = Optional.ofNullable(player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(ENABLE_ENTITY_CULLING), PersistentDataType.BOOLEAN)).orElse(true);
         this.enableFurnitureDebug = Optional.ofNullable(player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(ENABLE_FURNITURE_DEBUG), PersistentDataType.BOOLEAN)).orElse(false);
+        this.damageVisibility = DamageVisibility.byName(player.getPersistentDataContainer().get(KeyUtils.toNamespacedKey(DAMAGE_VISIBILITY), PersistentDataType.STRING), Config.damageIndicatorDefaultVisibility());
         this.culling.setDistanceScale(Optional.ofNullable(scale).orElse(1.0));
         this.selectedLocale = TranslationManager.parseLocale(locale);
-        this.trackedChunks = ConcurrentLong2ReferenceChainedHashTable.createWithCapacity(512, 0.5f);
-        this.entityTypeView = new ConcurrentHashMap<>(256);
+        this.eyeLocation = getEyePos();
         try {
             this.cooldownData = CooldownData.fromBytes(bytes);
         } catch (IOException e) {
             this.cooldownData = new CooldownData();
             this.plugin.logger().warn("Failed to parse cooldown data", e);
         }
+        PlayerInventory inventory = player.getInventory();
+        for (ItemStack item : inventory.getContents()) {
+            if (!ItemStackUtils.isEmpty(item)) {
+                this.obtainedItems.add(UniqueKey.create(BukkitItemManager.instance().wrap(item).id()));
+            }
+        }
+    }
+
+    private void initPlayStageFields() {
+        this.capturedAttackStrengthTick = Integer.MIN_VALUE;
+        this.capturedAttackStrength = 0.0F;
+        this.trackedBlockEntityRenderers = new ConcurrentHashMap<>(64);
+        this.trackedDynamicBlockEntityRenderers = new ConcurrentHashMap<>(64);
+        this.trackedEntities = new ConcurrentHashMap<>(64);
+        this.trackedChunks = ConcurrentChainedLong2ReferenceHashTable.createWithCapacity(128, 0.5f);
+        this.entityTypeView = ConcurrentChainedInt2ObjectHashTable.createWithCapacity(128, 0.75f);
+        this.obtainedItems = new HashSet<>(32);
+        this.furnitureHitData = new FurnitureHitData();
+        this.furnitureLightData = new FurnitureLightData();
+        this.receivedMapData = CacheBuilder.newBuilder()
+                .weakKeys()
+                .expireAfterAccess(Duration.of(10, ChronoUnit.MINUTES))
+                .concurrencyLevel(4)
+                .build();
     }
 
     @Override
@@ -254,38 +363,14 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public boolean isSneaking() {
-        return platformPlayer().isSneaking();
-    }
-
-    @Override
-    public boolean isSwimming() {
-        return platformPlayer().isSwimming();
-    }
-
-    @Override
-    public boolean isClimbing() {
-        return platformPlayer().isClimbing();
-    }
-
-    @Override
-    public boolean isGliding() {
-        return platformPlayer().isGliding();
-    }
-
-    @Override
     public boolean isFlying() {
         return platformPlayer().isFlying();
     }
 
     @Override
     public GameMode gameMode() {
-        return switch (platformPlayer().getGameMode()) {
-            case CREATIVE -> GameMode.CREATIVE;
-            case SPECTATOR -> GameMode.SPECTATOR;
-            case ADVENTURE -> GameMode.ADVENTURE;
-            case SURVIVAL -> GameMode.SURVIVAL;
-        };
+        Enum<?> gameType = (Enum<?>) ServerPlayerGameModeProxy.INSTANCE.getGameModeForPlayer(ServerPlayerProxy.INSTANCE.getGameMode(this.minecraftPlayer()));
+        return GameMode.VALUES[gameType.ordinal()];
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -305,28 +390,38 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public void sendToast(Component text, Item<?> icon, AdvancementType type) {
+    public void sendToast(Component text, Item icon, AdvancementType type) {
         this.plugin.advancementManager().sendToast(this, icon, text, type);
     }
 
     @Override
     public void sendActionBar(Component text) {
-        Object packet = FastNMS.INSTANCE.constructor$ClientboundActionBarPacket(ComponentUtils.adventureToMinecraft(text));
+        Object packet = ClientboundSetActionBarTextPacketProxy.INSTANCE.newInstance(ComponentUtils.adventureToMinecraft(text));
         sendPacket(packet, false);
     }
 
     @Override
     public void sendTitle(Component title, Component subtitle, int fadeIn, int stay, int fadeOut) {
-        Object titlePacket = FastNMS.INSTANCE.constructor$ClientboundSetTitleTextPacket(ComponentUtils.adventureToMinecraft(title));
-        Object subtitlePacket = FastNMS.INSTANCE.constructor$ClientboundSetSubtitleTextPacket(ComponentUtils.adventureToMinecraft(subtitle));
-        Object timePacket = FastNMS.INSTANCE.constructor$ClientboundSetTitlesAnimationPacket(fadeIn, stay, fadeOut);
+        Object titlePacket = ClientboundSetTitleTextPacketProxy.INSTANCE.newInstance(ComponentUtils.adventureToMinecraft(title));
+        Object subtitlePacket = ClientboundSetSubtitleTextPacketProxy.INSTANCE.newInstance(ComponentUtils.adventureToMinecraft(subtitle));
+        Object timePacket = ClientboundSetTitlesAnimationPacketProxy.INSTANCE.newInstance(fadeIn, stay, fadeOut);
         sendPackets(List.of(titlePacket, subtitlePacket, timePacket), false);
     }
 
     @Override
     public void sendMessage(Component text, boolean overlay) {
-        Object packet = FastNMS.INSTANCE.constructor$ClientboundSystemChatPacket(ComponentUtils.adventureToMinecraft(text), overlay);
+        Object packet = ClientboundSystemChatPacketProxy.INSTANCE.newInstance(ComponentUtils.adventureToMinecraft(text), overlay);
         sendPacket(packet, false);
+    }
+
+    @Override
+    public void setIsSimulatingInteraction(boolean isSimulating) {
+        this.isSimulatingInteraction = isSimulating;
+    }
+
+    @Override
+    public boolean isSimulatingInteraction() {
+        return this.isSimulatingInteraction;
     }
 
     @Override
@@ -367,9 +462,24 @@ public class BukkitServerPlayer extends Player {
         return this.gameTicks;
     }
 
+    public void captureAttackStrength(float strength) {
+        this.capturedAttackStrengthTick = this.gameTicks;
+        this.capturedAttackStrength = Math.clamp(strength, 0.0F, 1.0F);
+    }
+
+    public float capturedAttackStrength() {
+        if (this.capturedAttackStrengthTick != this.gameTicks) return 0.0F;
+        return this.capturedAttackStrength;
+    }
+
+    @Override
+    public boolean hasInteractionInThisTick() {
+        return this.gameTicks == this.lastSuccessfulInteraction;
+    }
+
     @Override
     public void swingHand(InteractionHand hand) {
-        platformPlayer().swingHand(hand == InteractionHand.MAIN_HAND ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND);
+        LivingEntityProxy.INSTANCE.swing(minecraftPlayer(), hand == InteractionHand.MAIN_HAND ? InteractionHandProxy.MAIN_HAND : InteractionHandProxy.OFF_HAND, true);
     }
 
     @Override
@@ -378,9 +488,19 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public boolean discoverRecipe(Key recipe) {
+        return platformPlayer().discoverRecipe(KeyUtils.toNamespacedKey(recipe));
+    }
+
+    @Override
+    public boolean hasDiscoveredRecipe(Key recipe) {
+        return platformPlayer().hasDiscoveredRecipe(KeyUtils.toNamespacedKey(recipe));
+    }
+
+    @Override
     public boolean canInstabuild() {
-        Object abilities = FastNMS.INSTANCE.field$Player$abilities(serverPlayer());
-        return FastNMS.INSTANCE.field$Abilities$instabuild(abilities);
+        Object abilities = PlayerProxy.INSTANCE.getAbilities(minecraftPlayer());
+        return AbilitiesProxy.INSTANCE.isInstantBuild(abilities);
     }
 
     @Override
@@ -430,19 +550,39 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public PropertyMap propertyMap() {
+        return this.propertyMap;
+    }
+
+    @Override
+    public void setPropertyMap(PropertyMap map) {
+        this.propertyMap = map;
+    }
+
+    @Override
     public void playSound(Key sound, SoundSource source, float volume, float pitch) {
-        platformPlayer().playSound(platformPlayer(), sound.toString(), SoundUtils.toBukkit(source), volume, pitch);
+        sendSoundPacket(x(), y(), z(), sound, source, volume, pitch);
     }
 
     @Override
     public void playSound(Position pos, Key sound, SoundSource source, float volume, float pitch) {
-        platformPlayer().playSound(new Location(null, pos.x(), pos.y(), pos.z()), sound.toString(), SoundUtils.toBukkit(source), volume, pitch);
+        sendSoundPacket(pos.x(), pos.y(), pos.z(), sound, source, volume, pitch);
     }
 
-    @SuppressWarnings("unchecked")
+    private void sendSoundPacket(double x, double y, double z, Key sound, SoundSource source, float volume, float pitch) {
+        Object packet = ClientboundSoundPacketProxy.INSTANCE.newInstance(
+                SoundUtils.getOrCreateSoundHolder(sound),
+                SoundUtils.toNMS(source),
+                x, y, z,
+                volume, pitch,
+                RandomUtils.generateRandomLong()
+        );
+        sendPacket(packet, false);
+    }
+
     @Override
-    public void giveItem(Item<?> item) {
-        PlayerUtils.giveItem(this, item.count(), (Item<ItemStack>) item);
+    public void giveItem(Item item, boolean spawnFakeEntity) {
+        PlayerUtils.giveItem(this, item.count(), item, spawnFakeEntity);
     }
 
     @Override
@@ -476,24 +616,37 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public void sendCustomPayload(Key channelId, byte[] data) {
+    public void sendCustomPacket(ClientCustomPacket packet) {
+        ClientCustomPacketType<? extends ClientCustomPacket> type = BuiltInRegistries.CLIENT_MOD_PACKET.getValue(packet.id());
+        if (type == null || !type.checkPermission(this)) return;
+        FriendlyByteBuf result = new FriendlyByteBuf(Unpooled.buffer());
+        byte[] data;
         try {
-            Object channelResourceLocation = KeyUtils.toResourceLocation(channelId);
-            Object responsePacket;
-            if (VersionHelper.isOrAbove1_20_2()) {
-                Object dataPayload;
-                if (VersionHelper.isOrAbove1_20_5()) {
-                    dataPayload = NetworkReflections.constructor$DiscardedPayload.newInstance(channelResourceLocation, DiscardedPayload.useNewMethod ? data : Unpooled.wrappedBuffer(data));
-                } else {
-                    dataPayload = NetworkReflections.constructor$ServerboundCustomPayloadPacket$UnknownPayload.newInstance(channelResourceLocation, UnknownPayload.isByteArray ? data : Unpooled.wrappedBuffer(data));
-                }
-                responsePacket = NetworkReflections.constructor$ClientboundCustomPayloadPacket.newInstance(dataPayload);
-            } else {
-                responsePacket = NetworkReflections.constructor$ClientboundCustomPayloadPacket.newInstance(channelResourceLocation, FastNMS.INSTANCE.constructor$FriendlyByteBuf(Unpooled.wrappedBuffer(data)));
-            }
-            this.sendPacket(responsePacket, true);
-        } catch (Exception e) {
-            CraftEngine.instance().logger().warn("Failed to send custom payload to " + name(), e);
+            @SuppressWarnings("unchecked")
+            var codec = (NetworkCodec<FriendlyByteBuf, ClientCustomPacket>) packet.codec();
+            codec.encode(result, packet);
+            data = new byte[result.readableBytes()];
+            result.readBytes(data);
+        } finally {
+            result.release();
+        }
+        // 交给 Connection 排队和 NMS 编码器选择协议包 ID，与普通实体包使用相同发送路径。
+        this.sendPacket(PacketUtils.createClientboundCustomPayloadPacket(packet.id(), data), false);
+    }
+
+    @Override
+    public void sendCustomPackets(List<? extends ClientCustomPacket> packets) {
+        for (ClientCustomPacket packet : packets) {
+            sendCustomPacket(packet);
+        }
+    }
+
+    @Override
+    public void sendByteBufPacket(ByteBuf buf, boolean immediately) {
+        if (immediately) {
+            this.channel.writeAndFlush(buf);
+        } else {
+            this.channel.write(buf);
         }
     }
 
@@ -501,33 +654,39 @@ public class BukkitServerPlayer extends Player {
     public void kick(@Nullable Component message) {
         Object reason = message != null ? ComponentUtils.adventureToMinecraft(message) : null;
         if (this.encoderState == ConnectionState.HANDSHAKING || this.encoderState == ConnectionState.STATUS) {
-            FastNMS.INSTANCE.method$Connection$disconnect(this.connection(), reason);
+            ConnectionProxy.INSTANCE.disconnect(this.connection(), reason);
             return;
         }
-        try {
-            if (this.encoderState == ConnectionState.LOGIN) {
-                this.sendPacket(NetworkReflections.constructor$ClientboundLoginDisconnectPacket.newInstance(reason), false);
-                FastNMS.INSTANCE.method$Connection$disconnect(this.connection(), reason);
-                return;
+        if (this.encoderState == ConnectionState.LOGIN) {
+            this.sendPacket(ClientboundLoginDisconnectPacketProxy.INSTANCE.newInstance(reason), false);
+            ConnectionProxy.INSTANCE.disconnect(this.connection(), reason);
+            return;
+        }
+        Object kickPacket = ClientboundDisconnectPacketProxy.INSTANCE.newInstance(reason);
+        this.sendPacket(kickPacket, false, () -> ConnectionProxy.INSTANCE.disconnect(this.connection(), reason));
+        this.channel.config().setAutoRead(false);
+        Runnable handleDisconnection = () -> ConnectionProxy.INSTANCE.handleDisconnection(this.connection());
+        if (VersionHelper.hasFoliaPatch) {
+            org.bukkit.entity.Player player = platformPlayer();
+            if (player == null) {
+                // 配置阶段尚未绑定玩家实体，连接清理由全局线程处理。
+                this.plugin.scheduler().platform().run(handleDisconnection);
+            } else {
+                this.plugin.scheduler().platform().run(handleDisconnection, null, player);
             }
-            Object kickPacket = NetworkReflections.constructor$ClientboundDisconnectPacket.newInstance(reason);
-            this.sendPacket(kickPacket, false, () -> FastNMS.INSTANCE.method$Connection$disconnect(this.connection(), reason));
-            this.nettyChannel().config().setAutoRead(false);
-            Runnable handleDisconnection = () -> FastNMS.INSTANCE.method$Connection$handleDisconnection(this.connection());
-            FastNMS.INSTANCE.method$BlockableEventLoop$scheduleOnMain(handleDisconnection);
-        } catch (Exception e) {
-            CraftEngine.instance().logger().warn("Failed to kick " + name(), e);
+        } else {
+            BlockableEventLoopProxy.INSTANCE.scheduleOnMain(MinecraftServerProxy.INSTANCE.getServer(), handleDisconnection);
         }
     }
 
     @Override
     public ConnectionState decoderState() {
-        return decoderState;
+        return this.decoderState;
     }
 
     @Override
     public ConnectionState encoderState() {
-        return encoderState;
+        return this.encoderState;
     }
 
     @Override
@@ -538,6 +697,14 @@ public class BukkitServerPlayer extends Player {
     @Override
     public void setClientSideWorld(World world) {
         this.clientSideWorld = world;
+    }
+
+    public double clientSideMaxHealth() {
+        return this.clientSideMaxHealth;
+    }
+
+    public void setClientSideMaxHealth(double maxHealth) {
+        this.clientSideMaxHealth = maxHealth;
     }
 
     public void setConnectionState(ConnectionState connectionState) {
@@ -554,27 +721,37 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public void resendChunks() {
+        if (!VersionHelper.hasPaperPatch) return;
+        Object chunkLoader = ServerPlayerProxy.INSTANCE.getChunkLoader(minecraftPlayer());
+        LongOpenHashSet sentChunks = RegionizedPlayerChunkLoaderProxy.PlayerChunkLoaderDataProxy.INSTANCE.getSentChunks(chunkLoader);
+        if (sentChunks.isEmpty()) {
+            return;
+        }
+        sentChunks = sentChunks.clone();
+        Object serverLevel = CraftWorldProxy.INSTANCE.getWorld(platformPlayer().getWorld());
+        Object lightEngine = BlockAndLightGetterProxy.INSTANCE.getLightEngine(serverLevel);
+        Object chunkSource = ServerLevelProxy.INSTANCE.getChunkSource(serverLevel);
+        for (long chunkPos : sentChunks) {
+            int chunkX = (int) chunkPos;
+            int chunkZ = (int) (chunkPos >> 32);
+            Object levelChunk = ChunkSourceProxy.INSTANCE.getChunk(chunkSource, chunkX, chunkZ, false);
+            Object packet = ClientboundLevelChunkWithLightPacketProxy.INSTANCE.newInstance(levelChunk, lightEngine, null, null);
+            sendPacket(packet, true);
+        }
+    }
+
     public void tick() {
         // 还没上线或是已经离线
-        Object serverPlayer = serverPlayer();
+        Object serverPlayer = minecraftPlayer();
         if (serverPlayer == null) return;
 
         // 更新玩家游戏刻
-        org.bukkit.entity.Player bukkitPlayer = platformPlayer();
-        if (VersionHelper.isFolia()) {
-            try {
-                Object gameMode = FastNMS.INSTANCE.field$ServerPlayer$gameMode(serverPlayer);
-                this.gameTicks = (int) CoreReflections.field$ServerPlayerGameMode$gameTicks.get(gameMode);
-            } catch (ReflectiveOperationException e) {
-                CraftEngine.instance().logger().warn("Failed to get game tick for " + name(), e);
-            }
-        } else {
-            this.gameTicks = FastNMS.INSTANCE.field$MinecraftServer$currentTick();
-        }
+        this.gameTicks = ServerPlayerGameModeProxy.INSTANCE.getGameTicks(ServerPlayerProxy.INSTANCE.getGameMode(serverPlayer));
 
         // 更新CE UI
         if (this.gameTicks % 20 == 0) {
-            this.updateGUI();
+            this.updateGUI(serverPlayer);
         }
 
         // 家具调试模式
@@ -590,6 +767,9 @@ public class BukkitServerPlayer extends Player {
                 }
             }
             this.lastHitFurniture = furniture;
+            if (forceShow) {
+                this.sendActionBar(furniture == null ? Component.empty() : Component.text(furniture.id().asString() + " | Colliders: " + furniture.colliders().size()));
+            }
             if (furniture != null && forceShow) {
                 FurnitureVariant currentVariant = furniture.currentVariant();
                 List<AABB> aabbs = new ArrayList<>();
@@ -607,13 +787,7 @@ public class BukkitServerPlayer extends Player {
 
         // 更新眼睛位置
         {
-            Location unsureEyeLocation = bukkitPlayer.getEyeLocation();
-            Entity vehicle = bukkitPlayer.getVehicle();
-            if (vehicle != null) {
-                Object mountPos = FastNMS.INSTANCE.method$Entity$getPassengerRidingPosition(FastNMS.INSTANCE.method$CraftEntity$getHandle(vehicle), serverPlayer);
-                unsureEyeLocation.set(FastNMS.INSTANCE.field$Vec3$x(mountPos), FastNMS.INSTANCE.field$Vec3$y(mountPos) + bukkitPlayer.getEyeHeight(), FastNMS.INSTANCE.field$Vec3$z(mountPos));
-            }
-            this.eyeLocation = unsureEyeLocation;
+            this.eyeLocation = getEyePos(serverPlayer);
         }
 
         // 本tick内有挥手
@@ -623,24 +797,18 @@ public class BukkitServerPlayer extends Player {
                 // 原版有的，方块挖掘间隔。除非是秒破，否则必走此延迟
                 if (this.gameTicks - this.lastSuccessfulBreak > 5) {
                     if (this.isDestroyingBlock) {
-                        this.tickBlockDestroy();
+                        this.tickBlockDestroy(serverPlayer);
                     } else {
                         // 连续挥手且没被重置
-                        if (++this.awfulBreakFixer >= 4) {
+                        if (++this.awfulBreakFixer >= 4 && !isAdventureMode()) {
                             this.awfulBreakFixer = 0;
-                            RayTraceResult result = rayTrace(this.eyeLocation, getCachedInteractionRange(), FluidCollisionMode.NEVER);
-                            if (result != null) {
-                                Entity hitEntity = result.getHitEntity();
-                                if (hitEntity == null) {
-                                    Block hitBlock = result.getHitBlock();
-                                    if (hitBlock != null) {
-                                        Location location = hitBlock.getLocation();
-                                        BlockPos hitPos = new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-                                        Object blockState = BlockStateUtils.getBlockState(hitBlock);
-                                        ImmutableBlockState customState = BlockStateUtils.getOptionalCustomBlockState(blockState).orElse(null);
-                                        this.startMiningBlock(hitPos, blockState, customState);
-                                    }
-                                }
+                            Object hitResult = rayTrace(serverPlayer, getCachedInteractionRange());
+                            if (!BlockHitResultProxy.INSTANCE.isMiss(hitResult)) {
+                                Object blockPos = BlockHitResultProxy.INSTANCE.getBlockPos(hitResult);
+                                BlockPos hitPos = LocationUtils.fromBlockPos(blockPos);
+                                Object blockState = BlockGetterProxy.INSTANCE.getBlockState(EntityProxy.INSTANCE.getLevel(serverPlayer), blockPos);
+                                ImmutableBlockState customState = BlockStateUtils.getOptionalCustomBlockState(blockState).orElse(null);
+                                this.startMiningBlock(hitPos, blockState, customState);
                             }
                         }
                     }
@@ -650,18 +818,23 @@ public class BukkitServerPlayer extends Player {
         }
 
         // 实体剔除更新相机位置
-        if (Config.entityCullingRayTracing()) {
-            org.bukkit.entity.Player player = platformPlayer();
-            Location eyeLocation = this.eyeLocation.clone();
-            this.firstPersonCameraVec3 = LocationUtils.toVec3d(eyeLocation);
+        if (Config.enableEntityCulling()) {
+            this.firstPersonCameraVec3 = this.eyeLocation;
             int distance = 4;
-            if (VersionHelper.isOrAbove1_21_6()) {
-                Entity vehicle = player.getVehicle();
-                if (vehicle != null && vehicle.getType() == EntityType.HAPPY_GHAST) {
+            if (VersionHelper.isOrAbove1_21_6) {
+                Object vehicle = EntityProxy.INSTANCE.getVehicle(serverPlayer);
+                if (vehicle != null && EntityProxy.INSTANCE.getType(vehicle) == EntityTypesProxy.HAPPY_GHAST) {
                     distance = 8;
                 }
             }
-            this.thirdPersonCameraVec3 = LocationUtils.toVec3d(eyeLocation.subtract(eyeLocation.getDirection().multiply(distance)));
+
+            float pitch = MiscUtils.toRadians(EntityProxy.INSTANCE.getXRot(serverPlayer));
+            float yaw = MiscUtils.toRadians(EntityProxy.INSTANCE.getYRot(serverPlayer));
+            float y = -MiscUtils.sin(pitch);
+            float xz = MiscUtils.cos(pitch);
+            float x = -xz * MiscUtils.sin(yaw);
+            float z = xz * MiscUtils.cos(yaw);
+            this.thirdPersonCameraVec3 = this.eyeLocation.subtract(x * distance, y * distance, z * distance);
         }
     }
 
@@ -676,11 +849,17 @@ public class BukkitServerPlayer extends Player {
             for (CullableHolder cullableObject : this.trackedBlockEntityRenderers.values()) {
                 cullEntity(useRayTracing, cullableObject);
             }
+            for (CullableHolder cullableObject : this.trackedDynamicBlockEntityRenderers.values()) {
+                cullEntity(useRayTracing, cullableObject);
+            }
             for (CullableHolder cullableObject : this.trackedEntities.values()) {
                 cullEntity(useRayTracing, cullableObject);
             }
         } else {
             for (CullableHolder cullableObject : this.trackedBlockEntityRenderers.values()) {
+                cullableObject.setShown(this, true);
+            }
+            for (CullableHolder cullableObject : this.trackedDynamicBlockEntityRenderers.values()) {
                 cullableObject.setShown(this, true);
             }
             for (CullableHolder cullableObject : this.trackedEntities.values()) {
@@ -690,72 +869,89 @@ public class BukkitServerPlayer extends Player {
     }
 
     private void cullEntity(boolean useRayTracing, CullableHolder cullableObject) {
+        if (cullableObject.forceVisible) {
+            cullableObject.setShown(this, true);
+            return;
+        }
         CullingData cullingData = cullableObject.cullable.cullingData();
-        if (cullingData != null) {
-            boolean firstPersonVisible = this.culling.isVisible(cullingData, this.firstPersonCameraVec3, useRayTracing);
-            // 之前可见
-            if (cullableObject.isShown) {
-                boolean thirdPersonVisible = this.culling.isVisible(cullingData, this.thirdPersonCameraVec3, useRayTracing);
-                if (!firstPersonVisible && !thirdPersonVisible) {
-                    cullableObject.setShown(this, false);
-                }
+        if (cullingData == null) {
+            cullableObject.setShown(this, true);
+            return;
+        }
+        // 之前可见
+        if (cullableObject.isShown) {
+            // 第一人称可见时结果已与第三人称无关
+            if (!this.culling.isVisible(cullingData, this.firstPersonCameraVec3, useRayTracing) && !this.culling.isVisible(cullingData, this.thirdPersonCameraVec3, useRayTracing)) {
+                cullableObject.setShown(this, false);
             }
-            // 之前不可见
-            else {
-                // 但是第一人称可见了
-                if (firstPersonVisible) {
-                    // 下次再说
-                    if (Config.enableEntityCullingRateLimiting() && !this.culling.takeToken()) {
-                        return;
-                    }
-                    cullableObject.setShown(this, true);
+        }
+        // 之前不可见
+        else {
+            // 隐藏对象在额度耗尽时无法显示，跳过本轮可见性计算；已显示对象仍需检查是否隐藏。
+            boolean limit = Config.enableEntityCullingRateLimiting();
+            if (limit && !this.culling.hasToken()) {
+                return;
+            }
+            // 但是第一人称可见了
+            if (this.culling.isVisible(cullingData, this.firstPersonCameraVec3, useRayTracing)) {
+                // 下次再说
+                if (limit && !this.culling.takeToken()) {
                     return;
                 }
-                if (this.culling.isVisible(cullingData, this.thirdPersonCameraVec3, useRayTracing)) {
-                    // 下次再说
-                    if (Config.enableEntityCullingRateLimiting() && !this.culling.takeToken()) {
-                        return;
-                    }
-                    cullableObject.setShown(this, true);
-                }
-                // 仍然不可见
+                cullableObject.setShown(this, true);
+                return;
             }
-        } else {
-            cullableObject.setShown(this, true);
+            if (this.culling.isVisible(cullingData, this.thirdPersonCameraVec3, useRayTracing)) {
+                // 下次再说
+                if (limit && !this.culling.takeToken()) {
+                    return;
+                }
+                cullableObject.setShown(this, true);
+            }
+            // 仍然不可见
         }
     }
 
-    private void updateGUI() {
-        org.bukkit.inventory.Inventory top = !VersionHelper.isOrAbove1_21() ? LegacyInventoryUtils.getTopInventory(platformPlayer()) : platformPlayer().getOpenInventory().getTopInventory();
-        if (!InventoryUtils.isCustomContainer(top)) return;
-        if (top.getHolder() instanceof CraftEngineGUIHolder holder) {
-            holder.gui().onTimer();
-        } else if (top.getHolder() instanceof BlockEntityHolder holder) {
-            BlockEntity blockEntity = holder.blockEntity();
-            BlockPos blockPos = blockEntity.pos();
-            if (!canInteractWithBlock(blockPos, 4d)) {
-                platformPlayer().closeInventory();
+    private void updateGUI(Object serverPlayer) {
+        Object containerMenu = PlayerProxy.INSTANCE.getContainerMenu(serverPlayer);
+        if (containerMenu == PlayerProxy.INSTANCE.getInventoryMenu(serverPlayer)) return;
+
+        List<Object> slots = AbstractContainerMenuProxy.INSTANCE.getSlots(containerMenu);
+        if (slots.isEmpty()) return;
+        Object container = SlotProxy.INSTANCE.getContainer(slots.getFirst());
+        if (!(container instanceof DelegatingContainer delegatingContainer)) return;
+        if (!(delegatingContainer.getContainer() instanceof BukkitContainer bukkitContainer)) return;
+
+        InventoryHolder holder = bukkitContainer.getOwner();
+        if (holder instanceof CraftEngineGUIHolder guiHolder) {
+            guiHolder.gui().onTimer();
+        }
+        if (holder instanceof WorldlyContainerHolder itemStorage) {
+            WorldPosition pos = itemStorage.pos();
+            if (!canInteractPoint(pos.toVec3d(), 4d)) {
+                ServerPlayerProxy.INSTANCE.closeContainer(serverPlayer);
             }
         }
     }
 
     public boolean canInteractWithBlock(BlockPos pos, double distance) {
         double d = this.getCachedInteractionRange() + distance;
-        return (new AABB(pos)).distanceToSqr(this.getEyePos()) < d * d;
+        return (new AABB(pos)).distanceToSqr(this.eyeLocation) < d * d;
     }
 
+    @Override
     public boolean canInteractPoint(Vec3d pos, double distance) {
         double d = this.getCachedInteractionRange() + distance;
-        return Vec3d.distanceToSqr(this.getEyePos(), pos) < d * d;
+        return Vec3d.distanceToSqr(this.eyeLocation, pos) < d * d;
     }
 
     @Override
     public float getDestroyProgress(Object blockState, BlockPos pos) {
         Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(blockState);
-        float progress = FastNMS.INSTANCE.method$BlockStateBase$getDestroyProgress(blockState, serverPlayer(), FastNMS.INSTANCE.field$CraftWorld$ServerLevel(platformPlayer().getWorld()), LocationUtils.toBlockPos(pos));
+        float progress = BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getDestroyProgress(blockState, minecraftPlayer(), CraftWorldProxy.INSTANCE.getWorld(platformPlayer().getWorld()), LocationUtils.toBlockPos(pos));
         if (optionalCustomState.isPresent()) {
             ImmutableBlockState customState = optionalCustomState.get();
-            Item<ItemStack> tool = getItemInHand(InteractionHand.MAIN_HAND);
+            Item tool = getItemInHand(InteractionHand.MAIN_HAND);
             // 如果自定义方块在服务端侧未使用正确的工具，那么需要还原挖掘速度
             if (!BlockStateUtils.isCorrectTool(customState, tool)) {
                 progress *= customState.settings().incorrectToolSpeed();
@@ -779,7 +975,7 @@ public class BukkitServerPlayer extends Player {
         } else {
             BlockPos previousPos = this.destroyPos;
             if (previousPos != null && !pos.equals(previousPos)) {
-                this.broadcastDestroyProgress(this.platformPlayer(), previousPos, -1);
+                this.broadcastDestroyProgress(previousPos, -1f);
             }
             this.destroyPos = pos;
             this.destroyedState = state;
@@ -796,10 +992,10 @@ public class BukkitServerPlayer extends Player {
                     // 如果客户端觉得这个方块不能秒破，那么应该给客户端补发一个level event以正确渲染声音和粒子
                     // 客户端觉得不能秒破有两种情况：
                     // 1. 此时客户端觉得自己挖掘速度为0
-                    boolean attributeCannotBreak = VersionHelper.isOrAbove1_20_5() && !this.clientSideCanBreak;
+                    boolean attributeCannotBreak = VersionHelper.isOrAbove1_20_5 && !this.clientSideCanBreak;
                     // 2. 客户端侧的方块就是不能秒破
-                    if (attributeCannotBreak || getDestroyProgress(vanillaBlockState.literalObject(), pos) < 1f) {
-                        Object levelEventPacket = FastNMS.INSTANCE.constructor$ClientboundLevelEventPacket(
+                    if (attributeCannotBreak || getDestroyProgress(vanillaBlockState.minecraftState(), pos) < 1f) {
+                        Object levelEventPacket = ClientboundLevelEventPacketProxy.INSTANCE.newInstance(
                                 WorldEvents.BLOCK_BREAK_EFFECT, LocationUtils.toBlockPos(pos), BlockStateUtils.blockStateToId(state), false);
                         sendPacket(levelEventPacket, false);
                     }
@@ -807,8 +1003,8 @@ public class BukkitServerPlayer extends Player {
             }
         } else {
             // 客户端此时觉得自己不能秒破，但实际可以秒破
-            if (canInstantBreak && VersionHelper.isOrAbove1_20_5() && !this.clientSideCanBreak) {
-                Object levelEventPacket = FastNMS.INSTANCE.constructor$ClientboundLevelEventPacket(
+            if (canInstantBreak && VersionHelper.isOrAbove1_20_5 && !this.clientSideCanBreak) {
+                Object levelEventPacket = ClientboundLevelEventPacketProxy.INSTANCE.newInstance(
                         WorldEvents.BLOCK_BREAK_EFFECT, LocationUtils.toBlockPos(pos), BlockStateUtils.blockStateToId(state), false);
                 sendPacket(levelEventPacket, false);
             }
@@ -820,43 +1016,31 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public void setClientSideCanBreakBlock(boolean canBreak) {
-        try {
-            // 超过1秒就强制同步一次属性
-            if (this.clientSideCanBreak == canBreak && !shouldSyncAttribute()) {
-                return;
-            }
-            this.clientSideCanBreak = canBreak;
+        // 超过1秒就强制同步一次属性
+        if (this.clientSideCanBreak == canBreak && !shouldSyncAttribute()) {
+            return;
+        }
+        this.clientSideCanBreak = canBreak;
+        if (VersionHelper.isOrAbove1_20_5) {
+            Object serverPlayer = minecraftPlayer();
+            Object attributeInstance = LivingEntityProxy.INSTANCE.getAttribute(serverPlayer, AttributesProxy.BLOCK_BREAK_SPEED);
+            sendPacket(ClientboundUpdateAttributesPacketProxy.INSTANCE.newInstance$0(entityId(), Lists.newArrayList(attributeInstance)), true);
+        } else {
             if (canBreak) {
-                if (VersionHelper.isOrAbove1_20_5()) {
-                    Object serverPlayer = serverPlayer();
-                    Object attributeInstance = CoreReflections.methodHandle$ServerPlayer$getAttributeMethod.invokeExact(serverPlayer, MAttributeHolders.BLOCK_BREAK_SPEED);
-                    sendPacket(FastNMS.INSTANCE.constructor$ClientboundUpdateAttributesPacket(entityId(), Lists.newArrayList(attributeInstance)), true);
-                } else {
-                    resetEffect(MMobEffects.MINING_FATIGUE);
-                    resetEffect(MMobEffects.HASTE);
-                }
+                resetEffect(MobEffectsProxy.MINING_FATIGUE);
+                resetEffect(MobEffectsProxy.HASTE);
             } else {
-                if (VersionHelper.isOrAbove1_20_5()) {
-                    Object attributeModifier = VersionHelper.isOrAbove1_21() ?
-                            CoreReflections.constructor$AttributeModifier.newInstance(KeyUtils.toResourceLocation(Key.DEFAULT_NAMESPACE, "custom_hardness"), -9999d, CoreReflections.instance$AttributeModifier$Operation$ADD_VALUE) :
-                            CoreReflections.constructor$AttributeModifier.newInstance(UUID.randomUUID(), Key.DEFAULT_NAMESPACE + ":custom_hardness", -9999d, CoreReflections.instance$AttributeModifier$Operation$ADD_VALUE);
-                    Object attributeSnapshot = NetworkReflections.constructor$ClientboundUpdateAttributesPacket$AttributeSnapshot.newInstance(MAttributeHolders.BLOCK_BREAK_SPEED, 1d, Lists.newArrayList(attributeModifier));
-                    Object newPacket = NetworkReflections.constructor$ClientboundUpdateAttributesPacket1.newInstance(entityId(), Lists.newArrayList(attributeSnapshot));
-                    sendPacket(newPacket, true);
-                } else {
-                    Object fatiguePacket = MobEffectUtils.createPacket(MMobEffects.MINING_FATIGUE, entityId(), (byte) 9, -1, false, false, false);
-                    Object hastePacket = MobEffectUtils.createPacket(MMobEffects.HASTE, entityId(), (byte) 0, -1, false, false, false);
-                    sendPackets(List.of(fatiguePacket, hastePacket), true);
-                }
+                Object fatiguePacket = MobEffectUtils.createPacket(MobEffectsProxy.MINING_FATIGUE, entityId(), (byte) 9, -1, false, false, false);
+                Object hastePacket = MobEffectUtils.createPacket(MobEffectsProxy.HASTE, entityId(), (byte) 0, -1, false, false, false);
+                sendPackets(List.of(fatiguePacket, hastePacket), true);
             }
-        } catch (Throwable e) {
-            this.plugin.logger().warn("Failed to set attribute for player " + platformPlayer().getName(), e);
         }
     }
 
     // 客户端完成破坏方块
     @Override
     public void finishMiningBlock() {
+        clearActiveDestroyProgress(false);
         this.miningProgress = 0f;
         this.isDestroyingBlock = false;
         this.swingHandAck = false;
@@ -869,6 +1053,7 @@ public class BukkitServerPlayer extends Player {
     // 通过丢弃物品/右键方块/右键实体触发，会给几tick的挖掘冷却期
     @Override
     public void stopMiningBlock() {
+        clearActiveDestroyProgress(false);
         this.miningProgress = 0f;
         this.isDestroyingBlock = false;
         this.swingHandAck = false;
@@ -890,7 +1075,7 @@ public class BukkitServerPlayer extends Player {
         BlockPos pos = this.destroyPos;
         if (pos != null && this.isDestroyingCustomBlock) {
             // 只纠正自定义方块的破坏进度
-            this.broadcastDestroyProgress(platformPlayer(), pos, -1);
+            this.broadcastDestroyProgress(pos, -1f);
         }
     }
 
@@ -904,129 +1089,122 @@ public class BukkitServerPlayer extends Player {
         this.isDestroyingCustomBlock = false;
     }
 
-    private void resetEffect(Object mobEffect) throws ReflectiveOperationException {
-        Object effectInstance = CoreReflections.method$ServerPlayer$getEffect.invoke(serverPlayer(), mobEffect);
+    @Override
+    public boolean clientSideCanBreak() {
+        return this.clientSideCanBreak;
+    }
+
+    private void resetEffect(Object mobEffect) {
+        Object effectInstance = ServerPlayerProxy.INSTANCE.getEffect$legacy(minecraftPlayer(), mobEffect);
         Object packet;
         if (effectInstance != null) {
-            packet = NetworkReflections.constructor$ClientboundUpdateMobEffectPacket.newInstance(entityId(), effectInstance);
+            packet = ClientboundUpdateMobEffectPacketProxy.INSTANCE.newInstance(entityId(), effectInstance);
         } else {
-            packet = NetworkReflections.constructor$ClientboundRemoveMobEffectPacket.newInstance(entityId(), mobEffect);
+            packet = ClientboundRemoveMobEffectPacketProxy.INSTANCE.newInstance$legacy(entityId(), mobEffect);
         }
         sendPacket(packet, true);
     }
 
-    private void tickBlockDestroy() {
+    private void tickBlockDestroy(Object serverPlayer) {
         int currentTick = gameTicks();
-        // 如果没有正在被挖掘的对象，那么不继续
         Object destroyedState = this.destroyedState;
         if (destroyedState == null) return;
 
-        try {
-            // 进行实现追踪找到指向的方块
-            org.bukkit.entity.Player player = platformPlayer();
-            double range = getCachedInteractionRange();
-            RayTraceResult result = rayTrace(this.eyeLocation, range, FluidCollisionMode.NEVER);
-            if (result == null) return;
-            if (result.getHitEntity() != null) return;
-            Block hitBlock = result.getHitBlock();
-            if (hitBlock == null) return;
-            Location location = hitBlock.getLocation();
-            BlockPos hitPos = new BlockPos(location.getBlockX(), location.getBlockY(), location.getBlockZ());
-            // 如果命中点位和网络包设置的不同，那么不继续tick
-            if (!hitPos.equals(this.destroyPos)) {
-                Object blockState = BlockStateUtils.getBlockState(hitBlock);
-                ImmutableBlockState customState = BlockStateUtils.getOptionalCustomBlockState(blockState).orElse(null);
-                this.startMiningBlock(hitPos, blockState, customState);
-                return;
+        // 进行实现追踪找到指向的方块
+        Object hitResult = rayTrace(serverPlayer, getCachedInteractionRange());
+        if (BlockHitResultProxy.INSTANCE.isMiss(hitResult)) return;
+        Object blockPos = BlockHitResultProxy.INSTANCE.getBlockPos(hitResult);
+        BlockPos hitPos = LocationUtils.fromBlockPos(blockPos);
+        // 如果命中点位和网络包设置的不同，那么不继续tick
+        if (!hitPos.equals(this.destroyPos)) {
+            Object blockState = BlockGetterProxy.INSTANCE.getBlockState(EntityProxy.INSTANCE.getLevel(serverPlayer), blockPos);
+            ImmutableBlockState customState = BlockStateUtils.getOptionalCustomBlockState(blockState).orElse(null);
+            this.startMiningBlock(hitPos, blockState, customState);
+            return;
+        }
+
+        // check item in hand
+        BukkitItem item = this.getItemInHand(InteractionHand.MAIN_HAND);
+
+        // 发送破坏中音效
+        if (currentTick - this.lastHitBlockTime > 3) {
+            // 手上物品不是debug棒
+            if (!BukkitItemUtils.isDebugStick(item) && !canInstabuild()) {
+                Object soundType = BlockBehaviourProxy.BlockStateBaseProxy.INSTANCE.getSoundType(destroyedState);
+                Object soundEvent = SoundTypeProxy.INSTANCE.getHitSound(soundType);
+                Object soundPacket = ClientboundSoundPacketProxy.INSTANCE.newInstance(
+                        HolderProxy.INSTANCE.direct(soundEvent),
+                        SoundSourceProxy.BLOCKS,
+                        hitPos.x(), hitPos.y(), hitPos.z(),
+                        0.5F, 0.5F,
+                        RandomUtils.generateRandomLong()
+                );
+                sendPacket(soundPacket, true);
+            }
+            this.lastHitBlockTime = currentTick;
+        }
+
+        // accumulate progress (custom blocks only)
+        if (this.isDestroyingCustomBlock) {
+            // prevent server from taking over breaking custom blocks
+            Object gameMode = ServerPlayerProxy.INSTANCE.getGameMode(serverPlayer);
+            ServerPlayerGameModeProxy.INSTANCE.setIsDestroyingBlock(gameMode, false);
+            if (!item.isEmpty()) {
+                // creative mode + invalid item in hand
+                if (canInstabuild() && !ItemStackUtils.canBreakBlockInCreativeMode(item)) {
+                    return;
+                }
             }
 
-            Object blockPos = LocationUtils.toBlockPos(hitPos);
-            Object serverPlayer = serverPlayer();
+            float progressToAdd = getDestroyProgress(destroyedState, hitPos);
+            Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(destroyedState);
+            // double check custom block
+            if (optionalCustomState.isPresent()) {
+                ImmutableBlockState customState = optionalCustomState.get();
+                // accumulate progress
+                this.miningProgress = progressToAdd + miningProgress;
+                // broadcast changes; dedup (vanilla 0~10 stage or custom item index) happens inside
+                broadcastDestroyProgress(hitPos, this.miningProgress);
 
-            // check item in hand
-            Item<ItemStack> item = this.getItemInHand(InteractionHand.MAIN_HAND);
-
-            // 发送破坏中音效
-            if (currentTick - this.lastHitBlockTime > 3) {
-                // 手上物品不是debug棒
-                if (!BukkitItemUtils.isDebugStick(item)) {
-                    Object soundType = FastNMS.INSTANCE.method$BlockBehaviour$BlockStateBase$getSoundType(destroyedState);
-                    Object soundEvent = FastNMS.INSTANCE.field$SoundType$hitSound(soundType);
-                    Object soundId = FastNMS.INSTANCE.field$SoundEvent$location(soundEvent);
-                    player.playSound(location, soundId.toString(), SoundCategory.BLOCKS, 0.5F, 0.5F);
-                }
-                this.lastHitBlockTime = currentTick;
-            }
-
-            // accumulate progress (custom blocks only)
-            if (this.isDestroyingCustomBlock) {
-                // prevent server from taking over breaking custom blocks
-                Object gameMode = FastNMS.INSTANCE.field$ServerPlayer$gameMode(serverPlayer);
-                CoreReflections.field$ServerPlayerGameMode$isDestroyingBlock.set(gameMode, false);
-                if (!item.isEmpty()) {
-                    Material itemMaterial = item.getItem().getType();
-                    // creative mode + invalid item in hand
-                    if (canInstabuild() && (itemMaterial == Material.DEBUG_STICK
-                            || itemMaterial == Material.TRIDENT
-                            || (VersionHelper.isOrAbove1_20_5() && itemMaterial == MaterialUtils.MACE)
-                            || item.hasItemTag(ItemTags.SWORDS))) {
-                        return;
-                    }
-                }
-
-                float progressToAdd = getDestroyProgress(destroyedState, hitPos);
-                Optional<ImmutableBlockState> optionalCustomState = BlockStateUtils.getOptionalCustomBlockState(destroyedState);
-                // double check custom block
-                if (optionalCustomState.isPresent()) {
-                    ImmutableBlockState customState = optionalCustomState.get();
-                    // accumulate progress
-                    this.miningProgress = progressToAdd + miningProgress;
-                    int packetStage = (int) (this.miningProgress * 10.0F);
-                    if (packetStage != this.lastSentState) {
-                        this.lastSentState = packetStage;
-                        // broadcast changes
-                        broadcastDestroyProgress(platformPlayer(), hitPos, packetStage);
-                    }
-
-                    // can break now
-                    if (this.miningProgress >= 1f) {
-                        boolean breakResult = false;
-                        // for simplified adventure break, switch mayBuild temporarily
-                        if (isAdventureMode() && Config.simplifyAdventureBreakCheck()) {
-                            // check the appearance state
-                            if (canBreak(hitPos, customState.visualBlockState().literalObject())) {
-                                // Error might occur so we use try here
-                                try {
-                                    FastNMS.INSTANCE.field$Player$mayBuild(serverPlayer, true);
-                                    breakResult = (boolean) CoreReflections.method$ServerPlayerGameMode$destroyBlock.invoke(gameMode, blockPos);
-                                } finally {
-                                    FastNMS.INSTANCE.field$Player$mayBuild(serverPlayer, false);
-                                }
+                // can break now
+                if (this.miningProgress >= 1f) {
+                    boolean breakResult = false;
+                    // for simplified adventure break, switch mayBuild temporarily
+                    if (isAdventureMode() && Config.simplifyAdventureBreakCheck()) {
+                        // check the appearance state
+                        if (canBreak(hitPos, customState.visualBlockState().minecraftState())) {
+                            // Error might occur so we use try here
+                            Object abilities = PlayerProxy.INSTANCE.getAbilities(serverPlayer);
+                            try {
+                                AbilitiesProxy.INSTANCE.setMayBuild(abilities, true);
+                                breakResult = ServerPlayerGameModeProxy.INSTANCE.destroyBlock(gameMode, blockPos);
+                            } finally {
+                                AbilitiesProxy.INSTANCE.setMayBuild(abilities, false);
                             }
-                        } else {
-                            // normal break check
-                            breakResult = (boolean) CoreReflections.method$ServerPlayerGameMode$destroyBlock.invoke(gameMode, blockPos);
                         }
-                        // send break particle + (removed sounds)
-                        if (breakResult) {
-                            sendPacket(FastNMS.INSTANCE.constructor$ClientboundLevelEventPacket(WorldEvents.BLOCK_BREAK_EFFECT, blockPos, customState.customBlockState().registryId(), false), false);
-                            this.destroyPos = null;
-                            this.miningProgress = 0;
-                            this.isDestroyingBlock = false;
-                            this.swingHandAck = false;
-                            this.destroyedState = null;
-                            this.isDestroyingCustomBlock = false;
-                        } else {
-                            // 事件被取消了，重置挖掘进度
-                            this.miningProgress = 0;
-                            this.isDestroyingCustomBlock = true;
-                            this.isDestroyingBlock = true;
-                        }
+                    } else {
+                        // normal break check
+                        breakResult = ServerPlayerGameModeProxy.INSTANCE.destroyBlock(gameMode, blockPos);
+                    }
+                    // send break particle + (removed sounds)
+                    if (breakResult) {
+                        sendPacket(ClientboundLevelEventPacketProxy.INSTANCE.newInstance(WorldEvents.BLOCK_BREAK_EFFECT, blockPos, customState.customBlockState().registryId(), false), false);
+                        clearActiveDestroyProgress(true);
+                        this.destroyPos = null;
+                        this.miningProgress = 0;
+                        this.isDestroyingBlock = false;
+                        this.swingHandAck = false;
+                        this.destroyedState = null;
+                        this.isDestroyingCustomBlock = false;
+                    } else {
+                        // 事件被取消了，重置挖掘进度
+                        clearDestroyStageDisplay();
+                        this.miningProgress = 0;
+                        this.isDestroyingCustomBlock = true;
+                        this.isDestroyingBlock = true;
                     }
                 }
             }
-        } catch (Exception e) {
-            this.plugin.logger().warn("Failed to tick destroy for player " + platformPlayer().getName(), e);
         }
     }
 
@@ -1039,35 +1217,174 @@ public class BukkitServerPlayer extends Player {
         platformPlayer().breakBlock(new Location(platformPlayer().getWorld(), x, y, z).getBlock());
     }
 
-    private void broadcastDestroyProgress(org.bukkit.entity.Player player, BlockPos hitPos, int stage) {
-        Object packet = FastNMS.INSTANCE.constructor$ClientboundBlockDestructionPacket(Integer.MAX_VALUE - entityId(), LocationUtils.toBlockPos(hitPos), stage);
-        for (org.bukkit.entity.Player other : player.getWorld().getPlayers()) {
-            Location otherLocation = other.getLocation();
-            double d0 = (double) hitPos.x() - otherLocation.getX();
-            double d1 = (double) hitPos.y() - otherLocation.getY();
-            double d2 = (double) hitPos.z() - otherLocation.getZ();
-            if (d0 * d0 + d1 * d1 + d2 * d2 < 1024.0D) {
-                FastNMS.INSTANCE.method$Connection$send(
-                        FastNMS.INSTANCE.field$ServerGamePacketListenerImpl$connection(
-                                FastNMS.INSTANCE.field$Player$connection(
-                                        FastNMS.INSTANCE.method$CraftPlayer$getHandle(player)
-                                )
-                        ),
-                        packet,
-                        null
-                );
+    private void broadcastDestroyProgress(BlockPos hitPos, float progress) {
+        DestroyStageDisplayEntitySetting display = currentDestroyStageDisplay();
+        int key = progress < 0 ? -1 : (display != null ? display.itemIndexForProgress(progress) : (int) (progress * 10.0F));
+        if (key == this.lastSentState) {
+            return;
+        }
+        this.lastSentState = key;
+        if (display != null) {
+            broadcastDestroyProgressViaDisplay(hitPos, progress, display);
+        } else {
+            broadcastDestroyProgressVanilla(hitPos, key);
+        }
+    }
+
+    private DestroyStageDisplayEntitySetting currentDestroyStageDisplay() {
+        Object state = this.destroyedState;
+        if (state == null) return null;
+        ImmutableBlockState customState = BlockStateUtils.getOptionalCustomBlockState(state).orElse(null);
+        if (customState == null) return null;
+        return customState.settings().destroyStageDisplay();
+    }
+
+    private void broadcastDestroyProgressVanilla(BlockPos hitPos, int stage) {
+        Object packet = ClientboundBlockDestructionPacketProxy.INSTANCE.newInstance(Integer.MAX_VALUE - entityId(), LocationUtils.toBlockPos(hitPos), stage);
+        sendPacket(packet, false);
+        for (Player other : getTrackedBy()) {
+            if (!isWithinDestroyRange(hitPos, other)) continue;
+            other.sendPacket(packet, false);
+        }
+    }
+
+    /**
+     * Clears the destruction overlay before the tracked position/state is discarded.
+     * Vanilla crack overlays are keyed by breaker id and survive a block replacement;
+     * without an explicit reset, a newly placed block at the same position inherits
+     * the final crack stage until another update happens.
+     */
+    private void clearActiveDestroyProgress(boolean clearAllDisplayMiners) {
+        BlockPos position = this.destroyPos;
+        if (position == null || !this.isDestroyingCustomBlock) {
+            clearDestroyStageDisplay();
+            this.lastSentState = -1;
+            return;
+        }
+
+        if (currentDestroyStageDisplay() != null) {
+            if (clearAllDisplayMiners) {
+                clearDestroyStageDisplayForAll();
+            } else {
+                clearDestroyStageDisplay();
+            }
+        } else {
+            broadcastDestroyProgressVanilla(position, -1);
+        }
+        this.lastSentState = -1;
+    }
+
+    public void broadcastDestroyProgressViaDisplay(BlockPos hitPos, float progress, DestroyStageDisplayEntitySetting display) {
+        if (progress < 0) {
+            clearDestroyStageDisplay();
+            return;
+        }
+        DestroyStageDisplayRecorder.PosKey posKey = new DestroyStageDisplayRecorder.PosKey(platformPlayer().getWorld().getUID(), hitPos.asLong());
+        DestroyStageDisplayRecorder.Entry entry = BukkitDestroyStageDisplayRecorder.INSTANCE.getOrCreate(posKey, display, hitPos);
+        this.destroyStageEntry = entry;
+
+        entry.minerProgress.put(this.uuid, progress);
+        float maxProgress = 0f;
+        for (Float p : entry.minerProgress.values()) {
+            if (p != null && p > maxProgress) maxProgress = p;
+        }
+        int newIndex = display.itemIndexForProgress(maxProgress);
+        if (newIndex == entry.displayedIndex()) {
+            return;
+        }
+        entry.displayedIndex(newIndex);
+
+        DestroyStageDisplayEntity entity = entry.entity;
+        Set<UUID> current = new HashSet<>();
+        current.add(this.uuid);
+        Set<Player> trackedPlayers = getTrackedBy();
+        for (Player other : trackedPlayers) {
+            if (isWithinDestroyRange(hitPos, other)) {
+                current.add(other.uuid());
+            }
+        }
+        Object removePacket = entity.removePacket();
+        entity.removeLeftViewers(current, viewerId -> {
+            if (viewerId.equals(this.uuid)) return;
+            BukkitServerPlayer serverPlayer = BukkitNetworkManager.instance().getOnlineUser(viewerId);
+            if (serverPlayer == null) return;
+            serverPlayer.sendPacket(removePacket, false);
+        });
+        showDestroyStageDisplayTo(this, entity, newIndex);
+        for (Player other : trackedPlayers) {
+            if (!isWithinDestroyRange(hitPos, other)) continue;
+            showDestroyStageDisplayTo(other, entity, newIndex);
+        }
+    }
+
+    private void showDestroyStageDisplayTo(Player viewer, DestroyStageDisplayEntity entity, int index) {
+        entity.ensureSpawned(viewer, index, packet -> viewer.sendPacket(packet, false));
+    }
+
+    public void clearDestroyStageDisplay() {
+        DestroyStageDisplayRecorder.Entry entry = this.destroyStageEntry;
+        if (entry == null) return;
+        DestroyStageDisplayEntity entity = entry.entity;
+        this.destroyStageEntry = null;
+        this.lastSentState = -1;
+        entry.minerProgress.remove(this.uuid);
+        if (entry.minerProgress.isEmpty()) {
+            BukkitDestroyStageDisplayRecorder.INSTANCE.remove(entry.key);
+        } else {
+            float maxProgress = 0f;
+            for (Float p : entry.minerProgress.values()) {
+                if (p != null && p > maxProgress) maxProgress = p;
+            }
+            int newIndex = entry.display.itemIndexForProgress(maxProgress);
+            if (newIndex != entry.displayedIndex()) {
+                entry.displayedIndex(newIndex);
+                for (UUID viewerId : entity.spawnedViewers()) {
+                    BukkitServerPlayer serverPlayer = (BukkitServerPlayer) this.plugin.networkManager().getOnlineUser(viewerId);
+                    if (serverPlayer == null) continue;
+                    showDestroyStageDisplayTo(serverPlayer, entity, newIndex);
+                }
             }
         }
     }
 
+    public void clearDestroyStageDisplayForAll() {
+        DestroyStageDisplayRecorder.Entry entry = this.destroyStageEntry;
+        if (entry == null) {
+            return;
+        }
+        for (UUID minerId : entry.minerProgress.keys()) {
+            BukkitServerPlayer serverPlayer = (BukkitServerPlayer) this.plugin.networkManager().getOnlineUser(minerId);
+            if (serverPlayer == null) continue;
+            serverPlayer.destroyStageEntry = null;
+            serverPlayer.lastSentState = -1;
+        }
+        BukkitDestroyStageDisplayRecorder.INSTANCE.remove(entry.key);
+    }
+
+    private boolean isWithinDestroyRange(BlockPos hitPos, Player other) {
+        double d0 = (double) hitPos.x() - other.x();
+        double d1 = (double) hitPos.y() - other.y();
+        double d2 = (double) hitPos.z() - other.z();
+        return d0 * d0 + d1 * d1 + d2 * d2 < 32 * 32;
+    }
+
     @Override
     public double getCachedInteractionRange() {
-        if (this.lastUpdateInteractionRangeTick + 20 > gameTicks()) {
+        if (VersionHelper.isOrAbove1_20_5) {
+            if (this.lastUpdateInteractionRangeTick + 20 > this.gameTicks) {
+                return this.cachedInteractionRange;
+            }
+            Object attribute = LivingEntityProxy.INSTANCE.getAttribute(minecraftPlayer(), AttributesProxy.BLOCK_INTERACTION_RANGE);
+            if (attribute == null) {
+                this.cachedInteractionRange = 4.5d;
+            } else {
+                this.cachedInteractionRange = AttributeInstanceProxy.INSTANCE.getValue(attribute);
+            }
+            this.lastUpdateInteractionRangeTick = this.gameTicks;
             return this.cachedInteractionRange;
+        } else {
+            return 4.5d;
         }
-        this.cachedInteractionRange = FastNMS.INSTANCE.method$Player$getInteractionRange(serverPlayer());
-        this.lastUpdateInteractionRangeTick = gameTicks();
-        return this.cachedInteractionRange;
     }
 
     @Override
@@ -1082,7 +1399,7 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public int entityId() {
-        return platformPlayer().getEntityId();
+        return this.entityId;
     }
 
     @Override
@@ -1094,12 +1411,12 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public float yRot() {
-        return platformPlayer().getYaw();
+        return EntityProxy.INSTANCE.getYRot(this.minecraftPlayer());
     }
 
     @Override
     public float xRot() {
-        return platformPlayer().getPitch();
+        return EntityProxy.INSTANCE.getXRot(this.minecraftPlayer());
     }
 
     @Override
@@ -1112,67 +1429,48 @@ public class BukkitServerPlayer extends Player {
         return DirectionUtils.toDirection(platformPlayer().getFacing());
     }
 
-    @NotNull
-    @Override
-    public Item<ItemStack> getItemInHand(InteractionHand hand) {
-        PlayerInventory inventory = platformPlayer().getInventory();
-        return BukkitItemManager.instance().wrap(hand == InteractionHand.MAIN_HAND ? inventory.getItemInMainHand() : inventory.getItemInOffHand());
-    }
-
-    @NotNull
-    @Override
-    public Item<ItemStack> getItemBySlot(int slot) {
-        PlayerInventory inventory = platformPlayer().getInventory();
-        return BukkitItemManager.instance().wrap(inventory.getItem(slot));
-    }
-
-    @Override
-    public void setItemInHand(InteractionHand hand, Item<?> item) {
-        PlayerInventory inventory = platformPlayer().getInventory();
-        EquipmentSlot slot = hand == InteractionHand.MAIN_HAND ? EquipmentSlot.HAND : EquipmentSlot.OFF_HAND;
-        inventory.setItem(slot, (ItemStack) item.getItem());
-    }
-
     @Override
     public World world() {
-        return BukkitAdaptors.adapt(platformPlayer().getWorld());
+        return BukkitAdaptor.adapt(platformPlayer().getWorld());
     }
 
     @Override
     public double x() {
-        return platformPlayer().getX();
+        return EntityProxy.INSTANCE.getX(minecraftPlayer());
     }
 
     @Override
     public double y() {
-        return platformPlayer().getY();
+        return EntityProxy.INSTANCE.getY(minecraftPlayer());
     }
 
     @Override
     public double z() {
-        return platformPlayer().getZ();
+        return EntityProxy.INSTANCE.getZ(minecraftPlayer());
     }
 
     @Override
-    public Object serverPlayer() {
-        if (serverPlayerRef == null) return null;
-        return serverPlayerRef.get();
+    public Object minecraftPlayer() {
+        if (this.nmsPlayerRef == null) return null;
+        return this.nmsPlayerRef.get();
     }
 
     @Override
     public org.bukkit.entity.Player platformPlayer() {
-        if (playerRef == null) return null;
-        return playerRef.get();
+        if (this.bukkitPlayerRef == null) return null;
+        return this.bukkitPlayerRef.get();
     }
 
     @Override
     public ChannelHandler connection() {
         if (this.connection == null) {
-            Object serverPlayer = serverPlayer();
+            Object serverPlayer = minecraftPlayer();
             if (serverPlayer != null) {
-                this.connection = (ChannelHandler) FastNMS.INSTANCE.field$ServerGamePacketListenerImpl$connection(
-                        FastNMS.INSTANCE.field$Player$connection(serverPlayer)
-                );
+                if (VersionHelper.isOrAbove1_20_2) {
+                    this.connection = ServerCommonPacketListenerImplProxy.INSTANCE.getConnection(ServerPlayerProxy.INSTANCE.getConnection(serverPlayer));
+                } else {
+                    this.connection = ServerGamePacketListenerImplProxy.INSTANCE.getConnection(ServerPlayerProxy.INSTANCE.getConnection(serverPlayer));
+                }
             } else {
                 throw new IllegalStateException("Cannot init or find connection instance for player " + name());
             }
@@ -1191,12 +1489,12 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public Object serverEntity() {
-        return serverPlayer();
+    public Object minecraftEntity() {
+        return minecraftPlayer();
     }
 
     @Override
-    public Map<Integer, EntityPacketHandler> entityPacketHandlers() {
+    public ConcurrentChainedInt2ObjectHashTable<EntityPacketHandler> entityViews() {
         return this.entityTypeView;
     }
 
@@ -1217,18 +1515,39 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public boolean clientModEnabled() {
-        return this.hasClientMod;
+    public boolean clientCustomBlockEnabled() {
+        return this.enableClientCustomBlock;
     }
 
     @Override
-    public void setClientModState(boolean enable) {
-        this.hasClientMod = enable;
+    public void setClientCustomBlock(boolean enable) {
+        this.enableClientCustomBlock = enable;
+    }
+
+    @Override
+    public boolean hasClientMod() {
+        return this.clientModProtocol != -1;
+    }
+
+    @Override
+    public int clientModProtocol() {
+        return this.clientModProtocol;
+    }
+
+    @Override
+    public void setClientModProtocol(int version) {
+        this.clientModProtocol = version;
     }
 
     @Override
     public void setClientBlockList(IntIdentityList blockList) {
         this.blockList = blockList;
+        this.needsBlockStateBitWidthConversion = MiscUtils.ceilLog2(blockList.size()) != MiscUtils.ceilLog2(RegistryUtils.currentBlockRegistrySize());
+    }
+
+    @Override
+    public boolean needsBlockStateBitWidthConversion() {
+        return this.needsBlockStateBitWidthConversion;
     }
 
     @Override
@@ -1247,8 +1566,21 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public IntIdentityList clientBiomeList() {
+        if (this.biomeList == null) {
+            this.biomeList = new IntIdentityList(RegistryUtils.currentBiomeRegistrySize());
+        }
+        return this.biomeList;
+    }
+
+    @Override
+    public void setClientBiomeList(IntIdentityList biomes) {
+        this.biomeList = biomes;
+    }
+
+    @Override
     public void addResourcePackUUID(UUID uuid) {
-        if (VersionHelper.isOrAbove1_20_3()) {
+        if (VersionHelper.isOrAbove1_20_3) {
             this.resourcePackUUID.add(uuid);
         }
     }
@@ -1268,19 +1600,35 @@ public class BukkitServerPlayer extends Player {
         return this.shouldProcessFinishConfiguration;
     }
 
+    public EquipmentLodTracker equipmentLod() {
+        return this.equipmentLod;
+    }
+
     @Override
-    public void clearView() {
+    public void asyncTick() {
+        EquipmentLodTracker tracker = this.equipmentLod;
+        if (tracker != null && !Config.disableItemOperations()) {
+            Object position = EntityProxy.INSTANCE.getPosition(minecraftEntity());
+            tracker.asyncTick(new PacketPosition(Vec3Proxy.INSTANCE.getX(position), Vec3Proxy.INSTANCE.getY(position), Vec3Proxy.INSTANCE.getZ(position)));
+        }
+    }
+
+    @Override
+    public void clearEntityView() {
+        if (this.equipmentLod != null) this.equipmentLod.clear();
         this.entityTypeView.clear();
+        // 玩家自身实体的包处理器不随视野清空（重生/切世界后仍需要血量 metadata 缩放等处理）
+        this.entityTypeView.put(this.entityId, SelfPlayerPacketHandler.INSTANCE);
     }
 
     @Override
     public void unloadCurrentResourcePack() {
-        if (!VersionHelper.isOrAbove1_20_3()) {
+        if (!VersionHelper.isOrAbove1_20_3) {
             return;
         }
         if (decoderState() == ConnectionState.PLAY && !this.resourcePackUUID.isEmpty()) {
             for (UUID u : this.resourcePackUUID) {
-                sendPacket(FastNMS.INSTANCE.constructor$ClientboundResourcePackPopPacket(u), true);
+                sendPacket(ClientboundResourcePackPopPacketProxy.INSTANCE.newInstance(Optional.ofNullable(u)), true);
             }
             this.resourcePackUUID.clear();
         }
@@ -1312,12 +1660,26 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public double luck() {
-        if (VersionHelper.isOrAbove1_21_3()) {
-            return Optional.ofNullable(platformPlayer().getAttribute(Attribute.LUCK)).map(AttributeInstance::getValue).orElse(1d);
-        } else {
-            return LegacyAttributeUtils.getLuck(platformPlayer());
+    public void transfer(String server) {
+        org.bukkit.entity.Player player = platformPlayer();
+        if (player == null) return;
+        ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(byteArray);
+        try {
+            out.writeUTF("Connect");
+            out.writeUTF(server);
+        } catch (IOException e) {
+            this.plugin.logger().warn("Failed to encode transfer data for " + this.name(), e);
+            return;
         }
+        player.sendPluginMessage(this.plugin.javaPlugin(), "BungeeCord", byteArray.toByteArray());
+    }
+
+    @Override
+    public void transfer(String host, int port) {
+        org.bukkit.entity.Player player = platformPlayer();
+        if (player == null) return;
+        player.transfer(host, port);
     }
 
     @Override
@@ -1327,7 +1689,7 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public void setFoodLevel(int foodLevel) {
-        this.platformPlayer().setFoodLevel(Math.min(Math.max(0, foodLevel), 20));
+        this.platformPlayer().setFoodLevel(Math.clamp(foodLevel, 0, 20));
     }
 
     @Override
@@ -1338,25 +1700,6 @@ public class BukkitServerPlayer extends Player {
     @Override
     public void setSaturation(float saturation) {
         this.platformPlayer().setSaturation(saturation);
-    }
-
-    @Override
-    public void addPotionEffect(Key potionEffectType, int duration, int amplifier, boolean ambient, boolean particles) {
-        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(KeyUtils.toNamespacedKey(potionEffectType));
-        if (type == null) return;
-        this.platformPlayer().addPotionEffect(new PotionEffect(type, duration, amplifier, ambient, particles));
-    }
-
-    @Override
-    public void removePotionEffect(Key potionEffectType) {
-        PotionEffectType type = Registry.POTION_EFFECT_TYPE.get(KeyUtils.toNamespacedKey(potionEffectType));
-        if (type == null) return;
-        this.platformPlayer().removePotionEffect(type);
-    }
-
-    @Override
-    public void clearPotionEffects() {
-        this.platformPlayer().clearActivePotionEffects();
     }
 
     @Override
@@ -1393,40 +1736,6 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public void teleport(WorldPosition worldPosition) {
-        Location location = new Location((org.bukkit.World) worldPosition.world().platformWorld(), worldPosition.x(), worldPosition.y(), worldPosition.z(), worldPosition.yRot(), worldPosition.xRot());
-        this.platformPlayer().teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN);
-    }
-
-    @Override
-    public void damage(double amount, Key damageType, @Nullable Object causeEntity) {
-        @SuppressWarnings("deprecation")
-        DamageType type = Registry.DAMAGE_TYPE.get(KeyUtils.toNamespacedKey(damageType));
-        DamageSource source = DamageSource.builder(type != null ? type : DamageType.GENERIC)
-                .withCausingEntity(causeEntity instanceof Entity entity ? entity : this.platformPlayer())
-                .withDirectEntity(this.platformPlayer())
-                .withDamageLocation(this.platformPlayer().getLocation())
-                .build();
-        this.platformPlayer().damage(amount, source);
-    }
-
-    @Override
-    public Object entityData() {
-        return FastNMS.INSTANCE.field$Entity$entityData(serverEntity());
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T getEntityData(EntityData<T> data) {
-        return (T) FastNMS.INSTANCE.method$SynchedEntityData$get(entityData(), data.entityDataAccessor());
-    }
-
-    @Override
-    public <T> void setEntityData(EntityData<T> data, T value, boolean force) {
-        FastNMS.INSTANCE.method$SynchedEntityData$set(entityData(), data.entityDataAccessor(), value, force);
-    }
-
-    @Override
     public Locale locale() {
         if (this.clientLocale != null) {
             return this.clientLocale;
@@ -1435,7 +1744,7 @@ public class BukkitServerPlayer extends Player {
             if (player != null) {
                 return player.locale();
             } else {
-                return Locale.US;
+                return Locale.ENGLISH;
             }
         }
     }
@@ -1463,14 +1772,19 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public void setEntityCullingDistanceScale(double value) {
-        value = Math.min(Math.max(0.125, value), 8);
+        value = Math.clamp(value, 0.125, 8);
         this.culling.setDistanceScale(value);
         platformPlayer().getPersistentDataContainer().set(KeyUtils.toNamespacedKey(ENTITY_CULLING_DISTANCE_SCALE), PersistentDataType.DOUBLE, value);
     }
 
     @Override
+    public double entityCullingDistanceScale() {
+        return this.culling.distanceScale();
+    }
+
+    @Override
     public void setDisplayEntityViewDistanceScale(double value) {
-        value = Math.min(Math.max(0.125, value), 8);
+        value = Math.clamp(value, 0.125, 8);
         this.displayEntityViewDistance = value;
         platformPlayer().getPersistentDataContainer().set(KeyUtils.toNamespacedKey(DISPLAY_ENTITY_VIEW_DISTANCE_SCALE), PersistentDataType.DOUBLE, value);
     }
@@ -1492,8 +1806,23 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public DamageVisibility damageVisibility() {
+        return this.damageVisibility;
+    }
+
+    @Override
+    public void setDamageVisibility(DamageVisibility visibility) {
+        this.damageVisibility = visibility;
+        platformPlayer().getPersistentDataContainer().set(KeyUtils.toNamespacedKey(DAMAGE_VISIBILITY), PersistentDataType.STRING, visibility.name());
+    }
+
+    @Override
     public void setEnableFurnitureDebug(boolean enable) {
         this.enableFurnitureDebug = enable;
+        if (!enable) {
+            this.lastHitFurniture = null;
+            this.sendActionBar(Component.empty());
+        }
         platformPlayer().getPersistentDataContainer().set(KeyUtils.toNamespacedKey(ENABLE_FURNITURE_DEBUG), PersistentDataType.BOOLEAN, enable);
     }
 
@@ -1514,7 +1843,7 @@ public class BukkitServerPlayer extends Player {
 
     @Override
     public int getXpNeededForNextLevel() {
-        return platformPlayer().getExperiencePointsNeededForNextLevel();
+        return PlayerProxy.INSTANCE.getXpNeededForNextLevel(minecraftPlayer());
     }
 
     @Override
@@ -1531,7 +1860,7 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public void sendTotemAnimation(Item<?> totem, @Nullable SoundData sound, boolean silent) {
+    public void sendTotemAnimation(Item totem, @Nullable SoundData sound, boolean silent) {
         PlayerUtils.sendTotemAnimation(this, totem, sound, silent);
     }
 
@@ -1556,24 +1885,69 @@ public class BukkitServerPlayer extends Player {
     public void removeTrackedBlockEntities(Collection<BlockPos> renders) {
         for (BlockPos render : renders) {
             CullableHolder remove = this.trackedBlockEntityRenderers.remove(render);
-            if (remove != null && remove.isShown) {
-                remove.cullable.hide(this);
+            if (remove != null) {
+                remove.remove(this);
             }
+        }
+    }
+
+    @Override
+    public void removeTrackedBlockEntities(BlockPos pos) {
+        CullableHolder remove = this.trackedBlockEntityRenderers.remove(pos);
+        if (remove != null) {
+            remove.remove(this);
         }
     }
 
     @Override
     public void clearTrackedBlockEntities() {
         this.trackedBlockEntityRenderers.clear();
+        this.trackedDynamicBlockEntityRenderers.clear();
     }
 
     @Override
-    public int clearOrCountMatchingInventoryItems(Key itemId, int count) {
-        Predicate<Object> predicate = nmsStack -> this.plugin.itemManager().wrap(ItemStackUtils.asCraftMirror(nmsStack)).id().equals(itemId);
-        Object inventory = FastNMS.INSTANCE.method$Player$getInventory(serverPlayer());
-        Object inventoryMenu = FastNMS.INSTANCE.field$Player$inventoryMenu(serverPlayer());
-        Object craftSlots = FastNMS.INSTANCE.method$InventoryMenu$getCraftSlots(inventoryMenu);
-        return FastNMS.INSTANCE.method$Inventory$clearOrCountMatchingItems(inventory, predicate, count, craftSlots);
+    public void addTrackedDynamicBlockEntities(Map<BlockPos, DynamicBlockEntityRenderer> renderers) {
+        for (Map.Entry<BlockPos, DynamicBlockEntityRenderer> entry : renderers.entrySet()) {
+            this.addTrackedDynamicBlockEntity(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
+    public void addTrackedDynamicBlockEntity(BlockPos blockPos, DynamicBlockEntityRenderer renderer) {
+        CullableHolder holder = new CullableHolder(renderer, renderer.initialForceVisible(this));
+        this.trackedDynamicBlockEntityRenderers.put(blockPos, holder);
+        if (holder.forceVisible) {
+            holder.setShown(this, true);
+        }
+    }
+
+    @Override
+    public CullableHolder getTrackedDynamicBlockEntity(BlockPos blockPos) {
+        return this.trackedDynamicBlockEntityRenderers.get(blockPos);
+    }
+
+    @Override
+    public void removeTrackedDynamicBlockEntities(Collection<BlockPos> renders) {
+        for (BlockPos render : renders) {
+            this.removeTrackedDynamicBlockEntity(render);
+        }
+    }
+
+    @Override
+    public void removeTrackedDynamicBlockEntity(BlockPos pos) {
+        CullableHolder remove = this.trackedDynamicBlockEntityRenderers.remove(pos);
+        if (remove != null) {
+            remove.remove(this);
+        }
+    }
+
+    @Override
+    public int clearOrCountMatchingInventoryItems(Predicate<Item> predicate, int count) {
+        Predicate<Object> nmsPredicate = nmsStack -> predicate.test(this.plugin.itemManager().wrap(ItemStackUtils.getBukkitStack(nmsStack)));
+        Object inventory = PlayerProxy.INSTANCE.getInventory(minecraftPlayer());
+        Object inventoryMenu = PlayerProxy.INSTANCE.getInventoryMenu(minecraftPlayer());
+        Object craftSlots = InventoryMenuProxy.INSTANCE.getCraftSlots(inventoryMenu);
+        return InventoryProxy.INSTANCE.clearOrCountMatchingItems(inventory, nmsPredicate, count, craftSlots);
     }
 
     @Override
@@ -1585,16 +1959,18 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
+    public CullableHolder getTrackedEntity(int entityId) {
+        return this.trackedEntities.get(entityId);
+    }
+
+    @Override
     public void addTrackedEntity(int entityId, Cullable cullable) {
         this.trackedEntities.put(entityId, new CullableHolder(cullable));
     }
 
     @Override
     public void removeTrackedEntity(int entityId) {
-        CullableHolder remove = this.trackedEntities.remove(entityId);
-        if (remove != null && remove.isShown) {
-            remove.cullable.hide(this);
-        }
+        this.trackedEntities.remove(entityId);
     }
 
     @Override
@@ -1603,56 +1979,44 @@ public class BukkitServerPlayer extends Player {
     }
 
     @Override
-    public WorldPosition eyePosition() {
-        return LocationUtils.toWorldPosition(this.getEyeLocation());
+    public Cache<Object, Boolean> receivedMapData() {
+        return this.receivedMapData;
     }
 
     @Override
-    public Cache<Object, Boolean> receivedMapData() {
-        return this.receivedMapData;
+    public FurnitureLightData furnitureLightData() {
+        return this.furnitureLightData;
     }
 
     @Override
     public void playParticle(Key particleId, double x, double y, double z) {
         Particle particle = Registry.PARTICLE_TYPE.get(KeyUtils.toNamespacedKey(particleId));
         if (particle != null) {
-            platformPlayer().getWorld().spawnParticle(particle, List.of(platformPlayer()), null, x, y, z, 1, 0, 0,0, 0, null, false);
+            if (VersionHelper.hasPaperPatch) {
+                platformPlayer().getWorld().spawnParticle(particle, List.of(platformPlayer()), null, x, y, z, 1, 0, 0, 0, 0, null, false);
+            } else {
+                platformPlayer().spawnParticle(particle, x, y, z, 1, 0, 0, 0, 0);
+            }
         }
     }
 
-    public Location getEyeLocation() {
-        org.bukkit.entity.Player player = platformPlayer();
-        Location eyeLocation = player.getEyeLocation();
-        Entity vehicle = player.getVehicle();
-        if (vehicle != null) {
-            Object mountPos = FastNMS.INSTANCE.method$Entity$getPassengerRidingPosition(FastNMS.INSTANCE.method$CraftEntity$getHandle(vehicle), serverPlayer());
-            eyeLocation.set(FastNMS.INSTANCE.field$Vec3$x(mountPos), FastNMS.INSTANCE.field$Vec3$y(mountPos) + player.getEyeHeight(), FastNMS.INSTANCE.field$Vec3$z(mountPos));
-        }
-        return eyeLocation;
-    }
-
-    public Vec3d getEyePos() {
-        org.bukkit.entity.Player player = platformPlayer();
-        Entity vehicle = player.getVehicle();
-        if (vehicle != null) {
-            Object mountPos = FastNMS.INSTANCE.method$Entity$getPassengerRidingPosition(FastNMS.INSTANCE.method$CraftEntity$getHandle(vehicle), serverPlayer());
-            return new Vec3d(FastNMS.INSTANCE.field$Vec3$x(mountPos), FastNMS.INSTANCE.field$Vec3$y(mountPos) + player.getEyeHeight(), FastNMS.INSTANCE.field$Vec3$z(mountPos));
-        } else {
-            Location location = player.getLocation();
-            return new Vec3d(location.getX(), location.getY() + player.getEyeHeight(), location.getZ());
-        }
-    }
-
-    private RayTraceResult rayTrace(Location start, double range, FluidCollisionMode mode) {
-        return start.getWorld().rayTraceBlocks(start, start.getDirection(), range, mode);
-    }
-
-    public Map<BlockPos, CullableHolder> trackedBlockEntityRenderers() {
-        return Collections.unmodifiableMap(this.trackedBlockEntityRenderers);
-    }
-
-    public Map<Integer, CullableHolder> trackedFurniture() {
-        return Collections.unmodifiableMap(this.trackedEntities);
+    private Object rayTrace(Object serverPlayer, double range) {
+        Object start = Vec3Proxy.INSTANCE.newInstance(this.eyeLocation.x, this.eyeLocation.y, this.eyeLocation.z);
+        Object direction = EntityProxy.INSTANCE.getLookAngle(serverPlayer);
+        Object end = Vec3Proxy.INSTANCE.add(
+                start,
+                Vec3Proxy.INSTANCE.getX(direction) * range,
+                Vec3Proxy.INSTANCE.getY(direction) * range,
+                Vec3Proxy.INSTANCE.getZ(direction) * range
+        );
+        Object context = ClipContextProxy.INSTANCE.newInstance(
+                start,
+                end,
+                ClipContextProxy.BlockProxy.OUTLINE,
+                ClipContextProxy.FluidProxy.NONE,
+                serverPlayer
+        );
+        return BlockGetterProxy.INSTANCE.clip(EntityProxy.INSTANCE.getLevel(serverPlayer), context);
     }
 
     public boolean isRangeMining() {
@@ -1664,6 +2028,88 @@ public class BukkitServerPlayer extends Player {
     }
 
     public FurnitureHitData furnitureHitData() {
-        return furnitureHitData;
+        return this.furnitureHitData;
+    }
+
+    public boolean addObtainedItem(Key item) {
+        return this.obtainedItems.add(UniqueKey.create(item));
+    }
+
+    public Set<UniqueKey> obtainedItems() {
+        return this.obtainedItems;
+    }
+
+    @Override
+    public void addResourcePackTasks(List<ResourcePackDownloadData> dataList) {
+        if (dataList.isEmpty()) return;
+        if (VersionHelper.isOrAbove1_20_2) {
+            ChannelHandler connection = connection();
+            if (connection == null) return;
+            Object packetListener = ConnectionProxy.INSTANCE.getPacketListener(connection);
+            if (!ServerConfigurationPacketListenerImplProxy.CLASS.isInstance(packetListener)) return;
+            Queue<Object> tasks = ServerConfigurationPacketListenerImplProxy.INSTANCE.getConfigurationTasks(packetListener);
+            // JoinWorldTask 必须排在资源包之后，否则客户端会先切换到游玩阶段。
+            boolean removed = tasks.removeIf(JoinWorldTaskProxy.CLASS::isInstance);
+            if (VersionHelper.isOrAbove1_20_3) {
+                // 一个批量任务连续发送整批资源包，全部收到允许的终态后才推进配置队列。
+                tasks.add(ResourcePackConfigurationTask.create(this, dataList));
+            } else {
+                // 1.20.2 不支持按 UUID 区分多个资源包，保留原版的单包配置任务。
+                ResourcePackDownloadData data = dataList.getFirst();
+                tasks.add(ServerResourcePackConfigurationTaskProxy.INSTANCE.newInstance(ResourcePackUtils.createServerResourcePackInfo(data.uuid(), data.url(), data.sha1())));
+            }
+            if (removed) {
+                tasks.add(JoinWorldTaskProxy.INSTANCE.newInstance());
+            }
+        } else {
+            ResourcePackDownloadData data = dataList.getFirst();
+            sendPacket(ResourcePackUtils.createPacket(data.uuid(), data.url(), data.sha1()), true);
+        }
+    }
+
+    @Override
+    public InetAddress address() {
+        if (this.address == null) {
+            SocketAddress socketAddress = this.channel.remoteAddress();
+            if (socketAddress instanceof InetSocketAddress inetSocketAddress) {
+                this.address = inetSocketAddress.getAddress();
+            }
+        }
+        return this.address;
+    }
+
+    @Override
+    public void setItemCooldown(Key id, int ticks) {
+        if (VersionHelper.isOrAbove1_21_2) {
+            Object serverPlayer = minecraftPlayer();
+            Object cooldowns = PlayerProxy.INSTANCE.getCooldowns(serverPlayer);
+            ItemCooldownsProxy.INSTANCE.addCooldown(cooldowns, KeyUtils.toIdentifier(id), ticks);
+        }
+    }
+
+    @Override
+    public int getItemCooldown(Key id) {
+        if (VersionHelper.isOrAbove1_21_2) {
+            Object serverPlayer = minecraftPlayer();
+            Object cooldowns = PlayerProxy.INSTANCE.getCooldowns(serverPlayer);
+            Map<Object, Object> instanceById = ItemCooldownsProxy.INSTANCE.getCooldowns(cooldowns);
+            Object instance = instanceById.get(KeyUtils.toIdentifier(id));
+            if (instance != null) {
+                return Math.max(0, ItemCooldownsProxy.CooldownInstanceProxy.INSTANCE.getEndTime(instance) - ItemCooldownsProxy.INSTANCE.getTickCount(cooldowns));
+            }
+        }
+        return 0;
+    }
+
+    @NotNull
+    @Override
+    public BukkitItem getItemBySlot(int slot) {
+        PlayerInventory inventory = platformPlayer().getInventory();
+        return BukkitItemManager.instance().wrap(inventory.getItem(slot));
+    }
+
+    @Override
+    public PlayerContext constantContext() {
+        return this.constantContext;
     }
 }

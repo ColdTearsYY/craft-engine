@@ -29,8 +29,8 @@ public final class ItemUpdateConfig {
         return maxVersion;
     }
 
-    public ItemUpdateResult update(Item<?> item, Supplier<ItemBuildContext> context) {
-        Tag versionTag = item.getTag(ItemVersionProcessor.VERSION_TAG);
+    public ItemUpdateResult update(Item item, Supplier<ItemBuildContext> context) {
+        Tag versionTag = item.getSparrowTag(ItemVersionProcessor.VERSION_TAG);
         int currentVersion = 0;
         if (versionTag instanceof NumericTag numericTag) {
             currentVersion = numericTag.getAsInt();
@@ -39,23 +39,24 @@ public final class ItemUpdateConfig {
             return new ItemUpdateResult(item, false, false);
         }
         ItemBuildContext buildContext = context.get();
-        Item<?> orginalItem = item;
+        Item orginalItem = item;
+        buildContext.setItem(orginalItem);
         for (Version version : this.versions) {
             if (currentVersion < version.version) {
-                item = version.apply(item, buildContext);
+                version.apply(buildContext);
             }
         }
+        item = buildContext.item();
         item.setTag(this.maxVersion, ItemVersionProcessor.VERSION_TAG);
         return new ItemUpdateResult(item, orginalItem != item, true);
     }
 
     public record Version(int version, ItemUpdater[] updaters) implements Comparable<Version> {
 
-        public <T> Item<T> apply(Item<T> item, ItemBuildContext context) {
+        public void apply(ItemBuildContext context) {
             for (ItemUpdater updater : updaters) {
-                item = updater.update(item, context);
+                updater.update(context);
             }
-            return item;
         }
 
         @Override

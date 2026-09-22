@@ -6,6 +6,14 @@ import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.behavior.ItemBehavior;
 import net.momirealms.craftengine.core.item.behavior.ItemBehaviorFactory;
 import net.momirealms.craftengine.core.pack.Pack;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.context.CommonConditions;
+import net.momirealms.craftengine.core.plugin.context.ContextHolder;
+import net.momirealms.craftengine.core.plugin.context.PlayerContext;
+import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
+import net.momirealms.craftengine.core.plugin.context.parameter.DirectContextParameters;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
@@ -15,12 +23,12 @@ import net.momirealms.craftengine.core.world.World;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.function.Predicate;
 
 public final class RangeMiningItemBehavior extends ItemBehavior {
     public static final ItemBehaviorFactory<RangeMiningItemBehavior> FACTORY = new Factory();
     private final List<Vec3i> miningRange;
+    private final Predicate<PlayerContext> condition;
 
     private enum PitchState {
         FLAT, // 平视（挖墙）
@@ -28,17 +36,25 @@ public final class RangeMiningItemBehavior extends ItemBehavior {
         DOWN  // 俯视（挖地板）
     }
 
-    private RangeMiningItemBehavior(List<Vec3i> miningRange) {
+    private RangeMiningItemBehavior(List<Vec3i> miningRange, Predicate<PlayerContext> condition) {
         this.miningRange = miningRange;
+        this.condition = condition;
     }
 
     @Override
-    public void breakBlock(World world, Player player, BlockPos pos) {
+    public void onBreakBlock(World world, Player player, BlockPos pos) {
         BukkitServerPlayer serverPlayer = (BukkitServerPlayer) player;
         if (serverPlayer.isRangeMining()) return;
 
         BlockStateWrapper blockState = world.getBlockState(pos);
-        float destroyProgress = player.getDestroyProgress(blockState.literalObject(), pos);
+        if (!this.condition.test(PlayerOptionalContext.of(player, ContextHolder.builder(
+                DirectContextParameters.PLAYER, player,
+                DirectContextParameters.BLOCK, world.getBlock(pos)
+        ).build()))) {
+            return;
+        }
+
+        float destroyProgress = player.getDestroyProgress(blockState.minecraftState(), pos);
 
         // 获取水平朝向 (North, South, East, West)
         Direction facing = player.getDirection();
@@ -65,7 +81,7 @@ public final class RangeMiningItemBehavior extends ItemBehavior {
                 BlockStateWrapper targetBlockState = world.getBlockState(targetPos);
 
                 if (targetBlockState != null && !targetBlockState.isAir()) {
-                    float targetProgress = player.getDestroyProgress(targetBlockState.literalObject(), targetPos);
+                    float targetProgress = player.getDestroyProgress(targetBlockState.minecraftState(), targetPos);
                     // 只有当目标方块比原方块更“脆”或硬度相当时才挖掘
                     if (targetProgress >= destroyProgress) {
                         player.breakBlock(targetX, targetY, targetZ);
@@ -130,19 +146,14 @@ public final class RangeMiningItemBehavior extends ItemBehavior {
     }
 
     private static class Factory implements ItemBehaviorFactory<RangeMiningItemBehavior> {
+        private static final String[] CONDITIONS = ConfigKeys.of("condition(s)");
+
         @Override
-        public RangeMiningItemBehavior create(Pack pack, Path path, String node, Key key, Map<String, Object> arguments) {
-            List<String> poses = MiscUtils.getAsStringList(arguments.get("range"));
-            List<Vec3i> range = poses.stream().map(it -> {
-                String[] split = it.split(",", 3);
-                if (split.length != 3) return null;
-                try {
-                    return new Vec3i(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-                } catch (NumberFormatException e) {
-                    return null;
-                }
-            }).filter(Objects::nonNull).toList();
-            return new RangeMiningItemBehavior(range);
+        public RangeMiningItemBehavior create(Pack pack, Path path, Key key, ConfigSection section) {
+            return new RangeMiningItemBehavior(
+                    section.getList("range", ConfigValue::getAsVector3i),
+                    MiscUtils.allOf(section.getList(CONDITIONS, CommonConditions::fromConfig))
+            );
         }
     }
 }

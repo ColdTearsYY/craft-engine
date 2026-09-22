@@ -1,10 +1,11 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.item.network.ItemPacketSource;
 import net.momirealms.craftengine.core.plugin.config.Config;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
 import net.momirealms.craftengine.core.util.AdventureHelper;
 import net.momirealms.craftengine.core.util.Key;
@@ -29,37 +30,45 @@ public final class CustomNameProcessor implements SimpleNetworkItemProcessor {
         this.line = FormattedLine.create(this.argument);
     }
 
+    @Override
+    public boolean shouldSkip(ItemPacketSource source) {
+        return source.canSkipName;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return this.line.isConstant();
+    }
+
     public String customName() {
         return this.argument;
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        item.customNameComponent(this.line.parse(context));
-        return item;
+    public void apply(ItemBuildContext context) {
+        context.item().customNameComponent(this.line.parse(context));
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.CUSTOM_NAME;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "display.Name";
     }
 
     private static class Factory implements ItemProcessorFactory<CustomNameProcessor> {
 
         @Override
-        public CustomNameProcessor create(Object arg) {
-            String name = arg.toString();
-            return new CustomNameProcessor(name);
+        public CustomNameProcessor create(ConfigValue value) {
+            return new CustomNameProcessor(value.getAsString());
         }
     }
 }

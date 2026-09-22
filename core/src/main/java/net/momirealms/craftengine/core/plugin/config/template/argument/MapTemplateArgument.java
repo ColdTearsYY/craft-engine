@@ -1,6 +1,7 @@
 package net.momirealms.craftengine.core.plugin.config.template.argument;
 
-import net.momirealms.craftengine.core.util.MiscUtils;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 import java.util.Map;
 
@@ -21,15 +22,16 @@ public final class MapTemplateArgument implements TemplateArgument {
     }
 
     @Override
-    public Map<String, Object> get(Map<String, TemplateArgument> arguments) {
+    public Map<String, Object> get(String node, Map<String, TemplateArgument> arguments) {
         return this.value;
     }
 
     private static class Factory implements TemplateArgumentFactory<MapTemplateArgument> {
+        private static final String[] MAP = ConfigKeys.of("map|value");
 
         @Override
-        public MapTemplateArgument create(Map<String, Object> arguments) {
-            return new MapTemplateArgument(MiscUtils.castToMap(arguments.getOrDefault("map", Map.of()), false));
+        public MapTemplateArgument create(ConfigSection section) {
+            return new MapTemplateArgument(section.getNonNullSection(MAP).values());
         }
     }
 }

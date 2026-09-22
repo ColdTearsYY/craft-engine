@@ -1,52 +1,52 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 public final class OverwritableCustomModelDataProcessor implements SimpleNetworkItemProcessor {
     public static final ItemProcessorFactory<OverwritableCustomModelDataProcessor> FACTORY = new Factory();
-    private final int argument;
+    private final NumberProvider argument;
 
-    public OverwritableCustomModelDataProcessor(int argument) {
+    public OverwritableCustomModelDataProcessor(NumberProvider argument) {
         this.argument = argument;
     }
 
-    public int customModelData() {
-        return this.argument;
+    @Override
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
+        if (item.customModelData().isPresent()) return;
+        item.customModelData(this.argument.getInt(context));
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        if (item.customModelData().isPresent()) return item;
-        item.customModelData(this.argument);
-        return item;
+    public boolean isConstant() {
+        return this.argument.isConstant();
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.CUSTOM_MODEL_DATA;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return new Object[]{"CustomModelData"};
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "CustomModelData";
     }
 
     private static class Factory implements ItemProcessorFactory<OverwritableCustomModelDataProcessor> {
 
         @Override
-        public OverwritableCustomModelDataProcessor create(Object arg) {
-            int customModelData = ResourceConfigUtils.getAsInt(arg, "custom-model-data");
-            return new OverwritableCustomModelDataProcessor(customModelData);
+        public OverwritableCustomModelDataProcessor create(ConfigValue value) {
+            return new OverwritableCustomModelDataProcessor(value.getAsNumber());
         }
     }
 }

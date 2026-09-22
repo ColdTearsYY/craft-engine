@@ -1,70 +1,72 @@
 package net.momirealms.craftengine.core.plugin.context.function;
 
-import com.mojang.datafixers.util.Either;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.Context;
-import net.momirealms.craftengine.core.plugin.context.ContextHolder;
-import net.momirealms.craftengine.core.plugin.context.ContextKey;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.plugin.context.text.TextProvider;
 import net.momirealms.craftengine.core.plugin.context.text.TextProviders;
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.List;
-import java.util.Map;
 
-public class SetVariableFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
-    private final Either<TextProvider, NumberProvider> either;
+public final class SetVariableFunction<CTX extends Context> extends AbstractConditionalFunction<CTX> {
     private final String variableName;
-    private final boolean asInt;
+    private final java.util.function.Function<CTX, Object> valueProvider;
 
-    public SetVariableFunction(List<Condition<CTX>> predicates, String variableName, Either<TextProvider, NumberProvider> either, boolean asInt) {
+    private SetVariableFunction(List<Condition<CTX>> predicates,
+                                String variableName,
+                                java.util.function.Function<CTX, Object> valueProvider) {
         super(predicates);
-        this.either = either;
         this.variableName = variableName;
-        this.asInt = asInt;
+        this.valueProvider = valueProvider;
     }
 
     @Override
     public void runInternal(CTX ctx) {
-        ContextHolder contexts = ctx.contexts();
-        if (contexts.immutable()) return;
-        this.either.ifLeft(text -> contexts.withParameter(ContextKey.direct("var_" + this.variableName), text.get(ctx)))
-                .ifRight(number -> contexts.withParameter(ContextKey.direct("var_" + this.variableName), asInt ? number.getInt(ctx) : number.getDouble(ctx)));
+        ctx.setVariable(this.variableName, this.valueProvider.apply(ctx));
     }
 
-    public static <CTX extends Context> FunctionFactory<CTX, SetVariableFunction<CTX>> factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+    public static <CTX extends Context> FunctionFactory<CTX, SetVariableFunction<CTX>> factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
         return new Factory<>(factory);
     }
 
     private static class Factory<CTX extends Context> extends AbstractFactory<CTX, SetVariableFunction<CTX>> {
+        private static final String[] NAME = ConfigKeys.of("name|var");
+        private static final String[] VALUE_TYPE = ConfigKeys.of("value_type");
+        private static final String[] NUMBER = ConfigKeys.of("number|value");
+        private static final String[] TEXT = ConfigKeys.of("text|value");
 
-        public Factory(java.util.function.Function<Map<String, Object>, Condition<CTX>> factory) {
+        public Factory(java.util.function.Function<ConfigSection, Condition<CTX>> factory) {
             super(factory);
         }
 
         @Override
-        public SetVariableFunction<CTX> create(Map<String, Object> arguments) {
-            String variableName = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("name"), "warning.config.function.set_variable.missing_name");
-            if (arguments.containsKey("number")) {
-                return new SetVariableFunction<>(
-                        getPredicates(arguments),
-                        variableName,
-                        Either.right(NumberProviders.fromObject(arguments.get("number"))),
-                        ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("as-int", false), "as-int")
-                );
-            } else if (arguments.containsKey("text")) {
-                return new SetVariableFunction<>(
-                        getPredicates(arguments),
-                        variableName,
-                        Either.left(TextProviders.fromString(arguments.get("text").toString())),
-                        false
-                );
-            } else {
-                throw new LocalizedResourceConfigException("warning.config.function.set_variable.missing_value");
-            }
+        public SetVariableFunction<CTX> create(ConfigSection section) {
+            String variableName = section.getNonNullString(NAME);
+            ValueType defaultType = section.containsKey("number") ? ValueType.DOUBLE : ValueType.STRING;
+            ValueType valueType = section.getEnum(VALUE_TYPE, ValueType.class, defaultType);
+            java.util.function.Function<CTX, Object> valueProvider = switch (valueType) {
+                case INT -> {
+                    NumberProvider number = section.getNonNullNumber(NUMBER);
+                    yield number::getInt;
+                }
+                case DOUBLE -> {
+                    NumberProvider number = section.getNonNullNumber(NUMBER);
+                    yield number::getDouble;
+                }
+                case STRING -> {
+                    TextProvider text = TextProviders.fromString(section.getNonNullString(TEXT));
+                    yield text::get;
+                }
+            };
+            return new SetVariableFunction<>(getPredicates(section), variableName, valueProvider);
         }
+    }
+
+    private enum ValueType {
+        INT,
+        DOUBLE,
+        STRING
     }
 }

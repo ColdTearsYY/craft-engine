@@ -3,6 +3,7 @@ package net.momirealms.craftengine.core.world.collision;
 import net.momirealms.craftengine.core.util.Direction;
 import net.momirealms.craftengine.core.world.BlockPos;
 import net.momirealms.craftengine.core.world.EntityHitResult;
+import net.momirealms.craftengine.core.world.Position;
 import net.momirealms.craftengine.core.world.Vec3d;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -11,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class AABB {
+public final class AABB {
     private static final double EPSILON = 1.0E-7;
     public final double minX;
     public final double minY;
@@ -60,14 +61,14 @@ public class AABB {
         return x * x + y * y + z * z;
     }
 
-    public static AABB makeBoundingBox(Vec3d pos, double width, double height) {
+    public static AABB makeBoundingBox(Position pos, double width, double height) {
         return new AABB(
-            pos.x - width / 2,
-            pos.y,
-            pos.z - width / 2,
-            pos.x + width / 2,
-            pos.y + height,
-            pos.z + width / 2
+            pos.x() - width / 2,
+            pos.y(),
+            pos.z() - width / 2,
+            pos.x() + width / 2,
+            pos.y() + height,
+            pos.z() + width / 2
         );
     }
 
@@ -231,6 +232,28 @@ public class AABB {
         }
 
         return points;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other || other instanceof AABB box
+                && Double.compare(this.minX, box.minX) == 0
+                && Double.compare(this.minY, box.minY) == 0
+                && Double.compare(this.minZ, box.minZ) == 0
+                && Double.compare(this.maxX, box.maxX) == 0
+                && Double.compare(this.maxY, box.maxY) == 0
+                && Double.compare(this.maxZ, box.maxZ) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Double.hashCode(this.minX);
+        result = 31 * result + Double.hashCode(this.minY);
+        result = 31 * result + Double.hashCode(this.minZ);
+        result = 31 * result + Double.hashCode(this.maxX);
+        result = 31 * result + Double.hashCode(this.maxY);
+        result = 31 * result + Double.hashCode(this.maxZ);
+        return result;
     }
 
     @Override

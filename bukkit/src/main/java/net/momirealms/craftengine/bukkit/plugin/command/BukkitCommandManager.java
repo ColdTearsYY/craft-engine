@@ -1,8 +1,9 @@
 package net.momirealms.craftengine.bukkit.plugin.command;
 
 import net.kyori.adventure.util.Index;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
+import net.momirealms.craftengine.bukkit.plugin.command.debug.*;
 import net.momirealms.craftengine.bukkit.plugin.command.feature.*;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.command.AbstractCommandManager;
@@ -19,7 +20,7 @@ import org.incendo.cloud.setting.ManagerSetting;
 import java.util.List;
 import java.util.Locale;
 
-public class BukkitCommandManager extends AbstractCommandManager<CommandSender> {
+public final class BukkitCommandManager extends AbstractCommandManager<CommandSender> {
     private final BukkitCraftEngine plugin;
     private final Index<String, CommandFeature<CommandSender>> index;
 
@@ -41,6 +42,7 @@ public class BukkitCommandManager extends AbstractCommandManager<CommandSender> 
                 new SearchUsagePlayerCommand(this, plugin),
                 new SearchRecipeAdminCommand(this, plugin),
                 new SearchUsageAdminCommand(this, plugin),
+                new SearchResourceCommand(this, plugin),
                 new TestCommand(this, plugin),
                 new SetLocaleCommand(this, plugin),
                 new SetDisplayEntityViewDistanceScaleCommand(this, plugin),
@@ -48,33 +50,55 @@ public class BukkitCommandManager extends AbstractCommandManager<CommandSender> 
                 new ToggleEntityCullingCommand(this, plugin),
                 new UnsetLocaleCommand(this, plugin),
                 new DebugGetBlockStateRegistryIdCommand(this, plugin),
+                new DebugInternalBlockStateCommand(this, plugin),
                 new DebugGetBlockInternalIdCommand(this, plugin),
                 new DebugVisualStateUsageCommand(this, plugin),
                 new DebugAutoStateUsageCommand(this, plugin),
                 new DebugClearCooldownCommand(this, plugin),
+                new DebugPackStatesCommand(this, plugin),
+                new DebugExpressionCommand(this, plugin),
                 new DebugEntityIdCommand(this, plugin),
+                new DebugDimensionCommand(this, plugin),
                 new DebugFurnitureCommand(this, plugin),
                 new DebugRealStateUsageCommand(this, plugin),
+                new DebugItemIdCommand(this, plugin),
                 new DebugItemDataCommand(this, plugin),
+                new DebugItemComponentCommand(this, plugin),
+                new DebugItemSourcesCommand(this, plugin),
                 new DebugSetBlockCommand(this, plugin),
+                new DebugFillSectionCommand(this, plugin),
                 new DebugSpawnFurnitureCommand(this, plugin),
                 new DebugTargetBlockCommand(this, plugin),
                 new DebugIsSectionInjectedCommand(this, plugin),
-                new DebugMigrateTemplatesCommand(this, plugin),
                 new DebugIsChunkPersistentLoadedCommand(this, plugin),
                 new DebugOptimizeFurnitureStructureCommand(this, plugin),
                 new TotemAnimationCommand(this, plugin),
+                new EnchantCommand(this, plugin),
+                new ToastCommand(this, plugin),
                 new EnableResourceCommand(this, plugin),
                 new DisableResourceCommand(this, plugin),
                 new ListResourceCommand(this, plugin),
                 new CreateResourceCommand(this, plugin),
-                new UploadPackCommand(this, plugin),
+                new PackWorkflowCommand(this, plugin),
+                new PackPreferencePlayerCommand(this, plugin),
+                new PackPresetPlayerCommand(this, plugin),
+                new PackPreferenceAdminCommand(this, plugin),
+                new PackPresetAdminCommand(this, plugin),
                 new SendResourcePackCommand(this, plugin),
-                new DebugSaveDefaultResourcesCommand(this, plugin),
-                new DebugCleanCacheCommand(this, plugin),
+                new SaveDefaultResourceCommand(this, plugin),
+                new CleanCacheCommand(this, plugin),
                 new DebugGenerateInternalAssetsCommand(this, plugin),
                 new DebugCustomModelDataCommand(this, plugin),
-                new DebugImageCommand(this, plugin)
+                new DebugItemModelCommand(this, plugin),
+                new DebugImageCommand(this, plugin),
+                new PlaceFeatureCommand(this, plugin),
+                new ItemComponentCommand(this, plugin, ItemComponentCommand.Action.ADD),
+                new ItemComponentCommand(this, plugin, ItemComponentCommand.Action.REMOVE),
+                new ItemComponentCommand(this, plugin, ItemComponentCommand.Action.RESET),
+                new MigrateWorldStorageCommand(this, plugin),
+                new ClearWorldStorageCommand(this, plugin),
+                new WorldSettingsCommand(this, plugin),
+                new SetDamageVisibilityCommand(this, plugin)
         ));
         final LegacyPaperCommandManager<CommandSender> manager = (LegacyPaperCommandManager<CommandSender>) getCommandManager();
         manager.settings().set(ManagerSetting.ALLOW_UNSAFE_REGISTRATION, true);
@@ -89,7 +113,7 @@ public class BukkitCommandManager extends AbstractCommandManager<CommandSender> 
     @Override
     protected Locale getLocale(CommandSender sender) {
         if (sender instanceof Player player) {
-            BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+            BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
             if (serverPlayer == null) return null;
             return serverPlayer.selectedLocale();
         }

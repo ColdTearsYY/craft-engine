@@ -1,7 +1,9 @@
 package net.momirealms.craftengine.core.plugin.context.parameter;
 
 import net.momirealms.craftengine.core.entity.Entity;
+import net.momirealms.craftengine.core.entity.LivingEntity;
 import net.momirealms.craftengine.core.entity.item.ItemEntity;
+import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.plugin.context.ChainParameterProvider;
 import net.momirealms.craftengine.core.plugin.context.ContextKey;
 import net.momirealms.craftengine.core.util.MiscUtils;
@@ -11,9 +13,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class EntityParameterProvider implements ChainParameterProvider<Entity> {
+public final class EntityParameterProvider implements ChainParameterProvider<Entity> {
+    public static final EntityParameterProvider INSTANCE = new EntityParameterProvider();
     private static final Map<ContextKey<?>, Function<Entity, Object>> CONTEXT_FUNCTIONS = new HashMap<>();
     static {
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.PLAYER, e -> {
+            if (e instanceof Player player) {
+                return player;
+            }
+            return null;
+        });
         CONTEXT_FUNCTIONS.put(DirectContextParameters.X, Entity::x);
         CONTEXT_FUNCTIONS.put(DirectContextParameters.Y, Entity::y);
         CONTEXT_FUNCTIONS.put(DirectContextParameters.Z, Entity::z);
@@ -26,6 +35,26 @@ public class EntityParameterProvider implements ChainParameterProvider<Entity> {
         CONTEXT_FUNCTIONS.put(DirectContextParameters.NAME, Entity::name);
         CONTEXT_FUNCTIONS.put(DirectContextParameters.UUID, Entity::uuid);
         CONTEXT_FUNCTIONS.put(DirectContextParameters.WORLD, Entity::world);
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.FIRE_TICKS, Entity::fireTicks);
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.SPEED, Entity::speed);
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.HEALTH, e -> {
+            if (e instanceof LivingEntity living) {
+                return living.health();
+            }
+            return 0d;
+        });
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.MAX_HEALTH, e -> {
+            if (e instanceof LivingEntity living) {
+                return living.maxHealth();
+            }
+            return 0d;
+        });
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.ATTR, e -> {
+            if (e instanceof LivingEntity living) {
+                return new EntityAttributeParameterSource(living);
+            }
+            return null;
+        });
         CONTEXT_FUNCTIONS.put(DirectContextParameters.ITEM, e -> {
             if (e instanceof ItemEntity itemEntity) {
                 return itemEntity.getItem();

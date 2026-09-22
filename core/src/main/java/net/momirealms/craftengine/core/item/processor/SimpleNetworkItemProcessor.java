@@ -2,21 +2,25 @@ package net.momirealms.craftengine.core.item.processor;
 
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.NetworkItemHandler;
+import net.momirealms.craftengine.core.item.network.NetworkItemBuildContext;
+import net.momirealms.craftengine.core.item.network.NetworkItemHandler;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import net.momirealms.sparrow.nbt.CompoundTag;
 import net.momirealms.sparrow.nbt.Tag;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.StringJoiner;
+
 public interface SimpleNetworkItemProcessor extends ItemProcessor {
 
     @Override
-    default <I> Item<I> prepareNetworkItem(Item<I> item, ItemBuildContext context, CompoundTag networkData) {
+    default void prepareNetworkItem(NetworkItemBuildContext context, CompoundTag networkData) {
+        Item item = context.item();
         if (VersionHelper.COMPONENT_RELEASE) {
             Key componentType= componentType(item, context);
             if (componentType != null) {
-                Tag previous = item.getSparrowNBTComponent(componentType);
+                Tag previous = item.getComponentAsSparrowTag(componentType);
                 if (previous != null) {
                     networkData.put(componentType.asString(), NetworkItemHandler.pack(NetworkItemHandler.Operation.ADD, previous));
                 } else {
@@ -26,7 +30,7 @@ public interface SimpleNetworkItemProcessor extends ItemProcessor {
         } else {
             Object[] path = nbtPath(item, context);
             if (path != null) {
-                Tag previous = item.getTag(path);
+                Tag previous = item.getSparrowTag(path);
                 if (previous != null) {
                     networkData.put(nbtPathString(item, context), NetworkItemHandler.pack(NetworkItemHandler.Operation.ADD, previous));
                 } else {
@@ -34,25 +38,24 @@ public interface SimpleNetworkItemProcessor extends ItemProcessor {
                 }
             }
         }
-        return item;
     }
 
     @Nullable
-    default <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    default Key componentType(Item item, ItemBuildContext context) {
         return null;
     }
 
     @Nullable
-    default <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    default Object[] nbtPath(Item item, ItemBuildContext context) {
         return null;
     }
 
-    default <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    default String nbtPathString(Item item, ItemBuildContext context) {
         Object[] path = nbtPath(item, context);
         if (path != null && path.length > 0) {
-            StringBuilder builder = new StringBuilder();
+            StringJoiner builder = new StringJoiner(".");
             for (Object object : path) {
-                builder.append(object.toString());
+                builder.add(object.toString());
             }
             return builder.toString();
         }

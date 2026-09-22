@@ -3,88 +3,132 @@ package net.momirealms.craftengine.core.plugin.dependency;
 import net.momirealms.craftengine.core.plugin.PluginProperties;
 import net.momirealms.craftengine.core.plugin.dependency.relocation.Relocation;
 
-import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 public class Dependency {
     private final String id;
+    private final String versionKey;
     private final String groupId;
     private final String rawArtifactId;
     private final List<Relocation> relocations;
-    private final Predicate<Path> verifier;
-    private final boolean shared;
+    private final DependencyVisibility visibility;
+    private final String jarInJarPath;
 
-    public Dependency(String id, String groupId, String artifactId, List<Relocation> relocations) {
-        this(id, groupId, artifactId, relocations, false);
+    private Dependency(Builder builder) {
+        this.id = builder.id;
+        this.versionKey = builder.versionKey != null ? builder.versionKey : builder.id;
+        this.groupId = builder.groupId;
+        this.rawArtifactId = builder.artifactId;
+        this.relocations = builder.relocations;
+        this.visibility = builder.visibility;
+        this.jarInJarPath = builder.jarInJarPath;
     }
 
-    public Dependency(String id, String groupId, String artifactId, List<Relocation> relocations, boolean shared) {
-        this.id = id;
-        this.groupId = groupId;
-        this.rawArtifactId = artifactId;
-        this.relocations = relocations;
-        this.verifier = (p) -> true;
-        this.shared = shared;
+    public static Builder of(String id, String groupId, String artifactId) {
+        return new Builder(id, groupId, artifactId);
     }
 
-    public Dependency(String id, String groupId, String artifactId, List<Relocation> relocations, Predicate<Path> verifier) {
-        this(id, groupId, artifactId, relocations, verifier, false);
+    public static final class Builder {
+        private final String id;
+        private final String groupId;
+        private final String artifactId;
+        private String versionKey;
+        private List<Relocation> relocations = Collections.emptyList();
+        private DependencyVisibility visibility = DependencyVisibility.INTERNAL;
+        private String jarInJarPath;
+
+        private Builder(String id, String groupId, String artifactId) {
+            this.id = id;
+            this.groupId = groupId;
+            this.artifactId = artifactId;
+        }
+
+        public Builder versionKey(String versionKey) {
+            this.versionKey = versionKey;
+            return this;
+        }
+
+        public Builder relocations(Relocation... relocations) {
+            this.relocations = List.of(relocations);
+            return this;
+        }
+
+        public Builder relocations(List<Relocation> relocations) {
+            this.relocations = relocations;
+            return this;
+        }
+
+        public Builder visibility(DependencyVisibility visibility) {
+            this.visibility = visibility;
+            return this;
+        }
+
+        public Builder jarInJarPath(String jarInJarPath) {
+            this.jarInJarPath = jarInJarPath;
+            return this;
+        }
+
+        public Dependency build() {
+            return new Dependency(this);
+        }
     }
 
-    public Dependency(String id, String groupId, String artifactId, List<Relocation> relocations, Predicate<Path> verifier, boolean shared) {
-        this.id = id;
-        this.groupId = groupId;
-        this.rawArtifactId = artifactId;
-        this.relocations = relocations;
-        this.verifier = verifier;
-        this.shared = shared;
-    }
-
-    public boolean shared() {
-        return shared;
-    }
-
-    public boolean verify(Path remapped) {
-        return this.verifier.test(remapped);
+    public DependencyVisibility visibility() {
+        return this.visibility;
     }
 
     public String id() {
-        return id;
+        return this.id;
+    }
+
+    public String versionKey() {
+        return this.versionKey;
     }
 
     public String groupId() {
-        return groupId;
+        return this.groupId;
     }
 
-    public String rawArtifactId() {
-        return rawArtifactId;
+    public String artifactId() {
+        return this.rawArtifactId;
+    }
+
+    public String classifier() {
+        return "";
     }
 
     public List<Relocation> relocations() {
-        return relocations;
+        return this.relocations;
     }
 
     public String toLocalPath() {
-        return rewriteEscaping(groupId).replace(".", "/") + "/" + this.rawArtifactId + "/" + getVersion();
+        return rewriteEscaping(this.groupId).replace(".", "/") + "/" + this.rawArtifactId + "/" + getVersion();
     }
 
-    private static final String MAVEN_FORMAT = "%s/%s/%s/%s-%s.jar";
+    public boolean hasJarInJarPath() {
+        return this.jarInJarPath != null;
+    }
+
+    public String jarInJarPath() {
+        return jarInJarPath;
+    }
+
+    private static final String MAVEN_FORMAT = "%s/%s/%s/%s.jar";
 
     public String mavenPath() {
         return String.format(MAVEN_FORMAT,
-                rewriteEscaping(groupId).replace(".", "/"),
-                rewriteEscaping(rawArtifactId),
+                rewriteEscaping(this.groupId()).replace(".", "/"),
+                rewriteEscaping(this.artifactId()),
                 getVersion(),
-                rewriteEscaping(rawArtifactId),
-                getVersion()
+                rewriteEscaping(this.artifactId()) + "-" + getVersion() + (classifier().isEmpty() ? "" : "-" + classifier())
         );
     }
 
     public String fileName(String classifier) {
-        String name = this.rawArtifactId.toLowerCase(Locale.ENGLISH).replace('_', '-');
+        String name = this.artifactId().toLowerCase(Locale.ENGLISH).replace('_', '-');
         String extra = classifier == null || classifier.isEmpty()
                 ? ""
                 : "-" + classifier;
@@ -92,7 +136,7 @@ public class Dependency {
     }
 
     public String getVersion() {
-        return PluginProperties.getValue(id);
+        return PluginProperties.getValue(this.versionKey);
     }
 
     public static String rewriteEscaping(String s) {
@@ -103,12 +147,12 @@ public class Dependency {
     public final boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Dependency that)) return false;
-        return Objects.equals(id, that.id);
+        return Objects.equals(this.id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return this.id.hashCode();
     }
 
     @Override

@@ -1,16 +1,18 @@
 package net.momirealms.craftengine.core.block;
 
 import com.google.gson.JsonElement;
-import net.momirealms.craftengine.core.pack.model.generation.ModelGeneration;
+import net.momirealms.craftengine.core.block.behavior.BlockBehavior;
 import net.momirealms.craftengine.core.pack.model.generation.ModelGenerator;
 import net.momirealms.craftengine.core.plugin.Manageable;
 import net.momirealms.craftengine.core.plugin.config.ConfigParser;
+import net.momirealms.craftengine.core.plugin.network.mod.ClientCustomPacket;
 import net.momirealms.craftengine.core.util.Key;
 import org.incendo.cloud.suggestion.Suggestion;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,22 +20,20 @@ public interface BlockManager extends Manageable, ModelGenerator {
 
     ConfigParser[] parsers();
 
-    Collection<ModelGeneration> modelsToGenerate();
-
     Map<Key, Map<String, JsonElement>> blockOverrides();
 
-    Map<Key, JsonElement> modBlockStates();
+    Map<Integer, JsonElement> modBlockStates();
 
     boolean isTransparentModelInUse();
 
-    Map<Key, CustomBlock> loadedBlocks();
+    Map<Key, BlockDefinition> loadedBlocks();
 
     @Deprecated(forRemoval = true)
-    default Map<Key, CustomBlock> blocks() {
+    default Map<Key, BlockDefinition> blocks() {
         return loadedBlocks();
     }
 
-    Optional<CustomBlock> blockById(Key key);
+    Optional<BlockDefinition> blockById(Key key);
 
     Collection<Suggestion> cachedSuggestions();
 
@@ -52,6 +52,14 @@ public interface BlockManager extends Manageable, ModelGenerator {
 
     @Nullable
     BlockStateWrapper createVanillaBlockState(String blockState);
+
+    int vanillaBlockStateCount();
+
+    int currentBlockRegistrySize();
+
+    List<ClientCustomPacket> cachedClientVisualBlockStatesPackets();
+
+    BlockBehavior getEmptyBlockBehavior();
 
     static Key createCustomBlockKey(int id) {
         return Key.of("craftengine", "custom_" + id);

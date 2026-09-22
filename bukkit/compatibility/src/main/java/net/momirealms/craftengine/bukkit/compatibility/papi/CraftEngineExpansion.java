@@ -1,17 +1,20 @@
 package net.momirealms.craftengine.bukkit.compatibility.papi;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.context.CooldownData;
+import net.momirealms.craftengine.core.plugin.network.NetWorkUser;
+import net.momirealms.craftengine.core.util.StringUtils;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
 import java.util.Optional;
 
-public class CraftEngineExpansion extends PlaceholderExpansion {
+public final class CraftEngineExpansion extends PlaceholderExpansion {
     private final CraftEngine plugin;
 
     public CraftEngineExpansion(CraftEngine plugin) {
@@ -36,22 +39,43 @@ public class CraftEngineExpansion extends PlaceholderExpansion {
         return "1.0";
     }
 
-    /**
-     * 用法:（小括号括起来的为必填，中括号括起来的为选填）
-     * <p>
-     * %ce_cd_(key)|[format]%
-     */
+    @Override
+    public boolean persist() {
+        return true;
+    }
+
     @Override
     public @Nullable String onPlaceholderRequest(Player bukkitPlayer, @NotNull String params) {
-        BukkitServerPlayer player = bukkitPlayer != null ? BukkitAdaptors.adapt(bukkitPlayer) : null;
-        String[] split = params.split("_", 2);
-        if (split.length == 2) {
-            return switch (split[0]) {
-                case "cd", "cooldown" -> Optional.ofNullable(getCooldown(player, split[1])).orElse("0");
-                default -> null;
-            };
+        BukkitServerPlayer player = bukkitPlayer != null ? BukkitAdaptor.adapt(bukkitPlayer) : null;
+        if (player != null) {
+            switch (params) {
+                case "entity-culling-enabled" -> {
+                    return String.valueOf(player.enableEntityCulling());
+                }
+                case "entity-culling-distance-scale" -> {
+                    return String.valueOf(player.entityCullingDistanceScale());
+                }
+                default -> {
+                    String[] split = StringUtils.split(params, '_', 2);
+                    if (split.length == 2) {
+                        return switch (split[0]) {
+                            case "cd", "cooldown" -> Optional.ofNullable(getCooldown(player, split[1])).orElse("0");
+                            case "pack-state" -> getPackState(player, split[1]);
+                            default -> null;
+                        };
+                    }
+                }
+            }
         }
         return null;
+    }
+
+    private String getPackState(NetWorkUser player, String pack) {
+        if (!this.plugin.packManager().resourcePackHosts().containsKey(pack)) return null;
+        Map<String, Boolean> states = this.plugin.packManager().packPreferences(player);
+        if (states == null) return null;
+        Boolean enabled = states.get(pack);
+        return enabled == null ? "unset" : (enabled ? "enabled" : "disabled");
     }
 
     private static String getCooldown(BukkitServerPlayer player, String param) {

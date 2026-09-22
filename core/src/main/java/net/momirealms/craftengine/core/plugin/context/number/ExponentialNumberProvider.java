@@ -1,11 +1,11 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.Context;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-import net.momirealms.craftengine.core.util.random.RandomSource;
-import org.jetbrains.annotations.NotNull;
 
-import java.util.Map;
 
 /**
  * 指数分布提供器
@@ -20,35 +20,23 @@ public record ExponentialNumberProvider(
 ) implements NumberProvider {
     public static final NumberProviderFactory<ExponentialNumberProvider> FACTORY = new Factory();
 
-    public ExponentialNumberProvider {
-        if (min >= max) {
-            throw new IllegalArgumentException("min must be less than max");
-        }
-        if (lambda <= 0) {
-            throw new IllegalArgumentException("lambda must be greater than 0");
-        }
-        if (maxAttempts <= 0) {
-            throw new IllegalArgumentException("max-attempts must be greater than 0");
-        }
+    @Override
+    public int getInt(Context context) {
+        return (int) Math.round(getDouble(context));
     }
 
     @Override
-    public int getInt(RandomSource random) {
-        return (int) Math.round(getDouble(random));
+    public float getFloat(Context context) {
+        return (float) getDouble(context);
     }
 
     @Override
-    public float getFloat(RandomSource random) {
-        return (float) getDouble(random);
-    }
-
-    @Override
-    public double getDouble(RandomSource random) {
+    public double getDouble(Context context) {
         for (int i = 0; i < this.maxAttempts; i++) {
             // 逆变换采样法 (Inverse Transform Sampling)
             // 公式: X = -ln(1 - U) / λ  或者简单的 -ln(U) / λ
             // 其中 U 是 [0, 1) 之间的均匀分布随机数
-            double u = random.nextDouble();
+            double u = context.random().nextDouble();
             
             // 防止 u 为 0 导致 ln(0) 出现负无穷
             if (u < 1e-10) continue;
@@ -65,36 +53,38 @@ public record ExponentialNumberProvider(
     }
 
     private static class Factory implements NumberProviderFactory<ExponentialNumberProvider> {
+        private static final String[] MAX_ATTEMPTS = ConfigKeys.of("max_attempts");
+
         @Override
-        public ExponentialNumberProvider create(Map<String, Object> arguments) {
-            double min = ResourceConfigUtils.getAsDouble(
-                arguments.getOrDefault("min", 0.0), "min");
-            
-            double max = ResourceConfigUtils.getAsDouble(
-                arguments.getOrDefault("max", Double.MAX_VALUE), "max");
+        public ExponentialNumberProvider create(ConfigSection section) {
+            double min = section.getDouble("min", 0d);
+            double max = section.getDouble("max", Double.MAX_VALUE);
             
             // 如果用户没填 lambda，尝试从 mean (均值) 转换
             // 指数分布中: mean = 1/lambda
             double lambda;
-            if (arguments.containsKey("mean")) {
-                double mean = ResourceConfigUtils.getAsDouble(arguments.get("mean"), "mean");
+            if (section.containsKey("mean")) {
+                double mean = section.getNonNullDouble("mean");
                 lambda = 1.0 / mean;
             } else {
-                lambda = ResourceConfigUtils.getAsDouble(
-                    ResourceConfigUtils.requireNonNullOrThrow(arguments.get("lambda"), 
-                    "warning.config.number.exponential.missing_lambda"), "lambda");
+                lambda = section.getNonNullDouble("lambda");
             }
             
-            int maxAttempts = ResourceConfigUtils.getAsInt(
-                arguments.getOrDefault("max-attempts", 64), "max-attempts");
-            
+            int maxAttempts = section.getInt(MAX_ATTEMPTS, 64);
+            validateParameters(section.path(), min, max, lambda, maxAttempts);
             return new ExponentialNumberProvider(min, max, lambda, maxAttempts);
         }
-    }
 
-    @Override
-    public @NotNull String toString() {
-        return String.format("ExponentialNumberProvider{min=%.2f, max=%.2f, lambda=%.4f, mean=%.2f}",
-                this.min, this.max, this.lambda, 1.0 / this.lambda);
+        private void validateParameters(String path, double min, double max, double lambda, int maxAttempts) {
+            if (min >= max) {
+                throw new KnownResourceException("number.less_than", path, "min", "max");
+            }
+            if (lambda <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "lambda", "0");
+            }
+            if (maxAttempts <= 0) {
+                throw new KnownResourceException("number.greater_than", path, "max_attempts", "0");
+            }
+        }
     }
 }

@@ -1,14 +1,12 @@
 package net.momirealms.craftengine.bukkit.item.recipe;
 
-import com.destroystokyo.paper.event.inventory.PrepareResultEvent;
 import net.kyori.adventure.text.Component;
-import net.momirealms.craftengine.bukkit.api.BukkitAdaptors;
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
+import net.momirealms.craftengine.bukkit.item.BukkitItem;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.bukkit.item.DataComponentTypes;
-import net.momirealms.craftengine.bukkit.nms.FastNMS;
+import net.momirealms.craftengine.bukkit.nms.Clearable;
 import net.momirealms.craftengine.bukkit.plugin.BukkitCraftEngine;
-import net.momirealms.craftengine.bukkit.plugin.reflection.bukkit.CraftBukkitReflections;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.CoreReflections;
 import net.momirealms.craftengine.bukkit.plugin.user.BukkitServerPlayer;
 import net.momirealms.craftengine.bukkit.util.*;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
@@ -19,41 +17,70 @@ import net.momirealms.craftengine.core.item.recipe.Recipe;
 import net.momirealms.craftengine.core.item.recipe.input.CraftingInput;
 import net.momirealms.craftengine.core.item.recipe.input.SingleItemInput;
 import net.momirealms.craftengine.core.item.recipe.input.SmithingInput;
-import net.momirealms.craftengine.core.item.setting.AnvilRepairItem;
-import net.momirealms.craftengine.core.item.setting.ItemEquipment;
+import net.momirealms.craftengine.core.item.setting.value.AnvilRepairItem;
+import net.momirealms.craftengine.core.item.setting.value.ItemEquipment;
 import net.momirealms.craftengine.core.plugin.config.Config;
 import net.momirealms.craftengine.core.plugin.context.Context;
-import net.momirealms.craftengine.core.plugin.context.ContextHolder;
-import net.momirealms.craftengine.core.plugin.context.ContextKey;
 import net.momirealms.craftengine.core.plugin.context.PlayerOptionalContext;
 import net.momirealms.craftengine.core.plugin.context.function.Function;
 import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.CraftWorldProxy;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftComplexRecipeProxy;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftInventoryAnvilProxy;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftInventoryProxy;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.inventory.CraftInventoryViewProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.chat.ComponentProxy;
+import net.momirealms.craftengine.proxy.minecraft.resources.ResourceKeyProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.ContainerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.CraftingContainerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.ResultContainerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.SlotProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.ItemStackProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.item.crafting.*;
+import net.momirealms.craftengine.proxy.minecraft.world.level.BlockGetterProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.LevelProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.BlocksProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.level.block.entity.AbstractFurnaceBlockEntityProxy;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
+import org.bukkit.block.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.*;
-import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.view.AnvilView;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @SuppressWarnings("DuplicatedCode")
-public class RecipeEventListener implements Listener {
-    private final ItemManager<ItemStack> itemManager;
+public final class RecipeEventListener implements Listener {
+    private final ItemManager itemManager;
     private final BukkitRecipeManager recipeManager;
     private final BukkitCraftEngine plugin;
 
-    public RecipeEventListener(BukkitCraftEngine plugin, BukkitRecipeManager recipeManager, ItemManager<ItemStack> itemManager) {
+    public RecipeEventListener(BukkitCraftEngine plugin, BukkitRecipeManager recipeManager, ItemManager itemManager) {
         this.itemManager = itemManager;
         this.recipeManager = recipeManager;
         this.plugin = plugin;
+    }
+
+    // 进入服务器时自动解锁配方
+    @EventHandler(priority = EventPriority.LOW)
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        if (!this.recipeManager.shouldUnlockRecipesOnJoin()) return;
+        this.recipeManager.unlockRecipesOnJoin(event.getPlayer());
     }
 
     @SuppressWarnings("deprecation")
@@ -70,7 +97,7 @@ public class RecipeEventListener implements Listener {
                 ItemStack item = event.getCurrentItem();
                 if (ItemStackUtils.isEmpty(item)) return;
                 if (ItemStackUtils.isEmpty(fuelStack)) {
-                    SingleItemInput<ItemStack> input = new SingleItemInput<>(ItemStackUtils.getUniqueIdItem(item));
+                    SingleItemInput input = new SingleItemInput(ItemStackUtils.getUniqueIdItem(item));
                     RecipeType recipeType;
                     if (furnaceInventory.getType() == InventoryType.FURNACE) {
                         recipeType = RecipeType.SMELTING;
@@ -80,11 +107,11 @@ public class RecipeEventListener implements Listener {
                         recipeType = RecipeType.SMOKING;
                     }
 
-                    Recipe<ItemStack> ceRecipe = this.recipeManager.recipeByInput(recipeType, input);
+                    Recipe ceRecipe = this.recipeManager.recipeByInput(recipeType, input);
                     // The item is an ingredient, we should never consider it as fuel firstly
                     if (ceRecipe != null) return;
 
-                    int fuelTime = this.itemManager.fuelTime(item);
+                    int fuelTime = getFuelTime(BukkitAdaptor.adapt(item).id());
                     if (fuelTime == 0) {
                         if (ItemStackUtils.isCustomItem(item) && item.getType().isFuel()) {
                             event.setCancelled(true);
@@ -151,7 +178,7 @@ public class RecipeEventListener implements Listener {
                         item = player.getInventory().getItem(hotBarSlot);
                     }
                     if (ItemStackUtils.isEmpty(item)) return;
-                    int fuelTime = this.plugin.itemManager().fuelTime(item);
+                    int fuelTime = getFuelTime(BukkitAdaptor.adapt(item).id());
                     // only handle custom items
                     if (fuelTime == 0) {
                         if (ItemStackUtils.isCustomItem(item) && item.getType().isFuel()) {
@@ -178,7 +205,7 @@ public class RecipeEventListener implements Listener {
                     ItemStack itemOnCursor = event.getCursor();
                     // pick item
                     if (ItemStackUtils.isEmpty(itemOnCursor)) return;
-                    int fuelTime = this.plugin.itemManager().fuelTime(itemOnCursor);
+                    int fuelTime = getFuelTime(BukkitAdaptor.adapt(itemOnCursor).id());
                     // only handle custom items
                     if (fuelTime == 0) {
                         if (ItemStackUtils.isCustomItem(itemOnCursor) && itemOnCursor.getType().isFuel()) {
@@ -245,21 +272,151 @@ public class RecipeEventListener implements Listener {
         }
     }
 
+    private int getFuelTime(Key id) {
+        return this.itemManager.getItemDefinition(id).map(it -> it.settings().fuelTime()).orElse(0);
+    }
+
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     public void onFurnaceBurn(FurnaceBurnEvent event) {
         ItemStack fuel = event.getFuel();
-        int fuelTime = this.itemManager.fuelTime(fuel);
-        if (fuelTime != 0) {
-            event.setBurnTime(fuelTime);
+        BukkitItem item = BukkitAdaptor.adapt(fuel);
+        Optional<ItemDefinition> optionalDefinition = item.getDefinition();
+        if (optionalDefinition.isPresent()) {
+            ItemDefinition itemDefinition = optionalDefinition.get();
+            int fuelTime = itemDefinition.settings().fuelTime();
+            if (fuelTime != 0) {
+                // 自定义燃烧时间
+                event.setBurnTime(fuelTime);
+                Key remainder = itemDefinition.settings().fuelRemainder();
+                if (VersionHelper.hasPaperPatch && remainder != null && item.count() == 1) {
+                    Block block = event.getBlock();
+                    Object blockPos = LocationUtils.toBlockPos(block.getX(), block.getY(), block.getZ());
+                    // 先获取方块实体
+                    Object blockEntity = LevelProxy.INSTANCE.getBlockEntity(CraftWorldProxy.INSTANCE.getWorld(block.getWorld()), blockPos);
+                    if (AbstractFurnaceBlockEntityProxy.CLASS.isInstance(blockEntity)) {
+                        int litTimeRemaining = AbstractFurnaceBlockEntityProxy.INSTANCE.getLitTimeRemaining(blockEntity);
+                        // 准备开始燃烧
+                        if (litTimeRemaining <= 0) {
+                            Item remainderItem = Item.byId(remainder);
+                            if (remainderItem == null) return;
+                            List<Object> items = AbstractFurnaceBlockEntityProxy.INSTANCE.getItems(blockEntity);
+                            event.setConsumeFuel(false);
+                            item.shrink(1);
+                            items.set(1, remainderItem.minecraftItem());
+                        }
+                    }
+                }
+            }
         }
     }
 
-    // Paper only
-    @EventHandler
-    public void onPrepareResult(PrepareResultEvent event) {
-        if (event.getInventory() instanceof CartographyInventory cartographyInventory) {
-            if (ItemStackUtils.hasCustomItem(cartographyInventory.getStorageContents())) {
-                event.setResult(new ItemStack(Material.AIR));
+    // 当把物品放入熔炉时, 在熔炉实体的PDC内记录玩家的 UUID.
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    public void onClickInventoryWithFurnaceInput(InventoryClickEvent event) {
+        if (!Config.recipeInjectBlockEntities()) return; // 功能未开启.
+        Inventory inventory = event.getInventory();
+        if (!(inventory instanceof FurnaceInventory furnaceInventory)) return;
+        InventoryHolder inventoryHolder = InventoryUtils.getInventoryHolder(furnaceInventory);
+        if (!(inventoryHolder instanceof Furnace furnace)) return;
+        Inventory clickedInventory = event.getClickedInventory();
+
+        ItemStack smeltStack = furnaceInventory.getSmelting();
+        Player player = (Player) event.getWhoClicked();
+        boolean shouldRecord = false;
+
+        // 如果玩家操作的自己背包, 用shift+左右键放入物品
+        if (clickedInventory == player.getInventory()) {
+            if (event.getClick() == ClickType.SHIFT_LEFT || event.getClick() == ClickType.SHIFT_RIGHT) {
+                BukkitItem item = ItemStackUtils.wrap(event.getCurrentItem());
+                if (item.isEmpty()) return;
+
+                // 如果输入槽位是空的, 则检查交互的物品是否拥有熔炉配方.
+                if (ItemStackUtils.isEmpty(smeltStack)) {
+                    RecipeType recipeType = this.getRecipeTypeByCookingInventoryHolder(inventoryHolder);
+                    Recipe recipe = BukkitRecipeManager.instance().recipeByInput(recipeType, new SingleItemInput(UniqueIdItem.of(item)));
+                    shouldRecord = recipe != null;
+                }
+                // 如果槽位不是空的, 则检查物品是否和已经存在的物品一致.
+                else {
+                    shouldRecord = smeltStack.isSimilar(item.getBukkitItem()) && smeltStack.getAmount() < smeltStack.getMaxStackSize();
+                }
+            }
+        }
+        // 如果玩家直接操作熔炉输入槽
+        else if (event.getSlot() == 0) {
+            ClickType clickType = event.getClick();
+            shouldRecord = switch (clickType) {
+                // 如果操作的是 F 或者 快捷栏, 则检查对应槽位是否有物品, 有物品就代表肯定放入成功了.
+                case SWAP_OFFHAND, NUMBER_KEY -> {
+                    ItemStack item = clickType == ClickType.SWAP_OFFHAND
+                            ? player.getInventory().getItemInOffHand()
+                            : player.getInventory().getItem(event.getHotbarButton());
+                    yield !ItemStackUtils.isEmpty(smeltStack) || !ItemStackUtils.isEmpty(item);
+                }
+                // 如果操作的是左右键, 则检查目标槽位和光标是否至少有一个位置有物品, 有就代表有变动.
+                case LEFT, RIGHT -> !ItemStackUtils.isEmpty(event.getCursor()) || !ItemStackUtils.isEmpty(smeltStack);
+                default -> false;
+            };
+        }
+
+        // 记录玩家的 UUID 到熔炉的 PDC 上.
+        if (shouldRecord) {
+            UUID uniqueId = player.getUniqueId();
+            // 清理 QuickCache 的缓存.
+            Chunk chunk = furnace.getBlock().getChunk();
+            Object chunkAccess = LevelUtils.getMinecraftChunk(chunk);
+            Object blockEntity = BlockGetterProxy.INSTANCE.getBlockEntity(chunkAccess, LocationUtils.toBlockPos(furnace.getX(), furnace.getY(), furnace.getZ()));
+            if (AbstractFurnaceBlockEntityProxy.CLASS.isInstance(blockEntity)) {
+                Object quickCheck = AbstractFurnaceBlockEntityProxy.INSTANCE.getQuickCheck(blockEntity);
+                if (quickCheck instanceof Clearable clearable) {
+                    clearable.clear();
+                } else {
+                    BukkitRecipeManager.injectFurnaceBlockEntity(blockEntity);
+                }
+            }
+            // 检查旧的数据是否和当前要写入的一致, 一致就不写入了.
+            long[] uuidLongs = furnace.getPersistentDataContainer().get(BukkitRecipeManager.FURNACE_LAST_USER, PersistentDataType.LONG_ARRAY);
+            if (uuidLongs != null && new UUID(uuidLongs[0], uuidLongs[1]).equals(uniqueId)) {
+                return;
+            }
+            // 写入 UUID.
+            furnace.getPersistentDataContainer().set(BukkitRecipeManager.FURNACE_LAST_USER, PersistentDataType.LONG_ARRAY,
+                    new long[]{uniqueId.getMostSignificantBits(), uniqueId.getLeastSignificantBits()}
+            );
+        }
+    }
+
+    // 当玩家往篝火上放入物品时, 检查配方条件.
+    @EventHandler(ignoreCancelled = true)
+    public void onPrepareCampfireRecipe(PlayerInteractEvent event) {
+        Block clickedBlock = event.getClickedBlock();
+        if (clickedBlock == null) return;
+        EquipmentSlot equipmentSlot = event.getHand();
+        if (equipmentSlot == null) return;
+        ItemStack itemInHand = event.getPlayer().getInventory().getItem(equipmentSlot);
+        if (ItemStackUtils.isEmpty(itemInHand)) return;
+        Object blockOwner = BlockStateUtils.getBlockOwner(BlockStateUtils.getBlockState(clickedBlock));
+        if (blockOwner != BlocksProxy.CAMPFIRE && blockOwner != BlocksProxy.SOUL_CAMPFIRE) return;
+        // 获取营火
+        if (clickedBlock.getState() instanceof Campfire campfire) {
+            // 检查营火是否已满
+            boolean isFull = true;
+            for (int i = 0; i < campfire.getSize(); i++) {
+                ItemStack item = campfire.getItem(i);
+                if (item == null) {
+                    isFull = false;
+                    break;
+                }
+            }
+            if (isFull) return;
+            // 获取配方
+            SingleItemInput itemInput = new SingleItemInput(UniqueIdItem.of(ItemStackUtils.wrap(itemInHand)));
+            ConditionalRecipe recipe = (ConditionalRecipe) BukkitRecipeManager.instance().recipeByInput(RecipeType.CAMPFIRE_COOKING, itemInput);
+            if (recipe != null && recipe.hasCondition()) {
+                boolean result = recipe.canUse(PlayerOptionalContext.of(BukkitAdaptor.adapt(event.getPlayer())));
+                if (!result) {
+                    event.setCancelled(true);
+                }
             }
         }
     }
@@ -277,13 +434,13 @@ public class RecipeEventListener implements Listener {
     private void preProcess(PrepareAnvilEvent event) {
         if (event.getResult() == null) return;
         AnvilInventory inventory = event.getInventory();
-        ItemStack first = inventory.getFirstItem();
-        ItemStack second = inventory.getSecondItem();
+        ItemStack first = inventory.getItem(0);
+        ItemStack second = inventory.getItem(1);
         if (first == null || second == null) return;
-        Item<ItemStack> wrappedFirst = BukkitItemManager.instance().wrap(first);
-        Optional<CustomItem<ItemStack>> firstCustom = wrappedFirst.getCustomItem();
-        Item<ItemStack> wrappedSecond = BukkitItemManager.instance().wrap(second);
-        Optional<CustomItem<ItemStack>> secondCustom = wrappedFirst.getCustomItem();
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first);
+        Optional<ItemDefinition> firstCustom = wrappedFirst.getDefinition();
+        Item wrappedSecond = BukkitItemManager.instance().wrap(second);
+        Optional<ItemDefinition> secondCustom = wrappedSecond.getDefinition();
         // 两个都是原版物品
         if (firstCustom.isEmpty() && secondCustom.isEmpty()) {
             return;
@@ -300,7 +457,7 @@ public class RecipeEventListener implements Listener {
         // 被修的是自定义，材料不是自定义
         if (firstCustom.isPresent() && secondCustom.isEmpty()) {
             if (firstCustom.get().settings().respectRepairableComponent()) {
-                if (second.canRepair(first)) return; // 尊重原版的repairable
+                if (canRepair(second, first)) return; // 尊重原版的repairable
             } else {
                 event.setResult(null);
                 return;
@@ -310,7 +467,7 @@ public class RecipeEventListener implements Listener {
         // 被修的是原版，材料是自定义
         if (firstCustom.isEmpty() && secondCustom.isPresent()) {
             if (secondCustom.get().settings().respectRepairableComponent()) {
-                if (second.canRepair(first)) return;
+                if (canRepair(second, first)) return;
             } else {
                 event.setResult(null);
                 return;
@@ -324,21 +481,34 @@ public class RecipeEventListener implements Listener {
         }
 
         if (firstCustom.isPresent()) {
-            CustomItem<ItemStack> firstCustomItem = firstCustom.get();
-            if (firstCustomItem.settings().repairable().anvilCombine() == Tristate.FALSE) {
+            ItemDefinition firstItemDefinition = firstCustom.get();
+            if (firstItemDefinition.settings().repairable().anvilCombine() == Tristate.FALSE) {
                 event.setResult(null);
                 return;
             }
 
-            Item<ItemStack> wrappedResult = BukkitItemManager.instance().wrap(event.getResult());
-            if (!firstCustomItem.settings().canEnchant()) {
-                Object previousEnchantment = wrappedFirst.getExactComponent(DataComponentTypes.ENCHANTMENTS);
-                if (previousEnchantment != null) {
-                    wrappedResult.setExactComponent(DataComponentTypes.ENCHANTMENTS, previousEnchantment);
+            if (!firstItemDefinition.settings().canEnchant()) {
+                Item wrappedResult = BukkitItemManager.instance().wrap(event.getResult());
+                if (VersionHelper.COMPONENT_RELEASE) {
+                    Object previousEnchantment = wrappedFirst.getExactComponent(DataComponentTypes.ENCHANTMENTS);
+                    if (previousEnchantment != null) {
+                        wrappedResult.setExactComponent(DataComponentTypes.ENCHANTMENTS, previousEnchantment);
+                    } else {
+                        wrappedResult.resetComponent(DataComponentTypes.ENCHANTMENTS);
+                    }
                 } else {
-                    wrappedResult.resetComponent(DataComponentTypes.ENCHANTMENTS);
+                    wrappedResult.setEnchantments(wrappedFirst.enchantments().orElseGet(List::of));
                 }
+                event.setResult(ItemStackUtils.getBukkitStack(wrappedResult));
             }
+        }
+    }
+
+    private boolean canRepair(ItemStack ingredient, ItemStack toRepair) {
+        if (VersionHelper.hasPaperPatch) {
+            return ingredient.canRepair(toRepair);
+        } else {
+            return ItemStackProxy.INSTANCE.isValidRepairItem(ItemStackUtils.unwrap(toRepair), ItemStackUtils.unwrap(ingredient));
         }
     }
 
@@ -346,38 +516,38 @@ public class RecipeEventListener implements Listener {
     处理item settings中repair item属性。如果修补材料不是自定义物品，则不会参与后续逻辑。
     这会忽略preprocess里event.setResult(null);
      */
-    @SuppressWarnings("UnstableApiUsage")
     private void processRepairable(PrepareAnvilEvent event) {
         AnvilInventory inventory = event.getInventory();
-        ItemStack first = inventory.getFirstItem();
-        ItemStack second = inventory.getSecondItem();
+        ItemStack first = inventory.getItem(0);
+        ItemStack second = inventory.getItem(1);
         if (ItemStackUtils.isEmpty(first) || ItemStackUtils.isEmpty(second)) return;
 
-        Item<ItemStack> wrappedSecond = BukkitItemManager.instance().wrap(second);
+        Item wrappedSecond = BukkitItemManager.instance().wrap(second);
         // 如果材料不是自定义的，那么忽略
-        Optional<CustomItem<ItemStack>> customItemOptional = this.plugin.itemManager().getCustomItem(wrappedSecond.id());
+        Optional<ItemDefinition> customItemOptional = this.plugin.itemManager().getItemDefinition(wrappedSecond.id());
         if (customItemOptional.isEmpty()) {
             return;
         }
 
-        CustomItem<ItemStack> customItem = customItemOptional.get();
-        List<AnvilRepairItem> repairItems = customItem.settings().repairItems();
+        ItemDefinition itemDefinition = customItemOptional.get();
+        List<AnvilRepairItem> repairItems = itemDefinition.settings().repairItems();
         // 如果材料不支持修复物品，则忽略
         if (repairItems.isEmpty()) {
             return;
         }
 
         // 后续均为修复逻辑
-        Item<ItemStack> wrappedFirst = BukkitItemManager.instance().wrap(first.clone());
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first.clone());
         int maxDamage = wrappedFirst.maxDamage();
         int damage = wrappedFirst.damage().orElse(0);
         // 物品无damage属性
         if (damage == 0 || maxDamage == 0) return;
 
         Key firstId = wrappedFirst.id();
-        Optional<CustomItem<ItemStack>> optionalCustomTool = wrappedFirst.getCustomItem();
+        Optional<ItemDefinition> optionalCustomTool = wrappedFirst.getDefinition();
         // 物品无法被修复
         if (optionalCustomTool.isPresent() && optionalCustomTool.get().settings().repairable().anvilRepair() == Tristate.FALSE) {
+            event.setResult(null);
             return;
         }
 
@@ -390,7 +560,7 @@ public class RecipeEventListener implements Listener {
                         repairItem = item;
                         break;
                     }
-                    if (wrappedFirst.hasItemTag(tag)) {
+                    if (wrappedFirst.hasVanillaTag(tag)) {
                         repairItem = item;
                         break;
                     }
@@ -407,8 +577,12 @@ public class RecipeEventListener implements Listener {
         }
 
         boolean hasResult = true;
-        
-        int realDurabilityPerItem = (int) (repairItem.amount() + repairItem.percent() * maxDamage);
+
+        Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
+        PlayerOptionalContext context = serverPlayer != null ? PlayerOptionalContext.of(serverPlayer) : null;
+
+        int realDurabilityPerItem = repairItem.durabilityPerItem(maxDamage, context);
         if (realDurabilityPerItem == 0) {
             return;
         }
@@ -422,7 +596,7 @@ public class RecipeEventListener implements Listener {
         String renameText;
         int maxRepairCost;
         //int previousCost;
-        if (VersionHelper.isOrAbove1_21()) {
+        if (VersionHelper.isOrAbove1_21) {
             AnvilView anvilView = event.getView();
             renameText = anvilView.getRenameText();
             maxRepairCost = anvilView.getMaximumRepairCost();
@@ -437,20 +611,20 @@ public class RecipeEventListener implements Listener {
         int repairPenalty = wrappedFirst.repairCost().orElse(0) + wrappedSecond.repairCost().orElse(0);
 
         if (renameText != null && !renameText.isBlank()) {
-            try {
-                if (!renameText.equals(CoreReflections.method$Component$getString.invoke(ComponentUtils.jsonToMinecraft(wrappedFirst.hoverNameJson().orElse(AdventureHelper.EMPTY_COMPONENT))))) {
-                    wrappedFirst.customNameJson(AdventureHelper.componentToJson(Component.text(renameText)));
-                    repairCost += 1;
-                } else if (repairCost == 0) {
-                    hasResult = false;
-                }
-            } catch (ReflectiveOperationException e) {
-                plugin.logger().warn("Failed to get hover name", e);
+            String hoverName = wrappedFirst.hoverNameJson()
+                    .map(ComponentUtils::jsonElementToMinecraft)
+                    .map(ComponentProxy.INSTANCE::getString)
+                    .orElse("");
+            if (!renameText.equals(hoverName)) {
+                wrappedFirst.customNameJson(AdventureHelper.componentToJsonElement(Component.text(renameText)));
+                repairCost += 1;
+            } else if (repairCost == 0) {
+                hasResult = false;
             }
-        } else if (VersionHelper.isOrAbove1_20_5() && wrappedFirst.hasComponent(DataComponentTypes.CUSTOM_NAME)) {
+        } else if (VersionHelper.isOrAbove1_20_5 && wrappedFirst.hasComponent(DataComponentTypes.CUSTOM_NAME)) {
             repairCost += 1;
             wrappedFirst.customNameJson(null);
-        } else if (!VersionHelper.isOrAbove1_20_5() && wrappedFirst.hasTag("display", "Name")) {
+        } else if (!VersionHelper.isOrAbove1_20_5 && wrappedFirst.hasTag("display", "Name")) {
             repairCost += 1;
             wrappedFirst.customNameJson(null);
         }
@@ -458,19 +632,15 @@ public class RecipeEventListener implements Listener {
         int finalCost = repairCost + repairPenalty;
 
         // To fix some client side visual issues
-        try {
-            Object anvilMenu;
-            if (VersionHelper.isOrAbove1_21()) {
-                anvilMenu = CraftBukkitReflections.field$CraftInventoryView$container.get(event.getView());
-            } else {
-                anvilMenu = CraftBukkitReflections.field$CraftInventoryAnvil$menu.get(inventory);
-            }
-            CoreReflections.method$AbstractContainerMenu$broadcastFullState.invoke(anvilMenu);
-        } catch (ReflectiveOperationException e) {
-            this.plugin.logger().warn("Failed to broadcast changes", e);
+        Object anvilMenu;
+        if (VersionHelper.isOrAbove1_21) {
+            anvilMenu = CraftInventoryViewProxy.INSTANCE.getContainer(event.getView());
+        } else {
+            anvilMenu = CraftInventoryAnvilProxy.INSTANCE.getContainer(inventory);
         }
+        AbstractContainerMenuProxy.INSTANCE.broadcastFullState(anvilMenu);
 
-        if (VersionHelper.isOrAbove1_21()) {
+        if (VersionHelper.isOrAbove1_21) {
             AnvilView anvilView = event.getView();
             anvilView.setRepairCost(finalCost);
             anvilView.setRepairItemCountCost(actualConsumedAmount);
@@ -479,9 +649,6 @@ public class RecipeEventListener implements Listener {
             LegacyInventoryUtils.setRepairCostAmount(inventory, actualConsumedAmount);
         }
 
-        Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
         if (serverPlayer == null) return;
         if (finalCost >= maxRepairCost && !serverPlayer.canInstabuild()) {
             hasResult = false;
@@ -495,7 +662,7 @@ public class RecipeEventListener implements Listener {
             }
             afterPenalty = calculateIncreasedRepairCost(afterPenalty);
             wrappedFirst.repairCost(afterPenalty);
-            event.setResult(wrappedFirst.getItem());
+            event.setResult(ItemStackUtils.getBukkitStack(wrappedFirst));
         }
     }
 
@@ -506,27 +673,27 @@ public class RecipeEventListener implements Listener {
     private void processRename(PrepareAnvilEvent event) {
         if (event.getResult() == null) return;
         AnvilInventory inventory = event.getInventory();
-        ItemStack first = inventory.getFirstItem();
+        ItemStack first = inventory.getItem(0); // paper -> getFirstItem
         if (ItemStackUtils.isEmpty(first)) {
             return;
         }
-        Item<ItemStack> wrappedFirst = BukkitItemManager.instance().wrap(first);
-        wrappedFirst.getCustomItem().ifPresent(item -> {
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first);
+        wrappedFirst.getDefinition().ifPresent(item -> {
             if (!item.settings().renameable()) {
                 String renameText;
-                if (VersionHelper.isOrAbove1_21()) {
+                if (VersionHelper.isOrAbove1_21) {
                     AnvilView anvilView = event.getView();
                     renameText = anvilView.getRenameText();
                 } else {
                     renameText = LegacyInventoryUtils.getRenameText(inventory);
                 }
                 if (renameText != null && !renameText.isBlank()) {
-                    try {
-                        if (!renameText.equals(CoreReflections.method$Component$getString.invoke(ComponentUtils.jsonToMinecraft(wrappedFirst.hoverNameJson().orElse(AdventureHelper.EMPTY_COMPONENT))))) {
-                            event.setResult(null);
-                        }
-                    } catch (Exception e) {
-                        this.plugin.logger().warn("Failed to get hover name", e);
+                    String hoverName = wrappedFirst.hoverNameJson()
+                            .map(ComponentUtils::jsonElementToMinecraft)
+                            .map(ComponentProxy.INSTANCE::getString)
+                            .orElse("");
+                    if (!renameText.equals(hoverName)) {
+                        event.setResult(null);
                     }
                 }
             }
@@ -535,6 +702,35 @@ public class RecipeEventListener implements Listener {
 
     public static int calculateIncreasedRepairCost(int cost) {
         return (int) Math.min((long) cost * 2L + 1L, 2147483647L);
+    }
+
+    /*
+    处理砂轮合并修复。只关心两个输入槽都有物品的情况，单物品祛魔不属于修复逻辑。
+    原版砂轮只判断物品类型是否相同，无法区分相同原版材质的不同自定义物品，因此需要在此处拦截。
+     */
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onGrindstoneEvent(PrepareGrindstoneEvent event) {
+        if (event.getResult() == null) return;
+        GrindstoneInventory inventory = event.getInventory();
+        ItemStack first = inventory.getItem(0);
+        ItemStack second = inventory.getItem(1);
+        if (ItemStackUtils.isEmpty(first) || ItemStackUtils.isEmpty(second)) return;
+        Item wrappedFirst = BukkitItemManager.instance().wrap(first);
+        Optional<ItemDefinition> firstCustom = wrappedFirst.getDefinition();
+        Item wrappedSecond = BukkitItemManager.instance().wrap(second);
+        Optional<ItemDefinition> secondCustom = wrappedSecond.getDefinition();
+        // 两个都是原版物品
+        if (firstCustom.isEmpty() && secondCustom.isEmpty()) {
+            return;
+        }
+        // 自定义物品只能与相同id的物品合并，防止原版砂轮吞掉自定义数据
+        if (!wrappedFirst.customId().equals(wrappedSecond.customId())) {
+            event.setResult(null);
+            return;
+        }
+        if (firstCustom.isPresent() && firstCustom.get().settings().repairable().grindstoneRepair() == Tristate.FALSE) {
+            event.setResult(null);
+        }
     }
 
     // only handle repair items for the moment
@@ -550,36 +746,49 @@ public class RecipeEventListener implements Listener {
         boolean hasCustomItem = ItemStackUtils.hasCustomItem(inventory.getMatrix());
         if (!hasCustomItem)
             return;
-        if (!CraftBukkitReflections.clazz$CraftComplexRecipe.isInstance(complexRecipe)) {
+        if (!CraftComplexRecipeProxy.CLASS.isInstance(complexRecipe)) {
             return;
         }
         try {
-            Object mcRecipe = CraftBukkitReflections.field$CraftComplexRecipe$recipe.get(complexRecipe);
-            if (CoreReflections.clazz$ArmorDyeRecipe.isInstance(mcRecipe) || CoreReflections.clazz$FireworkStarFadeRecipe.isInstance(mcRecipe)) {
+            Object mcRecipe = CraftComplexRecipeProxy.INSTANCE.getRecipe(complexRecipe);
+            if (FireworkStarFadeRecipeProxy.CLASS.isInstance(mcRecipe)) {
                 return;
             }
+
+            if (VersionHelper.isOrAbove26_1) {
+                // 在26.1以后dye不再应为special recipe
+                if (DyeRecipeProxy.CLASS.isInstance(mcRecipe)) {
+                    return;
+                }
+            } else {
+                if (ArmorDyeRecipeProxy.CLASS.isInstance(mcRecipe)) {
+                    return;
+                }
+            }
+
             // 处理修复配方，在此处理才能使用玩家参数构建物品
-            if (CoreReflections.clazz$RepairItemRecipe.isInstance(mcRecipe)) {
+            if (RepairItemRecipeProxy.CLASS.isInstance(mcRecipe)) {
                 Pair<ItemStack, ItemStack> theOnlyTwoItem = getTheOnlyTwoItem(inventory.getMatrix());
                 if (theOnlyTwoItem == null) return;
-                Item<ItemStack> first = BukkitItemManager.instance().wrap(theOnlyTwoItem.left());
-                Item<ItemStack> right = BukkitItemManager.instance().wrap(theOnlyTwoItem.right());
+                Item first = BukkitItemManager.instance().wrap(theOnlyTwoItem.left());
+                Item right = BukkitItemManager.instance().wrap(theOnlyTwoItem.right());
                 int max = Math.max(first.maxDamage(), right.maxDamage());
                 int durability1 = first.maxDamage() - first.damage().orElse(0);
                 int durability2 = right.maxDamage() - right.damage().orElse(0);
                 int finalDurability = durability1 + durability2 + max * 5 / 100;
-                Optional<CustomItem<ItemStack>> customItemOptional = plugin.itemManager().getCustomItem(first.id());
+                Optional<ItemDefinition> customItemOptional = plugin.itemManager().getItemDefinition(first.id());
                 if (customItemOptional.isEmpty()) {
                     inventory.setResult(null);
                     return;
                 }
                 Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-                Item<ItemStack> newItem = customItemOptional.get().buildItem(BukkitAdaptors.adapt(player));
+                Item newItem = customItemOptional.get().buildItem(BukkitAdaptor.adapt(player));
                 newItem.maxDamage(max);
                 newItem.damage(Math.max(max - finalDurability, 0));
-                inventory.setResult(newItem.getItem());
+                inventory.setResult(ItemStackUtils.getBukkitStack(newItem));
                 return;
             }
+
             // 其他配方不允许使用自定义物品
             inventory.setResult(null);
         } catch (Exception e) {
@@ -611,17 +820,17 @@ public class RecipeEventListener implements Listener {
         CraftingInventory inventory = event.getInventory();
         Key recipeId = getCurrentCraftingRecipeId(inventory);
         if (recipeId == null) return;
-        Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+        Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
         // 也许是其他插件注册的配方，直接无视
         if (optionalRecipe.isEmpty()) {
             return;
         }
-        if (!(optionalRecipe.get() instanceof CustomCraftingTableRecipe<ItemStack> craftingTableRecipe)) {
+        if (!(optionalRecipe.get() instanceof CustomCraftingTableRecipe craftingTableRecipe)) {
             inventory.setResult(null);
             return;
         }
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (craftingTableRecipe.hasCondition()) {
             if (!craftingTableRecipe.canUse(PlayerOptionalContext.of(serverPlayer))) {
                 inventory.setResult(null);
@@ -630,11 +839,15 @@ public class RecipeEventListener implements Listener {
         }
         if (craftingTableRecipe.hasVisualResult() && VersionHelper.PREMIUM) {
             ItemBuildContext itemBuildContext = ItemBuildContext.of(serverPlayer);
-            inventory.setResult(craftingTableRecipe.assembleVisual(null, itemBuildContext));
+            inventory.setResult(ItemStackUtils.getBukkitStack(craftingTableRecipe.assembleVisual(null, itemBuildContext)));
         } else {
             if (craftingTableRecipe.alwaysRebuildOutput()) {
                 ItemBuildContext itemBuildContext = ItemBuildContext.of(serverPlayer);
-                inventory.setResult(craftingTableRecipe.assemble(null, itemBuildContext));
+                if (craftingTableRecipe.requiresInput()) {
+                    inventory.setResult(ItemStackUtils.getBukkitStack(craftingTableRecipe.assemble(getCraftingInput(inventory), itemBuildContext)));
+                } else {
+                    inventory.setResult(ItemStackUtils.getBukkitStack(craftingTableRecipe.assemble(null, itemBuildContext)));
+                }
             }
         }
     }
@@ -648,9 +861,9 @@ public class RecipeEventListener implements Listener {
         if (ItemStackUtils.isEmpty(visualResultOrReal)) return;
         Key recipeId = getCurrentCraftingRecipeId(inventory);
         if (recipeId == null) return;
-        Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+        Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
         // 也许是其他插件注册的配方，直接无视
-        if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomCraftingTableRecipe<ItemStack> ceRecipe)) {
+        if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomCraftingTableRecipe ceRecipe)) {
             return;
         }
         // 没有视觉结果和函数你凑什么热闹
@@ -664,11 +877,11 @@ public class RecipeEventListener implements Listener {
         }
 
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
 
         // 对低版本nothing不全的兼容
-        if (!VersionHelper.isOrAbove1_20_5() && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
+        if (!VersionHelper.isOrAbove1_20_5 && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
             int slot = event.getHotbarButton();
             if (slot == -1) {
                 if (!serverPlayer.getItemInHand(InteractionHand.OFF_HAND).isEmpty()) {
@@ -682,32 +895,47 @@ public class RecipeEventListener implements Listener {
             }
         }
 
-        // 多次合成
-        if (event.isShiftClick()) {
-            // 由插件自己处理多次合成
-            event.setResult(Event.Result.DENY);
+        Object mcPlayer = serverPlayer.minecraftPlayer();
+        Object craftingMenu = PlayerProxy.INSTANCE.getContainerMenu(mcPlayer);
 
-            Object mcPlayer = serverPlayer.serverPlayer();
-            Object craftingMenu = FastNMS.INSTANCE.field$Player$containerMenu(mcPlayer);
-
-            // 如果有视觉结果，先临时替换为真实的
-            if (ceRecipe.hasVisualResult()) {
-                inventory.setResult(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer)));
-            }
-            // 先取一次
-            Object itemMoved = FastNMS.INSTANCE.method$AbstractContainerMenu$quickMoveStack(craftingMenu, mcPlayer, 0 /* result slot */);
-            if (FastNMS.INSTANCE.method$ItemStack$isEmpty(itemMoved)) {
-                // 发现取了个寂寞，根本没地方放，给他复原成视觉结果
-                inventory.setResult(visualResultOrReal);
+        ClickType click = event.getClick();
+        // 需要特殊处理的情况
+        if (click == ClickType.CONTROL_DROP && !ceRecipe.hasVisualResult() && ceRecipe.hasFunctions()) {
+            if (!ItemStackUtils.isEmpty(event.getCursor())) {
                 return;
             }
-            // 有函数的情况下，执行函数
-            if (ceRecipe.hasFunctions()) {
-                PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer, ContextHolder.builder().withParameter(ContextKey.direct("first_time"), new Object()));
+
+            // 后续由插件处理
+            event.setResult(Event.Result.DENY);
+
+            Object resultSlot = AbstractContainerMenuProxy.INSTANCE.getSlot(craftingMenu, 0);
+
+            for (;;) {
+                // 这个时候配方已经更新了，如果变化了，那么就不要操作
+                if (!recipeId.equals(getCurrentCraftingRecipeId(inventory))) {
+                    break;
+                }
+
+                Object takenItem = SlotProxy.INSTANCE.safeTake(resultSlot, 1, Integer.MAX_VALUE, mcPlayer);
+                if (ItemStackProxy.INSTANCE.isEmpty(takenItem)) {
+                    break;
+                }
+
+                PlayerProxy.INSTANCE.drop(mcPlayer, takenItem, true);
+
+                // 执行函数
+                PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
                 for (Function<Context> function : ceRecipe.functions()) {
                     function.run(context);
                 }
             }
+            return;
+        }
+
+        // 多次合成
+        if (click.isShiftClick()) {
+            // 由插件自己处理多次合成
+            event.setResult(Event.Result.DENY);
 
             for (;;) {
                 // 这个时候配方已经更新了，如果变化了，那么就不要操作
@@ -718,12 +946,12 @@ public class RecipeEventListener implements Listener {
                 // 配方不变，允许起飞
                 // 如果有视觉结果，先临时替换为真实的
                 if (ceRecipe.hasVisualResult()) {
-                    inventory.setResult(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer)));
+                    inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer))));
                 }
 
                 // 连续获取
-                itemMoved = FastNMS.INSTANCE.method$AbstractContainerMenu$quickMoveStack(craftingMenu, mcPlayer, 0 /* result slot */);
-                if (FastNMS.INSTANCE.method$ItemStack$isEmpty(itemMoved)) {
+                Object itemMoved = AbstractContainerMenuProxy.INSTANCE.quickMoveStack(craftingMenu, mcPlayer, 0 /* result slot */);
+                if (ItemStackProxy.INSTANCE.isEmpty(itemMoved)) {
                     // 发现取了个寂寞，根本没地方放，给他复原成视觉结果
                     inventory.setResult(visualResultOrReal);
                     break;
@@ -739,7 +967,6 @@ public class RecipeEventListener implements Listener {
         }
         // 单次合成
         else {
-            ClickType click = event.getClick();
             if (click == ClickType.MIDDLE) {
                 if (ItemStackUtils.isEmpty(event.getCursor())) {
                     return;
@@ -762,11 +989,11 @@ public class RecipeEventListener implements Listener {
                         }
                     }
                 }
-                inventory.setResult(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer)));
+                inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(null, ItemBuildContext.of(serverPlayer))));
             }
             // 有函数的情况下，执行函数
             if (ceRecipe.hasFunctions()) {
-                PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer, ContextHolder.builder().withParameter(ContextKey.direct("first_time"), new Object()));
+                PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
                 for (Function<Context> function : ceRecipe.functions()) {
                     function.run(context);
                 }
@@ -777,26 +1004,35 @@ public class RecipeEventListener implements Listener {
     // bukkit的getRecipe会生成新的recipe对象，过程较慢，只需要获取配方id即可
     @Nullable
     private Key getCurrentCraftingRecipeId(CraftingInventory inventory) {
-        Object craftContainer = FastNMS.INSTANCE.method$CraftInventory$getInventory(inventory);
-        Object recipeHolderOrRecipe = FastNMS.INSTANCE.method$CraftingContainer$getCurrentRecipe(craftContainer);
-        if (recipeHolderOrRecipe == null) return null;
-        if (VersionHelper.isOrAbove1_21_2()) {
-            return KeyUtils.resourceLocationToKey(FastNMS.INSTANCE.field$ResourceKey$location(FastNMS.INSTANCE.field$RecipeHolder$id(recipeHolderOrRecipe)));
-        } else if (VersionHelper.isOrAbove1_20_2()) {
-            return KeyUtils.resourceLocationToKey(FastNMS.INSTANCE.field$RecipeHolder$id(recipeHolderOrRecipe));
+        Object craftContainer = CraftInventoryProxy.INSTANCE.getInventory(inventory);
+        if (VersionHelper.isOrAbove1_21) {
+            return recipeIdFromHolderOrRecipe(CraftingContainerProxy.INSTANCE.getCurrentRecipe(craftContainer));
         } else {
-            // 其实是recipe getId的实现
-            return KeyUtils.resourceLocationToKey(FastNMS.INSTANCE.field$RecipeHolder$id(recipeHolderOrRecipe));
+            return recipeIdFromHolderOrRecipe(ContainerProxy.INSTANCE.getCurrentRecipe(craftContainer));
         }
     }
 
-    private CraftingInput<ItemStack> getCraftingInput(CraftingInventory inventory) {
+    // RecipeHolder 于 1.20.2 引入，此前直接存放 Recipe
+    @Nullable
+    private Key recipeIdFromHolderOrRecipe(@Nullable Object recipeHolderOrRecipe) {
+        if (recipeHolderOrRecipe == null) return null;
+        if (VersionHelper.isOrAbove1_21_2) {
+            return KeyUtils.identifierToKey(ResourceKeyProxy.INSTANCE.getIdentifier(RecipeHolderProxy.INSTANCE.getId(recipeHolderOrRecipe)));
+        } else if (VersionHelper.isOrAbove1_20_2) {
+            return KeyUtils.identifierToKey(RecipeHolderProxy.INSTANCE.getId(recipeHolderOrRecipe));
+        } else {
+            // 其实是recipe getId的实现
+            return KeyUtils.identifierToKey(RecipeProxy.INSTANCE.getId(recipeHolderOrRecipe));
+        }
+    }
+
+    private CraftingInput getCraftingInput(CraftingInventory inventory) {
         ItemStack[] ingredients = inventory.getMatrix();
-        List<UniqueIdItem<ItemStack>> uniqueIdItems = new ArrayList<>();
+        List<UniqueIdItem> uniqueIdItems = new ArrayList<>();
         for (ItemStack itemStack : ingredients) {
             uniqueIdItems.add(ItemStackUtils.getUniqueIdItem(itemStack));
         }
-        CraftingInput<ItemStack> input;
+        CraftingInput input;
         if (ingredients.length == 9) {
             input = CraftingInput.of(3, 3, uniqueIdItems);
         } else if (ingredients.length == 4) {
@@ -813,13 +1049,13 @@ public class RecipeEventListener implements Listener {
         if (ItemStackUtils.isEmpty(inventory.getResult())) return;
         org.bukkit.inventory.Recipe smithingRecipe = inventory.getRecipe();
         if (smithingRecipe instanceof SmithingTrimRecipe recipe) {
-            ItemStack equipment = inventory.getInputEquipment();
+            ItemStack equipment = inventory.getItem(1); // paper -> getInputEquipment
             if (!ItemStackUtils.isEmpty(equipment)) {
-                Item<ItemStack> wrappedEquipment = this.itemManager.wrap(equipment);
-                Optional<CustomItem<ItemStack>> optionalCustomItem = wrappedEquipment.getCustomItem();
+                Item wrappedEquipment = this.itemManager.wrap(equipment);
+                Optional<ItemDefinition> optionalCustomItem = wrappedEquipment.getDefinition();
                 if (optionalCustomItem.isPresent()) {
-                    CustomItem<ItemStack> customItem = optionalCustomItem.get();
-                    ItemEquipment itemEquipmentSettings = customItem.settings().equipment();
+                    ItemDefinition itemDefinition = optionalCustomItem.get();
+                    ItemEquipment itemEquipmentSettings = itemDefinition.settings().equipment();
                     if (itemEquipmentSettings != null && itemEquipmentSettings.equipment() instanceof TrimBasedEquipment) {
                         // 不允许trim类型的盔甲再次被使用trim
                         event.setResult(null);
@@ -828,44 +1064,44 @@ public class RecipeEventListener implements Listener {
                 }
             }
 
-            Key recipeId = Key.of(recipe.getKey().namespace(), recipe.getKey().value());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            Key recipeId = KeyUtils.namespacedKeyToKey(recipe.getKey());
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
             if (optionalRecipe.isEmpty()) {
                 return;
             }
-            if (!(optionalRecipe.get() instanceof CustomSmithingTrimRecipe<ItemStack> smithingTrimRecipe)) {
+            if (!(optionalRecipe.get() instanceof CustomSmithingTrimRecipe smithingTrimRecipe)) {
                 event.setResult(null);
                 return;
             }
             Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptors.adapt(player));
+            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptor.adapt(player));
             if (!smithingTrimRecipe.canUse(itemBuildContext)) {
                 event.setResult(null);
                 return;
             }
-            ItemStack result = smithingTrimRecipe.assemble(getSmithingInput(inventory), itemBuildContext);
-            event.setResult(result);
+            Item result = smithingTrimRecipe.assemble(getSmithingInput(inventory), itemBuildContext);
+            event.setResult(ItemStackUtils.getBukkitStack(result));
         } else if (smithingRecipe instanceof SmithingTransformRecipe recipe) {
-            Key recipeId = Key.of(recipe.getKey().namespace(), recipe.getKey().value());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            Key recipeId = KeyUtils.namespacedKeyToKey(recipe.getKey());
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
             if (optionalRecipe.isEmpty()) {
                 return;
             }
-            if (!(optionalRecipe.get() instanceof CustomSmithingTransformRecipe<ItemStack> smithingTransformRecipe)) {
+            if (!(optionalRecipe.get() instanceof CustomSmithingTransformRecipe smithingTransformRecipe)) {
                 event.setResult(null);
                 return;
             }
             Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptors.adapt(player));
+            ItemBuildContext itemBuildContext = ItemBuildContext.of(BukkitAdaptor.adapt(player));
             if (!smithingTransformRecipe.canUse(itemBuildContext)) {
                 event.setResult(null);
                 return;
             }
-            SmithingInput<ItemStack> input = getSmithingInput(inventory);
+            SmithingInput input = getSmithingInput(inventory);
             if (smithingTransformRecipe.hasVisualResult() && VersionHelper.PREMIUM) {
-                event.setResult(smithingTransformRecipe.assembleVisual(input, itemBuildContext));
+                event.setResult(ItemStackUtils.getBukkitStack(smithingTransformRecipe.assembleVisual(input, itemBuildContext)));
             } else {
-                event.setResult(smithingTransformRecipe.assemble(input, itemBuildContext));
+                event.setResult(ItemStackUtils.getBukkitStack(smithingTransformRecipe.assemble(input, itemBuildContext)));
             }
         }
     }
@@ -880,18 +1116,19 @@ public class RecipeEventListener implements Listener {
 
         org.bukkit.inventory.Recipe recipe = inventory.getRecipe();
         Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
-        BukkitServerPlayer serverPlayer = BukkitAdaptors.adapt(player);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
         if (serverPlayer == null) return;
 
         if (recipe instanceof SmithingTransformRecipe transformRecipe) {
-            Key recipeId = KeyUtils.namespacedKey2Key(transformRecipe.getKey());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            Key recipeId = KeyUtils.namespacedKeyToKey(transformRecipe.getKey());
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
             // 也许是其他插件注册的配方，直接无视
-            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTransformRecipe<ItemStack> ceRecipe)) {
+            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTransformRecipe ceRecipe)) {
                 return;
             }
+
             // 没有视觉结果和函数你凑什么热闹
-            if (!ceRecipe.hasFunctions() && !ceRecipe.hasVisualResult()) {
+            if (!ceRecipe.hasFunctions() && !ceRecipe.hasVisualResult() && !ceRecipe.ingredientCountSupport()) {
                 return;
             }
 
@@ -902,7 +1139,7 @@ public class RecipeEventListener implements Listener {
             }
 
             // 对低版本nothing不全的兼容
-            if (!VersionHelper.isOrAbove1_20_5() && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
+            if (!VersionHelper.isOrAbove1_20_5 && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
                 int slot = event.getHotbarButton();
                 if (slot == -1) {
                     if (!serverPlayer.getItemInHand(InteractionHand.OFF_HAND).isEmpty()) {
@@ -916,50 +1153,87 @@ public class RecipeEventListener implements Listener {
                 }
             }
 
-            if (event.isShiftClick()) {
+            ClickType click = event.getClick();
+
+            Object mcPlayer = serverPlayer.minecraftPlayer();
+            Object smithingMenu = PlayerProxy.INSTANCE.getContainerMenu(mcPlayer);
+
+            if (click == ClickType.CONTROL_DROP) {
                 // 由插件自己处理多次合成
                 event.setResult(Event.Result.DENY);
 
-                Object mcPlayer = serverPlayer.serverPlayer();
-                Object smithingMenu = FastNMS.INSTANCE.field$Player$containerMenu(mcPlayer);
-
-                // 如果有视觉结果，先临时替换为真实的
-                if (ceRecipe.hasVisualResult()) {
-                    inventory.setResult(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer)));
-                }
-                // 先取一次
-                Object itemMoved = FastNMS.INSTANCE.method$AbstractContainerMenu$quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
-                if (FastNMS.INSTANCE.method$ItemStack$isEmpty(itemMoved)) {
-                    // 发现取了个寂寞，根本没地方放，给他复原成视觉结果
-                    inventory.setResult(visualResultOrReal);
-                    return;
-                }
-                // 有函数的情况下，执行函数
-                if (ceRecipe.hasFunctions()) {
-                    PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer, ContextHolder.builder().withParameter(ContextKey.direct("first_time"), new Object()));
-                    for (Function<Context> function : ceRecipe.functions()) {
-                        function.run(context);
-                    }
-                }
+                Object resultSlot = AbstractContainerMenuProxy.INSTANCE.getSlot(smithingMenu, 3);
 
                 for (;;) {
                     // 这个时候配方已经更新了，如果变化了，那么就不要操作
-                    if (!(inventory.getRecipe() instanceof SmithingTransformRecipe newTransform) || !recipeId.equals(KeyUtils.namespacedKey2Key(newTransform.getKey()))) {
+                    if (!(inventory.getRecipe() instanceof SmithingTransformRecipe newTransform) || !recipeId.equals(KeyUtils.namespacedKeyToKey(newTransform.getKey()))) {
+                        break;
+                    }
+
+                    // 双重校验，mc不一定在此更新
+                    if (!ceRecipe.matches(getSmithingInput(inventory))) {
+                        break;
+                    }
+
+                    if (ceRecipe.hasVisualResult()) {
+                        inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer))));
+                    }
+
+                    Object takenItem = SlotProxy.INSTANCE.safeTake(resultSlot, 1, Integer.MAX_VALUE, mcPlayer);
+                    if (ItemStackProxy.INSTANCE.isEmpty(takenItem)) {
+                        break;
+                    }
+
+                    // 扣除额外原料
+                    if (ceRecipe.ingredientCountSupport()) {
+                        ceRecipe.takeInput(getSmithingInput(inventory), 1);
+                    }
+
+                    PlayerProxy.INSTANCE.drop(mcPlayer, takenItem, true);
+
+                    // 有函数的情况下，执行函数
+                    if (ceRecipe.hasFunctions()) {
+                        PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
+                        for (Function<Context> function : ceRecipe.functions()) {
+                            function.run(context);
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            if (click.isShiftClick()) {
+                // 由插件自己处理多次合成
+                event.setResult(Event.Result.DENY);
+
+                for (;;) {
+                    // 这个时候配方已经更新了，如果变化了，那么就不要操作
+                    if (!(inventory.getRecipe() instanceof SmithingTransformRecipe newTransform) || !recipeId.equals(KeyUtils.namespacedKeyToKey(newTransform.getKey()))) {
+                        break;
+                    }
+
+                    // 双重校验，mc不一定在此更新
+                    if (!ceRecipe.matches(getSmithingInput(inventory))) {
                         break;
                     }
 
                     // 配方不变，允许起飞
                     // 如果有视觉结果，先临时替换为真实的
                     if (ceRecipe.hasVisualResult()) {
-                        inventory.setResult(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer)));
+                        inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer))));
                     }
 
                     // 连续获取
-                    itemMoved = FastNMS.INSTANCE.method$AbstractContainerMenu$quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
-                    if (FastNMS.INSTANCE.method$ItemStack$isEmpty(itemMoved)) {
+                    Object itemMoved = AbstractContainerMenuProxy.INSTANCE.quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
+                    if (ItemStackProxy.INSTANCE.isEmpty(itemMoved)) {
                         // 发现取了个寂寞，根本没地方放，给他复原成视觉结果
                         inventory.setResult(visualResultOrReal);
                         break;
+                    }
+                    // 扣除额外原料
+                    if (ceRecipe.ingredientCountSupport()) {
+                        ceRecipe.takeInput(getSmithingInput(inventory), 1);
                     }
                     // 有函数的情况下，执行函数
                     if (ceRecipe.hasFunctions()) {
@@ -970,13 +1244,12 @@ public class RecipeEventListener implements Listener {
                     }
                 }
             } else {
-                ClickType click = event.getClick();
                 if (click == ClickType.MIDDLE) {
                     if (ItemStackUtils.isEmpty(event.getCursor())) {
                         return;
                     }
                 }
-                if (click == ClickType.DROP || click == ClickType.CONTROL_DROP) {
+                if (click == ClickType.DROP) {
                     if (!ItemStackUtils.isEmpty(event.getCursor())) {
                         return;
                     }
@@ -993,23 +1266,27 @@ public class RecipeEventListener implements Listener {
                             }
                         }
                     }
-                    inventory.setResult(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer)));
+                    inventory.setResult(ItemStackUtils.getBukkitStack(ceRecipe.assemble(getSmithingInput(inventory), ItemBuildContext.of(serverPlayer))));
                 }
                 // 有函数的情况下，执行函数
                 if (ceRecipe.hasFunctions()) {
-                    PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer, ContextHolder.builder().withParameter(ContextKey.direct("first_time"), new Object()));
+                    PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
                     for (Function<Context> function : ceRecipe.functions()) {
                         function.run(context);
                     }
+                }
+                // 扣除额外原料
+                if (ceRecipe.ingredientCountSupport()) {
+                    ceRecipe.takeInput(getSmithingInput(inventory), 1);
                 }
             }
         }
 
         // trim 配方只能执行函数
         else if (recipe instanceof SmithingTrimRecipe trimRecipe) {
-            Key recipeId = KeyUtils.namespacedKey2Key(trimRecipe.getKey());
-            Optional<Recipe<ItemStack>> optionalRecipe = this.recipeManager.recipeById(recipeId);
-            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTrimRecipe<ItemStack> ceRecipe)) {
+            Key recipeId = KeyUtils.namespacedKeyToKey(trimRecipe.getKey());
+            Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
+            if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomSmithingTrimRecipe ceRecipe)) {
                 return;
             }
             // 没有函数你凑什么热闹
@@ -1024,7 +1301,7 @@ public class RecipeEventListener implements Listener {
             }
 
             // 对低版本nothing不全的兼容
-            if (!VersionHelper.isOrAbove1_20_5() && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
+            if (!VersionHelper.isOrAbove1_20_5 && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
                 int slot = event.getHotbarButton();
                 if (slot == -1) {
                     if (!serverPlayer.getItemInHand(InteractionHand.OFF_HAND).isEmpty()) {
@@ -1042,31 +1319,23 @@ public class RecipeEventListener implements Listener {
                 // 由插件自己处理多次合成
                 event.setResult(Event.Result.DENY);
 
-                Object mcPlayer = serverPlayer.serverPlayer();
-                Object smithingMenu = FastNMS.INSTANCE.field$Player$containerMenu(mcPlayer);
-
-                // 先取一次
-                Object itemMoved = FastNMS.INSTANCE.method$AbstractContainerMenu$quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
-                if (FastNMS.INSTANCE.method$ItemStack$isEmpty(itemMoved)) {
-                    // 发现取了个寂寞，根本没地方放
-                    return;
-                }
-                // 有函数的情况下，执行函数
-                if (ceRecipe.hasFunctions()) {
-                    PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
-                    for (Function<Context> function : ceRecipe.functions()) {
-                        function.run(context);
-                    }
-                }
+                Object mcPlayer = serverPlayer.minecraftPlayer();
+                Object smithingMenu = PlayerProxy.INSTANCE.getContainerMenu(mcPlayer);
 
                 for (;;) {
                     // 这个时候配方已经更新了，如果变化了，那么就不要操作
-                    if (!(inventory.getRecipe() instanceof SmithingTrimRecipe newTrim) || !recipeId.equals(KeyUtils.namespacedKey2Key(newTrim.getKey()))) {
+                    if (!(inventory.getRecipe() instanceof SmithingTrimRecipe newTrim) || !recipeId.equals(KeyUtils.namespacedKeyToKey(newTrim.getKey()))) {
                         break;
                     }
+
+                    // 双重校验
+                    if (!ceRecipe.matches(getSmithingInput(inventory))) {
+                        break;
+                    }
+
                     // 连续获取
-                    itemMoved = FastNMS.INSTANCE.method$AbstractContainerMenu$quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
-                    if (FastNMS.INSTANCE.method$ItemStack$isEmpty(itemMoved)) {
+                    Object itemMoved = AbstractContainerMenuProxy.INSTANCE.quickMoveStack(smithingMenu, mcPlayer, 3 /* result slot */);
+                    if (ItemStackProxy.INSTANCE.isEmpty(itemMoved)) {
                         // 发现取了个寂寞，根本没地方放
                         break;
                     }
@@ -1099,11 +1368,158 @@ public class RecipeEventListener implements Listener {
         }
     }
 
-    private SmithingInput<ItemStack> getSmithingInput(SmithingInventory inventory) {
-        return new SmithingInput<>(
-                ItemStackUtils.getUniqueIdItem(inventory.getInputEquipment()),
-                ItemStackUtils.getUniqueIdItem(inventory.getInputTemplate()),
-                ItemStackUtils.getUniqueIdItem(inventory.getInputMineral())
+    // 切石机产出
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    public void onStonecuttingFinish(InventoryClickEvent event) {
+        if (!Config.enableRecipeSystem()) return;
+        if (!(event.getInventory() instanceof StonecutterInventory inventory)) return;
+        // 只关心结果槽
+        if (event.getRawSlot() != 1) return;
+        if (ItemStackUtils.isEmpty(inventory.getResult())) return;
+
+        InventoryAction action = event.getAction();
+        // 无事发生，不要更新
+        if (action == InventoryAction.NOTHING) {
+            return;
+        }
+
+        Player player = InventoryUtils.getPlayerFromInventoryEvent(event);
+        BukkitServerPlayer serverPlayer = BukkitAdaptor.adapt(player);
+        if (serverPlayer == null) return;
+
+        // 切石机选中配方后会把配方记录在结果容器里
+        Object mcPlayer = serverPlayer.minecraftPlayer();
+        Object stonecutterMenu = PlayerProxy.INSTANCE.getContainerMenu(mcPlayer);
+        Object resultSlot = AbstractContainerMenuProxy.INSTANCE.getSlot(stonecutterMenu, 1 /* result slot */);
+        if (resultSlot == null) return;
+        Object resultContainer = SlotProxy.INSTANCE.getContainer(resultSlot);
+        Key recipeId = recipeIdFromHolderOrRecipe(ResultContainerProxy.INSTANCE.getRecipeUsed(resultContainer));
+        if (recipeId == null) return;
+        Optional<Recipe> optionalRecipe = this.recipeManager.recipeById(recipeId);
+        // 也许是其他插件注册的配方，直接无视
+        if (optionalRecipe.isEmpty() || !(optionalRecipe.get() instanceof CustomStoneCuttingRecipe ceRecipe)) {
+            return;
+        }
+        boolean runFunctions = VersionHelper.PREMIUM && ceRecipe.hasFunctions();
+        if (!runFunctions && !ceRecipe.hasCondition()) {
+            return;
+        }
+        if (ceRecipe.hasCondition() && !ceRecipe.canUse(PlayerOptionalContext.of(serverPlayer))) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // 对低版本nothing不全的兼容
+        if (!VersionHelper.isOrAbove1_20_5 && LegacyInventoryUtils.isHotBarSwapAndReadd(action)) {
+            int slot = event.getHotbarButton();
+            if (slot == -1) {
+                if (!serverPlayer.getItemInHand(InteractionHand.OFF_HAND).isEmpty()) {
+                    return;
+                }
+            } else {
+                ItemStack item = player.getInventory().getItem(slot);
+                if (!ItemStackUtils.isEmpty(item)) {
+                    return;
+                }
+            }
+        }
+
+        ClickType click = event.getClick();
+        // 扔出，循环丢弃直到原料耗尽
+        if (click == ClickType.CONTROL_DROP) {
+            if (!ItemStackUtils.isEmpty(event.getCursor())) {
+                return;
+            }
+            // 由插件自己处理，每次丢弃都要额外执行函数
+            event.setResult(Event.Result.DENY);
+
+            for (;;) {
+                // 此时配方已经更新，如果变化了，那么就不要操作
+                if (!recipeId.equals(recipeIdFromHolderOrRecipe(ResultContainerProxy.INSTANCE.getRecipeUsed(resultContainer)))) {
+                    break;
+                }
+
+                if (ceRecipe.hasCondition() && !ceRecipe.canUse(PlayerOptionalContext.of(serverPlayer))) {
+                    break;
+                }
+                Object takenItem = SlotProxy.INSTANCE.safeTake(resultSlot, 1, Integer.MAX_VALUE, mcPlayer);
+                if (ItemStackProxy.INSTANCE.isEmpty(takenItem)) {
+                    break;
+                }
+
+                PlayerProxy.INSTANCE.drop(mcPlayer, takenItem, true);
+
+                // 有函数的情况下，执行函数
+                if (runFunctions) {
+                    PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
+                    for (Function<Context> function : ceRecipe.functions()) {
+                        function.run(context);
+                    }
+                }
+            }
+            return;
+        }
+
+        // 多次合成
+        if (click.isShiftClick()) {
+            // 由插件自己处理多次合成
+            event.setResult(Event.Result.DENY);
+
+            for (;;) {
+                // 此时配方已经更新，如果变化了，那么就不要操作
+                if (!recipeId.equals(recipeIdFromHolderOrRecipe(ResultContainerProxy.INSTANCE.getRecipeUsed(resultContainer)))) {
+                    break;
+                }
+
+                if (ceRecipe.hasCondition() && !ceRecipe.canUse(PlayerOptionalContext.of(serverPlayer))) {
+                    break;
+                }
+                // 连续获取
+                Object itemMoved = AbstractContainerMenuProxy.INSTANCE.quickMoveStack(stonecutterMenu, mcPlayer, 1 /* result slot */);
+                if (ItemStackProxy.INSTANCE.isEmpty(itemMoved)) {
+                    break;
+                }
+
+                // 有函数的情况下，执行函数
+                if (runFunctions) {
+                    PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
+                    for (Function<Context> function : ceRecipe.functions()) {
+                        function.run(context);
+                    }
+                }
+            }
+            return;
+        }
+
+        // 单次取出，其余操作（中键克隆、数字键交换等）都不会真正拿走产物
+        boolean takeOnce = click == ClickType.LEFT || click == ClickType.RIGHT
+                || (click == ClickType.DROP && ItemStackUtils.isEmpty(event.getCursor()));
+        if (!takeOnce || !runFunctions) {
+            return;
+        }
+
+        // 有函数的情况下，执行函数
+        PlayerOptionalContext context = PlayerOptionalContext.of(serverPlayer);
+        for (Function<Context> function : ceRecipe.functions()) {
+            function.run(context);
+        }
+    }
+
+    private SmithingInput getSmithingInput(SmithingInventory inventory) {
+        return new SmithingInput(
+                ItemStackUtils.getUniqueIdItem(inventory.getItem(1)), // getInputEquipment
+                ItemStackUtils.getUniqueIdItem(inventory.getItem(0)), // getInputTemplate
+                ItemStackUtils.getUniqueIdItem(inventory.getItem(2)) // getInputMineral
         );
+    }
+
+    @Nullable
+    private RecipeType getRecipeTypeByCookingInventoryHolder(InventoryHolder inventoryHolder) {
+        return switch (inventoryHolder) {
+            case BlastFurnace ignored -> RecipeType.BLASTING;
+            case Smoker ignored -> RecipeType.SMOKING;
+            case Furnace ignored -> RecipeType.SMELTING;
+            case null, default -> null;
+        };
     }
 }

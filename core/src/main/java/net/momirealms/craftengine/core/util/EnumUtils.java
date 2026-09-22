@@ -3,8 +3,8 @@ package net.momirealms.craftengine.core.util;
 import java.util.StringJoiner;
 
 public final class EnumUtils {
-
-    private EnumUtils() {}
+    private EnumUtils() {
+    }
 
     public static String toString(Enum<?>[] enums) {
         StringJoiner joiner = new StringJoiner(", ");

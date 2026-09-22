@@ -1,38 +1,44 @@
 package net.momirealms.craftengine.bukkit.api.event;
 
 import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
-import net.momirealms.craftengine.core.plugin.context.ContextHolder;
+import net.momirealms.craftengine.core.entity.furniture.hitbox.FurnitureHitBox;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.player.PlayerEvent;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 public final class FurnitureHitEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList HANDLER_LIST = new HandlerList();
     private boolean cancelled;
     private final BukkitFurniture furniture;
-    private final ContextHolder.Builder contextBuilder;
+    private final FurnitureHitBox hitBox;
+    private final Location hitPoint;
 
-    @ApiStatus.Internal
     public FurnitureHitEvent(@NotNull Player player,
                              @NotNull BukkitFurniture furniture,
-                             @NotNull ContextHolder.Builder contextBuilder) {
+                             @NotNull Location hitPoint,
+                             @NotNull FurnitureHitBox hitBox) {
         super(player);
         this.furniture = furniture;
-        this.contextBuilder = contextBuilder;
+        this.hitBox = hitBox;
+        this.hitPoint = hitPoint;
     }
 
     @NotNull
-    public ContextHolder.Builder contextBuilder() {
-        return this.contextBuilder;
+    public FurnitureHitBox hitBox() {
+        return this.hitBox;
     }
 
     @NotNull
     public Player player() {
         return getPlayer();
+    }
+
+    @NotNull
+    public Location hitPoint() {
+        return this.hitPoint;
     }
 
     @NotNull

@@ -1,10 +1,9 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
 import net.momirealms.craftengine.core.plugin.context.Context;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.random.RandomSource;
-
-import java.util.Map;
 
 /**
  * 贝塔分布提供器
@@ -24,14 +23,14 @@ public record BetaNumberProvider(
     }
 
     @Override
-    public float getFloat(RandomSource random) {
-        return (float) getDouble(random);
+    public float getFloat(Context context) {
+        return (float) getDouble(context);
     }
 
     @Override
-    public double getDouble(RandomSource random) {
+    public double getDouble(Context context) {
         // 使用针对不同参数范围优化的生成算法
-        double x = generateStandardBeta(this.alpha, this.beta, random);
+        double x = generateStandardBeta(this.alpha, this.beta, context.random());
         // 将 [0, 1] 映射到 [min, max]
         return this.min + x * (this.max - this.min);
     }
@@ -67,14 +66,15 @@ public record BetaNumberProvider(
 
     private static class Factory implements NumberProviderFactory<BetaNumberProvider> {
         @Override
-        public BetaNumberProvider create(Map<String, Object> arguments) {
-            double min = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("min", 0.0), "min");
-            double max = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("max", 1.0), "max");
-            
+        public BetaNumberProvider create(ConfigSection section) {
+            double min = section.getDouble("min", 0d);
+            double max = section.getDouble("max", 1d);
+            if (min >= max) {
+                throw new KnownResourceException("number.less_than", section.path(), "min", "max");
+            }
             // α 和 β 的默认值通常设为 2.0 (形成一个平滑的中间高两头低的弧线)
-            double alpha = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("alpha", 2.0), "alpha");
-            double beta = ResourceConfigUtils.getAsDouble(arguments.getOrDefault("beta", 2.0), "beta");
-            
+            double alpha = section.getDouble("alpha", 2d);
+            double beta = section.getDouble("beta", 2d);
             return new BetaNumberProvider(min, max, alpha, beta);
         }
     }

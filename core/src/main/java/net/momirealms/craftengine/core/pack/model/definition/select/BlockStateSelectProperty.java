@@ -1,9 +1,8 @@
 package net.momirealms.craftengine.core.pack.model.definition.select;
 
 import com.google.gson.JsonObject;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-
-import java.util.Map;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 
 public final class BlockStateSelectProperty implements SelectProperty {
     public static final SelectPropertyFactory<BlockStateSelectProperty> FACTORY = new Factory();
@@ -19,24 +18,24 @@ public final class BlockStateSelectProperty implements SelectProperty {
     }
 
     @Override
-    public void accept(JsonObject jsonObject) {
-        jsonObject.addProperty("property", "block_state");
-        jsonObject.addProperty("block_state_property", this.blockStateProperty);
+    public void writeProperty(JsonObject model) {
+        model.addProperty("property", "block_state");
+        model.addProperty("block_state_property", this.blockStateProperty);
     }
 
     private static class Factory implements SelectPropertyFactory<BlockStateSelectProperty> {
+        private static final String[] BLOCK_STATE_PROPERTY = ConfigKeys.of("block_state_property");
+
         @Override
-        public BlockStateSelectProperty create(Map<String, Object> arguments) {
-            String property = ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("block-state-property"), "warning.config.item.model.select.block_state.missing_property");
-            return new BlockStateSelectProperty(property);
+        public BlockStateSelectProperty create(ConfigSection section) {
+            return new BlockStateSelectProperty(section.getNonNullString(BLOCK_STATE_PROPERTY));
         }
     }
 
     private static class Reader implements SelectPropertyReader<BlockStateSelectProperty> {
         @Override
         public BlockStateSelectProperty read(JsonObject json) {
-            String property = json.get("block_state_property").getAsString();
-            return new BlockStateSelectProperty(property);
+            return new BlockStateSelectProperty(json.get("block_state_property").getAsString());
         }
     }
 }

@@ -1,10 +1,9 @@
 package net.momirealms.craftengine.bukkit.compatibility.nameplates;
 
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.momirealms.craftengine.core.plugin.compatibility.TagResolverProvider;
-import net.momirealms.craftengine.core.plugin.context.Context;
+import net.momirealms.sparrow.message.tag.resolver.TagResolver;
 
-public class CustomNameplateProviders {
+public final class CustomNameplateProviders {
 
     public static class Background implements TagResolverProvider {
         @Override
@@ -13,8 +12,8 @@ public class CustomNameplateProviders {
         }
 
         @Override
-        public TagResolver getTagResolver(Context context) {
-            return new BackgroundTag(context);
+        public TagResolver getTagResolver() {
+            return BackgroundTag.INSTANCE;
         }
     }
 
@@ -25,8 +24,8 @@ public class CustomNameplateProviders {
         }
 
         @Override
-        public TagResolver getTagResolver(Context context) {
-            return new NameplateTag(context);
+        public TagResolver getTagResolver() {
+            return NameplateTag.INSTANCE;
         }
     }
 
@@ -37,8 +36,8 @@ public class CustomNameplateProviders {
         }
 
         @Override
-        public TagResolver getTagResolver(Context context) {
-            return new BubbleTag(context);
+        public TagResolver getTagResolver() {
+            return BubbleTag.INSTANCE;
         }
     }
 }

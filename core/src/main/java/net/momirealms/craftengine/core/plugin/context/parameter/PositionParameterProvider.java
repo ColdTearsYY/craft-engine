@@ -10,7 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class PositionParameterProvider implements ChainParameterProvider<WorldPosition> {
+public final class PositionParameterProvider implements ChainParameterProvider<WorldPosition> {
+    public static final PositionParameterProvider INSTANCE = new PositionParameterProvider();
     private static final Map<ContextKey<?>, Function<WorldPosition, Object>> CONTEXT_FUNCTIONS = new HashMap<>();
     static {
         CONTEXT_FUNCTIONS.put(DirectContextParameters.WORLD, WorldPosition::world);
@@ -23,6 +24,8 @@ public class PositionParameterProvider implements ChainParameterProvider<WorldPo
         CONTEXT_FUNCTIONS.put(DirectContextParameters.BLOCK_X, p -> MiscUtils.floor(p.x()));
         CONTEXT_FUNCTIONS.put(DirectContextParameters.BLOCK_Y, p -> MiscUtils.floor(p.y()));
         CONTEXT_FUNCTIONS.put(DirectContextParameters.BLOCK_Z, p -> MiscUtils.floor(p.z()));
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.BIOME, WorldPosition::getBiome);
+        CONTEXT_FUNCTIONS.put(DirectContextParameters.BLOCK, WorldPosition::getBlock);
     }
 
     @SuppressWarnings("unchecked")

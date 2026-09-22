@@ -10,5 +10,5 @@ public interface AdvancementManager extends Manageable {
 
     ConfigParser parser();
 
-    void sendToast(Player player, Item<?> icon, Component message, AdvancementType type);
+    void sendToast(Player player, Item icon, Component message, AdvancementType type);
 }

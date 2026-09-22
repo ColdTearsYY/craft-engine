@@ -8,6 +8,7 @@ import net.momirealms.craftengine.core.plugin.dependency.relocation.RelocationHa
 import net.momirealms.craftengine.core.util.FileUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
@@ -17,7 +18,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
-import java.util.stream.Stream;
 
 public class DependencyManagerImpl implements DependencyManager {
     private final DependencyRegistry registry;
@@ -110,7 +110,7 @@ public class DependencyManagerImpl implements DependencyManager {
 
         this.loaded.put(dependency, file);
 
-        if (dependency.shared()) {
+        if (dependency.visibility() == DependencyVisibility.PUBLIC) {
             if (this.sharedClassPathAppender != null && this.registry.shouldAutoLoad(dependency)) {
                 this.sharedClassPathAppender.addJarToClasspath(file);
             }
@@ -124,47 +124,70 @@ public class DependencyManagerImpl implements DependencyManager {
     private Path downloadDependency(Dependency dependency) throws DependencyDownloadException {
         String fileName = dependency.fileName(null);
         Path file = this.cacheDirectory.resolve(dependency.toLocalPath()).resolve(fileName);
+        cleanOutdatedVersions(dependency, file.getParent());
         // if the file already exists, don't attempt to re-download it.
         if (Files.exists(file)) {
             return file;
         }
-        // before downloading a newer version, delete those outdated files
-        Path versionFolder = file.getParent().getParent();
-        if (Files.exists(versionFolder) && Files.isDirectory(versionFolder)) {
-            String version = dependency.getVersion();
-            try (Stream<Path> dirStream = Files.list(versionFolder)) {
-                dirStream.filter(Files::isDirectory)
-                        .filter(it -> !it.getFileName().toString().equals(version))
-                        .forEach(dir -> {
-                            try {
-                                FileUtils.deleteDirectory(dir);
-                                plugin.logger().info("Cleaned up outdated dependency " + dir);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+        // if the dependency is inside the jar
+        if (dependency.hasJarInJarPath()) {
+            try (InputStream in = this.getClass().getClassLoader().getResourceAsStream(dependency.jarInJarPath())) {
+                if (in != null) {
+                    Files.createDirectories(file.getParent());
+                    Files.copy(in, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    return file;
+                }
+                throw new RuntimeException("Failed to find " + dependency.jarInJarPath());
             } catch (IOException e) {
-                throw new RuntimeException("Failed to clean " + versionFolder, e);
+                throw new RuntimeException("Failed to save " + dependency.jarInJarPath(), e);
             }
         }
-
-        DependencyDownloadException lastError = null;
-        List<DependencyRepository> repository = DependencyRepository.getByID("maven");
-        if (!repository.isEmpty()) {
-            int i = 0;
-            while (i < repository.size()) {
-                try {
-                    plugin.logger().info("Downloading dependency " + repository.get(i).getUrl() + dependency.mavenPath());
-                    repository.get(i).download(dependency, file);
-                    plugin.logger().info("Successfully downloaded " + fileName);
-                    return file;
-                } catch (DependencyDownloadException e) {
-                    lastError = e;
-                    i++;
+        // otherwise we download it
+        else {
+            DependencyDownloadException lastError = null;
+            List<DependencyRepository> repository = DependencyRepository.getByID("maven");
+            if (!repository.isEmpty()) {
+                int i = 0;
+                while (i < repository.size()) {
+                    try {
+                        this.plugin.logger().info("Downloading dependency " + repository.get(i).getUrl() + dependency.mavenPath());
+                        repository.get(i).download(dependency, file);
+                        this.plugin.logger().info("Successfully downloaded " + fileName);
+                        return file;
+                    } catch (DependencyDownloadException e) {
+                        lastError = e;
+                        i++;
+                    }
                 }
             }
+            throw Objects.requireNonNull(lastError);
         }
-        throw Objects.requireNonNull(lastError);
+    }
+
+    private void cleanOutdatedVersions(Dependency dependency, Path currentVersionDirectory) {
+        Path artifactDirectory = currentVersionDirectory.getParent();
+        if (!Files.isDirectory(artifactDirectory)) return;
+
+        Set<Path> loadedVersionDirectories = new HashSet<>();
+        synchronized (this.loaded) {
+            this.loaded.values().forEach(path -> loadedVersionDirectories.add(path.getParent()));
+        }
+        try (DirectoryStream<Path> directories = Files.newDirectoryStream(artifactDirectory)) {
+            for (Path directory : directories) {
+                if (!Files.isDirectory(directory) || directory.equals(currentVersionDirectory)
+                        || loadedVersionDirectories.contains(directory)) continue;
+                try {
+                    FileUtils.deleteDirectory(directory);
+                    if (!dependency.hasJarInJarPath()) {
+                        this.plugin.logger().info("Cleaned up outdated dependency " + directory);
+                    }
+                } catch (IOException | RuntimeException e) {
+                    this.plugin.logger().warn("Failed to clean outdated dependency " + directory, e);
+                }
+            }
+        } catch (IOException e) {
+            this.plugin.logger().warn("Failed to clean outdated dependencies in " + artifactDirectory, e);
+        }
     }
 
     private Path remapDependency(Dependency dependency, Path normalFile) throws Exception {
@@ -176,7 +199,7 @@ public class DependencyManagerImpl implements DependencyManager {
         Path remappedFile = this.cacheDirectory.resolve(dependency.toLocalPath()).resolve(dependency.fileName(DependencyRegistry.isGsonRelocated() ? "remapped-legacy" : "remapped"));
 
         // if the remapped source exists already, just use that.
-        if (Files.exists(remappedFile) && dependency.verify(remappedFile)) {
+        if (Files.exists(remappedFile)) {
             return remappedFile;
         }
 
@@ -233,7 +256,7 @@ public class DependencyManagerImpl implements DependencyManager {
         }
 
         if (firstEx != null) {
-            plugin.logger().severe(firstEx.getMessage(), firstEx);
+            plugin.logger().error(firstEx.getMessage(), firstEx);
         }
     }
 }

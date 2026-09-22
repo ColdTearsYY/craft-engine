@@ -3,18 +3,19 @@ package net.momirealms.craftengine.bukkit.compatibility.item;
 import cn.gtemc.itembridge.api.Provider;
 import cn.gtemc.itembridge.api.context.BuildContext;
 import cn.gtemc.itembridge.api.context.ContextKey;
+import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
+import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
+import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.plugin.compatibility.ItemSource;
 import net.momirealms.craftengine.core.plugin.context.ContextHolder;
 import net.momirealms.craftengine.core.util.VersionHelper;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
 import java.util.function.Supplier;
 
-public class ItemBridgeSource implements ItemSource<ItemStack> {
+public final class ItemBridgeSource implements ItemSource {
     private final Provider<ItemStack, Player> provider;
 
     public ItemBridgeSource(Provider<ItemStack, Player> provider) {
@@ -26,15 +27,18 @@ public class ItemBridgeSource implements ItemSource<ItemStack> {
         return this.provider.plugin();
     }
 
-    @Nullable
     @Override
-    public ItemStack build(String id, ItemBuildContext context) {
+    public Item build(String id, ItemBuildContext context) {
         net.momirealms.craftengine.core.entity.player.Player player = context.player();
         Player bukkitPlayer = null;
         if (player != null) {
             bukkitPlayer = (Player) player.platformPlayer();
         }
-        return this.provider.buildOrNull(id, bukkitPlayer, adapt(context));
+        ItemStack itemStack = this.provider.buildOrNull(id, bukkitPlayer, adapt(context));
+        if (itemStack == null) {
+            return null;
+        }
+        return BukkitItemManager.instance().wrap(itemStack);
     }
 
     private static BuildContext adapt(ItemBuildContext context) {
@@ -44,16 +48,13 @@ public class ItemBridgeSource implements ItemSource<ItemStack> {
             return BuildContext.empty();
         }
         BuildContext.Builder builder = BuildContext.builder();
-        for (Map.Entry<net.momirealms.craftengine.core.plugin.context.ContextKey<?>, Supplier<Object>> entry : contexts.params().entrySet()) {
-            Object value = entry.getValue().get();
-            if (value == null) {
-                continue;
-            }
+        contexts.params().forEach((key, value) -> {
+            if (value == null) return;
             Class<?> type = value.getClass(); // fixme 这个获取办法并不正确，net.momirealms.craftengine.core.plugin.context.ContextKey 应该在创建的时候记录是什么类型
             @SuppressWarnings("unchecked")
-            ContextKey<Object> contextKey = (ContextKey<Object>) ContextKey.of(type, entry.getKey().node());
-            with(builder, contextKey, entry.getValue());
-        }
+            ContextKey<Object> contextKey = (ContextKey<Object>) ContextKey.of(type, key.node());
+            with(builder, contextKey, () -> value);
+        });
         return builder.build();
     }
 
@@ -62,7 +63,7 @@ public class ItemBridgeSource implements ItemSource<ItemStack> {
     }
 
     @Override
-    public String id(ItemStack item) {
-        return this.provider.idOrNull(item);
+    public String id(Item item) {
+        return this.provider.idOrNull(ItemStackUtils.getBukkitStack(item));
     }
 }

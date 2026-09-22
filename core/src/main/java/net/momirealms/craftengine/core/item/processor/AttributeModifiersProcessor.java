@@ -1,15 +1,18 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.attribute.AttributeModifier;
-import net.momirealms.craftengine.core.attribute.Attributes;
-import net.momirealms.craftengine.core.attribute.Attributes1_21;
-import net.momirealms.craftengine.core.item.DataComponentKeys;
+import net.kyori.adventure.text.Component;
+import net.momirealms.craftengine.core.attribute.vanilla.LegacyVanillaAttributes;
+import net.momirealms.craftengine.core.attribute.vanilla.VanillaAttributeModifier;
+import net.momirealms.craftengine.core.attribute.vanilla.VanillaAttributes;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
-import net.momirealms.craftengine.core.util.*;
+import net.momirealms.craftengine.core.plugin.text.minimessage.FormattedLine;
+import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.VersionHelper;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -20,68 +23,68 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     private static final Object[] NBT_PATH = new Object[]{"AttributeModifiers"};
 
     static {
-        if (VersionHelper.isOrAbove1_21_2()) {
-            CONVERTOR.put(Attributes1_21.BURNING_TIME, Attributes.BURNING_TIME);
-            CONVERTOR.put(Attributes1_21.ARMOR, Attributes.ARMOR);
-            CONVERTOR.put(Attributes1_21.ARMOR_TOUGHNESS, Attributes.ARMOR_TOUGHNESS);
-            CONVERTOR.put(Attributes1_21.ATTACK_KNOCKBACK, Attributes.ATTACK_KNOCKBACK);
-            CONVERTOR.put(Attributes1_21.ATTACK_DAMAGE, Attributes.ATTACK_DAMAGE);
-            CONVERTOR.put(Attributes1_21.ATTACK_SPEED, Attributes.ATTACK_SPEED);
-            CONVERTOR.put(Attributes1_21.FLYING_SPEED, Attributes.FLYING_SPEED);
-            CONVERTOR.put(Attributes1_21.FOLLOW_RANGE, Attributes.FOLLOW_RANGE);
-            CONVERTOR.put(Attributes1_21.KNOCKBACK_RESISTANCE, Attributes.KNOCKBACK_RESISTANCE);
-            CONVERTOR.put(Attributes1_21.LUCK, Attributes.LUCK);
-            CONVERTOR.put(Attributes1_21.MAX_ABSORPTION, Attributes.MAX_ABSORPTION);
-            CONVERTOR.put(Attributes1_21.MAX_HEALTH, Attributes.MAX_HEALTH);
-            CONVERTOR.put(Attributes1_21.MOVEMENT_EFFICIENCY, Attributes.MOVEMENT_EFFICIENCY);
-            CONVERTOR.put(Attributes1_21.SCALE, Attributes.SCALE);
-            CONVERTOR.put(Attributes1_21.STEP_HEIGHT, Attributes.STEP_HEIGHT);
-            CONVERTOR.put(Attributes1_21.JUMP_STRENGTH, Attributes.JUMP_STRENGTH);
-            CONVERTOR.put(Attributes1_21.ENTITY_INTERACTION_RANGE, Attributes.ENTITY_INTERACTION_RANGE);
-            CONVERTOR.put(Attributes1_21.BLOCK_INTERACTION_RANGE, Attributes.BLOCK_INTERACTION_RANGE);
-            CONVERTOR.put(Attributes1_21.SPAWN_REINFORCEMENT, Attributes.SPAWN_REINFORCEMENT);
-            CONVERTOR.put(Attributes1_21.BLOCK_BREAK_SPEED, Attributes.BLOCK_BREAK_SPEED);
-            CONVERTOR.put(Attributes1_21.GRAVITY, Attributes.GRAVITY);
-            CONVERTOR.put(Attributes1_21.SAFE_FALL_DISTANCE, Attributes.SAFE_FALL_DISTANCE);
-            CONVERTOR.put(Attributes1_21.FALL_DAMAGE_MULTIPLIER, Attributes.FALL_DAMAGE_MULTIPLIER);
-            CONVERTOR.put(Attributes1_21.EXPLOSION_KNOCKBACK_RESISTANCE, Attributes.EXPLOSION_KNOCKBACK_RESISTANCE);
-            CONVERTOR.put(Attributes1_21.MINING_EFFICIENCY, Attributes.MINING_EFFICIENCY);
-            CONVERTOR.put(Attributes1_21.OXYGEN_BONUS, Attributes.OXYGEN_BONUS);
-            CONVERTOR.put(Attributes1_21.SNEAKING_SPEED, Attributes.SNEAKING_SPEED);
-            CONVERTOR.put(Attributes1_21.SUBMERGED_MINING_SPEED, Attributes.SUBMERGED_MINING_SPEED);
-            CONVERTOR.put(Attributes1_21.SWEEPING_DAMAGE_RATIO, Attributes.SWEEPING_DAMAGE_RATIO);
-            CONVERTOR.put(Attributes1_21.WATER_MOVEMENT_EFFICIENCY, Attributes.WATER_MOVEMENT_EFFICIENCY);
+        if (VersionHelper.isOrAbove1_21_2) {
+            CONVERTOR.put(LegacyVanillaAttributes.BURNING_TIME, VanillaAttributes.BURNING_TIME);
+            CONVERTOR.put(LegacyVanillaAttributes.ARMOR, VanillaAttributes.ARMOR);
+            CONVERTOR.put(LegacyVanillaAttributes.ARMOR_TOUGHNESS, VanillaAttributes.ARMOR_TOUGHNESS);
+            CONVERTOR.put(LegacyVanillaAttributes.ATTACK_KNOCKBACK, VanillaAttributes.ATTACK_KNOCKBACK);
+            CONVERTOR.put(LegacyVanillaAttributes.ATTACK_DAMAGE, VanillaAttributes.ATTACK_DAMAGE);
+            CONVERTOR.put(LegacyVanillaAttributes.ATTACK_SPEED, VanillaAttributes.ATTACK_SPEED);
+            CONVERTOR.put(LegacyVanillaAttributes.FLYING_SPEED, VanillaAttributes.FLYING_SPEED);
+            CONVERTOR.put(LegacyVanillaAttributes.FOLLOW_RANGE, VanillaAttributes.FOLLOW_RANGE);
+            CONVERTOR.put(LegacyVanillaAttributes.KNOCKBACK_RESISTANCE, VanillaAttributes.KNOCKBACK_RESISTANCE);
+            CONVERTOR.put(LegacyVanillaAttributes.LUCK, VanillaAttributes.LUCK);
+            CONVERTOR.put(LegacyVanillaAttributes.MAX_ABSORPTION, VanillaAttributes.MAX_ABSORPTION);
+            CONVERTOR.put(LegacyVanillaAttributes.MAX_HEALTH, VanillaAttributes.MAX_HEALTH);
+            CONVERTOR.put(LegacyVanillaAttributes.MOVEMENT_EFFICIENCY, VanillaAttributes.MOVEMENT_EFFICIENCY);
+            CONVERTOR.put(LegacyVanillaAttributes.SCALE, VanillaAttributes.SCALE);
+            CONVERTOR.put(LegacyVanillaAttributes.STEP_HEIGHT, VanillaAttributes.STEP_HEIGHT);
+            CONVERTOR.put(LegacyVanillaAttributes.JUMP_STRENGTH, VanillaAttributes.JUMP_STRENGTH);
+            CONVERTOR.put(LegacyVanillaAttributes.ENTITY_INTERACTION_RANGE, VanillaAttributes.ENTITY_INTERACTION_RANGE);
+            CONVERTOR.put(LegacyVanillaAttributes.BLOCK_INTERACTION_RANGE, VanillaAttributes.BLOCK_INTERACTION_RANGE);
+            CONVERTOR.put(LegacyVanillaAttributes.SPAWN_REINFORCEMENT, VanillaAttributes.SPAWN_REINFORCEMENT);
+            CONVERTOR.put(LegacyVanillaAttributes.BLOCK_BREAK_SPEED, VanillaAttributes.BLOCK_BREAK_SPEED);
+            CONVERTOR.put(LegacyVanillaAttributes.GRAVITY, VanillaAttributes.GRAVITY);
+            CONVERTOR.put(LegacyVanillaAttributes.SAFE_FALL_DISTANCE, VanillaAttributes.SAFE_FALL_DISTANCE);
+            CONVERTOR.put(LegacyVanillaAttributes.FALL_DAMAGE_MULTIPLIER, VanillaAttributes.FALL_DAMAGE_MULTIPLIER);
+            CONVERTOR.put(LegacyVanillaAttributes.EXPLOSION_KNOCKBACK_RESISTANCE, VanillaAttributes.EXPLOSION_KNOCKBACK_RESISTANCE);
+            CONVERTOR.put(LegacyVanillaAttributes.MINING_EFFICIENCY, VanillaAttributes.MINING_EFFICIENCY);
+            CONVERTOR.put(LegacyVanillaAttributes.OXYGEN_BONUS, VanillaAttributes.OXYGEN_BONUS);
+            CONVERTOR.put(LegacyVanillaAttributes.SNEAKING_SPEED, VanillaAttributes.SNEAKING_SPEED);
+            CONVERTOR.put(LegacyVanillaAttributes.SUBMERGED_MINING_SPEED, VanillaAttributes.SUBMERGED_MINING_SPEED);
+            CONVERTOR.put(LegacyVanillaAttributes.SWEEPING_DAMAGE_RATIO, VanillaAttributes.SWEEPING_DAMAGE_RATIO);
+            CONVERTOR.put(LegacyVanillaAttributes.WATER_MOVEMENT_EFFICIENCY, VanillaAttributes.WATER_MOVEMENT_EFFICIENCY);
         } else {
-            CONVERTOR.put(Attributes.BURNING_TIME, Attributes1_21.BURNING_TIME);
-            CONVERTOR.put(Attributes.ARMOR, Attributes1_21.ARMOR);
-            CONVERTOR.put(Attributes.ARMOR_TOUGHNESS, Attributes1_21.ARMOR_TOUGHNESS);
-            CONVERTOR.put(Attributes.ATTACK_KNOCKBACK, Attributes1_21.ATTACK_KNOCKBACK);
-            CONVERTOR.put(Attributes.ATTACK_DAMAGE, Attributes1_21.ATTACK_DAMAGE);
-            CONVERTOR.put(Attributes.ATTACK_SPEED, Attributes1_21.ATTACK_SPEED);
-            CONVERTOR.put(Attributes.FLYING_SPEED, Attributes1_21.FLYING_SPEED);
-            CONVERTOR.put(Attributes.FOLLOW_RANGE, Attributes1_21.FOLLOW_RANGE);
-            CONVERTOR.put(Attributes.KNOCKBACK_RESISTANCE, Attributes1_21.KNOCKBACK_RESISTANCE);
-            CONVERTOR.put(Attributes.LUCK, Attributes1_21.LUCK);
-            CONVERTOR.put(Attributes.MAX_ABSORPTION, Attributes1_21.MAX_ABSORPTION);
-            CONVERTOR.put(Attributes.MAX_HEALTH, Attributes1_21.MAX_HEALTH);
-            CONVERTOR.put(Attributes.MOVEMENT_EFFICIENCY, Attributes1_21.MOVEMENT_EFFICIENCY);
-            CONVERTOR.put(Attributes.SCALE, Attributes1_21.SCALE);
-            CONVERTOR.put(Attributes.STEP_HEIGHT, Attributes1_21.STEP_HEIGHT);
-            CONVERTOR.put(Attributes.JUMP_STRENGTH, Attributes1_21.JUMP_STRENGTH);
-            CONVERTOR.put(Attributes.ENTITY_INTERACTION_RANGE, Attributes1_21.ENTITY_INTERACTION_RANGE);
-            CONVERTOR.put(Attributes.BLOCK_INTERACTION_RANGE, Attributes1_21.BLOCK_INTERACTION_RANGE);
-            CONVERTOR.put(Attributes.SPAWN_REINFORCEMENT, Attributes1_21.SPAWN_REINFORCEMENT);
-            CONVERTOR.put(Attributes.BLOCK_BREAK_SPEED, Attributes1_21.BLOCK_BREAK_SPEED);
-            CONVERTOR.put(Attributes.GRAVITY, Attributes1_21.GRAVITY);
-            CONVERTOR.put(Attributes.SAFE_FALL_DISTANCE, Attributes1_21.SAFE_FALL_DISTANCE);
-            CONVERTOR.put(Attributes.FALL_DAMAGE_MULTIPLIER, Attributes1_21.FALL_DAMAGE_MULTIPLIER);
-            CONVERTOR.put(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE, Attributes1_21.EXPLOSION_KNOCKBACK_RESISTANCE);
-            CONVERTOR.put(Attributes.MINING_EFFICIENCY, Attributes1_21.MINING_EFFICIENCY);
-            CONVERTOR.put(Attributes.OXYGEN_BONUS, Attributes1_21.OXYGEN_BONUS);
-            CONVERTOR.put(Attributes.SNEAKING_SPEED, Attributes1_21.SNEAKING_SPEED);
-            CONVERTOR.put(Attributes.SUBMERGED_MINING_SPEED, Attributes1_21.SUBMERGED_MINING_SPEED);
-            CONVERTOR.put(Attributes.SWEEPING_DAMAGE_RATIO, Attributes1_21.SWEEPING_DAMAGE_RATIO);
-            CONVERTOR.put(Attributes.WATER_MOVEMENT_EFFICIENCY, Attributes1_21.WATER_MOVEMENT_EFFICIENCY);
+            CONVERTOR.put(VanillaAttributes.BURNING_TIME, LegacyVanillaAttributes.BURNING_TIME);
+            CONVERTOR.put(VanillaAttributes.ARMOR, LegacyVanillaAttributes.ARMOR);
+            CONVERTOR.put(VanillaAttributes.ARMOR_TOUGHNESS, LegacyVanillaAttributes.ARMOR_TOUGHNESS);
+            CONVERTOR.put(VanillaAttributes.ATTACK_KNOCKBACK, LegacyVanillaAttributes.ATTACK_KNOCKBACK);
+            CONVERTOR.put(VanillaAttributes.ATTACK_DAMAGE, LegacyVanillaAttributes.ATTACK_DAMAGE);
+            CONVERTOR.put(VanillaAttributes.ATTACK_SPEED, LegacyVanillaAttributes.ATTACK_SPEED);
+            CONVERTOR.put(VanillaAttributes.FLYING_SPEED, LegacyVanillaAttributes.FLYING_SPEED);
+            CONVERTOR.put(VanillaAttributes.FOLLOW_RANGE, LegacyVanillaAttributes.FOLLOW_RANGE);
+            CONVERTOR.put(VanillaAttributes.KNOCKBACK_RESISTANCE, LegacyVanillaAttributes.KNOCKBACK_RESISTANCE);
+            CONVERTOR.put(VanillaAttributes.LUCK, LegacyVanillaAttributes.LUCK);
+            CONVERTOR.put(VanillaAttributes.MAX_ABSORPTION, LegacyVanillaAttributes.MAX_ABSORPTION);
+            CONVERTOR.put(VanillaAttributes.MAX_HEALTH, LegacyVanillaAttributes.MAX_HEALTH);
+            CONVERTOR.put(VanillaAttributes.MOVEMENT_EFFICIENCY, LegacyVanillaAttributes.MOVEMENT_EFFICIENCY);
+            CONVERTOR.put(VanillaAttributes.SCALE, LegacyVanillaAttributes.SCALE);
+            CONVERTOR.put(VanillaAttributes.STEP_HEIGHT, LegacyVanillaAttributes.STEP_HEIGHT);
+            CONVERTOR.put(VanillaAttributes.JUMP_STRENGTH, LegacyVanillaAttributes.JUMP_STRENGTH);
+            CONVERTOR.put(VanillaAttributes.ENTITY_INTERACTION_RANGE, LegacyVanillaAttributes.ENTITY_INTERACTION_RANGE);
+            CONVERTOR.put(VanillaAttributes.BLOCK_INTERACTION_RANGE, LegacyVanillaAttributes.BLOCK_INTERACTION_RANGE);
+            CONVERTOR.put(VanillaAttributes.SPAWN_REINFORCEMENT, LegacyVanillaAttributes.SPAWN_REINFORCEMENT);
+            CONVERTOR.put(VanillaAttributes.BLOCK_BREAK_SPEED, LegacyVanillaAttributes.BLOCK_BREAK_SPEED);
+            CONVERTOR.put(VanillaAttributes.GRAVITY, LegacyVanillaAttributes.GRAVITY);
+            CONVERTOR.put(VanillaAttributes.SAFE_FALL_DISTANCE, LegacyVanillaAttributes.SAFE_FALL_DISTANCE);
+            CONVERTOR.put(VanillaAttributes.FALL_DAMAGE_MULTIPLIER, LegacyVanillaAttributes.FALL_DAMAGE_MULTIPLIER);
+            CONVERTOR.put(VanillaAttributes.EXPLOSION_KNOCKBACK_RESISTANCE, LegacyVanillaAttributes.EXPLOSION_KNOCKBACK_RESISTANCE);
+            CONVERTOR.put(VanillaAttributes.MINING_EFFICIENCY, LegacyVanillaAttributes.MINING_EFFICIENCY);
+            CONVERTOR.put(VanillaAttributes.OXYGEN_BONUS, LegacyVanillaAttributes.OXYGEN_BONUS);
+            CONVERTOR.put(VanillaAttributes.SNEAKING_SPEED, LegacyVanillaAttributes.SNEAKING_SPEED);
+            CONVERTOR.put(VanillaAttributes.SUBMERGED_MINING_SPEED, LegacyVanillaAttributes.SUBMERGED_MINING_SPEED);
+            CONVERTOR.put(VanillaAttributes.SWEEPING_DAMAGE_RATIO, LegacyVanillaAttributes.SWEEPING_DAMAGE_RATIO);
+            CONVERTOR.put(VanillaAttributes.WATER_MOVEMENT_EFFICIENCY, LegacyVanillaAttributes.WATER_MOVEMENT_EFFICIENCY);
         }
     }
 
@@ -100,37 +103,48 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        List<AttributeModifier> results = new ArrayList<>(this.modifiers.size());
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
+        List<VanillaAttributeModifier> results = new ArrayList<>(this.modifiers.size());
         for (PreModifier modifier : this.modifiers) {
             results.add(modifier.toAttributeModifier(item, context));
         }
-        return item.attributeModifiers(results);
+        item.attributeModifiers(results);
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.ATTRIBUTE_MODIFIERS;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return NBT_PATH;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return "AttributeModifiers";
     }
 
+    @Override
+    public boolean isConstant() {
+        for (PreModifier modifier : this.modifiers) {
+            if (!modifier.isConstant()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public record PreModifier(String type,
-                              AttributeModifier.Slot slot,
+                              VanillaAttributeModifier.Slot slot,
                               Optional<Key> id,
                               NumberProvider amount,
-                              AttributeModifier.Operation operation,
+                              VanillaAttributeModifier.Operation operation,
                               AttributeModifiersProcessor.PreModifier.@Nullable PreDisplay display) {
 
-        public PreModifier(String type, AttributeModifier.Slot slot, Optional<Key> id, NumberProvider amount, AttributeModifier.Operation operation, @Nullable PreDisplay display) {
+        public PreModifier(String type, VanillaAttributeModifier.Slot slot, Optional<Key> id, NumberProvider amount, VanillaAttributeModifier.Operation operation, @Nullable PreDisplay display) {
             this.amount = amount;
             this.type = type;
             this.slot = slot;
@@ -139,15 +153,28 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
             this.display = display;
         }
 
-        public <I> AttributeModifier toAttributeModifier(Item<I> item, ItemBuildContext context) {
-            return new AttributeModifier(this.type, this.slot, this.id.orElseGet(() -> Key.of("craftengine", UUID.randomUUID().toString())),
+        public VanillaAttributeModifier toAttributeModifier(Item item, ItemBuildContext context) {
+            return new VanillaAttributeModifier(this.type, this.slot, this.id.orElseGet(() -> Key.of("craftengine", UUID.randomUUID().toString())),
                     this.amount.getDouble(context), this.operation, this.display == null ? null : this.display.toDisplay(context));
         }
 
-        public record PreDisplay(AttributeModifier.Display.Type type, String value) {
+        public boolean isConstant() {
+            return this.id.isPresent()
+                    && this.amount.isConstant()
+                    && (this.display == null || this.display.isConstant());
+        }
 
-            public AttributeModifier.Display toDisplay(ItemBuildContext context) {
-                return new AttributeModifier.Display(type, AdventureHelper.miniMessage().deserialize(value, context.tagResolvers()));
+        public record PreDisplay(VanillaAttributeModifier.Display.Type type, @Nullable FormattedLine value) {
+
+            public boolean isConstant() {
+                return value == null || value.isConstant();
+            }
+
+            public VanillaAttributeModifier.Display toDisplay(ItemBuildContext context) {
+                if (value == null) {
+                    return new VanillaAttributeModifier.Display(type, Component.empty());
+                }
+                return new VanillaAttributeModifier.Display(type, value.parse(context));
             }
         }
     }
@@ -155,31 +182,27 @@ public final class AttributeModifiersProcessor implements SimpleNetworkItemProce
     private static class Factory implements ItemProcessorFactory<AttributeModifiersProcessor> {
 
         @Override
-        public AttributeModifiersProcessor create(Object arg) {
-            List<PreModifier> attributeModifiers = ResourceConfigUtils.parseConfigAsList(arg, (map) -> {
-                String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.item.data.attribute_modifiers.missing_type");
-                Key nativeType = AttributeModifiersProcessor.getNativeAttributeName(Key.of(type));
-                AttributeModifier.Slot slot = AttributeModifier.Slot.valueOf(map.getOrDefault("slot", "any").toString().toUpperCase(Locale.ENGLISH));
-                Optional<Key> id = Optional.ofNullable(map.get("id")).map(String::valueOf).map(Key::of);
-                NumberProvider amount = NumberProviders.fromObject(ResourceConfigUtils.requireNonNullOrThrow(map.get("amount"), "warning.config.item.data.attribute_modifiers.missing_amount"));
-                AttributeModifier.Operation operation = AttributeModifier.Operation.valueOf(
-                        ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("operation"), "warning.config.item.data.attribute_modifiers.missing_operation").toUpperCase(Locale.ENGLISH)
-                );
+        public AttributeModifiersProcessor create(ConfigValue value) {
+            List<PreModifier> preModifiers = value.getAsList(v -> {
+                ConfigSection section = v.getAsSection();
+                Key nativeType = AttributeModifiersProcessor.getNativeAttributeName(section.getIdentifier("type"));
+                VanillaAttributeModifier.Slot slot = section.getNonNullEnum("slot", VanillaAttributeModifier.Slot.class, s -> VanillaAttributeModifier.Slot.byId(s, VanillaAttributeModifier.Slot.ANY));
+                VanillaAttributeModifier.Operation operation = section.getEnum("operation", VanillaAttributeModifier.Operation.class, VanillaAttributeModifier.Operation.ADD_VALUE);
+                Optional<Key> id = Optional.ofNullable(section.getIdentifier("id"));
+                NumberProvider amount = section.getNonNullNumber("amount");
                 PreModifier.PreDisplay display = null;
-                if (VersionHelper.isOrAbove1_21_6() && map.containsKey("display")) {
-                    Map<String, Object> displayMap = MiscUtils.castToMap(map.get("display"), false);
-                    AttributeModifier.Display.Type displayType = AttributeModifier.Display.Type.valueOf(ResourceConfigUtils.requireNonEmptyStringOrThrow(displayMap.get("type"), "warning.config.item.data.attribute_modifiers.display.missing_type").toUpperCase(Locale.ENGLISH));
-                    if (displayType == AttributeModifier.Display.Type.OVERRIDE) {
-                        String miniMessageValue = ResourceConfigUtils.requireNonEmptyStringOrThrow(displayMap.get("value"), "warning.config.item.data.attribute_modifiers.display.missing_value");
-                        display = new PreModifier.PreDisplay(displayType, miniMessageValue);
+                if (VersionHelper.isOrAbove1_21_6 && section.containsKey("display")) {
+                    ConfigSection displaySection = section.getNonNullSection("display");
+                    VanillaAttributeModifier.Display.Type displayType = displaySection.getNonNullEnum("type", VanillaAttributeModifier.Display.Type.class);
+                    if (displayType == VanillaAttributeModifier.Display.Type.OVERRIDE) {
+                        display = new PreModifier.PreDisplay(displayType, FormattedLine.create(displaySection.getNonNullString("value")));
                     } else {
                         display = new PreModifier.PreDisplay(displayType, null);
                     }
                 }
-                return new PreModifier(nativeType.value(), slot, id,
-                        amount, operation, display);
+                return new PreModifier(nativeType.value(), slot, id, amount, operation, display);
             });
-            return new AttributeModifiersProcessor(attributeModifiers);
+            return new AttributeModifiersProcessor(preModifiers);
         }
     }
 }

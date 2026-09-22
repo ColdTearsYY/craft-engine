@@ -2,14 +2,20 @@ package net.momirealms.craftengine.bukkit.plugin.command.feature;
 
 import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.bukkit.nms.FastNMS;
 import net.momirealms.craftengine.bukkit.plugin.command.BukkitCommandFeature;
 import net.momirealms.craftengine.bukkit.util.ItemStackUtils;
+import net.momirealms.craftengine.bukkit.util.KeyUtils;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
 import net.momirealms.craftengine.core.plugin.command.CraftEngineCommandManager;
 import net.momirealms.craftengine.core.plugin.command.FlagKeys;
 import net.momirealms.craftengine.core.plugin.locale.MessageConstants;
 import net.momirealms.craftengine.core.util.Key;
+import net.momirealms.craftengine.core.util.UniqueKey;
+import net.momirealms.craftengine.proxy.bukkit.craftbukkit.entity.CraftEntityProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.InventoryProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.player.PlayerProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.AbstractContainerMenuProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.inventory.InventoryMenuProxy;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,11 +32,10 @@ import org.incendo.cloud.suggestion.Suggestion;
 import org.incendo.cloud.suggestion.SuggestionProvider;
 
 import java.util.Collection;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-public class ClearItemCommand extends BukkitCommandFeature<CommandSender> {
+public final class ClearItemCommand extends BukkitCommandFeature<CommandSender> {
 
     public ClearItemCommand(CraftEngineCommandManager<CommandSender> commandManager, CraftEngine plugin) {
         super(commandManager, plugin);
@@ -40,7 +45,8 @@ public class ClearItemCommand extends BukkitCommandFeature<CommandSender> {
     public Command.Builder<? extends CommandSender> assembleCommand(CommandManager<CommandSender> manager, Command.Builder<CommandSender> builder) {
         return builder
                 .flag(FlagKeys.SILENT_FLAG)
-                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(true))
+                .flag(FlagKeys.MATCH_TAG_FLAG)
+                .required("player", MultiplePlayerSelectorParser.multiplePlayerSelectorParser(false))
                 .required("id", NamespacedKeyParser.namespacedKeyComponent().suggestionProvider(new SuggestionProvider<>() {
                     @Override
                     public @NonNull CompletableFuture<? extends @NonNull Iterable<? extends @NonNull Suggestion>> suggestionsFuture(@NonNull CommandContext<Object> context, @NonNull CommandInput input) {
@@ -50,22 +56,32 @@ public class ClearItemCommand extends BukkitCommandFeature<CommandSender> {
                 .optional("amount", IntegerParser.integerParser(0))
                 .handler(context -> {
                     MultiplePlayerSelector selector = context.get("player");
+                    Collection<Player> players = selector.values();
                     int amount = context.getOrDefault("amount", -1);
                     NamespacedKey namespacedKey = context.get("id");
-                    Key itemId = Key.of(namespacedKey.namespace(), namespacedKey.value());
-                    Predicate<Object> predicate = nmsStack -> {
-                        Optional<Key> id = BukkitItemManager.instance().wrap(ItemStackUtils.asCraftMirror(nmsStack)).customId();
-                        return id.isPresent() && id.get().equals(itemId);
-                    };
+                    Key idOrTag = KeyUtils.namespacedKeyToKey(namespacedKey);
+                    Predicate<Object> predicate = !context.flags().hasFlag(FlagKeys.MATCH_TAG) ?
+                            nmsStack -> {
+                                Key id = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(nmsStack)).id();
+                                return id.equals(idOrTag);
+                            } :
+                            nmsStack -> {
+                                Key id = BukkitItemManager.instance().wrap(ItemStackUtils.getBukkitStack(nmsStack)).id();
+                                for (UniqueKey key : BukkitItemManager.instance().itemIdsByTag(idOrTag)) {
+                                    if (key.key().equals(id)) {
+                                        return true;
+                                    }
+                                }
+                                return false;
+                            };
                     int totalCount = 0;
-                    Collection<Player> players = selector.values();
                     for (Player player : players) {
-                        Object serverPlayer = FastNMS.INSTANCE.method$CraftPlayer$getHandle(player);
-                        Object inventory = FastNMS.INSTANCE.method$Player$getInventory(serverPlayer);
-                        Object inventoryMenu = FastNMS.INSTANCE.field$Player$inventoryMenu(serverPlayer);
-                        totalCount += FastNMS.INSTANCE.method$Inventory$clearOrCountMatchingItems(inventory, predicate, amount, FastNMS.INSTANCE.method$InventoryMenu$getCraftSlots(inventoryMenu));
-                        FastNMS.INSTANCE.method$AbstractContainerMenu$broadcastChanges(FastNMS.INSTANCE.field$Player$containerMenu(serverPlayer));
-                        FastNMS.INSTANCE.method$InventoryMenu$slotsChanged(inventoryMenu, inventory);
+                        Object serverPlayer = CraftEntityProxy.INSTANCE.getEntity(player);
+                        Object inventory = PlayerProxy.INSTANCE.getInventory(serverPlayer);
+                        Object inventoryMenu = PlayerProxy.INSTANCE.getInventoryMenu(serverPlayer);
+                        totalCount += InventoryProxy.INSTANCE.clearOrCountMatchingItems(inventory, predicate, amount, InventoryMenuProxy.INSTANCE.getCraftSlots(inventoryMenu));
+                        AbstractContainerMenuProxy.INSTANCE.broadcastChanges(PlayerProxy.INSTANCE.getContainerMenu(serverPlayer));
+                        InventoryMenuProxy.INSTANCE.slotsChanged(inventoryMenu, inventory);
                     }
                     if (totalCount == 0) {
                         if (players.size() == 1) {

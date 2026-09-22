@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class WorldParameterProvider implements ChainParameterProvider<World> {
+public final class WorldParameterProvider implements ChainParameterProvider<World> {
+    public static final WorldParameterProvider INSTANCE = new WorldParameterProvider();
     private static final Map<ContextKey<?>, Function<World, Object>> CONTEXT_FUNCTIONS = new HashMap<>();
     static {
         CONTEXT_FUNCTIONS.put(DirectContextParameters.NAME, World::name);

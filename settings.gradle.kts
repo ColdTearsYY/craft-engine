@@ -1,16 +1,18 @@
 rootProject.name = "craft-engine"
-include(":core")
-include(":bukkit")
-include(":bukkit:legacy")
-include(":bukkit:compatibility")
-include(":bukkit:compatibility:legacy")
-include(":bukkit:loader")
-include(":bukkit:paper-loader")
-include(":common-files")
+include(
+    ":core",
+    ":core:adventure",
+    ":common-files",
+    ":bukkit",
+    ":bukkit:legacy",
+    ":bukkit:compatibility",
+    ":bukkit:compatibility:legacy",
+    ":bukkit:loader",
+    ":bukkit:proxy",
+    ":bukkit:paper-loader"
+)
+
 pluginManagement {
-    plugins {
-        kotlin("jvm") version "2.1.20"
-    }
     repositories {
         gradlePluginPortal()
         maven("https://repo.papermc.io/repository/maven-public/")

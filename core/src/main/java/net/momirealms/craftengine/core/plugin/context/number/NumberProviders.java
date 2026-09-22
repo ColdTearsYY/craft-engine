@@ -1,18 +1,21 @@
 package net.momirealms.craftengine.core.plugin.context.number;
 
-import net.momirealms.craftengine.core.plugin.locale.LocalizedResourceConfigException;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
+import net.momirealms.craftengine.core.plugin.config.KnownResourceException;
+import net.momirealms.craftengine.core.plugin.context.Context;
+import net.momirealms.craftengine.core.plugin.context.expression.ContextExpression;
 import net.momirealms.craftengine.core.registry.BuiltInRegistries;
 import net.momirealms.craftengine.core.registry.Registries;
 import net.momirealms.craftengine.core.registry.WritableRegistry;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 import net.momirealms.craftengine.core.util.ResourceKey;
 
 import java.util.Map;
 
 public final class NumberProviders {
-    public static final NumberProviderType<FixedNumberProvider> FIXED = register(Key.ce("fixed"), FixedNumberProvider.FACTORY);
-    public static final NumberProviderType<FixedNumberProvider> CONSTANT = register(Key.ce("constant"), FixedNumberProvider.FACTORY);
+    public static final NumberProviderType<ConstantNumberProvider> FIXED = register(Key.ce("fixed"), ConstantNumberProvider.FACTORY);
+    public static final NumberProviderType<ConstantNumberProvider> CONSTANT = register(Key.ce("constant"), ConstantNumberProvider.FACTORY);
     public static final NumberProviderType<UniformNumberProvider> UNIFORM = register(Key.ce("uniform"), UniformNumberProvider.FACTORY);
     public static final NumberProviderType<ExpressionNumberProvider> EXPRESSION = register(Key.ce("expression"), ExpressionNumberProvider.FACTORY);
     public static final NumberProviderType<GaussianNumberProvider> NORMAL = register(Key.ce("normal"), GaussianNumberProvider.FACTORY);
@@ -35,54 +38,92 @@ public final class NumberProviders {
     }
 
     public static NumberProvider direct(double value) {
-        return new FixedNumberProvider(value);
+        return new ConstantNumberProvider(value);
     }
 
-    public static NumberProvider fromMap(Map<String, Object> map) {
-        String type = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("type"), "warning.config.number.missing_type");
-        Key key = Key.withDefaultNamespace(type, Key.DEFAULT_NAMESPACE);
+    public static NumberProvider fromConfig(ConfigSection section) {
+        String type = section.getNonNullString("type");
+        Key key = Key.ce(type);
         NumberProviderType<? extends NumberProvider> providerType = BuiltInRegistries.NUMBER_PROVIDER_TYPE.getValue(key);
         if (providerType == null) {
-            throw new LocalizedResourceConfigException("warning.config.number.invalid_type", type);
+            throw new KnownResourceException("number.unknown_type", section.assemblePath("type"), type);
         }
-        return providerType.factory().create(map);
+        return providerType.factory().create(section);
     }
 
-    @SuppressWarnings("unchecked")
-    public static NumberProvider fromObject(Object object) {
-        switch (object) {
-            case null -> throw new LocalizedResourceConfigException("warning.config.number.missing_argument");
-            case Number number -> {
-                return new FixedNumberProvider(number.floatValue());
-            }
-            case Boolean bool -> {
-                return new FixedNumberProvider(bool ? 1 : 0);
-            }
-            case Map<?, ?> map -> {
-                return fromMap((Map<String, Object>) map);
-            }
-            default -> {
-                String string = object.toString();
-                if (string.contains("~")) {
-                    int first = string.indexOf('~');
-                    int second = string.indexOf('~', first + 1);
-                    if (second == -1) {
-                        NumberProvider min = fromObject(string.substring(0, first));
-                        NumberProvider max = fromObject(string.substring(first + 1));
-                        return new UniformNumberProvider(min, max);
-                    } else {
-                        throw new LocalizedResourceConfigException("warning.config.number.invalid_format", string);
-                    }
-                } else if (string.contains("<") && string.contains(">") && string.contains(":")) {
-                    return new ExpressionNumberProvider(string);
-                } else {
-                    try {
-                        return new FixedNumberProvider(Float.parseFloat(string));
-                    } catch (NumberFormatException e) {
-                        throw new LocalizedResourceConfigException("warning.config.number.invalid_format", e, string);
-                    }
+    public static NumberProvider fromConfig(ConfigValue value) {
+        return switch (value.value()) {
+            case Number number -> ConstantNumberProvider.constant(number.doubleValue());
+            case Boolean bool -> ConstantNumberProvider.constant(bool ? 1 : 0);
+            case Map<?, ?> ignored -> NumberProviders.fromConfig(value.getAsSection());
+            default -> fromString(value);
+        };
+    }
+
+    private static NumberProvider fromString(ConfigValue value) {
+        String source = value.getAsString().trim();
+        int separator = findRangeSeparator(source);
+        if (separator >= 0) {
+            return new UniformNumberProvider(
+                    parseScalar(value.path(), source.substring(0, separator)),
+                    parseScalar(value.path(), source.substring(separator + 1))
+            );
+        }
+        return parseScalar(value.path(), source);
+    }
+
+    private static NumberProvider parseScalar(String path, String source) {
+        source = source.trim();
+        Double literal = tryParseLiteral(source);
+        if (literal != null) {
+            return ConstantNumberProvider.constant(literal);
+        }
+
+        ContextExpression<Context> expression = ContextExpression.precompile(path, source);
+        ExpressionNumberProvider provider = new ExpressionNumberProvider(expression);
+        return provider.isConstant()
+                ? ConstantNumberProvider.constant(provider.getDouble())
+                : provider;
+    }
+
+    private static int findRangeSeparator(String source) {
+        int separator = -1;
+        int parentheses = 0;
+        char quote = 0;
+        boolean escaped = false;
+        for (int i = 0; i < source.length(); i++) {
+            char current = source.charAt(i);
+            if (quote != 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == quote) {
+                    quote = 0;
                 }
+                continue;
             }
+            if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '(') {
+                parentheses++;
+            } else if (current == ')' && parentheses > 0) {
+                parentheses--;
+            } else if (current == '~' && parentheses == 0) {
+                if (separator >= 0) {
+                    return -1;
+                }
+                separator = i;
+            }
+        }
+        return separator;
+    }
+
+    private static Double tryParseLiteral(String source) {
+        try {
+            return Double.parseDouble(source.trim().replace("_", ""));
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 }

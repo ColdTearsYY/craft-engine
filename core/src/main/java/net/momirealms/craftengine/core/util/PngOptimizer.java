@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 
-public class PngOptimizer {
+public final class PngOptimizer {
     private static final byte[] PNG_SIGNATURE = new byte[] { (byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n' };
     private static final byte[] IDAT = "IDAT".getBytes(StandardCharsets.UTF_8);
     private static final byte[] IEND = "IEND".getBytes(StandardCharsets.UTF_8);
@@ -72,7 +72,7 @@ public class PngOptimizer {
     private ImageColorInfo createColorInfo(final BufferedImage src) {
         final int width = src.getWidth();
         final int height = src.getHeight();
-        boolean isGrayscale = isGrayscale(src);
+        final boolean sourceIsGrayscale = src.getType() == BufferedImage.TYPE_BYTE_GRAY || src.getType() == BufferedImage.TYPE_USHORT_GRAY;
 
         Map<Integer, Integer> ope = new HashMap<>();
         Map<Integer, Integer> tra = new HashMap<>();
@@ -84,12 +84,12 @@ public class PngOptimizer {
                 if (alpha == 255) {
                     ope.put(argb, ope.getOrDefault(argb, 0) + 1);
                 } else {
-                    tra.put(argb, ope.getOrDefault(argb, 0) + 1);
+                    tra.put(argb, tra.getOrDefault(argb, 0) + 1);
                 }
             }
         }
 
-        return new ImageColorInfo(ope, tra, isGrayscale);
+        return new ImageColorInfo(ope, tra, sourceIsGrayscale);
     }
 
     private BufferedImage convertTo8BitRGB(BufferedImage src) {

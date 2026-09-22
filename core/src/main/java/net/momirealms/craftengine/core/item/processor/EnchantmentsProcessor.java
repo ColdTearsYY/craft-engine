@@ -1,13 +1,17 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.*;
-import net.momirealms.craftengine.core.item.data.Enchantment;
+import net.momirealms.craftengine.core.item.Item;
+import net.momirealms.craftengine.core.item.ItemBuildContext;
+import net.momirealms.craftengine.core.item.ItemKeys;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.item.component.value.Enchantment;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,17 +32,23 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
         return merge;
     }
 
+    @Override
+    public boolean isConstant() {
+        return true;
+    }
+
     public List<Enchantment> enchantments() {
         return enchantments;
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
+    public void apply(ItemBuildContext context) {
+        Item item = context.item();
         if (item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK)) {
             if (this.merge) {
                 Optional<List<Enchantment>> previousEnchantments = item.storedEnchantments();
                 if (previousEnchantments.isPresent()) {
-                    return item.setStoredEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
+                    item.setStoredEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
                             .collect(Collectors.toMap(
                                     Enchantment::id,
                                     enchantment -> enchantment,
@@ -48,14 +58,15 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
                             .values()
                             .stream()
                             .toList());
+                    return;
                 }
             }
-            return item.setStoredEnchantments(this.enchantments);
+            item.setStoredEnchantments(this.enchantments);
         } else {
             if (this.merge) {
                 Optional<List<Enchantment>> previousEnchantments = item.enchantments();
                 if (previousEnchantments.isPresent()) {
-                    return item.setEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
+                    item.setEnchantments(Stream.concat(previousEnchantments.get().stream(), this.enchantments.stream())
                             .collect(Collectors.toMap(
                                     Enchantment::id,
                                     enchantment -> enchantment,
@@ -65,42 +76,44 @@ public final class EnchantmentsProcessor implements SimpleNetworkItemProcessor {
                             .values()
                             .stream()
                             .toList());
+                    return;
                 }
             }
-            return item.setEnchantments(this.enchantments);
+            item.setEnchantments(this.enchantments);
         }
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK) ? DataComponentKeys.STORED_ENCHANTMENTS : DataComponentKeys.ENCHANTMENTS;
     }
 
     @Override
-    public <I> Object[] nbtPath(Item<I> item, ItemBuildContext context) {
+    public Object[] nbtPath(Item item, ItemBuildContext context) {
         return item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK) ? STORED_ENCHANTMENTS : ENCHANTMENTS;
     }
 
     @Override
-    public <I> String nbtPathString(Item<I> item, ItemBuildContext context) {
+    public String nbtPathString(Item item, ItemBuildContext context) {
         return item.vanillaId().equals(ItemKeys.ENCHANTED_BOOK) ? "StoredEnchantments" : "Enchantments";
     }
 
     private static class Factory implements ItemProcessorFactory<EnchantmentsProcessor> {
 
         @Override
-        public EnchantmentsProcessor create(Object arg) {
-            Map<String, Object> enchantData = ResourceConfigUtils.getAsMap(arg, "enchantments");
-            List<Enchantment> enchantments = new ArrayList<>();
+        public EnchantmentsProcessor create(ConfigValue value) {
+            ConfigSection section = value.getAsSection();
             boolean merge = false;
-            if (enchantData.containsKey("enchantments")) {
-                merge = ResourceConfigUtils.getAsBoolean(enchantData.get("merge"), "merge");
-                enchantData = ResourceConfigUtils.getAsMap(enchantData.get("enchantments"), "enchantments");
+            ConfigSection enchantSection;
+            if (section.containsKey("merge") || section.containsKey("enchantments")) {
+                merge = section.getBoolean("merge");
+                enchantSection = section.getNonNullSection("enchantments");
+            } else {
+                enchantSection = section;
             }
-            for (Map.Entry<String, Object> e : enchantData.entrySet()) {
-                if (e.getValue() instanceof Number number) {
-                    enchantments.add(new Enchantment(Key.of(e.getKey()), number.intValue()));
-                }
+            List<Enchantment> enchantments = new ArrayList<>();
+            for (String enchantment : enchantSection.keySet()) {
+                enchantments.add(new Enchantment(Key.of(enchantment), enchantSection.getNonNullValue(enchantment, ConfigConstants.ARGUMENT_INT, v -> v.getAsInt(1, 255))));
             }
             return new EnchantmentsProcessor(enchantments, merge);
         }

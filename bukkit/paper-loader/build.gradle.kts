@@ -1,10 +1,14 @@
 import net.minecrell.pluginyml.paper.PaperPluginDescription
+import net.momirealms.nbt
+import net.momirealms.paperServer
+import net.momirealms.versionOf
 import xyz.jpenilla.runpaper.task.RunServer
+import xyz.jpenilla.runtask.pluginsapi.PluginDownloadService
+import xyz.jpenilla.runtask.service.DownloadsAPIService
 
 plugins {
-    id("com.gradleup.shadow") version "9.3.0"
-    id("de.eldoria.plugin-yml.paper") version "0.7.1"
-    id("xyz.jpenilla.run-paper") version "3.0.2"
+    alias(libs.plugins.paper.yml)
+    alias(libs.plugins.run.paper)
 }
 
 repositories {
@@ -16,50 +20,40 @@ repositories {
 }
 
 dependencies {
-    // Platform
-    compileOnly("io.papermc.paper:paper-api:${rootProject.properties["paper_version"]}-R0.1-SNAPSHOT")
+    paperServer(project)
+    nbt(project)
 
     implementation(project(":core"))
-    implementation(project(":bukkit"))
+    implementation(project(":bukkit")) {
+        exclude(group = "net.momirealms", module = "antigrieflib")
+    }
     implementation(project(":bukkit:legacy"))
     implementation(project(":bukkit:compatibility"))
     implementation(project(":bukkit:compatibility:legacy"))
     implementation(project(":common-files"))
 
-    // concurrentutil
-    implementation(files("${rootProject.rootDir}/libs/concurrentutil-${rootProject.properties["concurrent_util_version"]}.jar"))
+    // leafpile
+    implementation(files("${rootProject.rootDir}/libs/leafpile-${versionOf("leafpile")}.jar"))
 
-    implementation("net.momirealms:sparrow-util:${rootProject.properties["sparrow_util_version"]}")
-    implementation("net.momirealms:antigrieflib:${rootProject.properties["anti_grief_version"]}")
-    implementation("net.momirealms:craft-engine-nms-helper-mojmap:${rootProject.properties["nms_helper_version"]}")
-    implementation("cn.gtemc:itembridge:${rootProject.properties["itembridge_version"]}")
-    implementation("cn.gtemc:levelerbridge:${rootProject.properties["levelerbridge_version"]}")
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-    options.release.set(21)
-    dependsOn(tasks.clean)
+    implementation(libs.sparrow.minimessage)
+    implementation(libs.sparrow.util)
+    implementation(libs.nms.helper.mojmap)
+    implementation(libs.itembridge)
+    implementation(libs.levelerbridge)
+    implementation(files("${rootProject.rootDir}/libs/jni-internal-lookup-${versionOf("jni-internal-lookup")}.jar"))
 }
 
 paper {
     load = net.minecrell.pluginyml.bukkit.BukkitPluginDescription.PluginLoadOrder.STARTUP
     main = "net.momirealms.craftengine.bukkit.plugin.PaperCraftEnginePlugin"
     bootstrapper = "net.momirealms.craftengine.bukkit.plugin.PaperCraftEngineBootstrap"
-    version = rootProject.properties["project_version"] as String
+    version = project.version.toString()
     name = "CraftEngine"
     apiVersion = "1.20"
     authors = listOf("XiaoMoMi")
     contributors = listOf("https://github.com/Xiao-MoMi/craft-engine/graphs/contributors")
     foliaSupported = true
+//    hasOpenClassloader = true
     serverDependencies {
         // WorldEdit
         register("WorldEdit") {
@@ -73,10 +67,20 @@ paper {
         }
 
         register("PlaceholderAPI") { required = false }
-        register("Skript") { required = false }
+        register("Skript") {
+            required = false
+            load = PaperPluginDescription.RelativeLoadOrder.AFTER
+        }
+        register("Denizen") {
+            required = false
+            load = PaperPluginDescription.RelativeLoadOrder.AFTER
+        }
         register("LuckPerms") { required = false }
         register("ViaVersion") { required = false }
+        register("Vault") { required = false }
+        register("AxiomPaper") { required = false }
         register("QuickShop-Hikari") { required = false }
+        register("CoreProtect") { required = false }
 
         // PacketEvents
         register("GrimAC") { required = false }
@@ -99,18 +103,27 @@ paper {
         register("BetterModel") { required = false }
 
         // external items
+        register("AdvancedItems") { required = false }
         register("AzureFlow") { required = false }
+        register("Baikiruto") { required = false }
+        register("CrazyVouchers") { required = false }
+        register("CustomCrafting") { required = false }
         register("CustomFishing") { required = false }
+        register("DragonArmourers") { required = false }
         register("EcoArmor") { required = false }
         register("EcoCrates") { required = false }
         register("EcoItems") { required = false }
         register("EcoMobs") { required = false }
         register("EcoPets") { required = false }
         register("EcoScrolls") { required = false }
+        register("EmakiItem") { required = false }
+        register("ExecutableBlocks") { required = false }
         register("ExecutableItems") { required = false }
         register("HeadDatabase") { required = false }
         register("HMCCosmetics") { required = false }
+        register("ItemEdit") { required = false }
         register("ItemsAdder") { required = false }
+        register("ItemsXL") { required = false }
         register("MagicGem") { required = false }
         register("MMOItems") { required = false }
         register("MythicMobs") { required = false }
@@ -164,6 +177,8 @@ paper {
         register("hClaims") { required = false }
         register("Factions") { required = false }
         register("NoBuildPlus") { required = false }
+        register("SimpleClaimSystem") { required = false }
+        register("LandClaimPlugin") { required = false }
     }
 }
 
@@ -173,82 +188,73 @@ artifacts {
 
 tasks {
     shadowJar {
+        relocation.applyCommon(this)
         manifest {
             attributes["paperweight-mappings-namespace"] = "mojang"
         }
-        archiveFileName = "${rootProject.name}-paper-plugin-${rootProject.properties["project_version"]}.jar"
+        from(project(":bukkit:proxy").tasks.shadowJar.flatMap { it.archiveFile })
+        archiveFileName = "${rootProject.name}-paper-plugin-${project.version}.jar"
         destinationDirectory.set(file("$rootDir/target"))
-        relocate("net.kyori", "net.momirealms.craftengine.libraries")
-        relocate("net.momirealms.sparrow.nbt", "net.momirealms.craftengine.libraries.nbt")
-        relocate("net.momirealms.antigrieflib", "net.momirealms.craftengine.libraries.antigrieflib")
-        relocate("cn.gtemc.itembridge", "net.momirealms.craftengine.libraries.itembridge")
-        relocate("cn.gtemc.levelerbridge", "net.momirealms.craftengine.libraries.levelerbridge")
-        relocate("org.incendo", "net.momirealms.craftengine.libraries")
-        relocate("dev.dejvokep", "net.momirealms.craftengine.libraries")
-        relocate("org.bstats", "net.momirealms.craftengine.libraries.bstats")
-        relocate("com.github.benmanes.caffeine", "net.momirealms.craftengine.libraries.caffeine")
-        relocate("com.ezylang.evalex", "net.momirealms.craftengine.libraries.evalex")
-        relocate("net.bytebuddy", "net.momirealms.craftengine.libraries.bytebuddy")
-        relocate("org.yaml.snakeyaml", "net.momirealms.craftengine.libraries.snakeyaml")
-        relocate("org.ahocorasick", "net.momirealms.craftengine.libraries.ahocorasick")
-        relocate("net.jpountz", "net.momirealms.craftengine.libraries.jpountz")
-        relocate("software.amazon.awssdk", "net.momirealms.craftengine.libraries.awssdk")
-        relocate("software.amazon.eventstream", "net.momirealms.craftengine.libraries.eventstream")
-        relocate("com.google.common.jimfs", "net.momirealms.craftengine.libraries.jimfs")
-        relocate("org.apache.commons", "net.momirealms.craftengine.libraries.commons")
-        relocate("io.leangen.geantyref", "net.momirealms.craftengine.libraries.geantyref")
-        relocate("ca.spottedleaf.concurrentutil", "net.momirealms.craftengine.libraries.concurrentutil")
-        relocate("io.netty.handler.codec.http", "net.momirealms.craftengine.libraries.netty.handler.codec.http")
-        relocate("io.netty.handler.codec.rtsp", "net.momirealms.craftengine.libraries.netty.handler.codec.rtsp")
-        relocate("io.netty.handler.codec.spdy", "net.momirealms.craftengine.libraries.netty.handler.codec.spdy")
-        relocate("io.netty.handler.codec.http2", "net.momirealms.craftengine.libraries.netty.handler.codec.http2")
-        relocate("io.github.bucket4j", "net.momirealms.craftengine.libraries.bucket4j")
     }
 }
 
-/**
- * Register Run Dev Server Tasks
- */
 listOf(
-    "1.21.11",
-    "1.21.10",
-    "1.21.8",
-    "1.21.5",
-    "1.21.4",
-    "1.21.2",
-    "1.21.1",
-    "1.20.6",
-    "1.20.4",
-    "1.20.2",
-    "1.20.1",
+    "26.1.2",
+    "26.2",
+    "26.3"
 ).forEach {
-    registerPaperTask(it)
+    registerPaperTask(it, javaVersion = 25)
+}
+
+listOf(
+    "1.21.11", "1.21.10", "1.21.8", "1.21.5", "1.21.4", "1.21.3", "1.21.1",
+    "1.20.6", "1.20.4", "1.20.2", "1.20.1"
+).forEach { version ->
+    registerPaperTask(version)
 }
 
 fun registerPaperTask(
     version: String,
     dirName: String = version,
-    javaVersion : Int = 21,
-    serverJar: File? = null
+    javaVersion: Int = 21,
+    serverJarFile: File? = null
 ) {
-    listOf(version).forEach { taskName ->
-        tasks.register(taskName, RunServer::class) {
-            group = "run dev server"
-            minecraftVersion(version)
-            serverJar?.let { serverJar(it) }
-            pluginJars.from(tasks.shadowJar.flatMap { it.archiveFile })
-            runDirectory = rootProject.layout.projectDirectory.dir("runPaper/${dirName}")
-            javaLauncher = javaToolchains.launcherFor {
-                vendor = JvmVendorSpec.JETBRAINS
-                languageVersion = JavaLanguageVersion.of(javaVersion)
-            }
-            systemProperties["com.mojang.eula.agree"] = true
-            systemProperties["net.momirealms.craftengine.dev"] = true
-            jvmArgs("-Dsun.stdout.encoding=UTF-8")
-            jvmArgs("-Dsun.stderr.encoding=UTF-8")
-            jvmArgs("-Ddisable.watchdog=true")
-            jvmArgs("-Xlog:redefine+class*=info")
-            jvmArgs("-XX:+AllowEnhancedClassRedefinition")
+    fun RunServer.applyCommonConfig() {
+        description = "run dev server"
+        minecraftVersion(version)
+        serverJarFile?.let { serverJar(it) }
+        pluginJars.from(tasks.shadowJar.flatMap { it.archiveFile })
+
+        javaLauncher = javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(javaVersion)
         }
+
+        systemProperties["com.mojang.eula.agree"] = true
+        systemProperties["net.momirealms.craftengine.dev"] = true
+
+        jvmArgs(
+            "-Dorg.bukkit.plugin.java.LibraryLoader.centralURL=https://maven.aliyun.com/repository/central",
+            "-Dsun.stdout.encoding=UTF-8",
+            "-Dsun.stderr.encoding=UTF-8"
+//            "-Ddisable.watchdog=true"
+        )
+    }
+
+    tasks.register<RunServer>("$version-paper") {
+        description = "run dev server"
+        group = "run dev server"
+        runDirectory = rootProject.layout.projectDirectory.dir("runPaper/$dirName")
+        applyCommonConfig()
+    }
+
+    tasks.register<RunServer>("$version-folia") {
+        description = "run dev server"
+        group = "run dev server"
+        runDirectory = rootProject.layout.projectDirectory.dir("runFolia/$dirName")
+
+        downloadsApiService.convention(DownloadsAPIService.folia(project))
+        pluginDownloadService.convention(PluginDownloadService.paper(project))
+
+        applyCommonConfig()
     }
 }

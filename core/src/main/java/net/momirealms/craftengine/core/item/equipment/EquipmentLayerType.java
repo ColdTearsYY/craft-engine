@@ -1,5 +1,8 @@
 package net.momirealms.craftengine.core.item.equipment;
 
+import net.momirealms.craftengine.core.util.StringUtils;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,7 +23,16 @@ public enum EquipmentLayerType {
     NAUTILUS_BODY("nautilus_body"),
     SKELETON_HORSE_SADDLE("skeleton_horse_saddle"),
     ZOMBIE_HORSE_SADDLE("zombie_horse_saddle"),
-    HAPPY_GHAST_BODY("happy_ghast_body");
+    HAPPY_GHAST_BODY("happy_ghast_body"),
+    HUMANOID_BABY("humanoid_baby");
+
+    private static final Map<String, EquipmentLayerType> BY_ID = new HashMap<>();
+
+    static {
+        for (EquipmentLayerType type : EquipmentLayerType.values()) {
+            BY_ID.put(type.id(), type);
+        }
+    }
 
     private final String id;
 
@@ -32,15 +44,8 @@ public enum EquipmentLayerType {
         return id;
     }
 
-    public static final Map<String, EquipmentLayerType> BY_ID = new HashMap<>();
-    static {
-        for (EquipmentLayerType type : EquipmentLayerType.values()) {
-            BY_ID.put(type.id(), type);
-            BY_ID.put(type.id().replace("_", "-"), type);
-        }
-    }
-
+    @Nullable
     public static EquipmentLayerType byId(String id) {
-        return BY_ID.get(id);
+        return BY_ID.get(StringUtils.normalizeSettingsType(id));
     }
 }

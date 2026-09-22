@@ -1,11 +1,10 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.number.NumberProvider;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
 import net.momirealms.craftengine.core.util.Key;
 
 public final class MaxDamageProcessor implements SimpleNetworkItemProcessor {
@@ -17,22 +16,25 @@ public final class MaxDamageProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        item.maxDamage(argument.getInt(context));
-        return item;
+    public void apply(ItemBuildContext context) {
+        context.item().maxDamage(this.argument.getInt(context));
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.MAX_DAMAGE;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return this.argument.isConstant();
     }
 
     private static class Factory implements ItemProcessorFactory<MaxDamageProcessor> {
 
         @Override
-        public MaxDamageProcessor create(Object arg) {
-            NumberProvider numberProvider = NumberProviders.fromObject(arg);
-            return new MaxDamageProcessor(numberProvider);
+        public MaxDamageProcessor create(ConfigValue value) {
+            return new MaxDamageProcessor(value.getAsNumber());
         }
     }
 }

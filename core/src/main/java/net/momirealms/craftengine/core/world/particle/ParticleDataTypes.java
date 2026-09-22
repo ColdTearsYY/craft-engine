@@ -1,75 +1,93 @@
 package net.momirealms.craftengine.core.world.particle;
 
-import net.momirealms.craftengine.core.block.BlockStateWrapper;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.plugin.CraftEngine;
-import net.momirealms.craftengine.core.plugin.context.number.NumberProviders;
-import net.momirealms.craftengine.core.util.Color;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.LazyReference;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
 
 public final class ParticleDataTypes {
-    public static final Map<Key, java.util.function.Function<Map<String, Object>, ParticleData>> TYPES = new HashMap<>();
+    public static final Map<Key, java.util.function.Function<ConfigSection, ParticleData>> TYPES = new HashMap<>();
+    private static final String[] BLOCK_STATE = ConfigKeys.of("blockstate|block_state");
+    private static final String[] TARGET_X = ConfigKeys.of("target_x");
+    private static final String[] TARGET_Y = ConfigKeys.of("target_y");
+    private static final String[] TARGET_Z = ConfigKeys.of("target_z");
+    private static final String[] ARRIVAL_TIME = ConfigKeys.of("arrival_time");
+    private static final String[] WATER_BLOCKS = ConfigKeys.of("blocks|water_blocks");
+    private static final String[] BURST_IMPULSE_BASE = ConfigKeys.of("base|burst_impulse_base");
+    private static final String[] ROLL = ConfigKeys.of("roll|charge");
 
     static {
-        registerParticleData(map -> new BlockStateData(
-                        LazyReference.lazyReference(new Supplier<>() {
-                            final String blockState = ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("block-state"), "warning.config.function.particle.missing_block_state");
-                            @Override
-                            public BlockStateWrapper get() {
-                                return CraftEngine.instance().blockManager().createBlockState(this.blockState);
-                            }
-                        })),
+        registerParticleData(section -> {
+                    final String blockState = section.getNonNullString(BLOCK_STATE);
+                    return new BlockStateData(LazyReference.untilNotNull(() -> CraftEngine.instance().blockManager().createBlockState(blockState)));
+                },
                 ParticleTypes.BLOCK, ParticleTypes.FALLING_DUST, ParticleTypes.DUST_PILLAR, ParticleTypes.BLOCK_CRUMBLE, ParticleTypes.BLOCK_MARKER);
-        registerParticleData(map -> new ColorData(
-                        Color.fromStrings(ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("color"), "warning.config.function.particle.missing_color").split(","))),
-                ParticleTypes.ENTITY_EFFECT, ParticleTypes.TINTED_LEAVES);
-        registerParticleData(map -> new JavaTypeData(
-                        ResourceConfigUtils.getAsFloat(map.get("charge"), "charge")),
-                ParticleTypes.SCULK_CHARGE);
-        registerParticleData(map -> new JavaTypeData(
-                        ResourceConfigUtils.getAsInt(map.get("shriek"), "shriek")),
-                ParticleTypes.SHRIEK);
-        registerParticleData(map -> new DustData(
-                        Color.fromStrings(ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("color"), "warning.config.function.particle.missing_color").split(",")),
-                        ResourceConfigUtils.getAsFloat(map.getOrDefault("scale", 1), "scale")),
-                ParticleTypes.DUST);
-        registerParticleData(map -> new DustTransitionData(
-                        Color.fromStrings(ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("from"), "warning.config.function.particle.missing_from").split(",")),
-                        Color.fromStrings(ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("to"), "warning.config.function.particle.missing_to").split(",")),
-                        ResourceConfigUtils.getAsFloat(map.getOrDefault("scale", 1), "scale")),
-                ParticleTypes.DUST_COLOR_TRANSITION);
-        registerParticleData(map -> new ItemStackData(
-                        LazyReference.lazyReference(new Supplier<>() {
-                            final Key itemId = Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("item"), "warning.config.function.particle.missing_item"));
-                            @Override
-                            public Item<?> get() {
-                                return CraftEngine.instance().itemManager().createWrappedItem(this.itemId, null);
-                            }
-                        })
+        registerParticleData(section -> new ColorData(
+                        section.getNonNullValue("color", ConfigConstants.ARGUMENT_COLOR).getAsColor()
                 ),
+                ParticleTypes.ENTITY_EFFECT, ParticleTypes.TINTED_LEAVES);
+        registerParticleData(section -> new SculkChargeData(
+                        section.getFloat(ROLL)
+                ),
+                ParticleTypes.SCULK_CHARGE);
+        registerParticleData(section -> new GeyserData(
+                        section.getInt(WATER_BLOCKS)
+                ),
+                ParticleTypes.GEYSER, ParticleTypes.GEYSER_PLUME);
+        registerParticleData(section -> new GeyserBaseData(
+                        section.getInt(WATER_BLOCKS),
+                        section.getFloat(BURST_IMPULSE_BASE)
+                ),
+                ParticleTypes.GEYSER_BASE, ParticleTypes.GEYSER_POOF);
+        registerParticleData(section -> new ShriekData(
+                        section.getInt("shriek")
+                ),
+                ParticleTypes.SHRIEK);
+        registerParticleData(section -> new DustData(
+                        section.getNonNullValue("color", ConfigConstants.ARGUMENT_COLOR).getAsColor(),
+                        section.getFloat("scale", 1f)
+                ),
+                ParticleTypes.DUST);
+        registerParticleData(section -> new DustTransitionData(
+                        section.getNonNullValue("from", ConfigConstants.ARGUMENT_COLOR).getAsColor(),
+                        section.getNonNullValue("to", ConfigConstants.ARGUMENT_COLOR).getAsColor(),
+                        section.getFloat("scale", 1f)
+                ),
+                ParticleTypes.DUST_COLOR_TRANSITION);
+        registerParticleData(section -> {
+                    final Key itemId = section.getNonNullIdentifier("item");
+                    return new ItemStackData(LazyReference.untilNotNull(() -> Item.byId(itemId)));
+                },
                 ParticleTypes.ITEM);
-        registerParticleData(map -> new VibrationData(
-                        NumberProviders.fromObject(map.getOrDefault("target-x", 0)),
-                        NumberProviders.fromObject(map.getOrDefault("target-y", 0)),
-                        NumberProviders.fromObject(map.getOrDefault("target-z", 0)),
-                        NumberProviders.fromObject(map.getOrDefault("arrival-time", 10))),
+        registerParticleData(section -> new VibrationData(
+                        section.getNumber(TARGET_X, ConfigConstants.CONSTANT_ZERO),
+                        section.getNumber(TARGET_Y, ConfigConstants.CONSTANT_ZERO),
+                        section.getNumber(TARGET_Z, ConfigConstants.CONSTANT_ZERO),
+                        section.getNumber(ARRIVAL_TIME, ConfigConstants.CONSTANT_TEN)
+                ),
                 ParticleTypes.VIBRATION);
-        registerParticleData(map -> new TrailData(
-                        NumberProviders.fromObject(map.getOrDefault("target-x", 0)),
-                        NumberProviders.fromObject(map.getOrDefault("target-y", 0)),
-                        NumberProviders.fromObject(map.getOrDefault("target-z", 0)),
-                        Color.fromStrings(ResourceConfigUtils.requireNonEmptyStringOrThrow(map.get("color"), "warning.config.function.particle.missing_color").split(",")),
-                        NumberProviders.fromObject(map.getOrDefault("duration", 10))),
+        registerParticleData(section -> new TrailData(
+                        section.getNumber(TARGET_X, ConfigConstants.CONSTANT_ZERO),
+                        section.getNumber(TARGET_Y, ConfigConstants.CONSTANT_ZERO),
+                        section.getNumber(TARGET_Z, ConfigConstants.CONSTANT_ZERO),
+                        section.getNonNullValue("color", ConfigConstants.ARGUMENT_COLOR).getAsColor(),
+                        section.getNumber("duration", ConfigConstants.CONSTANT_TEN)
+                ),
                 ParticleTypes.TRAIL);
+        registerParticleData(section -> new SpellParticleData(
+                        section.getNonNullValue("color", ConfigConstants.ARGUMENT_COLOR).getAsColor(),
+                        section.getFloat("power", 1f)
+                ),
+                ParticleTypes.SPELL);
     }
 
-    public static void registerParticleData(java.util.function.Function<Map<String, Object>, ParticleData> function, Key... types) {
+    public static void registerParticleData(java.util.function.Function<ConfigSection, ParticleData> function, Key... types) {
         for (Key type : types) {
             TYPES.put(type, function);
         }

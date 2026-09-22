@@ -1,23 +1,31 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.element;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.momirealms.craftengine.bukkit.nms.FastNMS;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.CoreReflections;
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.MEntityTypes;
+import net.momirealms.craftengine.bukkit.util.EntityUtils;
+import net.momirealms.craftengine.bukkit.util.PacketUtils;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
+import net.momirealms.craftengine.core.entity.furniture.data.FurnitureDataResolver;
+import net.momirealms.craftengine.core.entity.furniture.data.ItemPatch;
+import net.momirealms.craftengine.core.entity.furniture.element.TransformableFurnitureElement;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.world.Vec3d;
 import net.momirealms.craftengine.core.world.WorldPosition;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundAddEntityPacketProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacketProxy;
+import net.momirealms.craftengine.proxy.minecraft.network.protocol.game.ClientboundSetEntityDataPacketProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EntityTypesProxy;
+import net.momirealms.craftengine.proxy.minecraft.world.phys.Vec3Proxy;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 
-public final class ItemFurnitureElement extends AbstractFurnitureElement {
+public final class ItemFurnitureElement extends AbstractConditionalFurnitureElement implements TransformableFurnitureElement {
     public final ItemFurnitureElementConfig config;
     public final Furniture furniture;
+    public final FurnitureDataResolver<ItemPatch> itemPatch;
+    public final WorldPosition position;
     public final int entityId1;
     public final int entityId2;
     public final Object despawnPacket;
@@ -25,24 +33,28 @@ public final class ItemFurnitureElement extends AbstractFurnitureElement {
     public final Object cachedSpawnPacket2;
     public final Object cachedRidePacket;
 
-    ItemFurnitureElement(Furniture furniture, ItemFurnitureElementConfig config) {
-        super(config.predicate, config.hasCondition);
+    ItemFurnitureElement(Furniture furniture, ItemFurnitureElementConfig config, WorldPosition pos) {
+        this(furniture, config, pos, EntityUtils.ENTITY_COUNTER.incrementAndGet(), EntityUtils.ENTITY_COUNTER.incrementAndGet());
+    }
+
+    ItemFurnitureElement(Furniture furniture, ItemFurnitureElementConfig config, WorldPosition pos, int entityId1, int entityId2) {
+        super(config.predicate);
         this.furniture = furniture;
+        this.itemPatch = config.createItemPatch(furniture);
         this.config = config;
-        this.entityId1 = CoreReflections.instance$Entity$ENTITY_COUNTER.incrementAndGet();
-        this.entityId2 = CoreReflections.instance$Entity$ENTITY_COUNTER.incrementAndGet();
-        WorldPosition furniturePos = furniture.position();
-        Vec3d position = Furniture.getRelativePosition(furniturePos, config.position);
-        this.cachedSpawnPacket1 = FastNMS.INSTANCE.constructor$ClientboundAddEntityPacket(
+        this.entityId1 = entityId1;
+        this.entityId2 = entityId2;
+        this.position = pos;
+        this.cachedSpawnPacket1 = ClientboundAddEntityPacketProxy.INSTANCE.newInstance(
                 entityId1, UUID.randomUUID(), position.x, position.y, position.z,
-                0, 0, MEntityTypes.ITEM_DISPLAY, 0, CoreReflections.instance$Vec3$Zero, 0
+                0, 0, EntityTypesProxy.ITEM_DISPLAY, 0, Vec3Proxy.ZERO, 0
         );
-        this.cachedSpawnPacket2 = FastNMS.INSTANCE.constructor$ClientboundAddEntityPacket(
+        this.cachedSpawnPacket2 = ClientboundAddEntityPacketProxy.INSTANCE.newInstance(
                 entityId2, UUID.randomUUID(), position.x, position.y, position.z,
-                0, 0, MEntityTypes.ITEM, 0, CoreReflections.instance$Vec3$Zero, 0
+                0, 0, EntityTypesProxy.ITEM, 0, Vec3Proxy.ZERO, 0
         );
-        this.cachedRidePacket = FastNMS.INSTANCE.constructor$ClientboundSetPassengersPacket(entityId1, entityId2);
-        this.despawnPacket = FastNMS.INSTANCE.constructor$ClientboundRemoveEntitiesPacket(MiscUtils.init(new IntArrayList(),
+        this.cachedRidePacket = PacketUtils.createClientboundSetPassengersPacket(entityId1, entityId2);
+        this.despawnPacket = ClientboundRemoveEntitiesPacketProxy.INSTANCE.newInstance(MiscUtils.init(new IntArrayList(),
                 a -> {
                     a.add(entityId1);
                     a.add(entityId2);
@@ -61,7 +73,7 @@ public final class ItemFurnitureElement extends AbstractFurnitureElement {
                 this.cachedSpawnPacket1,
                 this.cachedSpawnPacket2,
                 this.cachedRidePacket,
-                FastNMS.INSTANCE.constructor$ClientboundSetEntityDataPacket(this.entityId2, this.config.metadata.apply(player, this.furniture.dataAccessor.getColorSource())
+                ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(this.entityId2, this.config.metadata.apply(player, this.itemPatch)
         )), false);
     }
 
@@ -71,18 +83,31 @@ public final class ItemFurnitureElement extends AbstractFurnitureElement {
     }
 
     @Override
-    public void refresh(Player player) {
-        player.sendPacket(FastNMS.INSTANCE.constructor$ClientboundSetEntityDataPacket(this.entityId2, this.config.metadata.apply(player, this.furniture.dataAccessor.getColorSource())), false);
+    public void update(Player player) {
+        player.sendPacket(ClientboundSetEntityDataPacketProxy.INSTANCE.newInstance(this.entityId2, this.config.metadata.apply(player, this.itemPatch)), false);
     }
 
     @Override
-    public int[] virtualEntityIds() {
-        return new int[] {this.entityId1, this.entityId2};
+    public void gatherInteractableEntityId(IntConsumer collector) {
+    }
+
+
+    @Override
+    public int entityId() {
+        return this.entityId1;
     }
 
     @Override
-    public void collectVirtualEntityId(Consumer<Integer> collector) {
-        collector.accept(this.entityId1);
-        collector.accept(this.entityId2);
+    public void update(Player player, TransformableFurnitureElement previous) {
+        // 按玩家实际已显示的位置比较，允许跳过中间变体快照。
+        if (!this.position.equals(previous.position())) {
+            player.sendPacket(EntityUtils.createUpdatePosPacket(this.entityId1, this.position.x, this.position.y, this.position.z, 0, 0, false), false);
+        }
+        this.update(player);
+    }
+
+    @Override
+    public @NotNull WorldPosition position() {
+        return this.position;
     }
 }

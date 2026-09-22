@@ -6,12 +6,12 @@ import org.bukkit.entity.Item;
 
 public class BukkitItemEntity extends BukkitEntity implements ItemEntity {
 
-    public BukkitItemEntity(Item entity) {
+    public BukkitItemEntity(Object entity) {
         super(entity);
     }
 
     @Override
-    public net.momirealms.craftengine.core.item.Item<?> getItem() {
+    public net.momirealms.craftengine.core.item.Item getItem() {
         return BukkitItemManager.instance().wrap(((Item) platformEntity()).getItemStack());
     }
 }

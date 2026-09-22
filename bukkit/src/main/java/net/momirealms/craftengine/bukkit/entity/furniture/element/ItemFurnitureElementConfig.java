@@ -1,90 +1,110 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.element;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.momirealms.craftengine.bukkit.entity.data.ItemEntityData;
-import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
+import net.momirealms.craftengine.bukkit.entity.data.item.ItemEntityData;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureColorSource;
-import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
+import net.momirealms.craftengine.core.entity.furniture.data.FurnitureDataResolver;
+import net.momirealms.craftengine.core.entity.furniture.data.FurnitureDataSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.data.ItemPatch;
+import net.momirealms.craftengine.core.entity.furniture.data.SourceItemComponentsDataSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.ConditionalFurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
+import net.momirealms.craftengine.core.entity.furniture.element.TransformableFurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-import org.bukkit.inventory.ItemStack;
+import net.momirealms.craftengine.core.world.WorldPosition;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-public final class ItemFurnitureElementConfig implements FurnitureElementConfig<ItemFurnitureElement> {
+public final class ItemFurnitureElementConfig implements TransformableFurnitureElementConfig<ItemFurnitureElement> {
     public static final FurnitureElementConfigFactory<ItemFurnitureElement> FACTORY = new Factory();
-    public final BiFunction<Player, FurnitureColorSource, List<Object>> metadata;
+    public final BiFunction<Player, FurnitureDataResolver<ItemPatch>, List<Object>> metadata;
     public final Key itemId;
-    public final boolean applyDyedColor;
+    public final FurnitureDataSourceConfig<ItemPatch> itemPatchSource;
     public final Vector3f position;
     public final Predicate<PlayerContext> predicate;
-    public final boolean hasCondition;
 
     private ItemFurnitureElementConfig(Key itemId,
                                       Vector3f position,
-                                      boolean applyDyedColor,
-                                      Predicate<PlayerContext> predicate,
-                                      boolean hasCondition) {
+                                      FurnitureDataSourceConfig<ItemPatch> itemPatchSource,
+                                      Predicate<PlayerContext> predicate) {
         this.position = position;
-        this.applyDyedColor = applyDyedColor;
+        this.itemPatchSource = itemPatchSource;
         this.itemId = itemId;
-        this.hasCondition = hasCondition;
         this.predicate = predicate;
-        BiFunction<Player, FurnitureColorSource, Item<?>> itemFunction = (player, colorSource) -> {
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
-            if (applyDyedColor && colorSource != null && wrappedItem != null) {
-                Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
-                Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(
-                        FireworkExplosion.Shape.SMALL_BALL,
-                        new IntArrayList(colors),
-                        new IntArrayList(),
-                        false,
-                        false
-                )));
+        BiFunction<Player, FurnitureDataResolver<ItemPatch>, Item> itemFunction = (player, itemPatch) -> {
+            Item wrappedItem = Item.byId(itemId, player);
+            if (itemPatch != null && wrappedItem != null) {
+                ItemPatch patch = itemPatch.resolve();
+                if (patch != null) {
+                    patch.applyTo(wrappedItem);
+                }
             }
-            return Optional.ofNullable(wrappedItem).orElseGet(() -> BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, null));
+            return Optional.ofNullable(wrappedItem).orElseGet(() -> Item.byId(ItemKeys.BARRIER));
         };
         this.metadata = (player, source) -> {
             List<Object> dataValues = new ArrayList<>();
-            ItemEntityData.Item.addEntityData(itemFunction.apply(player, source).getLiteralObject(), dataValues);
+            ItemEntityData.Item.addEntityData(itemFunction.apply(player, source).minecraftItem(), dataValues);
             ItemEntityData.NoGravity.addEntityData(true, dataValues);
             return dataValues;
         };
     }
 
     @Override
-    public ItemFurnitureElement create(@NotNull Furniture furniture) {
-        return new ItemFurnitureElement(furniture, this);
+    public @NotNull ItemFurnitureElement create(@NotNull Furniture furniture, @NotNull WorldPosition pos) {
+        return new ItemFurnitureElement(furniture, this, pos);
+    }
+
+    @Override
+    public @NotNull ItemFurnitureElement transform(@NotNull Furniture furniture, @NotNull ItemFurnitureElement previous, @NotNull WorldPosition pos) {
+        return new ItemFurnitureElement(furniture, this, pos, previous.entityId1, previous.entityId2);
+    }
+
+    @Override
+    public Class<ItemFurnitureElement> elementClass() {
+        return ItemFurnitureElement.class;
+    }
+
+    @Override
+    public @NotNull WorldPosition getPos(@NotNull Furniture furniture) {
+        // Item packets use fixed zero rotation, independent of the furniture's facing.
+        return furniture.placement().position(this.position, 0, 0);
+    }
+
+    public FurnitureDataResolver<ItemPatch> createItemPatch(@NotNull Furniture furniture) {
+        return this.itemPatchSource == null ? null : this.itemPatchSource.bind(furniture);
     }
 
     private static class Factory implements FurnitureElementConfigFactory<ItemFurnitureElement> {
+        private static final String[] APPLY_DYED_COLOR = ConfigKeys.of("apply_dyed_color");
+        private static final String[] TINT_SOURCE = ConfigKeys.of("tint_source(s)|copy_data");
 
         @Override
-        public ItemFurnitureElementConfig create(Map<String, Object> arguments) {
-            List<Condition<PlayerContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+        public ItemFurnitureElementConfig create(ConfigSection section) {
+            List<Condition<PlayerContext>> conditions = section.getSectionList(ConfigKeys.of("condition(s)"), CommonConditions::fromConfig);
+            boolean legacyTintSource = section.getBoolean(APPLY_DYED_COLOR, false);
             return new ItemFurnitureElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.furniture.element.item.missing_item")),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0f), "position"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("apply-dyed-color", true), "apply-dyed-color"),
-                    MiscUtils.allOf(conditions),
-                    !conditions.isEmpty()
+                    section.getNonNullIdentifier("item"),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    legacyTintSource ?
+                            SourceItemComponentsDataSourceConfig.create(List.of(DataComponentKeys.DYED_COLOR, DataComponentKeys.FIREWORK_EXPLOSION)) :
+                            section.getValue(TINT_SOURCE, SourceItemComponentsDataSourceConfig::fromConfig, SourceItemComponentsDataSourceConfig.DEFAULT),
+                    conditions.isEmpty() ? ConditionalFurnitureElement.ALWAYS_VISIBLE : MiscUtils.allOf(conditions)
             );
         }
     }

@@ -3,8 +3,8 @@ package net.momirealms.craftengine.bukkit.util;
 import net.momirealms.craftengine.core.util.DamageSource;
 import org.bukkit.event.entity.EntityDamageEvent;
 
+@SuppressWarnings("deprecation")
 public final class DamageCauseUtils {
-    
     private DamageCauseUtils() {}
 
     public static EntityDamageEvent.DamageCause toBukkit(DamageSource cause) {

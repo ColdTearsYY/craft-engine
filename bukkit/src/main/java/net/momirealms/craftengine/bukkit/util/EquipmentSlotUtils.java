@@ -1,21 +1,24 @@
 package net.momirealms.craftengine.bukkit.util;
 
-import net.momirealms.craftengine.bukkit.plugin.reflection.minecraft.CoreReflections;
+import net.momirealms.craftengine.core.attribute.equipment.EquipmentSetSlot;
 import net.momirealms.craftengine.core.entity.EquipmentSlot;
+import net.momirealms.craftengine.proxy.minecraft.world.entity.EquipmentSlotProxy;
 
 public final class EquipmentSlotUtils {
+    public static final org.bukkit.inventory.EquipmentSlot[] ARMOR_SLOTS = {org.bukkit.inventory.EquipmentSlot.HEAD, org.bukkit.inventory.EquipmentSlot.CHEST, org.bukkit.inventory.EquipmentSlot.LEGS, org.bukkit.inventory.EquipmentSlot.FEET};
+
     private EquipmentSlotUtils() {}
 
     public static Object toNMSEquipmentSlot(EquipmentSlot equipmentSlot) {
         return switch (equipmentSlot) {
-            case MAINHAND -> CoreReflections.instance$EquipmentSlot$MAINHAND;
-            case OFFHAND -> CoreReflections.instance$EquipmentSlot$OFFHAND;
-            case FEET -> CoreReflections.instance$EquipmentSlot$FEET;
-            case LEGS -> CoreReflections.instance$EquipmentSlot$LEGS;
-            case CHEST -> CoreReflections.instance$EquipmentSlot$CHEST;
-            case HEAD -> CoreReflections.instance$EquipmentSlot$HEAD;
-            case BODY -> CoreReflections.instance$EquipmentSlot$BODY;
-            case SADDLE -> CoreReflections.instance$EquipmentSlot$SADDLE;
+            case MAINHAND -> EquipmentSlotProxy.MAINHAND;
+            case OFFHAND -> EquipmentSlotProxy.OFFHAND;
+            case FEET -> EquipmentSlotProxy.FEET;
+            case LEGS -> EquipmentSlotProxy.LEGS;
+            case CHEST -> EquipmentSlotProxy.CHEST;
+            case HEAD -> EquipmentSlotProxy.HEAD;
+            case BODY -> EquipmentSlotProxy.BODY;
+            case SADDLE -> EquipmentSlotProxy.SADDLE;
         };
     }
 
@@ -23,5 +26,18 @@ public final class EquipmentSlotUtils {
         Enum<?> directionEnum = (Enum<?>) equipmentSlot;
         int index = directionEnum.ordinal();
         return EquipmentSlot.values()[index];
+    }
+
+    public static EquipmentSetSlot toEquipmentSetSlot(org.bukkit.inventory.EquipmentSlot equipmentSlot) {
+        return switch (equipmentSlot) {
+            case HAND -> EquipmentSetSlot.MAINHAND;
+            case OFF_HAND -> EquipmentSetSlot.OFFHAND;
+            case FEET -> EquipmentSetSlot.FEET;
+            case LEGS -> EquipmentSetSlot.LEGS;
+            case CHEST -> EquipmentSetSlot.CHEST;
+            case HEAD -> EquipmentSetSlot.HEAD;
+            case BODY -> EquipmentSetSlot.BODY;
+            case SADDLE -> EquipmentSetSlot.SADDLE;
+        };
     }
 }

@@ -2,13 +2,14 @@ package net.momirealms.craftengine.bukkit.plugin;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-public class BukkitCraftEnginePlugin extends JavaPlugin {
+public final class BukkitCraftEnginePlugin extends JavaPlugin {
     private final BukkitCraftEngine plugin;
 
     public BukkitCraftEnginePlugin() {
         this.plugin = new BukkitCraftEngine(this);
         this.plugin.applyDependencies();
         this.plugin.setUpConfigAndLocale();
+        this.plugin.setupProxy();
     }
 
     @Override

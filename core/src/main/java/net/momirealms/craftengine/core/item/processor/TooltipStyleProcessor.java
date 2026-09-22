@@ -1,9 +1,9 @@
 package net.momirealms.craftengine.core.item.processor;
 
-import net.momirealms.craftengine.core.item.DataComponentKeys;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.item.ItemProcessorFactory;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.util.Key;
 
 public final class TooltipStyleProcessor implements SimpleNetworkItemProcessor {
@@ -19,22 +19,25 @@ public final class TooltipStyleProcessor implements SimpleNetworkItemProcessor {
     }
 
     @Override
-    public <I> Item<I> apply(Item<I> item, ItemBuildContext context) {
-        item.tooltipStyle(argument.toString());
-        return item;
+    public void apply(ItemBuildContext context) {
+        context.item().tooltipStyle(argument.toString());
     }
 
     @Override
-    public <I> Key componentType(Item<I> item, ItemBuildContext context) {
+    public Key componentType(Item item, ItemBuildContext context) {
         return DataComponentKeys.TOOLTIP_STYLE;
+    }
+
+    @Override
+    public boolean isConstant() {
+        return true;
     }
 
     private static class Factory implements ItemProcessorFactory<TooltipStyleProcessor> {
 
         @Override
-        public TooltipStyleProcessor create(Object arg) {
-            String id = arg.toString();
-            return new TooltipStyleProcessor(Key.of(id));
+        public TooltipStyleProcessor create(ConfigValue value) {
+            return new TooltipStyleProcessor(value.getAsIdentifier());
         }
     }
 }

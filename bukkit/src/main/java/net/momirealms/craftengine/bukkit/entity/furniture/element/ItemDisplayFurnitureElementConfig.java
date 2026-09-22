@@ -1,26 +1,31 @@
 package net.momirealms.craftengine.bukkit.entity.furniture.element;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import net.momirealms.craftengine.bukkit.entity.data.ItemDisplayEntityData;
-import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
+import net.momirealms.craftengine.bukkit.entity.data.DisplayData;
 import net.momirealms.craftengine.core.entity.display.Billboard;
 import net.momirealms.craftengine.core.entity.display.ItemDisplayContext;
 import net.momirealms.craftengine.core.entity.furniture.Furniture;
-import net.momirealms.craftengine.core.entity.furniture.FurnitureColorSource;
-import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfig;
+import net.momirealms.craftengine.core.entity.furniture.data.FurnitureDataResolver;
+import net.momirealms.craftengine.core.entity.furniture.data.FurnitureDataSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.data.ItemPatch;
+import net.momirealms.craftengine.core.entity.furniture.data.SourceItemComponentsDataSourceConfig;
+import net.momirealms.craftengine.core.entity.furniture.element.ConditionalFurnitureElement;
 import net.momirealms.craftengine.core.entity.furniture.element.FurnitureElementConfigFactory;
+import net.momirealms.craftengine.core.entity.furniture.element.TransformableFurnitureElementConfig;
 import net.momirealms.craftengine.core.entity.player.Player;
 import net.momirealms.craftengine.core.item.Item;
 import net.momirealms.craftengine.core.item.ItemKeys;
-import net.momirealms.craftengine.core.item.data.FireworkExplosion;
+import net.momirealms.craftengine.core.item.component.DataComponentKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigConstants;
+import net.momirealms.craftengine.core.plugin.config.ConfigKeys;
+import net.momirealms.craftengine.core.plugin.config.ConfigSection;
+import net.momirealms.craftengine.core.plugin.config.ConfigValue;
 import net.momirealms.craftengine.core.plugin.context.CommonConditions;
 import net.momirealms.craftengine.core.plugin.context.Condition;
 import net.momirealms.craftengine.core.plugin.context.PlayerContext;
 import net.momirealms.craftengine.core.util.Color;
 import net.momirealms.craftengine.core.util.Key;
 import net.momirealms.craftengine.core.util.MiscUtils;
-import net.momirealms.craftengine.core.util.ResourceConfigUtils;
-import org.bukkit.inventory.ItemStack;
+import net.momirealms.craftengine.core.world.WorldPosition;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
@@ -28,14 +33,13 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
-public final class ItemDisplayFurnitureElementConfig implements FurnitureElementConfig<ItemDisplayFurnitureElement> {
+public final class ItemDisplayFurnitureElementConfig implements TransformableFurnitureElementConfig<ItemDisplayFurnitureElement> {
     public static final FurnitureElementConfigFactory<ItemDisplayFurnitureElement> FACTORY = new Factory();
-    public final BiFunction<Player, FurnitureColorSource, List<Object>> metadata;
+    public final FurnitureMetadataProvider metadata;
     public final Key itemId;
     public final Vector3f scale;
     public final Vector3f position;
@@ -47,13 +51,12 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
     public final Billboard billboard;
     public final float shadowRadius;
     public final float shadowStrength;
-    public final boolean applyDyedColor;
+    public final FurnitureDataSourceConfig<ItemPatch> itemPatchSource;
     public final Color glowColor;
     public final int blockLight;
     public final int skyLight;
     public final float viewRange;
     public final Predicate<PlayerContext> predicate;
-    public final boolean hasCondition;
 
     private ItemDisplayFurnitureElementConfig(Key itemId,
                                              Vector3f scale,
@@ -66,13 +69,12 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
                                              Billboard billboard,
                                              float shadowRadius,
                                              float shadowStrength,
-                                             boolean applyDyedColor,
+                                             FurnitureDataSourceConfig<ItemPatch> itemPatchSource,
                                              @Nullable Color glowColor,
                                              int blockLight,
                                              int skyLight,
                                              float viewRange,
-                                             Predicate<PlayerContext> predicate,
-                                             boolean hasCondition) {
+                                             Predicate<PlayerContext> predicate) {
         this.scale = scale;
         this.position = position;
         this.translation = translation;
@@ -83,80 +85,121 @@ public final class ItemDisplayFurnitureElementConfig implements FurnitureElement
         this.billboard = billboard;
         this.shadowRadius = shadowRadius;
         this.shadowStrength = shadowStrength;
-        this.applyDyedColor = applyDyedColor;
+        this.itemPatchSource = itemPatchSource;
         this.itemId = itemId;
         this.glowColor = glowColor;
         this.blockLight = blockLight;
         this.skyLight = skyLight;
         this.viewRange = viewRange;
         this.predicate = predicate;
-        this.hasCondition = hasCondition;
-        BiFunction<Player, FurnitureColorSource, Item<?>> itemFunction = (player, colorSource) -> {
-            Item<ItemStack> wrappedItem = BukkitItemManager.instance().createWrappedItem(itemId, player);
-            if (applyDyedColor && colorSource != null && wrappedItem != null) {
-                Optional.ofNullable(colorSource.dyedColor()).ifPresent(wrappedItem::dyedColor);
-                Optional.ofNullable(colorSource.fireworkColors()).ifPresent(colors -> wrappedItem.fireworkExplosion(new FireworkExplosion(
-                        FireworkExplosion.Shape.SMALL_BALL,
-                        new IntArrayList(colors),
-                        new IntArrayList(),
-                        false,
-                        false
-                )));
+        BiFunction<Player, FurnitureDataResolver<ItemPatch>, Item> itemFunction = (player, itemPatch) -> {
+            Item wrappedItem = Item.byId(itemId, player);
+            if (itemPatch != null && wrappedItem != null) {
+                ItemPatch patch = itemPatch.resolve();
+                if (patch != null) {
+                    patch.applyTo(wrappedItem);
+                }
             }
-            return Optional.ofNullable(wrappedItem).orElseGet(() -> BukkitItemManager.instance().createWrappedItem(ItemKeys.BARRIER, null));
+            return Optional.ofNullable(wrappedItem).orElseGet(() -> Item.byId(ItemKeys.BARRIER));
         };
-        this.metadata = (player, source) -> {
-            List<Object> dataValues = new ArrayList<>();
-            if (glowColor != null) {
-                ItemDisplayEntityData.SharedFlags.addEntityData((byte) 0x40, dataValues);
-                ItemDisplayEntityData.GlowColorOverride.addEntityData(glowColor.color(), dataValues);
+        Object[] spawnMetadata = createStaticMetadata(false);
+        Object[] updateMetadata = createStaticMetadata(true);
+        this.metadata = (player, source, force) -> {
+            Object[] staticMetadata = force ? updateMetadata : spawnMetadata;
+            List<Object> dataValues = new ArrayList<>(staticMetadata.length + 2);
+            for (Object value : staticMetadata) {
+                dataValues.add(value);
             }
-            ItemDisplayEntityData.DisplayedItem.addEntityData(itemFunction.apply(player, source).getLiteralObject(), dataValues);
-            ItemDisplayEntityData.Scale.addEntityDataIfNotDefaultValue(this.scale, dataValues);
-            ItemDisplayEntityData.RotationLeft.addEntityDataIfNotDefaultValue(this.rotation, dataValues);
-            ItemDisplayEntityData.BillboardConstraints.addEntityDataIfNotDefaultValue(this.billboard.id(), dataValues);
-            ItemDisplayEntityData.Translation.addEntityDataIfNotDefaultValue(this.translation, dataValues);
-            ItemDisplayEntityData.DisplayType.addEntityDataIfNotDefaultValue(this.displayContext.id(), dataValues);
-            ItemDisplayEntityData.ShadowRadius.addEntityDataIfNotDefaultValue(this.shadowRadius, dataValues);
-            ItemDisplayEntityData.ShadowStrength.addEntityDataIfNotDefaultValue(this.shadowStrength, dataValues);
-            if (this.blockLight != -1 && this.skyLight != -1) {
-                ItemDisplayEntityData.BrightnessOverride.addEntityData(this.blockLight << 4 | this.skyLight << 20, dataValues);
-            }
-            ItemDisplayEntityData.ViewRange.addEntityDataIfNotDefaultValue((float) (this.viewRange * player.displayEntityViewDistance()), dataValues);
+            DisplayData.ItemDisplayData.ItemStack.addEntityData(itemFunction.apply(player, source).minecraftItem(), dataValues);
+            DisplayData.ItemDisplayData.ViewRange.addEntityData((float) (this.viewRange * player.displayEntityViewDistance()), dataValues, force);
             return dataValues;
         };
     }
 
+    private Object[] createStaticMetadata(boolean force) {
+        List<Object> dataValues = new ArrayList<>();
+        if (glowColor != null) {
+            DisplayData.ItemDisplayData.SharedFlags.addEntityData((byte) 0x40, dataValues);
+            DisplayData.ItemDisplayData.GlowColorOverride.addEntityData(glowColor.color(), dataValues);
+        } else {
+            DisplayData.ItemDisplayData.SharedFlags.addEntityData((byte) 0x0, dataValues, force);
+            DisplayData.ItemDisplayData.GlowColorOverride.addEntityData(-1, dataValues, force);
+        }
+        DisplayData.ItemDisplayData.Scale.addEntityData(this.scale, dataValues, force);
+        DisplayData.ItemDisplayData.LeftRotation.addEntityData(this.rotation, dataValues, force);
+        DisplayData.ItemDisplayData.BillboardConstraints.addEntityData(this.billboard.id(), dataValues, force);
+        DisplayData.ItemDisplayData.Translation.addEntityData(this.translation, dataValues, force);
+        DisplayData.ItemDisplayData.ItemTransform.addEntityData(this.displayContext.id(), dataValues, force);
+        DisplayData.ItemDisplayData.ShadowRadius.addEntityData(this.shadowRadius, dataValues, force);
+        DisplayData.ItemDisplayData.ShadowStrength.addEntityData(this.shadowStrength, dataValues, force);
+        if (this.blockLight != -1 && this.skyLight != -1) {
+            DisplayData.ItemDisplayData.BrightnessOverride.addEntityData(this.blockLight << 4 | this.skyLight << 20, dataValues);
+        } else {
+            DisplayData.ItemDisplayData.BrightnessOverride.addEntityData(-1, dataValues, force);
+        }
+        return dataValues.toArray();
+    }
+
     @Override
-    public ItemDisplayFurnitureElement create(@NotNull Furniture furniture) {
-        return new ItemDisplayFurnitureElement(furniture, this);
+    public @NotNull ItemDisplayFurnitureElement create(@NotNull Furniture furniture, @NotNull WorldPosition pos) {
+        return new ItemDisplayFurnitureElement(furniture, this, pos);
+    }
+
+    @Override
+    public @NotNull ItemDisplayFurnitureElement transform(@NotNull Furniture furniture, @NotNull ItemDisplayFurnitureElement previous, @NotNull WorldPosition pos) {
+        return new ItemDisplayFurnitureElement(furniture, this, pos, previous.entityId);
+    }
+
+    @Override
+    public Class<ItemDisplayFurnitureElement> elementClass() {
+        return ItemDisplayFurnitureElement.class;
+    }
+
+    @Override
+    public @NotNull WorldPosition getPos(@NotNull Furniture furniture) {
+        return furniture.placement().elementPosition(this.position, this.xRot, this.yRot);
+    }
+
+    public FurnitureDataResolver<ItemPatch> createItemPatch(@NotNull Furniture furniture) {
+        return this.itemPatchSource == null ? null : this.itemPatchSource.bind(furniture);
     }
 
     private static class Factory implements FurnitureElementConfigFactory<ItemDisplayFurnitureElement> {
+        private static final String[] DISPLAY_CONTEXT = ConfigKeys.of("display_(context|transform)");
+        private static final String[] SHADOW_RADIUS = ConfigKeys.of("shadow_radius");
+        private static final String[] SHADOW_STRENGTH = ConfigKeys.of("shadow_strength");
+        private static final String[] APPLY_DYED_COLOR = ConfigKeys.of("apply_dyed_color");
+        private static final String[] GLOW_COLOR = ConfigKeys.of("glow_color");
+        private static final String[] BLOCK_LIGHT = ConfigKeys.of("block_light");
+        private static final String[] SKY_LIGHT = ConfigKeys.of("sky_light");
+        private static final String[] VIEW_RANGE = ConfigKeys.of("view_range");
+        private static final String[] TINT_SOURCE = ConfigKeys.of("tint_source(s)|copy_data");
 
         @Override
-        public ItemDisplayFurnitureElementConfig create(Map<String, Object> arguments) {
-            Map<String, Object> brightness = ResourceConfigUtils.getAsMap(arguments.getOrDefault("brightness", Map.of()), "brightness");
-            List<Condition<PlayerContext>> conditions = ResourceConfigUtils.parseConfigAsList(arguments.get("conditions"), CommonConditions::fromMap);
+        public ItemDisplayFurnitureElementConfig create(ConfigSection section) {
+            ConfigSection brightness = section.getSection("brightness");
+            List<Condition<PlayerContext>> conditions = section.getSectionList(ConfigKeys.of("condition(s)"), CommonConditions::fromConfig);
+            boolean legacyTintSource = section.getBoolean(APPLY_DYED_COLOR, false);
             return new ItemDisplayFurnitureElementConfig(
-                    Key.of(ResourceConfigUtils.requireNonEmptyStringOrThrow(arguments.get("item"), "warning.config.furniture.element.item_display.missing_item")),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("scale", 1f), "scale"),
-                    ResourceConfigUtils.getAsVector3f(arguments.getOrDefault("position", 0f), "position"),
-                    ResourceConfigUtils.getAsVector3f(arguments.get("translation"), "translation"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("pitch", 0f), "pitch"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("yaw", 0f), "yaw"),
-                    ResourceConfigUtils.getAsQuaternionf(arguments.getOrDefault("rotation", 0f), "rotation"),
-                    ResourceConfigUtils.getAsEnum(ResourceConfigUtils.get(arguments, "display-context", "display-transform"), ItemDisplayContext.class, ItemDisplayContext.NONE),
-                    ResourceConfigUtils.getAsEnum(arguments.get("billboard"), Billboard.class, Billboard.FIXED),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-radius", 0f), "shadow-radius"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("shadow-strength", 1f), "shadow-strength"),
-                    ResourceConfigUtils.getAsBoolean(arguments.getOrDefault("apply-dyed-color", true), "apply-dyed-color"),
-                    Optional.ofNullable(arguments.get("glow-color")).map(it -> Color.fromStrings(it.toString().split(","))).orElse(null),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("block-light", -1), "block-light"),
-                    ResourceConfigUtils.getAsInt(brightness.getOrDefault("sky-light", -1), "sky-light"),
-                    ResourceConfigUtils.getAsFloat(arguments.getOrDefault("view-range", 1f), "view-range"),
-                    MiscUtils.allOf(conditions),
-                    !conditions.isEmpty()
+                    section.getNonNullIdentifier("item"),
+                    section.getVector3f("scale", ConfigConstants.NORMAL_SCALE),
+                    section.getVector3f("position", ConfigConstants.ZERO_VECTOR3),
+                    section.getVector3f("translation", ConfigConstants.ZERO_VECTOR3),
+                    section.getFloat("pitch", 0f),
+                    section.getFloat("yaw", 0f),
+                    section.getQuaternion("rotation", ConfigConstants.ZERO_QUATERNION),
+                    section.getEnum(DISPLAY_CONTEXT, ItemDisplayContext.class, ItemDisplayContext.NONE),
+                    section.getEnum("billboard", Billboard.class, Billboard.FIXED),
+                    section.getFloat(SHADOW_RADIUS, 0f),
+                    section.getFloat(SHADOW_STRENGTH, 1f),
+                    legacyTintSource ?
+                            SourceItemComponentsDataSourceConfig.create(List.of(DataComponentKeys.DYED_COLOR, DataComponentKeys.FIREWORK_EXPLOSION)) :
+                            section.getValue(TINT_SOURCE, SourceItemComponentsDataSourceConfig::fromConfig, SourceItemComponentsDataSourceConfig.DEFAULT),
+                    section.getValue(GLOW_COLOR, ConfigValue::getAsColor),
+                    brightness != null ? brightness.getInt(BLOCK_LIGHT, -1) : -1,
+                    brightness != null ? brightness.getInt(SKY_LIGHT, -1) : -1,
+                    section.getFloat(VIEW_RANGE, 1f),
+                    conditions.isEmpty() ? ConditionalFurnitureElement.ALWAYS_VISIBLE : MiscUtils.allOf(conditions)
             );
         }
     }

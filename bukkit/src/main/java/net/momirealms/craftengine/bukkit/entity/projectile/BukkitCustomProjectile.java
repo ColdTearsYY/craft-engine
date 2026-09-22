@@ -1,25 +1,14 @@
 package net.momirealms.craftengine.bukkit.entity.projectile;
 
+import net.momirealms.craftengine.bukkit.api.BukkitAdaptor;
 import net.momirealms.craftengine.core.entity.projectile.AbstractCustomProjectile;
 import net.momirealms.craftengine.core.entity.projectile.ProjectileMeta;
 import net.momirealms.craftengine.core.item.Item;
 import org.bukkit.entity.Projectile;
-import org.bukkit.inventory.ItemStack;
 
-public class BukkitCustomProjectile extends AbstractCustomProjectile {
+public final class BukkitCustomProjectile extends AbstractCustomProjectile {
 
-    public BukkitCustomProjectile(ProjectileMeta meta, Projectile projectile, Item<ItemStack> projectileItem) {
-        super(meta, new BukkitProjectile(projectile), projectileItem);
-    }
-
-    @Override
-    public BukkitProjectile projectile() {
-        return (BukkitProjectile) super.projectile();
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public Item<ItemStack> item() {
-        return (Item<ItemStack>) item;
+    public BukkitCustomProjectile(ProjectileMeta meta, Projectile projectile, Item projectileItem) {
+        super(meta, BukkitAdaptor.adapt(projectile), projectileItem);
     }
 }

@@ -9,7 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class FurnitureParameterProvider implements ChainParameterProvider<Furniture> {
+public final class FurnitureParameterProvider implements ChainParameterProvider<Furniture> {
+    public static final FurnitureParameterProvider INSTANCE = new FurnitureParameterProvider();
     private static final Map<ContextKey<?>, Function<Furniture, Object>> CONTEXT_FUNCTIONS = new HashMap<>();
     static {
         CONTEXT_FUNCTIONS.put(DirectContextParameters.ID, f -> f.config().id());
@@ -25,7 +26,7 @@ public class FurnitureParameterProvider implements ChainParameterProvider<Furnit
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> Optional<T> getOptionalParameter(ContextKey<T> parameter, Furniture world) {
-        return (Optional<T>) Optional.ofNullable(CONTEXT_FUNCTIONS.get(parameter)).map(f -> f.apply(world));
+    public <T> Optional<T> getOptionalParameter(ContextKey<T> parameter, Furniture furniture) {
+        return (Optional<T>) Optional.ofNullable(CONTEXT_FUNCTIONS.get(parameter)).map(f -> f.apply(furniture));
     }
 }
